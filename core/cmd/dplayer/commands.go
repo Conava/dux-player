@@ -11,6 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/Conava/dux-player/core/internal/ipc"
 	"github.com/Conava/dux-player/core/internal/player"
 )
 
@@ -49,7 +50,9 @@ func showWindow() error {
 		params["shellDir"] = abs
 		// A daemon this starts takes the tree from its environment: it
 		// runs a tree from IPC only in a dev build.
-		os.Setenv("DPLAYER_SHELL_DIR", abs)
+		if err := os.Setenv("DPLAYER_SHELL_DIR", abs); err != nil {
+			return err
+		}
 	}
 	return call(true, "ui.show", params, nil)
 }
@@ -344,10 +347,18 @@ var quitCmd = &cobra.Command{
 	Short: "Stop the daemon and playback",
 	Args:  cobra.NoArgs,
 	RunE: func(_ *cobra.Command, _ []string) error {
-		err := call(false, "daemon.quit", nil, nil)
-		if err != nil {
+		if err := call(false, "daemon.quit", nil, nil); err != nil {
 			fmt.Fprintln(os.Stderr, err)
+			return nil
 		}
+		// The daemon replies before it shuts down; wait for its socket to go,
+		// so a window started right after can't attach to the old one.
+		for deadline := time.Now().Add(10 * time.Second); time.Now().Before(deadline); time.Sleep(100 * time.Millisecond) {
+			if _, err := ipc.FindRunningSocket(); err != nil {
+				return nil
+			}
+		}
+		fmt.Fprintln(os.Stderr, "the daemon is still shutting down")
 		return nil
 	},
 }

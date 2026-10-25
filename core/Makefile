@@ -1,10 +1,13 @@
 BINARY_NAME=dplayer
+# the dev build has no embedded UI; its own name keeps `make install` from ever picking it up
+DEV_NAME=dplayer-dev
 SOURCE_DIR=cmd/dplayer
 BUILD_DIR=bin
 SHELL_SRC=../quickshell
 EMBED_DIR=internal/shellembed/dist
 
 GO=go
+GOLANGCI_LINT=github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
 
 BASE_VERSION=$(or $(shell git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//'),0.0.1-alpha)
 COMMIT_COUNT=$(shell git rev-list --count HEAD 2>/dev/null || echo "0")
@@ -13,8 +16,7 @@ VERSION?=$(BASE_VERSION)+git$(COMMIT_COUNT).$(COMMIT_HASH)
 BUILD_TIME?=$(shell date -u '+%Y-%m-%d_%H:%M:%S')
 COMMIT?=$(COMMIT_HASH)
 
-SCROBBLE_PKG=github.com/Conava/dux-player/core/internal/scrobble
-BUILD_LDFLAGS=-ldflags='-s -w -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.Commit=$(COMMIT) -X $(SCROBBLE_PKG).LastFMAPIKey=$(LASTFM_API_KEY) -X $(SCROBBLE_PKG).LastFMAPISecret=$(LASTFM_API_SECRET)'
+BUILD_LDFLAGS=-ldflags='-s -w -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.Commit=$(COMMIT)'
 
 .PHONY: all build dev sync-shell clean test cover fmt vet lint deps help
 
@@ -38,7 +40,7 @@ build: sync-shell
 
 dev:
 	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=0 $(GO) build -o $(BUILD_DIR)/$(BINARY_NAME) ./$(SOURCE_DIR)
+	CGO_ENABLED=0 $(GO) build -o $(BUILD_DIR)/$(DEV_NAME) ./$(SOURCE_DIR)
 
 clean:
 	@rm -rf $(BUILD_DIR) $(EMBED_DIR)
@@ -58,6 +60,8 @@ vet:
 
 lint: vet
 	@out="$$(gofmt -s -l cmd internal)"; [ -z "$$out" ] || { echo "not gofmt -s clean (run make fmt):"; echo "$$out"; exit 1; }
+	@$(GO) mod tidy -diff || { echo "go.mod/go.sum not tidy (run make deps)"; exit 1; }
+	CGO_ENABLED=0 $(GO) run $(GOLANGCI_LINT) run
 
 deps:
 	$(GO) mod tidy

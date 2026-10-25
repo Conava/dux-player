@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           pacman-key --init
-          pacman -Syu --noconfirm --needed git make go nodejs python quickshell qt6-declarative
+          pacman -Syu --noconfirm --needed git make diffutils go nodejs python quickshell qt6-declarative
           mkdir -m 700 -p "$XDG_RUNTIME_DIR"
 
       - name: Record versions

@@ -25,33 +25,22 @@ func (s *Service) ConnectListenBrainz(ctx context.Context, token string) error {
 	return s.update(func(st *Settings) { st.ListenBrainz = Account{Connected: true, Enabled: true, User: user} })
 }
 
-// StartLastFM starts the desktop auth flow with the user's own API account
-// (stored as an override) or, given none, the build's. The user approves
-// at the returned page, then FinishLastFM gets the session.
+// StartLastFM starts the desktop auth flow with the user's own API account,
+// stored in the keyring. The user approves at the returned page, then
+// FinishLastFM gets the session.
 func (s *Service) StartLastFM(ctx context.Context, apiKey, apiSecret string) (string, error) {
 	k := lastFMKeys{key: strings.TrimSpace(apiKey), secret: strings.TrimSpace(apiSecret)}
-	own := k.key != "" || k.secret != ""
-	switch {
-	case own && (k.key == "" || k.secret == ""):
-		return "", errors.New("a Last.fm API key needs its shared secret")
-	case !own && (LastFMAPIKey == "" || LastFMAPISecret == ""):
+	if k.key == "" || k.secret == "" {
 		return "", errors.New("a Last.fm API key and shared secret are required")
-	case !own:
-		k = lastFMKeys{key: LastFMAPIKey, secret: LastFMAPISecret}
 	}
 	token, page, err := s.fm.token(ctx, k)
 	if err != nil {
 		return "", err
 	}
-	if own {
-		if err := s.cfg.Secrets.Set(secretsFM, "apiKey", k.key); err != nil {
-			return "", err
-		}
-		if err := s.cfg.Secrets.Set(secretsFM, "apiSecret", k.secret); err != nil {
-			return "", err
-		}
-	} else if err := s.cfg.Secrets.Delete(secretsFM); err != nil {
-		// An old override would win over the build's key at the session step.
+	if err := s.cfg.Secrets.Set(secretsFM, "apiKey", k.key); err != nil {
+		return "", err
+	}
+	if err := s.cfg.Secrets.Set(secretsFM, "apiSecret", k.secret); err != nil {
 		return "", err
 	}
 	s.mu.Lock()

@@ -59,7 +59,6 @@ Item {
                     onDone: Router.editing = false
                     onResetRequested: editor.reset()
 
-
                     DButton {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: root.entries.length > 0

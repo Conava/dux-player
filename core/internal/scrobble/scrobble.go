@@ -65,15 +65,7 @@ type Settings struct {
 type Status struct {
 	Settings
 	Queued int `json:"queued"`
-	// LastFMBuiltinKey says the build carries a Last.fm API account, so
-	// connecting needs no key and secret from the user.
-	LastFMBuiltinKey bool `json:"lastfmBuiltinKey"`
 }
-
-// The app's own Last.fm API account, set at build time with
-// -ldflags "-X github.com/Conava/dux-player/core/internal/scrobble.LastFMAPIKey=… -X ….LastFMAPISecret=…".
-// Empty by default; a user's own key and secret override it.
-var LastFMAPIKey, LastFMAPISecret string
 
 type Service struct {
 	cfg   Config
@@ -162,7 +154,6 @@ func (s *Service) Status() Status {
 		st.DisabledLibraries = []string{}
 	}
 	st.Queued = s.queue.len()
-	st.LastFMBuiltinKey = LastFMAPIKey != "" && LastFMAPISecret != ""
 	return st
 }
 
@@ -300,16 +291,12 @@ func (s *Service) fmKeys() (lastFMKeys, error) {
 	return k, err
 }
 
-// apiKeys is the user's own API account from the keyring, else the
-// build's.
+// apiKeys is the user's Last.fm API account from the keyring.
 func (s *Service) apiKeys() (lastFMKeys, error) {
 	key, kerr := s.cfg.Secrets.Get(secretsFM, "apiKey")
 	secret, serr := s.cfg.Secrets.Get(secretsFM, "apiSecret")
 	if kerr == nil && serr == nil && key != "" && secret != "" {
 		return lastFMKeys{key: key, secret: secret}, nil
-	}
-	if LastFMAPIKey != "" && LastFMAPISecret != "" {
-		return lastFMKeys{key: LastFMAPIKey, secret: LastFMAPISecret}, nil
 	}
 	return lastFMKeys{}, errors.Join(kerr, serr, errors.New("no Last.fm API key"))
 }

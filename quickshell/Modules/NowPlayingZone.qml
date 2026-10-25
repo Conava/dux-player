@@ -35,11 +35,11 @@ RowLayout {
     readonly property var shown: instances.filter(i => !i.hidden && UiConfig.isKnown(i.type))
     // a string, so a resize that moves nothing doesn't rebuild the row
     readonly property string overflowKeys: room < 0 ? "" : Overflow.overflow(shown.map(i => ({
-                    "key": i.id,
-                    "type": i.type,
-                    "placement": i.placement,
-                    "width": elementWidth(i)
-                })), room, moreButton.implicitWidth, spacing).join(" ")
+                "key": i.id,
+                "type": i.type,
+                "placement": i.placement,
+                "width": elementWidth(i)
+            })), room, moreButton.implicitWidth, spacing).join(" ")
     readonly property var inMenu: overflowKeys === "" ? [] : shown.filter(i => overflowKeys.split(" ").indexOf(i.id) >= 0)
     // one entry per type; spacers and dividers just go
     readonly property var menuTypes: inMenu.map(i => i.type).filter((t, n, all) => all.indexOf(t) === n && t !== "spacer" && t !== "divider")

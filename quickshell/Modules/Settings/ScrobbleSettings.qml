@@ -12,10 +12,6 @@ SettingsPage {
     readonly property var listenbrainz: PlayerService.scrobble.listenbrainz ?? {}
     readonly property var lastfm: PlayerService.scrobble.lastfm ?? {}
     readonly property var disabled: PlayerService.scrobble.disabledLibraries ?? []
-    // a build with the app's own Last.fm key signs in with one button; an own key is the advanced path
-    readonly property bool lastfmBuiltinKey: PlayerService.scrobble.lastfmBuiltinKey === true
-    property bool lastfmOwnKey: false
-    readonly property bool lastfmKeyFields: root.lastfm.connected !== true && (!lastfmBuiltinKey || lastfmOwnKey)
 
     function accountLine(account) {
         return account.user ? I18n.tr("Signed in as %1", "scrobbling account state, %1 is the user name").arg(account.user) : I18n.tr("Signed in", "scrobbling account state");
@@ -135,46 +131,16 @@ SettingsPage {
             }
         }
 
-        SettingsRow {
-            visible: root.lastfm.connected !== true && root.lastfmBuiltinKey
-            title: I18n.tr("Last.fm account", "Last.fm sign-in row")
-            subtitle: I18n.tr("Opens Last.fm in your browser to sign in.", "Last.fm sign-in hint with the app's own key")
-
-            DButton {
-                anchors.verticalCenter: parent.verticalCenter
-                text: I18n.tr("Sign in", "scrobbling account action")
-                backgroundColor: root.lastfm.awaitingApproval ? Theme.secondaryContainer : Theme.primary
-                textColor: root.lastfm.awaitingApproval ? Theme.onSecondaryContainer : Theme.onPrimary
-                onClicked: PlayerService.scrobbleConnect("lastfm", {})
-            }
-        }
-
-        SettingsRow {
-            visible: root.lastfm.connected !== true && root.lastfmBuiltinKey
-            title: I18n.tr("Use your own API key", "Last.fm advanced sign-in option")
-            clickable: true
-            Accessible.checkable: true
-            Accessible.checked: root.lastfmOwnKey
-            onClicked: root.lastfmOwnKey = !root.lastfmOwnKey
-
-            DIcon {
-                anchors.verticalCenter: parent.verticalCenter
-                name: root.lastfmOwnKey ? "expand_less" : "expand_more"
-                size: Theme.iconSize
-                color: Theme.surfaceVariantText
-            }
-        }
-
         SettingsFieldRow {
             id: keyRow
-            visible: root.lastfmKeyFields
+            visible: root.lastfm.connected !== true
             title: I18n.tr("API key", "API key field")
             subtitle: I18n.tr("Create an API account at last.fm/api and enter its key and shared secret. Stored in the system keyring.", "Last.fm sign-in hint")
         }
 
         SettingsFieldRow {
             id: secretRow
-            visible: root.lastfmKeyFields
+            visible: root.lastfm.connected !== true
             title: I18n.tr("Shared secret", "Last.fm sign-in field")
             field.echoMode: TextInput.Password
             field.showPasswordToggle: true
@@ -182,15 +148,15 @@ SettingsPage {
         }
 
         SettingsRow {
-            visible: root.lastfmKeyFields
+            visible: root.lastfm.connected !== true
             subtitle: connectLastfm.enabled ? "" : I18n.tr("Enter the API key and shared secret first.", "why Last.fm sign-in is disabled")
 
             DButton {
                 id: connectLastfm
                 anchors.verticalCenter: parent.verticalCenter
                 text: I18n.tr("Sign in", "scrobbling account action")
-                backgroundColor: root.lastfm.awaitingApproval || root.lastfmBuiltinKey ? Theme.secondaryContainer : Theme.primary
-                textColor: root.lastfm.awaitingApproval || root.lastfmBuiltinKey ? Theme.onSecondaryContainer : Theme.onPrimary
+                backgroundColor: root.lastfm.awaitingApproval ? Theme.secondaryContainer : Theme.primary
+                textColor: root.lastfm.awaitingApproval ? Theme.onSecondaryContainer : Theme.onPrimary
                 enabled: keyRow.field.text.trim() !== "" && secretRow.field.text.trim() !== ""
                 onClicked: PlayerService.scrobbleConnect("lastfm", {
                     "apiKey": keyRow.field.text.trim(),

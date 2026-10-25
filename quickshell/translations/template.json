@@ -3080,13 +3080,6 @@
     "comment": ""
   },
   {
-    "term": "Last.fm account",
-    "translation": "",
-    "context": "Last.fm sign-in row",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Layout",
     "translation": "",
     "context": "element picker group: spacer and divider | general setting: every customization as one file | view options section",
@@ -3860,13 +3853,6 @@
     "term": "Open now playing",
     "translation": "",
     "context": "now playing bar button",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Opens Last.fm in your browser to sign in.",
-    "translation": "",
-    "context": "Last.fm sign-in hint with the app's own key",
     "reference": "",
     "comment": ""
   },
@@ -6247,13 +6233,6 @@
     "term": "Use the system default output at startup",
     "translation": "",
     "context": "playback device setting",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Use your own API key",
-    "translation": "",
-    "context": "Last.fm advanced sign-in option",
     "reference": "",
     "comment": ""
   },

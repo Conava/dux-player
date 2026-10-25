@@ -248,7 +248,7 @@
   {
     "term": "%1 scrobbles pending",
     "context": "%1 scrobbles pending",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:223",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:189",
     "comment": "scrobbling queue state, plural"
   },
   {
@@ -374,7 +374,7 @@
   {
     "term": "1 scrobble pending",
     "context": "1 scrobble pending",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:223",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:189",
     "comment": "scrobbling queue state, singular"
   },
   {
@@ -398,13 +398,13 @@
   {
     "term": "A play is scrobbled after half the track or four minutes, whichever comes first. Server libraries scrobble to their server, which may forward the play. Local libraries scrobble to the accounts below. No play is scrobbled twice.",
     "context": "A play is scrobbled after half the track or four minutes, whichever comes first. Server libraries scrobble to their server, which may forward the play. Local libraries scrobble to the accounts below. No play is scrobbled twice.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:25",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:21",
     "comment": "scrobbling settings intro"
   },
   {
     "term": "API key",
     "context": "API key",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:171, Modules/Settings/GeneralSettings.qml:94",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:137, Modules/Settings/GeneralSettings.qml:94",
     "comment": "API key field"
   },
   {
@@ -428,7 +428,7 @@
   {
     "term": "Account",
     "context": "Account",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:42, Modules/Settings/ScrobbleSettings.qml:103",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:38, Modules/Settings/ScrobbleSettings.qml:99",
     "comment": "scrobbling settings row"
   },
   {
@@ -674,7 +674,7 @@
   {
     "term": "Allow access on the Last.fm page in your browser, then select Finish sign-in.",
     "context": "Allow access on the Last.fm page in your browser, then select Finish sign-in.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:129",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:125",
     "comment": "Last.fm sign-in step description"
   },
   {
@@ -752,7 +752,7 @@
   {
     "term": "Approve Dux Player on Last.fm",
     "context": "Approve Dux Player on Last.fm",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:128",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:124",
     "comment": "Last.fm sign-in step"
   },
   {
@@ -1556,7 +1556,7 @@
   {
     "term": "Create an API account at last.fm/api and enter its key and shared secret. Stored in the system keyring.",
     "context": "Create an API account at last.fm/api and enter its key and shared secret. Stored in the system keyring.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:172",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:138",
     "comment": "Last.fm sign-in hint"
   },
   {
@@ -1958,7 +1958,7 @@
   {
     "term": "Enter the API key and shared secret first.",
     "context": "Enter the API key and shared secret first.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:186",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:152",
     "comment": "why Last.fm sign-in is disabled"
   },
   {
@@ -1970,7 +1970,7 @@
   {
     "term": "Enter your user token first.",
     "context": "Enter your user token first.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:76",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:72",
     "comment": "why ListenBrainz sign-in is disabled"
   },
   {
@@ -2132,13 +2132,13 @@
   {
     "term": "Find it in your ListenBrainz profile settings. Stored in the system keyring.",
     "context": "Find it in your ListenBrainz profile settings. Stored in the system keyring.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:68",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:64",
     "comment": "ListenBrainz sign-in hint"
   },
   {
     "term": "Finish sign-in",
     "context": "Finish sign-in",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:133",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:129",
     "comment": "Last.fm sign-in action"
   },
   {
@@ -2640,12 +2640,6 @@
     "comment": "full view opens with: the pane used last"
   },
   {
-    "term": "Last.fm account",
-    "context": "Last.fm account",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:140",
-    "comment": "Last.fm sign-in row"
-  },
-  {
     "term": "Layout",
     "context": "Layout",
     "reference": "Modules/HomePage.qml:234, Modules/PageEditor.qml:336, Modules/Settings/GeneralSettings.qml:174, Modules/Settings/SurfaceEditor.qml:215",
@@ -2684,7 +2678,7 @@
   {
     "term": "Libraries",
     "context": "Libraries",
-    "reference": "Common/UiConfig.qml:95, Common/UiConfig.qml:530, Modules/LibrariesPage.qml:24, Modules/PinTargetSheet.qml:41, Modules/Settings/ScrobbleSettings.qml:204, Modules/Settings/SettingsWindow.qml:22",
+    "reference": "Common/UiConfig.qml:95, Common/UiConfig.qml:530, Modules/LibrariesPage.qml:24, Modules/PinTargetSheet.qml:41, Modules/Settings/ScrobbleSettings.qml:170, Modules/Settings/SettingsWindow.qml:22",
     "comment": "the music libraries: page, settings tab, section"
   },
   {
@@ -3310,12 +3304,6 @@
     "context": "Open now playing",
     "reference": "Common/UiConfig.qml:853, Modules/NowPlayingElement.qml:145, Modules/NowPlayingZone.qml:225",
     "comment": "now playing bar button"
-  },
-  {
-    "term": "Opens Last.fm in your browser to sign in.",
-    "context": "Opens Last.fm in your browser to sign in.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:141",
-    "comment": "Last.fm sign-in hint with the app's own key"
   },
   {
     "term": "Orange",
@@ -4292,25 +4280,25 @@
   {
     "term": "Scrobble to Last.fm",
     "context": "Scrobble to Last.fm",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:95",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:91",
     "comment": "scrobbling setting"
   },
   {
     "term": "Scrobble to ListenBrainz",
     "context": "Scrobble to ListenBrainz",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:34",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:30",
     "comment": "scrobbling setting"
   },
   {
     "term": "Scrobbled to the server",
     "context": "Scrobbled to the server",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:214",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:180",
     "comment": "scrobbling library row"
   },
   {
     "term": "Scrobbled to your accounts",
     "context": "Scrobbled to your accounts",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:214",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:180",
     "comment": "scrobbling library row"
   },
   {
@@ -4472,7 +4460,7 @@
   {
     "term": "Sent automatically when the connection is restored.",
     "context": "Sent automatically when the connection is restored.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:224",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:190",
     "comment": "scrobbling queue state description"
   },
   {
@@ -4526,7 +4514,7 @@
   {
     "term": "Shared secret",
     "context": "Shared secret",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:178",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:144",
     "comment": "Last.fm sign-in field"
   },
   {
@@ -4592,25 +4580,25 @@
   {
     "term": "Sign in",
     "context": "Sign in",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:81, Modules/Settings/ScrobbleSettings.qml:145, Modules/Settings/ScrobbleSettings.qml:191",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:77, Modules/Settings/ScrobbleSettings.qml:157",
     "comment": "scrobbling account action"
   },
   {
     "term": "Sign out",
     "context": "Sign out",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:56, Modules/Settings/ScrobbleSettings.qml:117",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:52, Modules/Settings/ScrobbleSettings.qml:113",
     "comment": "scrobbling account action"
   },
   {
     "term": "Signed in",
     "context": "Signed in",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:21",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:17",
     "comment": "scrobbling account state"
   },
   {
     "term": "Signed in as %1",
     "context": "Signed in as %1",
-    "reference": "Services/SettingsService.qml:207, Modules/Settings/ScrobbleSettings.qml:21",
+    "reference": "Services/SettingsService.qml:207, Modules/Settings/ScrobbleSettings.qml:17",
     "comment": "scrobbling account state, %1 is the user name"
   },
   {
@@ -4910,7 +4898,7 @@
   {
     "term": "Test",
     "context": "Test",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:49, Modules/Settings/ScrobbleSettings.qml:110",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:45, Modules/Settings/ScrobbleSettings.qml:106",
     "comment": "scrobbling account action"
   },
   {
@@ -5150,7 +5138,7 @@
   {
     "term": "This server doesn't support scrobbling",
     "context": "This server doesn't support scrobbling",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:214",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:180",
     "comment": "scrobbling library row"
   },
   {
@@ -5358,12 +5346,6 @@
     "comment": "playback device setting"
   },
   {
-    "term": "Use your own API key",
-    "context": "Use your own API key",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:154",
-    "comment": "Last.fm advanced sign-in option"
-  },
-  {
     "term": "User name",
     "context": "User name",
     "reference": "Modules/Settings/LibraryDialog.qml:271",
@@ -5372,7 +5354,7 @@
   {
     "term": "User token",
     "context": "User token",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:67",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:63",
     "comment": "ListenBrainz sign-in field"
   },
   {

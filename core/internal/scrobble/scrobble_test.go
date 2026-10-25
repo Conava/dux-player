@@ -272,24 +272,15 @@ func TestNowPlaying(t *testing.T) {
 	assert.Equal(t, []string{"playing_now a", "playing_now a", "playing_now b", "single b"}, got)
 }
 
-// The build's Last.fm API account is used unless the user set their own.
-func TestLastFMKeysPreferTheUsersOwn(t *testing.T) {
-	old, oldSecret := LastFMAPIKey, LastFMAPISecret
-	t.Cleanup(func() { LastFMAPIKey, LastFMAPISecret = old, oldSecret })
+func TestLastFMKeysAreTheUsers(t *testing.T) {
 	sec := memSecrets{}
 	s := &Service{cfg: Config{Secrets: sec}}
 
-	LastFMAPIKey, LastFMAPISecret = "", ""
 	_, err := s.apiKeys()
-	assert.Error(t, err, "no key anywhere")
-
-	LastFMAPIKey, LastFMAPISecret = "app", "appsecret"
-	k, err := s.apiKeys()
-	require.NoError(t, err)
-	assert.Equal(t, lastFMKeys{key: "app", secret: "appsecret"}, k)
+	assert.Error(t, err, "no key stored")
 
 	sec[secretsFM+"/apiKey"], sec[secretsFM+"/apiSecret"] = "mine", "minesecret"
-	k, err = s.apiKeys()
+	k, err := s.apiKeys()
 	require.NoError(t, err)
 	assert.Equal(t, lastFMKeys{key: "mine", secret: "minesecret"}, k)
 }

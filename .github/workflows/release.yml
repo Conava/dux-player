@@ -29,29 +29,8 @@ jobs:
       - name: Test
         run: make test-go
 
-      # Each tarball is a `make install` tree under usr/; the -bin AUR package unpacks it as is.
-      # Asset names follow `uname -m`.
-      - name: Build binaries
-        run: |
-          version=${GITHUB_REF_NAME#v}
-          mkdir -p dist
-          for arch in amd64:x86_64 arm64:aarch64; do
-            GOARCH=${arch%%:*} make build VERSION="$version" COMMIT="${GITHUB_SHA::8}"
-            make install DESTDIR="$PWD/stage-${arch##*:}" PREFIX=/usr
-            tar -C "stage-${arch##*:}" -czf "dist/dplayer-${version}-${arch##*:}.tar.gz" usr
-          done
-
-      # Builds offline from this tarball: it carries the dux-qml-common submodule and vendored Go modules.
-      - name: Source tarball
-        run: |
-          version=${GITHUB_REF_NAME#v}
-          (cd core && go mod vendor)
-          tar -czf "dist/dux-player-${version}.tar.gz" --transform "s,^,dux-player-${version}/,S" \
-            --exclude-vcs --exclude=dist --exclude='stage-*' --exclude=core/bin \
-            --exclude=core/internal/shellembed/dist *
-
-      - name: Checksums
-        run: cd dist && sha256sum * > SHA256SUMS
+      - name: Build release artifacts
+        run: make dist VERSION="${GITHUB_REF_NAME#v}" COMMIT="${GITHUB_SHA::8}"
 
       - name: Publish
         env:

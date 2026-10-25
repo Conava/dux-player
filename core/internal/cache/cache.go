@@ -969,7 +969,7 @@ func (c *Cache) victim(ctx context.Context, keep source.Ref, sync bool) (source.
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for _, ref := range refs {
-		if ref != keep && !(sync && c.wanted[ref]) {
+		if ref != keep && (!sync || !c.wanted[ref]) {
 			return ref, nil
 		}
 	}
