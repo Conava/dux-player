@@ -91,6 +91,9 @@ func TestWriteSkips(t *testing.T) {
 			return path
 		}},
 		{name: "read-only folder", setup: func(t *testing.T, path string) string {
+			if os.Geteuid() == 0 {
+				t.Skip("root writes into read-only folders (CI runs in a root container)")
+			}
 			dir := filepath.Dir(path)
 			require.NoError(t, os.Chmod(dir, 0o555))
 			t.Cleanup(func() { _ = os.Chmod(dir, 0o755) })
