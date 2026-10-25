@@ -13,14 +13,13 @@ Dux Player plays local libraries and streams from Navidrome, Subsonic and Jellyf
 | ![Most played with the side panel](docs/screenshots/side-panel.png) | ![Full view with lyrics](docs/screenshots/now-playing.png) |
 
 ## Features
-
 - Local libraries (several folders, indexed and watched) and any number of server libraries
 - Local playlists that mix tracks from any library, plus server native playlists
 - Offline rules per server library, caching and preloading the next songs for a seamless experience
 - Gapless playback, crossfade, volume normalization, skipping leading and trailing silence, equalizer several outputs at once
 - Synced lyrics, scrobbling (through the server, or to ListenBrainz and Last.fm), casting through [dux-cast](https://github.com/Conava/dux-cast)
 - Keeps playing with the window closed; MPRIS, a tray icon and a CLI (`dplayer play`, `dplayer next`, …) for keybinds
-- Fully customizable now-playing bar, side panel and full view, home page, lists and menus
+- Fully customizable now-playing bar, side panel and full view in Bento or Material design as well as customizable home page, lists and menus
 
 ## Requirements
 
