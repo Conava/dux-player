@@ -13,6 +13,7 @@ import (
 	"github.com/Conava/dux-player/core/internal/library"
 	"github.com/Conava/dux-player/core/internal/player"
 	"github.com/Conava/dux-player/core/internal/playlists"
+	"github.com/Conava/dux-player/core/internal/settings"
 	"github.com/Conava/dux-player/core/internal/source"
 )
 
@@ -44,7 +45,13 @@ func init() {
 						out = append(out, *c.Track)
 					}
 					return out, err
-				}})
+				},
+				Prefetched: func(ref source.Ref) {
+					if err := d.Player.StreamReady(d.Ctx, ref); err != nil {
+						log.Debugf("prefetch: %v", err)
+					}
+				},
+				WatchMetered: library.WatchMetered})
 			if err != nil {
 				log.Warnf("track cache unavailable: %v", err)
 				return nil
@@ -55,16 +62,35 @@ func init() {
 				c.Run(d.Ctx)
 				c.Close()
 			}()
+			prefs := d.Settings.Get()
+			c.SetPrefetch(d.Ctx, prefs.PrefetchTracks, prefs.PrefetchOnMetered)
 			var last source.Ref
+			haveQueue := false
 			d.Bus.On(d.Ctx, func(topic string, data any) {
 				switch topic {
 				case player.TopicStatus:
 					st := data.(player.Status)
+					// The queue restored at start was published before this
+					// listener; it's read once something plays.
+					if !haveQueue && st.State != player.StateStopped {
+						if q, err := d.Player.Queue(d.Ctx); err == nil {
+							haveQueue = true
+							c.QueueChanged(d.Ctx, q)
+						}
+					}
+					c.PlayerChanged(d.Ctx, st)
 					if st.Track == nil || st.State != player.StatePlaying || st.Track.Ref() == last {
 						return
 					}
 					last = st.Track.Ref()
 					go c.Played(d.Ctx, *st.Track)
+				case player.TopicQueue:
+					haveQueue = true
+					c.QueueChanged(d.Ctx, data.(player.QueueSnapshot))
+				case ipc.TopicSettings:
+					if s, ok := data.(map[string]any)["settings"].(settings.Settings); ok {
+						c.SetPrefetch(d.Ctx, s.PrefetchTracks, s.PrefetchOnMetered)
+					}
 				case ipc.TopicMarks:
 					m := data.(map[string]any)
 					if _, fav := m["favorite"]; fav {
@@ -86,8 +112,8 @@ func init() {
 						go c.LibrariesChanged(d.Ctx)
 					}
 				}
-			}, player.TopicStatus, ipc.TopicMarks, library.TopicLibraries, playlists.Topic,
-				ipc.TopicPlaylists, history.Topic)
+			}, player.TopicStatus, player.TopicQueue, ipc.TopicSettings, ipc.TopicMarks, library.TopicLibraries,
+				playlists.Topic, ipc.TopicPlaylists, history.Topic)
 			go c.LibrariesChanged(d.Ctx)
 			return nil
 		},

@@ -47,6 +47,10 @@ type Settings struct {
 	// trailing silence; measuring it needs ffmpeg.
 	SkipSilenceStart bool `json:"skipSilenceStart"`
 	SkipSilenceEnd   bool `json:"skipSilenceEnd"`
+	// PrefetchTracks is how many upcoming server tracks are downloaded
+	// ahead, 0-3; PrefetchOnMetered keeps doing it on a metered connection.
+	PrefetchTracks    int  `json:"prefetchTracks"`
+	PrefetchOnMetered bool `json:"prefetchOnMetered"`
 }
 
 // defaultMpvIdleExit frees mpv's memory between listening sessions.
@@ -103,6 +107,7 @@ func Defaults() Settings {
 		ArtistInfoOnline:   true,
 		ShowTrayIcon:       true,
 		VolumeTarget:       player.VolumeApp,
+		PrefetchTracks:     1,
 	}
 }
 
@@ -290,6 +295,14 @@ func apply(s Settings, key string, v any) (Settings, error) {
 		s.SkipSilenceStart, err = toBool(key, v)
 	case "skipSilenceEnd":
 		s.SkipSilenceEnd, err = toBool(key, v)
+	case "prefetchTracks":
+		var f float64
+		if f, err = toFloat(key, v); err == nil && (f != float64(int(f)) || f < 0 || f > 3) {
+			err = fmt.Errorf("%s must be a whole number from 0 to 3", key)
+		}
+		s.PrefetchTracks = int(f)
+	case "prefetchOnMetered":
+		s.PrefetchOnMetered, err = toBool(key, v)
 	case "volumeTarget":
 		s.VolumeTarget, err = oneOf(key, v, player.VolumeApp, player.VolumeSystem)
 	case "equalizer":

@@ -1001,6 +1001,13 @@
     "comment": ""
   },
   {
+    "term": "Available when Download upcoming tracks is on.",
+    "translation": "",
+    "context": "why the metered connections setting is unavailable",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Available when multiple outputs are on",
     "translation": "",
     "context": "why the test tone is disabled",
@@ -2016,6 +2023,20 @@
     "comment": ""
   },
   {
+    "term": "Download on metered connections",
+    "translation": "",
+    "context": "offline setting: keep downloading upcoming tracks on a metered connection",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Download upcoming tracks",
+    "translation": "",
+    "context": "offline setting: how many of the next server tracks download ahead",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Downloaded",
     "translation": "",
     "context": "details field: whether a server track is cached",
@@ -2033,6 +2054,13 @@
     "term": "Downloads are paused. Raise the size limit or remove a rule.",
     "translation": "",
     "context": "offline warning: the cache is full",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Downloads the next tracks of the queue while one plays.",
+    "translation": "",
+    "context": "offline setting description",
     "reference": "",
     "comment": ""
   },

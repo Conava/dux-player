@@ -396,6 +396,25 @@ Item {
                 }
             }
 
+            SettingsButtonGroupRow {
+                text: I18n.tr("Download upcoming tracks", "offline setting: how many of the next server tracks download ahead")
+                description: I18n.tr("Downloads the next tracks of the queue while one plays.", "offline setting description")
+                model: [I18n.tr("Off", "option that turns something off"), "1", "2", "3"]
+                currentIndex: SettingsService.settings.prefetchTracks
+                onSelectionChanged: (index, selected) => {
+                    if (selected)
+                        SettingsService.setSetting("prefetchTracks", index);
+                }
+            }
+
+            SettingsToggleRow {
+                text: I18n.tr("Download on metered connections", "offline setting: keep downloading upcoming tracks on a metered connection")
+                description: enabled ? "" : I18n.tr("Available when Download upcoming tracks is on.", "why the metered connections setting is unavailable")
+                enabled: SettingsService.settings.prefetchTracks > 0
+                checked: SettingsService.settings.prefetchOnMetered
+                onToggled: value => SettingsService.setSetting("prefetchOnMetered", value)
+            }
+
             SettingsRow {
                 title: I18n.tr("Clear all downloads", "offline action")
                 subtitle: (SettingsService.cache.count ?? 0) > 0 ? I18n.tr("Deletes downloaded tracks. Rules are kept.", "offline clear action description") : I18n.tr("No downloaded tracks", "why clearing the cache is disabled")

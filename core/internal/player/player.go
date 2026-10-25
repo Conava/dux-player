@@ -187,6 +187,8 @@ type Status struct {
 	// Continuing says the queue is extended endlessly when it runs out: by
 	// the autoContinue setting, or turned on for this queue (Continue).
 	Continuing bool `json:"continuing"`
+	// Casting says a remote (a cast device) plays the queue instead of mpv.
+	Casting bool `json:"casting"`
 	// VolumeTarget is what Volume and Muted are: VolumeApp or VolumeSystem.
 	// SystemVolume says the system target is available.
 	VolumeTarget string `json:"volumeTarget"`
@@ -821,6 +823,29 @@ func (p *Player) keepStream(it Item, st Stream) {
 	p.probes[it.UID] = cancel
 	pr.Probe(ctx, ref, func(gain float64) {
 		_ = p.do(p.runCtx, func(ctx context.Context) error { p.gainProbed(ctx, ref, gain); return nil })
+	})
+}
+
+// StreamReady resolves the next track again once a local copy of ref is
+// ready, so it plays from that instead of the stream lined up before.
+func (p *Player) StreamReady(ctx context.Context, ref source.Ref) error {
+	return p.do(ctx, func(ctx context.Context) error {
+		next, ok := p.queue.Peek()
+		if !ok || next.Track.Ref() != ref || !p.active || p.remote != nil {
+			return nil
+		}
+		if _, resolved := p.streams[next.UID]; !resolved {
+			return nil
+		}
+		delete(p.streams, next.UID)
+		if p.nextUID == next.UID {
+			if _, err := p.cmd(ctx, "playlist-clear"); err != nil {
+				log.Warnf("mpv playlist-clear: %v", err)
+			}
+			p.nextEntry, p.nextUID = 0, 0
+		}
+		p.prefetch(next)
+		return nil
 	})
 }
 
@@ -1673,6 +1698,7 @@ func (p *Player) status() Status {
 		Repeat:       p.queue.Repeat(),
 
 		Continuing: p.cfg.Continue != nil && p.continueMode() != "",
+		Casting:    p.remote != nil,
 	}
 	if p.system() {
 		st.Volume, st.Muted, st.VolumeTarget = p.sysVolume, p.sysMuted, VolumeSystem

@@ -494,7 +494,7 @@
   {
     "term": "Add library",
     "context": "Add library",
-    "reference": "Modules/HomePage.qml:143, Modules/Settings/LibraryDialog.qml:113, Modules/Settings/LibrariesSettings.qml:560",
+    "reference": "Modules/HomePage.qml:143, Modules/Settings/LibraryDialog.qml:113, Modules/Settings/LibrariesSettings.qml:579",
     "comment": "libraries settings primary action"
   },
   {
@@ -512,7 +512,7 @@
   {
     "term": "Add rule",
     "context": "Add rule",
-    "reference": "Modules/Settings/LibrariesSettings.qml:445, Modules/Settings/LibrariesSettings.qml:591",
+    "reference": "Modules/Settings/LibrariesSettings.qml:464, Modules/Settings/LibrariesSettings.qml:610",
     "comment": "offline action that keeps more of a library on this device"
   },
   {
@@ -572,7 +572,7 @@
   {
     "term": "Added by you",
     "context": "Added by you",
-    "reference": "Common/UiConfig.qml:1023, Modules/RowEnd.qml:197, Modules/QueueList.qml:366",
+    "reference": "Common/UiConfig.qml:1023, Modules/QueueList.qml:366, Modules/RowEnd.qml:197",
     "comment": "queue row: a track put in with play next or add to queue"
   },
   {
@@ -656,7 +656,7 @@
   {
     "term": "All of %1 is kept on this device",
     "context": "All of %1 is kept on this device",
-    "reference": "Services/SettingsService.qml:310",
+    "reference": "Services/SettingsService.qml:315",
     "comment": "why Keep on this device is locked on, %1 is the library"
   },
   {
@@ -686,7 +686,7 @@
   {
     "term": "Already on home",
     "context": "Already on home",
-    "reference": "Modules/MediaMenu.qml:99, Modules/BrowsePage.qml:290",
+    "reference": "Modules/BrowsePage.qml:290, Modules/MediaMenu.qml:99",
     "comment": "an item that is already a home shelf"
   },
   {
@@ -856,6 +856,12 @@
     "context": "Available offline",
     "reference": "Modules/RowEnd.qml:155",
     "comment": "track row cloud icon while the server is down"
+  },
+  {
+    "term": "Available when Download upcoming tracks is on.",
+    "context": "Available when Download upcoming tracks is on.",
+    "reference": "Modules/Settings/LibrariesSettings.qml:412",
+    "comment": "why the metered connections setting is unavailable"
   },
   {
     "term": "Available when multiple outputs are on",
@@ -1040,7 +1046,7 @@
   {
     "term": "Change limit",
     "context": "Change limit",
-    "reference": "Modules/Settings/LibrariesSettings.qml:633",
+    "reference": "Modules/Settings/LibrariesSettings.qml:652",
     "comment": "offline rule action"
   },
   {
@@ -1082,19 +1088,19 @@
   {
     "term": "Clear",
     "context": "Clear",
-    "reference": "Modules/HistoryPage.qml:90, Modules/QueueList.qml:215, Modules/Settings/LibrariesSettings.qml:406, Modules/Settings/LibrariesSettings.qml:505",
+    "reference": "Modules/HistoryPage.qml:90, Modules/QueueList.qml:215, Modules/Settings/LibrariesSettings.qml:425, Modules/Settings/LibrariesSettings.qml:524",
     "comment": "button that empties a list"
   },
   {
     "term": "Clear all downloads",
     "context": "Clear all downloads",
-    "reference": "Modules/Settings/LibrariesSettings.qml:400",
+    "reference": "Modules/Settings/LibrariesSettings.qml:419",
     "comment": "offline action"
   },
   {
     "term": "Clear downloads",
     "context": "Clear downloads",
-    "reference": "Modules/Settings/LibrariesSettings.qml:499",
+    "reference": "Modules/Settings/LibrariesSettings.qml:518",
     "comment": "offline action for one library"
   },
   {
@@ -1268,7 +1274,7 @@
   {
     "term": "Couldn't clear downloads",
     "context": "Couldn't clear downloads",
-    "reference": "Services/SettingsService.qml:374",
+    "reference": "Services/SettingsService.qml:379",
     "comment": "toast when emptying the offline cache fails"
   },
   {
@@ -1340,7 +1346,7 @@
   {
     "term": "Couldn't keep it on this device",
     "context": "Couldn't keep it on this device",
-    "reference": "Services/SettingsService.qml:252",
+    "reference": "Services/SettingsService.qml:257",
     "comment": "toast when adding an offline rule fails"
   },
   {
@@ -1352,7 +1358,7 @@
   {
     "term": "Couldn't load downloaded tracks",
     "context": "Couldn't load downloaded tracks",
-    "reference": "Services/SettingsService.qml:366",
+    "reference": "Services/SettingsService.qml:371",
     "comment": "toast when the offline cache's track list can't be read"
   },
   {
@@ -1388,7 +1394,7 @@
   {
     "term": "Couldn't reach the account",
     "context": "Couldn't reach the account",
-    "reference": "Services/SettingsService.qml:202",
+    "reference": "Services/SettingsService.qml:207",
     "comment": "snackbar after a failed scrobbling account test"
   },
   {
@@ -1412,7 +1418,7 @@
   {
     "term": "Couldn't remove it from this device",
     "context": "Couldn't remove it from this device",
-    "reference": "Services/SettingsService.qml:269",
+    "reference": "Services/SettingsService.qml:274",
     "comment": "toast when removing an offline rule fails"
   },
   {
@@ -1424,7 +1430,7 @@
   {
     "term": "Couldn't save the API key",
     "context": "Couldn't save the API key",
-    "reference": "Services/SettingsService.qml:96",
+    "reference": "Services/SettingsService.qml:99",
     "comment": "toast when storing an artist info API key fails"
   },
   {
@@ -1448,7 +1454,7 @@
   {
     "term": "Couldn't save the offline setting",
     "context": "Couldn't save the offline setting",
-    "reference": "Services/SettingsService.qml:260, Services/SettingsService.qml:359",
+    "reference": "Services/SettingsService.qml:265, Services/SettingsService.qml:364",
     "comment": "toast when an offline cache setting is refused"
   },
   {
@@ -1460,7 +1466,7 @@
   {
     "term": "Couldn't save the setting",
     "context": "Couldn't save the setting",
-    "reference": "Services/OutputService.qml:72, Services/OutputService.qml:80, Services/OutputService.qml:86, Services/SettingsService.qml:134, Services/SettingsService.qml:209, Services/SettingsService.qml:216, Services/SettingsService.qml:329, Services/SettingsService.qml:401, Services/SettingsService.qml:420",
+    "reference": "Services/OutputService.qml:72, Services/OutputService.qml:80, Services/OutputService.qml:86, Services/SettingsService.qml:139, Services/SettingsService.qml:214, Services/SettingsService.qml:221, Services/SettingsService.qml:334, Services/SettingsService.qml:406, Services/SettingsService.qml:425",
     "comment": "toast when the daemon refuses a settings change"
   },
   {
@@ -1478,13 +1484,13 @@
   {
     "term": "Couldn't sign in",
     "context": "Couldn't sign in",
-    "reference": "Services/SettingsService.qml:173",
+    "reference": "Services/SettingsService.qml:178",
     "comment": "toast when connecting a scrobbling account fails"
   },
   {
     "term": "Couldn't sign out",
     "context": "Couldn't sign out",
-    "reference": "Services/SettingsService.qml:196",
+    "reference": "Services/SettingsService.qml:201",
     "comment": "toast when disconnecting a scrobbling account fails"
   },
   {
@@ -1514,7 +1520,7 @@
   {
     "term": "Couldn't write ratings to files",
     "context": "Couldn't write ratings to files",
-    "reference": "Services/SettingsService.qml:337",
+    "reference": "Services/SettingsService.qml:342",
     "comment": "toast when writing ratings and favorites to files can't start"
   },
   {
@@ -1682,7 +1688,7 @@
   {
     "term": "Deletes downloaded tracks. Rules are kept.",
     "context": "Deletes downloaded tracks. Rules are kept.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:401, Modules/Settings/LibrariesSettings.qml:500",
+    "reference": "Modules/Settings/LibrariesSettings.qml:420, Modules/Settings/LibrariesSettings.qml:519",
     "comment": "offline clear action description"
   },
   {
@@ -1728,6 +1734,18 @@
     "comment": "edit mode finish button"
   },
   {
+    "term": "Download on metered connections",
+    "context": "Download on metered connections",
+    "reference": "Modules/Settings/LibrariesSettings.qml:411",
+    "comment": "offline setting: keep downloading upcoming tracks on a metered connection"
+  },
+  {
+    "term": "Download upcoming tracks",
+    "context": "Download upcoming tracks",
+    "reference": "Modules/Settings/LibrariesSettings.qml:400",
+    "comment": "offline setting: how many of the next server tracks download ahead"
+  },
+  {
     "term": "Downloaded",
     "context": "Downloaded",
     "reference": "Modules/DetailsDialog.qml:70",
@@ -1736,7 +1754,7 @@
   {
     "term": "Downloaded tracks",
     "context": "Downloaded tracks",
-    "reference": "Modules/Settings/LibrariesSettings.qml:520, Modules/Settings/LibrariesSettings.qml:520",
+    "reference": "Modules/Settings/LibrariesSettings.qml:539, Modules/Settings/LibrariesSettings.qml:539",
     "comment": "library offline overview section"
   },
   {
@@ -1744,6 +1762,12 @@
     "context": "Downloads are paused. Raise the size limit or remove a rule.",
     "reference": "Modules/Settings/LibrariesSettings.qml:357",
     "comment": "offline warning: the cache is full"
+  },
+  {
+    "term": "Downloads the next tracks of the queue while one plays.",
+    "context": "Downloads the next tracks of the queue while one plays.",
+    "reference": "Modules/Settings/LibrariesSettings.qml:401",
+    "comment": "offline setting description"
   },
   {
     "term": "Drag the handle to reorder or move between zones. Click an element for its options.",
@@ -2492,7 +2516,7 @@
   {
     "term": "Its downloaded tracks are deleted unless another rule keeps them.",
     "context": "Its downloaded tracks are deleted unless another rule keeps them.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:583",
+    "reference": "Modules/Settings/LibrariesSettings.qml:602",
     "comment": "remove offline rule confirmation"
   },
   {
@@ -2540,7 +2564,7 @@
   {
     "term": "Keep on this device",
     "context": "Keep on this device",
-    "reference": "Common/UiConfig.qml:1003, Modules/KeepOfflineRow.qml:33, Modules/Settings/LibrariesSettings.qml:594",
+    "reference": "Common/UiConfig.qml:1003, Modules/KeepOfflineRow.qml:33, Modules/Settings/LibrariesSettings.qml:613",
     "comment": "toggle that caches an item's tracks for offline play"
   },
   {
@@ -2570,7 +2594,7 @@
   {
     "term": "Kept by %1",
     "context": "Kept by %1",
-    "reference": "Modules/Settings/LibrariesSettings.qml:543",
+    "reference": "Modules/Settings/LibrariesSettings.qml:562",
     "comment": "offline song row, %1 lists the rules holding it"
   },
   {
@@ -2720,7 +2744,7 @@
   {
     "term": "Loading",
     "context": "Loading",
-    "reference": "Modules/NowPlayingElement.qml:552, Modules/Settings/LibrariesSettings.qml:524",
+    "reference": "Modules/NowPlayingElement.qml:552, Modules/Settings/LibrariesSettings.qml:543",
     "comment": "something still waiting for data: the play button, a list"
   },
   {
@@ -2744,7 +2768,7 @@
   {
     "term": "Local playlists",
     "context": "Local playlists",
-    "reference": "Modules/Settings/LibrariesSettings.qml:460",
+    "reference": "Modules/Settings/LibrariesSettings.qml:479",
     "comment": "offline section for local playlists kept on this device"
   },
   {
@@ -2828,7 +2852,7 @@
   {
     "term": "More",
     "context": "More",
-    "reference": "Common/UiConfig.qml:1025, Modules/AlbumPage.qml:61, Modules/PlaylistPage.qml:99, Modules/MediaTile.qml:102, Modules/ArtistPage.qml:188, Modules/MainWindow.qml:113, Modules/NowPlayingZone.qml:303, Modules/RowEnd.qml:218, Modules/QueueList.qml:228",
+    "reference": "Common/UiConfig.qml:1025, Modules/AlbumPage.qml:61, Modules/PlaylistPage.qml:99, Modules/MediaTile.qml:102, Modules/MainWindow.qml:113, Modules/NowPlayingZone.qml:303, Modules/QueueList.qml:228, Modules/ArtistPage.qml:188, Modules/RowEnd.qml:218",
     "comment": "track row menu button"
   },
   {
@@ -2990,7 +3014,7 @@
   {
     "term": "No downloaded tracks",
     "context": "No downloaded tracks",
-    "reference": "Modules/Settings/LibrariesSettings.qml:401, Modules/Settings/LibrariesSettings.qml:533",
+    "reference": "Modules/Settings/LibrariesSettings.qml:420, Modules/Settings/LibrariesSettings.qml:552",
     "comment": "why clearing the cache is disabled"
   },
   {
@@ -3050,13 +3074,13 @@
   {
     "term": "No rule",
     "context": "No rule",
-    "reference": "Modules/Settings/LibrariesSettings.qml:543",
+    "reference": "Modules/Settings/LibrariesSettings.qml:562",
     "comment": "offline song row for a song no rule holds"
   },
   {
     "term": "No rules",
     "context": "No rules",
-    "reference": "Modules/Settings/LibrariesSettings.qml:430, Modules/Settings/LibrariesSettings.qml:493",
+    "reference": "Modules/Settings/LibrariesSettings.qml:449, Modules/Settings/LibrariesSettings.qml:512",
     "comment": "a server library without offline rules"
   },
   {
@@ -3122,7 +3146,7 @@
   {
     "term": "Not approved on Last.fm yet",
     "context": "Not approved on Last.fm yet",
-    "reference": "Services/SettingsService.qml:186",
+    "reference": "Services/SettingsService.qml:191",
     "comment": "snackbar when the Last.fm sign-in isn't approved"
   },
   {
@@ -3152,7 +3176,7 @@
   {
     "term": "Nothing matches \"%1\".",
     "context": "Nothing matches \"%1\".",
-    "reference": "Modules/PlaylistPage.qml:168, Modules/ArtistPage.qml:366, Modules/SearchPage.qml:151",
+    "reference": "Modules/PlaylistPage.qml:168, Modules/SearchPage.qml:151, Modules/ArtistPage.qml:366",
     "comment": "search page empty result"
   },
   {
@@ -3200,7 +3224,7 @@
   {
     "term": "Off",
     "context": "Off",
-    "reference": "Modules/Settings/AboutSettings.qml:111, Modules/Settings/PlaybackSettings.qml:112, Modules/Settings/AppearanceSettings.qml:349",
+    "reference": "Modules/Settings/AboutSettings.qml:111, Modules/Settings/PlaybackSettings.qml:112, Modules/Settings/AppearanceSettings.qml:349, Modules/Settings/LibrariesSettings.qml:402",
     "comment": "option that turns something off"
   },
   {
@@ -3224,7 +3248,7 @@
   {
     "term": "Offline rules for %1",
     "context": "Offline rules for %1",
-    "reference": "Modules/Settings/LibrariesSettings.qml:480",
+    "reference": "Modules/Settings/LibrariesSettings.qml:499",
     "comment": "library offline overview section, %1 is the library"
   },
   {
@@ -3770,7 +3794,7 @@
   {
     "term": "Remove",
     "context": "Remove",
-    "reference": "Modules/QueueList.qml:246, Modules/Router.qml:383, Widgets/DZoneEditor.qml:71, Widgets/DInstanceRow.qml:209, Modules/Settings/SurfaceEditor.qml:339, Modules/Settings/LibrariesSettings.qml:298, Modules/Settings/LibrariesSettings.qml:575, Modules/Settings/LibrariesSettings.qml:584, Modules/Settings/LibrariesSettings.qml:641, Modules/Settings/PagesSettings.qml:312",
+    "reference": "Modules/QueueList.qml:246, Modules/Router.qml:383, Widgets/DZoneEditor.qml:71, Widgets/DInstanceRow.qml:209, Modules/Settings/SurfaceEditor.qml:339, Modules/Settings/PagesSettings.qml:312, Modules/Settings/LibrariesSettings.qml:298, Modules/Settings/LibrariesSettings.qml:594, Modules/Settings/LibrariesSettings.qml:603, Modules/Settings/LibrariesSettings.qml:660",
     "comment": "button that removes an item"
   },
   {
@@ -3788,7 +3812,7 @@
   {
     "term": "Remove \"%1\"?",
     "context": "Remove \"%1\"?",
-    "reference": "Modules/Settings/LibrariesSettings.qml:573",
+    "reference": "Modules/Settings/LibrariesSettings.qml:592",
     "comment": "remove library confirmation title"
   },
   {
@@ -4208,7 +4232,7 @@
   {
     "term": "Save",
     "context": "Save",
-    "reference": "Modules/TextPromptDialog.qml:10, Modules/MediaMenu.qml:183, Modules/BrowsePage.qml:321, Modules/BrowsePage.qml:322, Modules/Settings/OfflineLimitDialog.qml:95, Modules/Settings/LibraryDialog.qml:393, Modules/Settings/PagesSettings.qml:197",
+    "reference": "Modules/TextPromptDialog.qml:10, Modules/BrowsePage.qml:321, Modules/BrowsePage.qml:322, Modules/MediaMenu.qml:183, Modules/Settings/OfflineLimitDialog.qml:95, Modules/Settings/LibraryDialog.qml:393, Modules/Settings/PagesSettings.qml:197",
     "comment": "dialog confirm button"
   },
   {
@@ -4370,7 +4394,7 @@
   {
     "term": "Search in %1",
     "context": "Search in %1",
-    "reference": "Modules/PlaylistPage.qml:86, Modules/ArtistPage.qml:179, Modules/BrowsePage.qml:179",
+    "reference": "Modules/PlaylistPage.qml:86, Modules/BrowsePage.qml:179, Modules/ArtistPage.qml:179",
     "comment": "a page's own search field, %1 is the page, playlist or artist"
   },
   {
@@ -4550,7 +4574,7 @@
   {
     "term": "Shuffle",
     "context": "Shuffle",
-    "reference": "Common/UiConfig.qml:861, Common/UiConfig.qml:978, Modules/Shelf.qml:228, Modules/PlayButtons.qml:32",
+    "reference": "Common/UiConfig.qml:861, Common/UiConfig.qml:978, Modules/PlayButtons.qml:32, Modules/Shelf.qml:228",
     "comment": "button or mode that plays in random order"
   },
   {
@@ -4586,7 +4610,7 @@
   {
     "term": "Signed in as %1",
     "context": "Signed in as %1",
-    "reference": "Services/SettingsService.qml:202, Modules/Settings/ScrobbleSettings.qml:21",
+    "reference": "Services/SettingsService.qml:207, Modules/Settings/ScrobbleSettings.qml:21",
     "comment": "scrobbling account state, %1 is the user name"
   },
   {
@@ -4994,7 +5018,7 @@
   {
     "term": "The folders are removed from Dux Player. No files are deleted.",
     "context": "The folders are removed from Dux Player. No files are deleted.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:574",
+    "reference": "Modules/Settings/LibrariesSettings.qml:593",
     "comment": "remove local library confirmation"
   },
   {
@@ -5024,7 +5048,7 @@
   {
     "term": "The server and its saved password are removed from Dux Player. Nothing is deleted on the server.",
     "context": "The server and its saved password are removed from Dux Player. Nothing is deleted on the server.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:574",
+    "reference": "Modules/Settings/LibrariesSettings.qml:593",
     "comment": "remove server library confirmation"
   },
   {
@@ -5216,7 +5240,7 @@
   {
     "term": "Tracks without a rule are removed first when the size limit is reached.",
     "context": "Tracks without a rule are removed first when the size limit is reached.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:494",
+    "reference": "Modules/Settings/LibrariesSettings.qml:513",
     "comment": "library offline overview without rules"
   },
   {

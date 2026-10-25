@@ -130,6 +130,8 @@ type Offline interface {
 	// Cached returns the file of a cached track with its measured gain and
 	// silence.
 	Cached(ctx context.Context, ref source.Ref) (player.Stream, bool)
+	// Buffered returns the prefetched copy of an upcoming track.
+	Buffered(ctx context.Context, ref source.Ref) (player.Stream, bool)
 	// ProbedGain is the gain Probe measured for a track that isn't cached.
 	ProbedGain(ctx context.Context, ref source.Ref) (float64, bool)
 	// Probe measures a track's gain from the start of its stream.
@@ -490,10 +492,14 @@ func (m *Manager) track(ctx context.Context, ref source.Ref) (source.Track, erro
 	return source.Track{}, err
 }
 
-// Stream implements player.Resolver. A cached copy wins over the server.
+// Stream implements player.Resolver. A cached or prefetched copy wins over
+// the server.
 func (m *Manager) Stream(ctx context.Context, ref source.Ref) (player.Stream, error) {
 	if off := m.offline.Load(); off != nil {
 		if st, ok := (*off).Cached(ctx, ref); ok {
+			return st, nil
+		}
+		if st, ok := (*off).Buffered(ctx, ref); ok {
 			return st, nil
 		}
 	}
@@ -579,7 +585,10 @@ func (m *Manager) cached(ctx context.Context, ref source.Ref) bool {
 	if off == nil {
 		return false
 	}
-	_, ok := (*off).Cached(ctx, ref)
+	if _, ok := (*off).Cached(ctx, ref); ok {
+		return true
+	}
+	_, ok := (*off).Buffered(ctx, ref)
 	return ok
 }
 

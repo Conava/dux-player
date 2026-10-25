@@ -39,7 +39,10 @@ Singleton {
             "artistInfoOnline": true,
             "showTrayIcon": true,
             "skipSilenceStart": false,
-            "skipSilenceEnd": false
+            "skipSilenceEnd": false,
+            // upcoming server tracks downloaded ahead, 0-3
+            "prefetchTracks": 1,
+            "prefetchOnMetered": false
         })
     property var eqBands: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
     property var eqPresets: ({})
@@ -126,6 +129,8 @@ Singleton {
         case "showTrayIcon":
         case "skipSilenceStart":
         case "skipSilenceEnd":
+        case "prefetchTracks":
+        case "prefetchOnMetered":
             params[name] = value;
             break;
         default:
@@ -439,7 +444,9 @@ Singleton {
             "artistInfoOnline": s.artistInfoOnline !== false,
             "showTrayIcon": s.showTrayIcon !== false,
             "skipSilenceStart": s.skipSilenceStart === true,
-            "skipSilenceEnd": s.skipSilenceEnd === true
+            "skipSilenceEnd": s.skipSilenceEnd === true,
+            "prefetchTracks": s.prefetchTracks ?? 1,
+            "prefetchOnMetered": s.prefetchOnMetered === true
         });
         artistInfoKnown = s.artistInfoOnline !== undefined;
         trayKnown = s.showTrayIcon !== undefined;

@@ -55,3 +55,58 @@ func watch(ctx context.Context, signals <-chan *dbus.Signal, onChange func()) {
 		}
 	}
 }
+
+const (
+	nmName  = "org.freedesktop.NetworkManager"
+	nmPath  = "/org/freedesktop/NetworkManager"
+	nmProps = "org.freedesktop.DBus.Properties"
+)
+
+// Metered reads NetworkManager's NMMetered value: yes (1) and guess-yes (3)
+// are metered; unknown, no and guess-no aren't.
+func Metered(v uint32) bool { return v == 1 || v == 3 }
+
+// WatchMetered says whether NetworkManager calls the connection metered and
+// calls onChange on every change after, until ctx ends. Without a system bus
+// or NetworkManager the connection is never metered.
+func WatchMetered(ctx context.Context, onChange func(metered bool)) bool {
+	conn, err := dbus.ConnectSystemBus(dbus.WithContext(ctx))
+	if err != nil {
+		return false
+	}
+	if err := conn.AddMatchSignalContext(ctx, dbus.WithMatchObjectPath(nmPath), dbus.WithMatchInterface(nmProps),
+		dbus.WithMatchMember("PropertiesChanged"), dbus.WithMatchArg(0, nmName)); err != nil {
+		conn.Close()
+		return false
+	}
+	signals := make(chan *dbus.Signal, 16)
+	conn.Signal(signals)
+	gctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	var v dbus.Variant
+	if err := conn.Object(nmName, nmPath).CallWithContext(gctx, nmProps+".Get", 0, nmName, "Metered").Store(&v); err != nil {
+		log.Debugf("no NetworkManager, so the connection counts as not metered: %v", err)
+	}
+	n, _ := v.Value().(uint32)
+	go func() {
+		defer conn.Close()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case sig, ok := <-signals:
+				if !ok {
+					return
+				}
+				if len(sig.Body) < 2 {
+					continue
+				}
+				changed, _ := sig.Body[1].(map[string]dbus.Variant)
+				if m, ok := changed["Metered"].Value().(uint32); ok {
+					onChange(Metered(m))
+				}
+			}
+		}
+	}()
+	return Metered(n)
+}

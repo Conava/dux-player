@@ -38,6 +38,12 @@ type catalog struct {
 	fail      bool
 	// audio maps a track id to a file served instead of the 40 bytes.
 	audio map[string]string
+	// hits counts the downloads of each track; a track in hold is sent
+	// only once its channel closes.
+	hits map[string]int
+	hold map[string]chan struct{}
+	// broken answers this many downloads of a track with an error.
+	broken map[string]int
 }
 
 func (s *server) tracks(ids []string) []source.Track {
@@ -119,6 +125,9 @@ func newCatalog() *catalog {
 		artists:   map[string][]string{"R": {"A2"}},
 		playlists: map[string][]string{"P": {"b", "d"}},
 		favs:      []string{"e"},
+		hits:      map[string]int{},
+		hold:      map[string]chan struct{}{},
+		broken:    map[string]int{},
 	}
 }
 
@@ -132,7 +141,24 @@ func setup(t *testing.T, dir string, libCfg map[string]any, prep func(lib string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cat.mu.Lock()
 		file := cat.audio[r.URL.Path[1:]]
+		cat.hits[r.URL.Path[1:]]++
+		hold := cat.hold[r.URL.Path[1:]]
+		broken := cat.broken[r.URL.Path[1:]] > 0
+		if broken {
+			cat.broken[r.URL.Path[1:]]--
+		}
 		cat.mu.Unlock()
+		if broken {
+			http.Error(w, "broken", http.StatusInternalServerError)
+			return
+		}
+		if hold != nil {
+			select {
+			case <-hold:
+			case <-r.Context().Done():
+				return
+			}
+		}
 		if file != "" {
 			http.ServeFile(w, r, file)
 			return

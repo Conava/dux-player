@@ -76,10 +76,12 @@ func TestRemoteGetsTransportCommands(t *testing.T) {
 	assert.Equal(t, 2, st.Index)
 	assert.Equal(t, StatePaused, st.State)
 	assert.Equal(t, 42.0, st.Position)
+	assert.True(t, st.Casting)
 
 	require.NoError(t, p.SetRemote(ctx, nil, false))
 	st, err = p.Status(ctx)
 	require.NoError(t, err)
+	assert.False(t, st.Casting)
 	assert.Equal(t, StateStopped, st.State)
 	assert.Equal(t, 42.0, st.Position, "resume continues where the remote was")
 	assert.Equal(t, 2, st.Index)

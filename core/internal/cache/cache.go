@@ -102,6 +102,11 @@ type Config struct {
 	LocalPlaylist func(ctx context.Context, id string) ([]source.Track, error)
 	// MostPlayed lists the tracks of every library by all-time play count.
 	MostPlayed func(ctx context.Context) ([]source.Track, error)
+	// Prefetched is told that the next track's copy is ready.
+	Prefetched func(ref source.Ref)
+	// WatchMetered says whether the connection is metered and calls
+	// onChange on every change after; nil is never metered.
+	WatchMetered func(ctx context.Context, onChange func(bool)) bool
 }
 
 type job struct {
@@ -109,6 +114,8 @@ type job struct {
 	// sync jobs come from rules other than played; they never evict each
 	// other.
 	sync bool
+	// from is a prefetched copy that left the buffer.
+	from *buffered
 }
 
 type Cache struct {
@@ -136,6 +143,7 @@ type Cache struct {
 	probing chan struct{}
 	// fileMu orders the read-modify-writes of cache.json.
 	fileMu sync.Mutex
+	pre    prefetch
 }
 
 func Open(ctx context.Context, cfg Config) (*Cache, error) {
@@ -150,7 +158,8 @@ func Open(ctx context.Context, cfg Config) (*Cache, error) {
 	tr.ResponseHeaderTimeout = 30 * time.Second
 	c := &Cache{cfg: cfg, db: db, client: &http.Client{Transport: tr, CheckRedirect: source.SameOrigin}, stall: stallTimeout, limit: loadLimit(cfg.ConfigDir),
 		queued: map[source.Ref]bool{}, wanted: map[source.Ref]bool{}, online: map[string]bool{}, top: map[string][]source.Track{},
-		wake: make(chan struct{}, 1), probing: make(chan struct{}, 1)}
+		wake: make(chan struct{}, 1), probing: make(chan struct{}, 1),
+		pre: prefetch{buf: map[source.Ref]*buffered{}, wake: make(chan struct{}, 1), tracks: 1}}
 	if err := c.migrate(ctx); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("move the offline settings to rules: %w", err)
@@ -576,6 +585,7 @@ func (c *Cache) enqueue(tracks []source.Track, sync bool) {
 func (c *Cache) Run(ctx context.Context) {
 	old := &loudness.Loop{Meter: c.cfg.Meter, Pending: c.pendingSilence, Save: c.saveSilence}
 	old.Start(ctx)
+	go c.runPrefetch(ctx)
 	for {
 		c.mu.Lock()
 		var j job
@@ -617,9 +627,6 @@ func (c *Cache) fetch(ctx context.Context, j job) error {
 	if _, ok := c.Cached(ctx, ref); ok {
 		return nil
 	}
-	if c.cfg.Libraries.Unavailable(ctx, ref).Code != "" {
-		return nil
-	}
 	src, err := c.cfg.Libraries.Get(ref.Library)
 	if err != nil {
 		return err
@@ -629,18 +636,15 @@ func (c *Cache) fetch(ctx context.Context, j job) error {
 		return err
 	}
 	file := filepath.Join(dir, fileName(ref))
-	size, err := c.download(ctx, src, ref.ID, file, 0)
-	if err != nil {
-		return err
-	}
-	// Silence is measured only while it's wanted; the backfill (measureOld)
-	// catches up once it is.
-	var gain, start, end *float64
-	if (!hasReplayGain(t) || c.cfg.Meter.Silence()) && c.cfg.Meter.Available() {
-		r, err := c.cfg.Meter.Measure(ctx, file)
-		if err == nil {
-			gain, start, end = &r.Gain, &r.Silence.Start, &r.Silence.End
+	size, m, ok := c.adopt(j, file)
+	if !ok {
+		if c.cfg.Libraries.Unavailable(ctx, ref).Code != "" {
+			return nil
 		}
+		if size, err = c.download(ctx, src, ref.ID, file, 0); err != nil {
+			return err
+		}
+		m = c.measure(ctx, t, file)
 	}
 	data, _ := json.Marshal(t)
 	played := "0"
@@ -649,7 +653,7 @@ func (c *Cache) fetch(ctx context.Context, j job) error {
 	}
 	if _, err := c.db.ExecContext(ctx, `INSERT OR REPLACE INTO entries (library_id, id, file, size, added, used, track, gain, played,
 		silence_start, silence_end) VALUES (?, ?, ?, ?, unixepoch(), unixepoch(), ?, ?, `+played+`, ?, ?)`,
-		ref.Library, ref.ID, file, size, string(data), gain, start, end); err != nil {
+		ref.Library, ref.ID, file, size, string(data), m.gain, m.start, m.end); err != nil {
 		os.Remove(file)
 		return err
 	}
@@ -663,6 +667,23 @@ func (c *Cache) fetch(ctx context.Context, j job) error {
 	return nil
 }
 
+// measured is a measurement for the index; nil fields weren't measured.
+type measured struct{ gain, start, end *float64 }
+
+// measure measures a downloaded file when its gain is missing or its
+// silence is wanted; the backfill (pendingSilence) catches up on silence
+// once it is.
+func (c *Cache) measure(ctx context.Context, t source.Track, file string) measured {
+	if !c.cfg.Meter.Available() || (hasReplayGain(t) && !c.cfg.Meter.Silence()) {
+		return measured{}
+	}
+	r, err := c.cfg.Meter.Measure(ctx, file)
+	if err != nil {
+		return measured{}
+	}
+	return measured{&r.Gain, &r.Silence.Start, &r.Silence.End}
+}
+
 // ProbedGain implements library.Offline.
 func (c *Cache) ProbedGain(ctx context.Context, ref source.Ref) (float64, bool) {
 	var gain float64
@@ -672,7 +693,8 @@ func (c *Cache) ProbedGain(ctx context.Context, ref source.Ref) (float64, bool) 
 
 // Probe implements library.Offline: it measures the loudness of the first
 // probeBytes of a server track and keeps the gain for later plays. Silence
-// isn't kept, as the end of the file is missing.
+// isn't kept, as the end of the file is missing. A track in the prefetch
+// buffer is never probed: its full download brings the gain.
 func (c *Cache) Probe(ctx context.Context, ref source.Ref) (float64, error) {
 	if !c.cfg.Meter.Available() {
 		return 0, errors.New("ffmpeg is not installed")
@@ -684,28 +706,66 @@ func (c *Cache) Probe(ctx context.Context, ref source.Ref) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
+	for {
+		if b := c.buffered(ref); b != nil {
+			select {
+			case <-b.done:
+			case <-ctx.Done():
+				return 0, ctx.Err()
+			}
+			if g, ok := c.ProbedGain(ctx, ref); ok {
+				return g, nil
+			}
+			if c.buffered(ref) == b {
+				return 0, errors.New("the track's prefetch brought no gain")
+			}
+			// Dropped or failed; probe after all.
+			continue
+		}
+		gain, again, err := c.probe(ctx, src, ref)
+		if !again {
+			return gain, err
+		}
+	}
+}
+
+// probe downloads and measures the start of ref's stream unless the
+// prefetch holds the track; again says it does, now or since it took over.
+func (c *Cache) probe(ctx context.Context, src source.Source, ref source.Ref) (float64, bool, error) {
 	select {
 	case c.probing <- struct{}{}:
 	case <-ctx.Done():
-		return 0, ctx.Err()
+		return 0, false, ctx.Err()
 	}
 	defer func() { <-c.probing }()
 	if g, ok := c.ProbedGain(ctx, ref); ok {
-		return g, nil
+		return g, false, nil
 	}
-	ctx, cancel := context.WithTimeout(ctx, probeTimeout)
+	pctx, cancel := context.WithTimeout(ctx, probeTimeout)
 	defer cancel()
+	c.mu.Lock()
+	if b := c.pre.buf[ref]; b != nil && !b.failed {
+		c.mu.Unlock()
+		return 0, true, nil
+	}
+	c.pre.probe, c.pre.probeCancel = ref, cancel
+	c.mu.Unlock()
+	defer func() {
+		c.mu.Lock()
+		c.pre.probe, c.pre.probeCancel = source.Ref{}, nil
+		c.mu.Unlock()
+	}()
 	file := filepath.Join(c.cfg.Dir, "probe")
 	defer os.Remove(file)
-	if _, err := c.download(ctx, src, ref.ID, file, probeBytes); err != nil {
-		return 0, err
+	if _, err := c.download(pctx, src, ref.ID, file, probeBytes); err != nil {
+		return 0, ctx.Err() == nil && c.buffered(ref) != nil, err
 	}
-	r, err := c.cfg.Meter.Measure(ctx, file)
+	r, err := c.cfg.Meter.Measure(pctx, file)
 	if err != nil {
-		return 0, err
+		return 0, ctx.Err() == nil && c.buffered(ref) != nil, err
 	}
 	_, err = c.db.ExecContext(ctx, "INSERT OR REPLACE INTO probes (library_id, id, gain) VALUES (?, ?, ?)", ref.Library, ref.ID, r.Gain)
-	return r.Gain, err
+	return r.Gain, false, err
 }
 
 // pendingSilence lists copies cached before their silence was wanted.
