@@ -1,0 +1,34 @@
+{
+ "Name": "Nemesis",
+ "Id": "f7e6d83954e06a0d46724a6068fa21ff",
+ "Genres": [
+  "Rap"
+ ],
+ "RunTimeTicks": 1830508539,
+ "ProductionYear": 2024,
+ "Type": "MusicAlbum",
+ "UserData": {
+  "IsFavorite": true,
+  "PlayCount": 0
+ },
+ "ChildCount": 1,
+ "Artists": [
+  "Leap Fidei"
+ ],
+ "ArtistItems": [
+  {
+   "Name": "Leap Fidei",
+   "Id": "78e6763b3d9b58c349a58ce5eb7877c1"
+  }
+ ],
+ "AlbumArtist": "Leap Fidei",
+ "AlbumArtists": [
+  {
+   "Name": "Leap Fidei",
+   "Id": "78e6763b3d9b58c349a58ce5eb7877c1"
+  }
+ ],
+ "ImageTags": {
+  "Primary": "45ff5f4520bf2b3e9e7410e4c8766cb1"
+ }
+}

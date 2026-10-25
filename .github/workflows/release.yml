@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      CGO_ENABLED: "0"
+      GOFLAGS: -buildmode=pie -trimpath
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: core/go.mod
+          cache-dependency-path: core/go.sum
+
+      - name: Test
+        run: make test-go
+
+      # Each tarball is a `make install` tree under usr/; the -bin AUR package unpacks it as is.
+      # Asset names follow `uname -m`.
+      - name: Build binaries
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          mkdir -p dist
+          for arch in amd64:x86_64 arm64:aarch64; do
+            GOARCH=${arch%%:*} make build VERSION="$version" COMMIT="${GITHUB_SHA::8}"
+            make install DESTDIR="$PWD/stage-${arch##*:}" PREFIX=/usr
+            tar -C "stage-${arch##*:}" -czf "dist/dplayer-${version}-${arch##*:}.tar.gz" usr
+          done
+
+      # Builds offline from this tarball: it carries the dux-qml-common submodule and vendored Go modules.
+      - name: Source tarball
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          (cd core && go mod vendor)
+          tar -czf "dist/dux-player-${version}.tar.gz" --transform "s,^,dux-player-${version}/,S" \
+            --exclude-vcs --exclude=dist --exclude='stage-*' --exclude=core/bin \
+            --exclude=core/internal/shellembed/dist *
+
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=""
+          case "$GITHUB_REF_NAME" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes $prerelease

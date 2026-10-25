@@ -1,0 +1,12 @@
+<!-- placeholder; music_note glyph from Material Symbols Rounded, Apache License 2.0, https://github.com/google/material-design-icons -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F5F0FF"/>
+      <stop offset="1" stop-color="#D0BCFF"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(0 64) scale(0.0666667)">
+    <path d="M400-120q-66 0-113-47t-47-113q0-66 47-113t113-47q23 0 42.5 5.5T480-418v-382q0-17 11.5-28.5T520-840h160q17 0 28.5 11.5T720-800v80q0 17-11.5 28.5T680-680H560v400q0 66-47 113t-113 47Z" fill="url(#body)"/>
+  </g>
+</svg>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.marlonkranz.player</id>
+  <launchable type="desktop-id">com.marlonkranz.player.desktop</launchable>
+  <name>Dux Player</name>
+  <summary>Music player for the Dux desktop</summary>
+
+  <description>
+    <p>Dux Player plays local music libraries and playlists and streams from Navidrome, Subsonic and Jellyfin servers. It is built with Quickshell, Qt 6, Go and mpv, and follows the look of Dux Shell.</p>
+  </description>
+
+  <developer id="com.marlonkranz">
+    <name>Marlon Kranz</name>
+  </developer>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <url type="homepage">https://github.com/Conava/dux-player</url>
+  <url type="bugtracker">https://github.com/Conava/dux-player/issues</url>
+  <url type="vcs-browser">https://github.com/Conava/dux-player</url>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="0.0.1-alpha" date="2026-10-25" type="development" />
+  </releases>
+</component>

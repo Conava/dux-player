@@ -1,0 +1,16 @@
+# AI agents' working notes and local tool settings: never committed
+.devline/
+memory/
+.claude/
+core/bin/
+core/cmd/dplayer/dplayer
+core/vendor/
+core/coverage.out
+# filled from quickshell/ by `make -C core sync-shell` for embedded builds
+core/internal/shellembed/dist/
+# makepkg output
+distro/aur/*/src/
+distro/aur/*/pkg/
+distro/aur/*/*.tar.*
+distro/aur/dux-player-git/dux-player/
+distro/aur/dux-player-git/dux-qml-common/

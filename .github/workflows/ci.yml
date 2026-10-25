@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [master, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # Arch has current quickshell and Qt 6 packages, which lint-qml needs (qs builds the tooling VFS, qmllint reads it).
+    container: archlinux:base
+    timeout-minutes: 20
+    env:
+      XDG_RUNTIME_DIR: /tmp/runtime
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman-key --init
+          pacman -Syu --noconfirm --needed git make go nodejs python quickshell qt6-declarative
+          mkdir -m 700 -p "$XDG_RUNTIME_DIR"
+
+      - name: Record versions
+        run: pacman -Q go quickshell qt6-declarative nodejs
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      # The container runs as root; git refuses a checkout owned by another user.
+      - name: Trust the checkout
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Lint
+        run: make lint
+
+      - name: Test
+        run: make test
+
+      - name: Build
+        run: make build

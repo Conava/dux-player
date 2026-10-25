@@ -1,0 +1,27 @@
+# Maintainer: Marlon Kranz <dev@marlonkranz.com>
+pkgname=dux-player-bin
+_pkgname=dux-player
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Music player for local libraries and Navidrome, Subsonic and Jellyfin servers, in the style of Dux Shell (release binary)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/Conava/dux-player"
+license=('MIT' 'LGPL-2.1-only')
+depends=('mpv' 'quickshell' 'qt6-declarative' 'qt6-svg')
+optdepends=('ffmpeg: loudness measurement for even volume'
+            'pipewire: playing to several outputs at once and the equalizer'
+            'cast-helper: playing to Chromecast devices'
+            'org.freedesktop.secrets: keeping server passwords in the keyring')
+provides=("$_pkgname")
+conflicts=("$_pkgname")
+options=('!strip' '!debug')
+# each release tarball is the `make install` tree under usr/
+source_x86_64=("$url/releases/download/v$pkgver/dplayer-$pkgver-x86_64.tar.gz")
+source_aarch64=("$url/releases/download/v$pkgver/dplayer-$pkgver-aarch64.tar.gz")
+sha256sums_x86_64=('SKIP')
+sha256sums_aarch64=('SKIP')
+
+package() {
+  cp -a usr "$pkgdir/"
+  mv "$pkgdir/usr/share/licenses/$_pkgname" "$pkgdir/usr/share/licenses/$pkgname"
+}

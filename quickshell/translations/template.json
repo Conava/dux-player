@@ -1,0 +1,6512 @@
+[
+  {
+    "term": " GB",
+    "translation": "",
+    "context": "unit suffix for gigabytes with a space",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": " dB",
+    "translation": "",
+    "context": "unit suffix for decibels",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": " ms",
+    "translation": "",
+    "context": "unit suffix for milliseconds with a space",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "#",
+    "translation": "",
+    "context": "track list column: the position in a playlist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 (added)",
+    "translation": "",
+    "context": "picker entry already in place, %1 is its name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 (already in this zone)",
+    "translation": "",
+    "context": "picker item that is already in the zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 (already on home)",
+    "translation": "",
+    "context": "picker item that is already a home shelf",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 (already on this device)",
+    "translation": "",
+    "context": "offline rule picker item that is already kept",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 (already pinned)",
+    "translation": "",
+    "context": "picker item that is already in the navigation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 (copy)",
+    "translation": "",
+    "context": "name of a duplicated playlist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 GB",
+    "translation": "",
+    "context": "file size",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 Hz",
+    "translation": "",
+    "context": "equalizer band",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 MB",
+    "translation": "",
+    "context": "file size",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 albums",
+    "translation": "",
+    "context": "album count, plural",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 at %2",
+    "translation": "",
+    "context": "server account: user at address",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 bit",
+    "translation": "",
+    "context": "bit depth",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 can't delete playlists",
+    "translation": "",
+    "context": "why deleting is disabled, %1 is the server library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 can't go in %2",
+    "translation": "",
+    "context": "toast when an element is dropped on a zone that doesn't take it; %1 is the element, %2 the zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 can't reorder playlists",
+    "translation": "",
+    "context": "why reordering is disabled, %1 is the server library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 ch",
+    "translation": "",
+    "context": "audio channel count",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 changed",
+    "translation": "",
+    "context": "settings pages: how many pages of a kind have their own options, %1 is the count",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 dB",
+    "translation": "",
+    "context": "ReplayGain value",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 doesn't support editing playlists",
+    "translation": "",
+    "context": "why playlist editing is disabled, %1 is the server library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 doesn't support favorites",
+    "translation": "",
+    "context": "why the heart is disabled, %1 is the library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 doesn't support star ratings",
+    "translation": "",
+    "context": "why the stars are disabled, %1 is the library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 elements",
+    "translation": "",
+    "context": "now playing surface summary, plural",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 files written",
+    "translation": "",
+    "context": "ratings written to files",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 files written, %2 failed",
+    "translation": "",
+    "context": "ratings written to files",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 is still unavailable",
+    "translation": "",
+    "context": "snackbar after a retry, %1 is the library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 is unavailable",
+    "translation": "",
+    "context": "why a track can't play, %1 is its library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 items",
+    "translation": "",
+    "context": "browse page item count, plural",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 kHz",
+    "translation": "",
+    "context": "equalizer band | sample rate",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 kbps",
+    "translation": "",
+    "context": "bitrate",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 left",
+    "translation": "",
+    "context": "time left in the queue, %1 is a duration",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 manages this playlist's cover.",
+    "translation": "",
+    "context": "cover dialog note for server playlists without custom covers",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 minutes",
+    "translation": "",
+    "context": "sleep timer option, %1 is 15 or more",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 more tracks",
+    "translation": "",
+    "context": "list overflow, plural",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 of %2",
+    "translation": "",
+    "context": "offline rule progress: cached of all, %2 is a track count | storage usage: used of limit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 of %2 stars",
+    "translation": "",
+    "context": "Value of a star rating control",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 outputs",
+    "translation": "",
+    "context": "playback device chip, %1 is 2 or more",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 plays",
+    "translation": "",
+    "context": "play count, plural",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 scrobbles pending",
+    "translation": "",
+    "context": "scrobbling queue state, plural",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 selected",
+    "translation": "",
+    "context": "selection count, plural",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 shelves",
+    "translation": "",
+    "context": "settings pages: the home page's shelf count",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 skipped: their library doesn't support this",
+    "translation": "",
+    "context": "snackbar after acting on a mixed selection, %1 is a count",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 tracks",
+    "translation": "",
+    "context": "track count, plural",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 · %2",
+    "translation": "",
+    "context": "two facts joined by a dot",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 · edited queue",
+    "translation": "",
+    "context": "continue listening context, the queue was changed with play next or reordering",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 · follows the bar",
+    "translation": "",
+    "context": "side panel summary, %1 is the element count",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 · track %2 of %3 · %4 / %5",
+    "translation": "",
+    "context": "continue listening facts: artist · position in queue · elapsed / total",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1, %2",
+    "translation": "",
+    "context": "accessible name: a title and its detail",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1, disc %2",
+    "translation": "",
+    "context": "track number and disc number",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1, loading more…",
+    "translation": "",
+    "context": "browse page item count while tracks still load",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1, renamed from %2",
+    "translation": "",
+    "context": "navigation entry subtitle: kind, original name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1, see all",
+    "translation": "",
+    "context": "home shelf title link",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1×",
+    "translation": "",
+    "context": "playback speed option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": ", ",
+    "translation": "",
+    "context": "between artist names",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "1 album",
+    "translation": "",
+    "context": "album count, singular",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "1 element",
+    "translation": "",
+    "context": "now playing surface summary, singular",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "1 item",
+    "translation": "",
+    "context": "browse page item count, singular",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "1 more track",
+    "translation": "",
+    "context": "list overflow, singular",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "1 play",
+    "translation": "",
+    "context": "play count, singular",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "1 scrobble pending",
+    "translation": "",
+    "context": "scrobbling queue state, singular",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "1 selected",
+    "translation": "",
+    "context": "selection count, singular",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "1 track",
+    "translation": "",
+    "context": "track count, singular",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "A Dux Shell theme file with light and dark palettes. Export the current colors to use as a starting point.",
+    "translation": "",
+    "context": "custom theme description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "A play is scrobbled after half the track or four minutes, whichever comes first. Server libraries scrobble to their server, which may forward the play. Local libraries scrobble to the accounts below. No play is scrobbled twice.",
+    "translation": "",
+    "context": "scrobbling settings intro",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "API key",
+    "translation": "",
+    "context": "API key field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "API keys",
+    "translation": "",
+    "context": "general setting: keys for online artist info services",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "About",
+    "translation": "",
+    "context": "settings sidebar tab label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Above the seekbar",
+    "translation": "",
+    "context": "now playing zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Account",
+    "translation": "",
+    "context": "scrobbling settings row",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add",
+    "translation": "",
+    "context": "dialog confirm button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add \"%1\" to playlist",
+    "translation": "",
+    "context": "add to playlist dialog title for one track",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add %1 tracks to playlist",
+    "translation": "",
+    "context": "add to playlist dialog title for several tracks",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add a music folder or server.",
+    "translation": "",
+    "context": "home empty state when no library is set up",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add album",
+    "translation": "",
+    "context": "offline rule picker title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add artist",
+    "translation": "",
+    "context": "offline rule picker title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add at least one folder.",
+    "translation": "",
+    "context": "add local library dialog, why add is disabled",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add element",
+    "translation": "",
+    "context": "button under a zone in a layout editor",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add entry",
+    "translation": "",
+    "context": "navigation settings action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add folder",
+    "translation": "",
+    "context": "library dialog folder action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add library",
+    "translation": "",
+    "context": "libraries settings primary action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add line",
+    "translation": "",
+    "context": "button under the info lines in a page's edit mode",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add playlist",
+    "translation": "",
+    "context": "offline rule picker title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add rule",
+    "translation": "",
+    "context": "offline action that keeps more of a library on this device",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add shelf",
+    "translation": "",
+    "context": "home edit action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add this rule to your %1 config to open windows floating:",
+    "translation": "",
+    "context": "open floating snippet intro, %1 is the compositor",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add to favorites",
+    "translation": "",
+    "context": "track menu action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add to favorites on %1",
+    "translation": "",
+    "context": "favorite button tooltip, %1 is the server library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add to home",
+    "translation": "",
+    "context": "page header action adding a home shelf",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add to playlist",
+    "translation": "",
+    "context": "track row action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add to playlist…",
+    "translation": "",
+    "context": "track menu action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add to queue",
+    "translation": "",
+    "context": "track row action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add tracks from their menu or drag them here.",
+    "translation": "",
+    "context": "empty playlist hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Added by you",
+    "translation": "",
+    "context": "queue row: a track put in with play next or add to queue",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Adds a window rule through Dux Shell.",
+    "translation": "",
+    "context": "general setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Adjust the delay of each output",
+    "translation": "",
+    "context": "playback device sync row",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Album",
+    "translation": "",
+    "context": "an album: page label, list column, ReplayGain mode",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Album artist",
+    "translation": "",
+    "context": "details field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Album count",
+    "translation": "",
+    "context": "view info line",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Album details",
+    "translation": "",
+    "context": "details dialog title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Albums",
+    "translation": "",
+    "context": "navigation destination",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Album…",
+    "translation": "",
+    "context": "offline rule kind that asks which album",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Alignment",
+    "translation": "",
+    "context": "lyrics setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "All albums",
+    "translation": "",
+    "context": "page edit scope",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "All artists",
+    "translation": "",
+    "context": "page edit scope",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "All genres",
+    "translation": "",
+    "context": "genre filter option | page edit scope",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "All libraries",
+    "translation": "",
+    "context": "library filter chip | page edit scope",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "All of %1 is kept on this device",
+    "translation": "",
+    "context": "why Keep on this device is locked on, %1 is the library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "All playlists",
+    "translation": "",
+    "context": "page edit scope",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "All style settings come from Dux Shell.",
+    "translation": "",
+    "context": "appearance note while following the shell",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Allow access on the Last.fm page in your browser, then select Finish sign-in.",
+    "translation": "",
+    "context": "Last.fm sign-in step description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Allow volume above 100%",
+    "translation": "",
+    "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Already on home",
+    "translation": "",
+    "context": "an item that is already a home shelf",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Already used by %1",
+    "translation": "",
+    "context": "why a keyboard shortcut can't be used, %1 is the other shortcut",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Always in ⋮",
+    "translation": "",
+    "context": "element placement: always in the ⋮ menu",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Always shown",
+    "translation": "",
+    "context": "element placement: never moved into the ⋮ menu",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Amber",
+    "translation": "",
+    "context": "color palette name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Animation duration",
+    "translation": "",
+    "context": "appearance setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Another app is already casting",
+    "translation": "",
+    "context": "cast error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "App volume",
+    "translation": "",
+    "context": "volume controls option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Appearance",
+    "translation": "",
+    "context": "settings sidebar tab label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Applies to now playing and the now-playing bar.",
+    "translation": "",
+    "context": "appearance setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Applies to tracks, playlists, shelves and navigation entries.",
+    "translation": "",
+    "context": "general setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Approve Dux Player on Last.fm",
+    "translation": "",
+    "context": "Last.fm sign-in step",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Artist",
+    "translation": "",
+    "context": "track list column",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Artist biographies (CC BY-SA)",
+    "translation": "",
+    "context": "about page credit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Artist details",
+    "translation": "",
+    "context": "details dialog title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Artist identification",
+    "translation": "",
+    "context": "about page credit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Artist images (requires an API key)",
+    "translation": "",
+    "context": "about page credit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Artists",
+    "translation": "",
+    "context": "navigation destination",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Artist…",
+    "translation": "",
+    "context": "offline rule kind that asks which artist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Ascending",
+    "translation": "",
+    "context": "sort direction",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Ask first",
+    "translation": "",
+    "context": "removal mode option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "At least one entry must stay visible",
+    "translation": "",
+    "context": "why the last shown navigation entry can't be turned off",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Audio playback",
+    "translation": "",
+    "context": "about page credit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Auto",
+    "translation": "",
+    "context": "element placement: moved into ⋮ when the row runs short",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Auto follows the desktop.",
+    "translation": "",
+    "context": "appearance setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Auto moves it into ⋮ when the row runs out of space.",
+    "translation": "",
+    "context": "element placement description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Automatic",
+    "translation": "",
+    "context": "option picked automatically",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Automatic shows a rail in wide windows and a bar in narrow ones.",
+    "translation": "",
+    "context": "navigation style description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Available offline",
+    "translation": "",
+    "context": "track row cloud icon while the server is down",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Available when multiple outputs are on",
+    "translation": "",
+    "context": "why the test tone is disabled",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Back",
+    "translation": "",
+    "context": "page header back button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Background",
+    "translation": "",
+    "context": "general settings section label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Background vocals",
+    "translation": "",
+    "context": "lyrics setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Background, windows and shortcuts",
+    "translation": "",
+    "context": "settings sidebar tab hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Bands",
+    "translation": "",
+    "context": "equalizer setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Bar",
+    "translation": "",
+    "context": "navigation style option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Base color",
+    "translation": "",
+    "context": "appearance setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Bass boost",
+    "translation": "",
+    "context": "equalizer preset",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Before this point, Previous goes to the previous track.",
+    "translation": "",
+    "context": "playback setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Bento",
+    "translation": "",
+    "context": "now playing player style",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Blue",
+    "translation": "",
+    "context": "color palette name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Bluetooth outputs play later than wired ones. Delay the faster outputs until the test tone plays in sync.",
+    "translation": "",
+    "context": "playback device sync intro",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Blur and elevation",
+    "translation": "",
+    "context": "appearance style group",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Blur behind menus",
+    "translation": "",
+    "context": "appearance setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Bottom bar",
+    "translation": "",
+    "context": "now playing placement option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Bottom row",
+    "translation": "",
+    "context": "now playing zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Button group",
+    "translation": "",
+    "context": "now playing zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Buttons",
+    "translation": "",
+    "context": "element picker group",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "By Marlon Kranz",
+    "translation": "",
+    "context": "about page author row",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Can hold tracks from any library.",
+    "translation": "",
+    "context": "new playlist dialog hint for a local playlist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Can hold tracks from this server only. Available on all your devices.",
+    "translation": "",
+    "context": "new playlist dialog hint for a server playlist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Can't search for cast devices: discovery is unavailable",
+    "translation": "",
+    "context": "cast error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Cancel",
+    "translation": "",
+    "context": "dialog dismiss button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Carousel",
+    "translation": "",
+    "context": "home shelf layout option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Casting failed",
+    "translation": "",
+    "context": "cast error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Casting requires: %1",
+    "translation": "",
+    "context": "cast error, %1 lists package names",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Casting was stopped on the device",
+    "translation": "",
+    "context": "cast error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Center",
+    "translation": "",
+    "context": "lyrics alignment",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Change cover",
+    "translation": "",
+    "context": "playlist menu action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Change limit",
+    "translation": "",
+    "context": "offline rule action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Changed",
+    "translation": "",
+    "context": "settings pages: a page or type with changes",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Changes on disk show only after a rescan",
+    "translation": "",
+    "context": "library notice",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Changing a band switches the preset to Custom.",
+    "translation": "",
+    "context": "equalizer setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Choose the outputs to play on at the same time.",
+    "translation": "",
+    "context": "playback device setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Chromecast",
+    "translation": "",
+    "context": "playback device note",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Classical",
+    "translation": "",
+    "context": "equalizer preset",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Clear",
+    "translation": "",
+    "context": "button that empties a list",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Clear all downloads",
+    "translation": "",
+    "context": "offline action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Clear downloads",
+    "translation": "",
+    "context": "offline action for one library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Clear history",
+    "translation": "",
+    "context": "history page action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Clear history?",
+    "translation": "",
+    "context": "clear history confirmation title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Clear selection",
+    "translation": "",
+    "context": "selection bar action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Close",
+    "translation": "",
+    "context": "dialog dismiss button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Close now playing",
+    "translation": "",
+    "context": "expanded now playing close button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Close panel",
+    "translation": "",
+    "context": "side panel close button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Color and shape",
+    "translation": "",
+    "context": "cover dialog section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Color mode",
+    "translation": "",
+    "context": "appearance setting for light or dark",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Color now playing from the cover",
+    "translation": "",
+    "context": "appearance setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Color the whole app",
+    "translation": "",
+    "context": "appearance setting: album art colors everywhere",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Colors",
+    "translation": "",
+    "context": "appearance setting for the color source",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Comment",
+    "translation": "",
+    "context": "details field: the comment tag",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Commit",
+    "translation": "",
+    "context": "about page row: the git commit of a development build",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Compact",
+    "translation": "",
+    "context": "view layout option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Connected",
+    "translation": "",
+    "context": "add server dialog, connection test passed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Continue listening",
+    "translation": "",
+    "context": "home shelf with the last queue",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Continue with similar tracks",
+    "translation": "",
+    "context": "queue end button that keeps filling the queue",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Control playback from the system tray.",
+    "translation": "",
+    "context": "general setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Copy",
+    "translation": "",
+    "context": "copy a config snippet",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Copyright © 2026 Marlon Kranz",
+    "translation": "",
+    "context": "about page license row",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Coral",
+    "translation": "",
+    "context": "color palette name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Corner roundness",
+    "translation": "",
+    "context": "appearance setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Corners",
+    "translation": "",
+    "context": "appearance style group",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't add the library",
+    "translation": "",
+    "context": "toast when the daemon refuses a new local library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't add the server",
+    "translation": "",
+    "context": "toast when the daemon refuses a new server library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't add to the queue",
+    "translation": "",
+    "context": "toast when adding tracks to the play queue fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't change the library",
+    "translation": "",
+    "context": "toast when turning a library on or off fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't change the playlist",
+    "translation": "",
+    "context": "toast when renaming, adding to, removing from or reordering a playlist fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't clear downloads",
+    "translation": "",
+    "context": "toast when emptying the offline cache fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't clear the history",
+    "translation": "",
+    "context": "toast when clearing the play history fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't connect to server",
+    "translation": "",
+    "context": "add server dialog, connection test failed title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't connect to this server",
+    "translation": "",
+    "context": "why a server connection test failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't continue with similar tracks",
+    "translation": "",
+    "context": "toast when the daemon refuses to keep filling the queue",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't create the playlist",
+    "translation": "",
+    "context": "toast when making a new playlist fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't delete the playlist",
+    "translation": "",
+    "context": "toast when deleting a playlist fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't duplicate the playlist",
+    "translation": "",
+    "context": "toast when copying a playlist fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't export the playlist",
+    "translation": "",
+    "context": "toast when writing a playlist file fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't import the layout: %1",
+    "translation": "",
+    "context": "layout import failed, %1 is the reason",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't import the playlist",
+    "translation": "",
+    "context": "toast when reading a playlist file fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't import the theme: %1",
+    "translation": "",
+    "context": "custom theme import failed, %1 is the reason",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't keep it on this device",
+    "translation": "",
+    "context": "toast when adding an offline rule fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't load %1",
+    "translation": "",
+    "context": "toast when a library's albums or tracks can't be loaded, %1 is the library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't load downloaded tracks",
+    "translation": "",
+    "context": "toast when the offline cache's track list can't be read",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't load the playlist",
+    "translation": "",
+    "context": "toast when a playlist's tracks can't be loaded",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't open the library",
+    "translation": "",
+    "context": "library error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't play the test tone",
+    "translation": "",
+    "context": "toast when the multi-output test tone fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't quit the player",
+    "translation": "",
+    "context": "toast when quitting the player fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't reach %1",
+    "translation": "",
+    "context": "toast when retrying an unavailable library fails, %1 is the library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't reach the account",
+    "translation": "",
+    "context": "snackbar after a failed scrobbling account test",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't read the layout file",
+    "translation": "",
+    "context": "layout import failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't read the library's marked tracks",
+    "translation": "",
+    "context": "why writing ratings to files couldn't start",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't read the theme file",
+    "translation": "",
+    "context": "custom theme import failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't remove it from this device",
+    "translation": "",
+    "context": "toast when removing an offline rule fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't remove the library",
+    "translation": "",
+    "context": "toast when removing a library fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't save the API key",
+    "translation": "",
+    "context": "toast when storing an artist info API key fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't save the delay",
+    "translation": "",
+    "context": "toast when an output's sync delay is refused",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't save the favorite",
+    "translation": "",
+    "context": "toast when setting or clearing a favorite fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't save the library",
+    "translation": "",
+    "context": "toast when editing a library's name, folders or server fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't save the offline setting",
+    "translation": "",
+    "context": "toast when an offline cache setting is refused",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't save the rating",
+    "translation": "",
+    "context": "toast when setting a star rating fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't save the setting",
+    "translation": "",
+    "context": "toast when the daemon refuses a settings change",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't scan %1",
+    "translation": "",
+    "context": "toast when a library scan fails, %1 is the library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't scan the library",
+    "translation": "",
+    "context": "library error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't sign in",
+    "translation": "",
+    "context": "toast when connecting a scrobbling account fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't sign out",
+    "translation": "",
+    "context": "toast when disconnecting a scrobbling account fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't start playback",
+    "translation": "",
+    "context": "toast when the daemon refuses to play",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't start the scan",
+    "translation": "",
+    "context": "toast when a library scan can't start",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't switch outputs",
+    "translation": "",
+    "context": "playback device error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't switch the playback device",
+    "translation": "",
+    "context": "toast when switching the playback device fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't write ratings to files",
+    "translation": "",
+    "context": "toast when writing ratings and favorites to files can't start",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't write the file",
+    "translation": "",
+    "context": "why ratings weren't written to a file",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Cover",
+    "translation": "",
+    "context": "now playing element",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Cover colors",
+    "translation": "",
+    "context": "appearance settings section label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Cover only",
+    "translation": "",
+    "context": "full view opens with: no lyrics or queue pane",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Create",
+    "translation": "",
+    "context": "new playlist dialog confirm button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Create an API account at last.fm/api and enter its key and shared secret. Stored in the system keyring.",
+    "translation": "",
+    "context": "Last.fm sign-in hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Credits",
+    "translation": "",
+    "context": "about page section: the projects the player is made from",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Crossfade",
+    "translation": "",
+    "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Crossfade duration",
+    "translation": "",
+    "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Custom",
+    "translation": "",
+    "context": "option for your own values",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Custom theme",
+    "translation": "",
+    "context": "color scheme option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Customization",
+    "translation": "",
+    "context": "general settings section label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Customize bar…",
+    "translation": "",
+    "context": "now playing bar context menu",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Customize now playing",
+    "translation": "",
+    "context": "now playing button opening its settings",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Customize side panel…",
+    "translation": "",
+    "context": "now playing side panel context menu",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Customize this view…",
+    "translation": "",
+    "context": "now playing full view menu",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Cyan",
+    "translation": "",
+    "context": "color palette name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Dark",
+    "translation": "",
+    "context": "theme mode",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Date added",
+    "translation": "",
+    "context": "sort key",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Decrease",
+    "translation": "",
+    "context": "slider row step down button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Default",
+    "translation": "",
+    "context": "font family dropdown option for the bundled font | now playing surface badge: the start surface, or the player style in use | settings pages: a page nobody has changed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Delay",
+    "translation": "",
+    "context": "playback device sync section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Delete",
+    "translation": "",
+    "context": "confirm button that deletes an item",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Delete \"%1\"?",
+    "translation": "",
+    "context": "delete playlist confirmation title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Delete this view?",
+    "translation": "",
+    "context": "delete saved view confirmation title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Delete view",
+    "translation": "",
+    "context": "saved view action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Deleted \"%1\"",
+    "translation": "",
+    "context": "toast after deleting a playlist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Deletes downloaded tracks. Rules are kept.",
+    "translation": "",
+    "context": "offline clear action description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Descending",
+    "translation": "",
+    "context": "sort direction",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Design system",
+    "translation": "",
+    "context": "about page credit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Details",
+    "translation": "",
+    "context": "menu action that shows everything known about a track or album",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Disc %1",
+    "translation": "",
+    "context": "album page section header, %1 is the disc number",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Display",
+    "translation": "",
+    "context": "lyrics settings section label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Divider",
+    "translation": "",
+    "context": "layout element: a separating line",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Done",
+    "translation": "",
+    "context": "edit mode finish button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Downloaded",
+    "translation": "",
+    "context": "details field: whether a server track is cached",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Downloaded tracks",
+    "translation": "",
+    "context": "library offline overview section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Downloads are paused. Raise the size limit or remove a rule.",
+    "translation": "",
+    "context": "offline warning: the cache is full",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Drag the handle to reorder or move between zones. Click an element for its options.",
+    "translation": "",
+    "context": "now playing editor hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Drag to reorder.",
+    "translation": "",
+    "context": "playlist reorder hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Drag to reorder. Each shelf has its own layout and size.",
+    "translation": "",
+    "context": "home edit mode hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Drag to reorder. Saved to %1.",
+    "translation": "",
+    "context": "playlist reorder hint for a server playlist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Drag to set the navigation order; the eye shows or hides a page there. Select an entry to rename it. Edit opens the page in its edit mode.",
+    "translation": "",
+    "context": "settings pages intro",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Drop elements here",
+    "translation": "",
+    "context": "now playing zone empty state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Duplicate",
+    "translation": "",
+    "context": "playlist menu action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Duration",
+    "translation": "",
+    "context": "now playing element | view info line",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Dux Player",
+    "translation": "",
+    "context": "app name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Dux Player Settings",
+    "translation": "",
+    "context": "settings window title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Dux Player theme",
+    "translation": "",
+    "context": "default name of an exported theme",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Dux Shell",
+    "translation": "",
+    "context": "appearance settings section label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Each album page",
+    "translation": "",
+    "context": "settings: pages of a kind with many instances",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Each artist page",
+    "translation": "",
+    "context": "settings: pages of a kind with many instances",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Each genre page",
+    "translation": "",
+    "context": "settings: pages of a kind with many instances",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Each library page",
+    "translation": "",
+    "context": "settings: pages of a kind with many instances",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Each playlist",
+    "translation": "",
+    "context": "settings: pages of a kind with many instances",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Edit",
+    "translation": "",
+    "context": "settings pages: opens the page in edit mode in the main window",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Edit library",
+    "translation": "",
+    "context": "library dialog title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Edit page",
+    "translation": "",
+    "context": "page header button that opens the page's edit mode",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Edit queue rows",
+    "translation": "",
+    "context": "queue menu action that opens the queue's edit mode",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Editing",
+    "translation": "",
+    "context": "page edit mode: whether this page or every page of its kind is edited",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Elapsed time",
+    "translation": "",
+    "context": "now playing element",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Electronic",
+    "translation": "",
+    "context": "equalizer preset",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Elevation shadows",
+    "translation": "",
+    "context": "appearance setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Enabled",
+    "translation": "",
+    "context": "library row switch",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "End of row",
+    "translation": "",
+    "context": "row actions zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "End of track",
+    "translation": "",
+    "context": "sleep timer option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Enter 1 to %1 tracks.",
+    "translation": "",
+    "context": "offline rule limit dialog, why save is disabled",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Enter a name.",
+    "translation": "",
+    "context": "add local library dialog, why add is disabled",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Enter at least %1 GB.",
+    "translation": "",
+    "context": "offline rule limit dialog, why save is disabled",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Enter the API key and shared secret first.",
+    "translation": "",
+    "context": "why Last.fm sign-in is disabled",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Enter the server address and user name.",
+    "translation": "",
+    "context": "add server dialog, why add is disabled",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Enter your user token first.",
+    "translation": "",
+    "context": "why ListenBrainz sign-in is disabled",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Equalizer",
+    "translation": "",
+    "context": "playback settings section label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Equalizer, crossfade, speed",
+    "translation": "",
+    "context": "settings sidebar tab hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Every customization is replaced by the one in the file.",
+    "translation": "",
+    "context": "layout import confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Everything",
+    "translation": "",
+    "context": "offline rule: the whole library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Export",
+    "translation": "",
+    "context": "custom theme action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Export layout",
+    "translation": "",
+    "context": "file picker title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Export playlist",
+    "translation": "",
+    "context": "playlist menu action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Export theme",
+    "translation": "",
+    "context": "file picker title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Exported %1 tracks",
+    "translation": "",
+    "context": "snackbar after a playlist export",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Exported %1 tracks. %2 without a local file were skipped.",
+    "translation": "",
+    "context": "snackbar after a playlist export",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Exported to %1",
+    "translation": "",
+    "context": "custom theme export status",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Export…",
+    "translation": "",
+    "context": "button that saves a file to export | playlist menu action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Failed",
+    "translation": "",
+    "context": "a file that couldn't be written",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Family",
+    "translation": "",
+    "context": "font setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Far end",
+    "translation": "",
+    "context": "now playing zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Favorite",
+    "translation": "",
+    "context": "view info line",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Favorite albums",
+    "translation": "",
+    "context": "home shelf",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Favorites",
+    "translation": "",
+    "context": "favorite tracks: page, cache mode, library feature",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Favorites only",
+    "translation": "",
+    "context": "view filter",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Fetches missing artist images and biographies. Artist names are sent to %1.",
+    "translation": "",
+    "context": "general setting description, %1 lists online services",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "File",
+    "translation": "",
+    "context": "details field: the path on disk",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "File (.m3u, .m3u8 or .pls)",
+    "translation": "",
+    "context": "playlist import path field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "File (.m3u8 or .pls)",
+    "translation": "",
+    "context": "playlist export path field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "File tags",
+    "translation": "",
+    "context": "details dialog section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Fill",
+    "translation": "",
+    "context": "spacer size option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Filter",
+    "translation": "",
+    "context": "view options section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Find it in your ListenBrainz profile settings. Stored in the system keyring.",
+    "translation": "",
+    "context": "ListenBrainz sign-in hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Finish sign-in",
+    "translation": "",
+    "context": "Last.fm sign-in action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Flat",
+    "translation": "",
+    "context": "equalizer preset",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Floating windows",
+    "translation": "",
+    "context": "general setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Focus ring",
+    "translation": "",
+    "context": "appearance setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Folder",
+    "translation": "",
+    "context": "library dialog folder field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Folder not found. It was removed or its drive isn't mounted.",
+    "translation": "",
+    "context": "why a track can't play",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Folder not found: %1. It was removed or its drive isn't mounted.",
+    "translation": "",
+    "context": "library error, %1 is the folder",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Folders",
+    "translation": "",
+    "context": "library kind option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Folders and servers",
+    "translation": "",
+    "context": "libraries page subtitle | settings sidebar tab hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Folders not found. They were removed or their drive isn't mounted.",
+    "translation": "",
+    "context": "library error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Follow Dux Shell",
+    "translation": "",
+    "context": "appearance setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Follow playback",
+    "translation": "",
+    "context": "resume automatic scrolling of lyrics",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Follow the bottom bar",
+    "translation": "",
+    "context": "side panel editor setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Following Dux Shell",
+    "translation": "",
+    "context": "settings sidebar tab hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Follows the bottom bar",
+    "translation": "",
+    "context": "side panel editor: a zone taken from the bar",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Follows the bottom bar: %1",
+    "translation": "",
+    "context": "side panel panes zone note, %1 lists the panes in order",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Follows the system setting",
+    "translation": "",
+    "context": "playback device note",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Font",
+    "translation": "",
+    "context": "appearance style group",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Format",
+    "translation": "",
+    "context": "details field: codec or file type",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "From %1",
+    "translation": "",
+    "context": "where an artist's biography comes from, %1 is the source",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "From Dux Shell",
+    "translation": "",
+    "context": "appearance group following the shell",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "From a color",
+    "translation": "",
+    "context": "color scheme option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "From the playlist",
+    "translation": "",
+    "context": "cover dialog section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Full view",
+    "translation": "",
+    "context": "now playing start option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Full view opens with",
+    "translation": "",
+    "context": "now playing setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Full view · Bento",
+    "translation": "",
+    "context": "now playing surface: the full view in the Bento style",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Full view · Material",
+    "translation": "",
+    "context": "now playing surface: the full view in the Material style",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Gapless playback",
+    "translation": "",
+    "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "General",
+    "translation": "",
+    "context": "settings sidebar tab label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Genre",
+    "translation": "",
+    "context": "view info line",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Genres",
+    "translation": "",
+    "context": "navigation destination",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Go libraries and lyrics engine",
+    "translation": "",
+    "context": "about page credit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Go to album",
+    "translation": "",
+    "context": "track menu action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Go to artist",
+    "translation": "",
+    "context": "track menu action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Green",
+    "translation": "",
+    "context": "color palette name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Grid",
+    "translation": "",
+    "context": "view layout option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Group by disc",
+    "translation": "",
+    "context": "page edit mode: a header per disc on an album page",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Group by location",
+    "translation": "",
+    "context": "page edit mode: playlists under On this device and On <server>",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Has other hard links",
+    "translation": "",
+    "context": "why ratings weren't written to a file",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Header",
+    "translation": "",
+    "context": "now playing zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Header start",
+    "translation": "",
+    "context": "now playing zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Hex color",
+    "translation": "",
+    "context": "appearance seed color field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Hidden",
+    "translation": "",
+    "context": "element in an editor, hidden but kept in its place",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Hide",
+    "translation": "",
+    "context": "eye button on an editor row",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Highlights each word as it's sung, when the lyrics include word timing.",
+    "translation": "",
+    "context": "lyrics setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Highlights the focused control when using the keyboard.",
+    "translation": "",
+    "context": "appearance setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "History",
+    "translation": "",
+    "context": "navigation destination",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Home",
+    "translation": "",
+    "context": "navigation destination",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Home is empty. Use Edit page to add shelves.",
+    "translation": "",
+    "context": "home empty state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Home shelves return to the defaults.",
+    "translation": "",
+    "context": "reset home confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Import",
+    "translation": "",
+    "context": "button that imports a file",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Import layout",
+    "translation": "",
+    "context": "file picker title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Import playlist",
+    "translation": "",
+    "context": "playlists page action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Import theme",
+    "translation": "",
+    "context": "file picker title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Imported %1",
+    "translation": "",
+    "context": "custom theme import status",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Imported. %1 tracks weren't found in your libraries.",
+    "translation": "",
+    "context": "snackbar after a playlist import, %1 is a count",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Import…",
+    "translation": "",
+    "context": "button that opens a file to import",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "In duets, each singer keeps their own side.",
+    "translation": "",
+    "context": "lyrics setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Include Ctrl, Alt or Super",
+    "translation": "",
+    "context": "why a keyboard shortcut can't be used",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Includes subfolders. Changes are detected automatically.",
+    "translation": "",
+    "context": "library dialog folders hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Increase",
+    "translation": "",
+    "context": "slider row step up button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Info lines",
+    "translation": "",
+    "context": "page edit mode section: the facts shown under an item",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Instrumental",
+    "translation": "",
+    "context": "track has no lyrics because it is instrumental",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Its downloaded tracks are deleted unless another rule keeps them.",
+    "translation": "",
+    "context": "remove offline rule confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Its elements return to their defaults.",
+    "translation": "",
+    "context": "reset a now-playing surface confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Its filters, sort and display options go back to the defaults.",
+    "translation": "",
+    "context": "reset saved view confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Its navigation entry and home shelf are also removed. No music is deleted.",
+    "translation": "",
+    "context": "delete saved view confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Its own options and every change made on its pages go back to the defaults.",
+    "translation": "",
+    "context": "settings pages: reset confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Jazz",
+    "translation": "",
+    "context": "equalizer preset",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Jellyfin",
+    "translation": "",
+    "context": "library kind option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Keep albums gapless",
+    "translation": "",
+    "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Keep on this device",
+    "translation": "",
+    "context": "toggle that caches an item's tracks for offline play",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Keep playing",
+    "translation": "",
+    "context": "on-disconnect option: the other outputs keep playing",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Keep running in the background",
+    "translation": "",
+    "context": "general setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Keeps the most played tracks up to this limit.",
+    "translation": "",
+    "context": "offline rule limit dialog text",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Keeps the most recently played tracks up to this limit.",
+    "translation": "",
+    "context": "offline rule limit dialog text",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Kept by %1",
+    "translation": "",
+    "context": "offline song row, %1 lists the rules holding it",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Kept tracks exceed the size limit",
+    "translation": "",
+    "context": "offline warning title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Key stored in the system keyring",
+    "translation": "",
+    "context": "artist info API key state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Keyboard shortcuts",
+    "translation": "",
+    "context": "general settings section label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Large",
+    "translation": "",
+    "context": "size option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Last played",
+    "translation": "",
+    "context": "sort key",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Last scanned %1",
+    "translation": "",
+    "context": "library row status, %1 is a date and time",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Last used",
+    "translation": "",
+    "context": "full view opens with: the pane used last",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Last.fm account",
+    "translation": "",
+    "context": "Last.fm sign-in row",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Layout",
+    "translation": "",
+    "context": "element picker group: spacer and divider | general setting: every customization as one file | view options section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Layout and controls",
+    "translation": "",
+    "context": "settings sidebar tab hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Layout and sort",
+    "translation": "",
+    "context": "page edit mode section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Layout imported",
+    "translation": "",
+    "context": "layout import status",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Leave empty to keep the saved password. Stored in the system keyring.",
+    "translation": "",
+    "context": "edit server dialog password hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Left",
+    "translation": "",
+    "context": "now playing zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Libraries",
+    "translation": "",
+    "context": "the music libraries: page, settings tab, section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Library",
+    "translation": "",
+    "context": "track list column",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Library badge",
+    "translation": "",
+    "context": "now playing element",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Library turned off or removed",
+    "translation": "",
+    "context": "why a track can't play",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Light",
+    "translation": "",
+    "context": "theme mode",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Light and dark",
+    "translation": "",
+    "context": "appearance style group",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Light and dark palettes are generated from this color.",
+    "translation": "",
+    "context": "appearance setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Limit %1",
+    "translation": "",
+    "context": "dynamic offline rule, %1 is its limit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "List",
+    "translation": "",
+    "context": "view layout option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "ListenBrainz and Last.fm",
+    "translation": "",
+    "context": "settings sidebar tab hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Loading",
+    "translation": "",
+    "context": "something still waiting for data: the play button, a list",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Loading lyrics",
+    "translation": "",
+    "context": "lyrics loading indicator",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Local library",
+    "translation": "",
+    "context": "library badge tooltip",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Local playlist",
+    "translation": "",
+    "context": "playlist kind label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Local playlists",
+    "translation": "",
+    "context": "offline section for local playlists kept on this device",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Look up artist info online",
+    "translation": "",
+    "context": "general setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Lost the connection to the cast device",
+    "translation": "",
+    "context": "cast error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Lost the connection to the player",
+    "translation": "",
+    "context": "why a request to the player daemon failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Lyrics",
+    "translation": "",
+    "context": "song lyrics: page, toggle, settings tab",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Lyrics files next to your music are used first, then the providers below in order. Drag to reorder.",
+    "translation": "",
+    "context": "lyrics settings intro",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Lyrics unavailable",
+    "translation": "",
+    "context": "lyrics lookup failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "MIT License",
+    "translation": "",
+    "context": "about page license footer link",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Manage",
+    "translation": "",
+    "context": "libraries page button opening library settings",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Material",
+    "translation": "",
+    "context": "now playing player style",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Measured gain",
+    "translation": "",
+    "context": "details field: loudness gain measured on this device",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Medium",
+    "translation": "",
+    "context": "size option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Menu",
+    "translation": "",
+    "context": "settings header button that shows the section list on narrow windows",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Monochrome",
+    "translation": "",
+    "context": "color palette name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "More",
+    "translation": "",
+    "context": "track row menu button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Most played",
+    "translation": "",
+    "context": "home shelf and page of the most played tracks",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Most played limit",
+    "translation": "",
+    "context": "offline rule limit dialog title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Motion",
+    "translation": "",
+    "context": "appearance settings section label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Move down",
+    "translation": "",
+    "context": "editor row menu",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Move to %1",
+    "translation": "",
+    "context": "editor row menu, %1 is a zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Move to bottom bar",
+    "translation": "",
+    "context": "button moving now playing out of the sidebar",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Move to sidebar",
+    "translation": "",
+    "context": "button moving now playing from the bottom bar into the sidebar",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Move up",
+    "translation": "",
+    "context": "editor row menu",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Multiple outputs",
+    "translation": "",
+    "context": "playback device settings section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "MusicBrainz album",
+    "translation": "",
+    "context": "details field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "MusicBrainz album artist",
+    "translation": "",
+    "context": "details field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "MusicBrainz artist",
+    "translation": "",
+    "context": "details field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "MusicBrainz recording",
+    "translation": "",
+    "context": "details field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "MusicBrainz release group",
+    "translation": "",
+    "context": "details field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "MusicBrainz track",
+    "translation": "",
+    "context": "details field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Name",
+    "translation": "",
+    "context": "a name: field label, sort key",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Name (optional)",
+    "translation": "",
+    "context": "library dialog field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Navigation",
+    "translation": "",
+    "context": "settings sidebar tab label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Navigation and page layout",
+    "translation": "",
+    "context": "settings sidebar tab hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "New playlist",
+    "translation": "",
+    "context": "action and dialog that create a playlist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Next",
+    "translation": "",
+    "context": "transport button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No",
+    "translation": "",
+    "context": "details value",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No actions. Use Edit page to add some.",
+    "translation": "",
+    "context": "an item menu with every action removed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No cover, title or open button. Clicking the bar still opens the full view.",
+    "translation": "",
+    "context": "customization warning",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No crossfade or skipped silence between tracks of one album.",
+    "translation": "",
+    "context": "playback setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No custom theme loaded",
+    "translation": "",
+    "context": "custom theme state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No downloaded tracks",
+    "translation": "",
+    "context": "why clearing the cache is disabled",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No favorites",
+    "translation": "",
+    "context": "library feature missing",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No favorites. Mark tracks, albums and artists with the heart.",
+    "translation": "",
+    "context": "favorites empty state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No info lines",
+    "translation": "",
+    "context": "page edit mode: the info lines zone is empty",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No key set",
+    "translation": "",
+    "context": "artist info API key state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No libraries",
+    "translation": "",
+    "context": "libraries settings empty state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No lyrics found",
+    "translation": "",
+    "context": "lyrics lookup found nothing",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No music",
+    "translation": "",
+    "context": "home empty state title when no library is set up",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No play/pause button. Media keys and the CLI still work.",
+    "translation": "",
+    "context": "customization warning",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No playlists",
+    "translation": "",
+    "context": "library feature missing",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No rule",
+    "translation": "",
+    "context": "offline song row for a song no rule holds",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No rules",
+    "translation": "",
+    "context": "a server library without offline rules",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No scrobbling",
+    "translation": "",
+    "context": "library feature missing",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No star ratings",
+    "translation": "",
+    "context": "library feature missing",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No system keyring is running",
+    "translation": "",
+    "context": "why a server library can't sign in",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No ⋮ button. Right-click and the Menu key still open the menu.",
+    "translation": "",
+    "context": "customization warning",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "None",
+    "translation": "",
+    "context": "removal mode option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Normalize volume",
+    "translation": "",
+    "context": "playback setting: ReplayGain mode",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not a key combination",
+    "translation": "",
+    "context": "why a keyboard shortcut can't be used",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not a layout file",
+    "translation": "",
+    "context": "why a layout file can't be imported",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not a regular file",
+    "translation": "",
+    "context": "why ratings weren't written to a file",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not a theme file",
+    "translation": "",
+    "context": "why a theme file can't be imported",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not approved on Last.fm yet",
+    "translation": "",
+    "context": "snackbar when the Last.fm sign-in isn't approved",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not available in this version",
+    "translation": "",
+    "context": "an element saved by a newer version of the app | editor row of an element saved by a newer version",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not available yet",
+    "translation": "",
+    "context": "reason shown on controls for features still missing in the daemon",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not connected",
+    "translation": "",
+    "context": "playback device state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not connected to the player",
+    "translation": "",
+    "context": "main window state when the daemon is unreachable | why a request to the player daemon failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Nothing matches \"%1\".",
+    "translation": "",
+    "context": "search page empty result",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Nothing matches these filters.",
+    "translation": "",
+    "context": "browse empty state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Nothing matches.",
+    "translation": "",
+    "context": "offline rule picker empty result",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Nothing playing",
+    "translation": "",
+    "context": "side panel empty state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Now playing",
+    "translation": "",
+    "context": "settings sidebar tab label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Now playing, pages, rows and menus, home and navigation go back to the defaults. Saved views are kept.",
+    "translation": "",
+    "context": "reset all customization confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Now playing, pages, rows and menus, home and navigation, as one file.",
+    "translation": "",
+    "context": "general setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Number of tracks",
+    "translation": "",
+    "context": "offline rule limit field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Off",
+    "translation": "",
+    "context": "option that turns something off",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Off. Its tracks are hidden and skipped in playlists.",
+    "translation": "",
+    "context": "disabled library status",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Offer undo",
+    "translation": "",
+    "context": "removal mode option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Offline",
+    "translation": "",
+    "context": "libraries settings section about cached server tracks",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Offline rules for %1",
+    "translation": "",
+    "context": "library offline overview section, %1 is the library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Offline storage is full",
+    "translation": "",
+    "context": "offline warning title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "On %1",
+    "translation": "",
+    "context": "playlists section for one server, %1 is the library name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "On hover",
+    "translation": "",
+    "context": "row actions zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "On servers",
+    "translation": "",
+    "context": "playlists section for the playlists of every server",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "On this device",
+    "translation": "",
+    "context": "playlists section for local playlists",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "One section stays shown",
+    "translation": "",
+    "context": "page edit mode: why the last shown section can't be hidden",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Online services",
+    "translation": "",
+    "context": "about page section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Only local playlists can be exported",
+    "translation": "",
+    "context": "why export is disabled for a server playlist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Only tracks from %1 can be added",
+    "translation": "",
+    "context": "why a server playlist cannot take the picked tracks, %1 is the server library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Open now playing",
+    "translation": "",
+    "context": "now playing bar button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Opens Last.fm in your browser to sign in.",
+    "translation": "",
+    "context": "Last.fm sign-in hint with the app's own key",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Orange",
+    "translation": "",
+    "context": "color palette name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Other pages",
+    "translation": "",
+    "context": "settings pages section: pages without a navigation entry",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Outputs",
+    "translation": "",
+    "context": "playback device settings section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Outputs, casting and sync",
+    "translation": "",
+    "context": "settings sidebar tab hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Owned by another user",
+    "translation": "",
+    "context": "why ratings weren't written to a file",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Page",
+    "translation": "",
+    "context": "navigation entry kind",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Pages",
+    "translation": "",
+    "context": "add entry section | settings sidebar tab label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Palette",
+    "translation": "",
+    "context": "color source option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Panes",
+    "translation": "",
+    "context": "now playing zone: the side panel's tabs",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Password",
+    "translation": "",
+    "context": "add server dialog field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Pause",
+    "translation": "",
+    "context": "transport button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Pause when the output disconnects",
+    "translation": "",
+    "context": "playback device setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Pauses playback after a set time.",
+    "translation": "",
+    "context": "sleep timer status when off",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Pausing after this track.",
+    "translation": "",
+    "context": "sleep timer status",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Pausing in %1.",
+    "translation": "",
+    "context": "sleep timer status",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Pin to navigation",
+    "translation": "",
+    "context": "pin button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Pink",
+    "translation": "",
+    "context": "color palette name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Pinned entries and custom names are removed.",
+    "translation": "",
+    "context": "reset navigation confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "PipeWire filter failed to start",
+    "translation": "",
+    "context": "why the equalizer can't start",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "PipeWire isn't running",
+    "translation": "",
+    "context": "why the equalizer can't start",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Pitch is preserved.",
+    "translation": "",
+    "context": "playback speed note",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Placement",
+    "translation": "",
+    "context": "element option: where an element goes when its row runs short",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Play",
+    "translation": "",
+    "context": "button that starts playback",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Play %1",
+    "translation": "",
+    "context": "play button, %1 is the album or playlist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Play after this one",
+    "translation": "",
+    "context": "queue row action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Play counts are reset. Favorites and ratings are kept.",
+    "translation": "",
+    "context": "clear history confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Play next",
+    "translation": "",
+    "context": "track row action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Play on multiple outputs",
+    "translation": "",
+    "context": "playback device setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Play/pause",
+    "translation": "",
+    "context": "now playing element",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playback",
+    "translation": "",
+    "context": "element picker group: transport and seek | settings sidebar tab label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playback continues after the window is closed.",
+    "translation": "",
+    "context": "general setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playback device",
+    "translation": "",
+    "context": "playback device: settings tab, button, dialog",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playback speed",
+    "translation": "",
+    "context": "now playing button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playback speed %1×",
+    "translation": "",
+    "context": "speed button tooltip",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Player",
+    "translation": "",
+    "context": "about page hero: the app's short name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Player style",
+    "translation": "",
+    "context": "now playing setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playing",
+    "translation": "",
+    "context": "side panel view: cover art",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playing from",
+    "translation": "",
+    "context": "now playing: label before where the queue came from",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playing now",
+    "translation": "",
+    "context": "playback device note for the device being cast to",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playing on",
+    "translation": "",
+    "context": "now playing element: the cast device while casting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playing on %1",
+    "translation": "",
+    "context": "playback device button tooltip",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playing on %1 outputs",
+    "translation": "",
+    "context": "playback device button tooltip, %1 is 2 or more",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playing…",
+    "translation": "",
+    "context": "test tone state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playlist",
+    "translation": "",
+    "context": "home shelf source kind",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playlist cover",
+    "translation": "",
+    "context": "cover dialog title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playlist on %1",
+    "translation": "",
+    "context": "playlist kind label for a server playlist, %1 is the library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playlist order",
+    "translation": "",
+    "context": "sort key: the order a playlist keeps",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playlists",
+    "translation": "",
+    "context": "playlists: page, section, library feature",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playlists with this artist",
+    "translation": "",
+    "context": "artist page section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playlist…",
+    "translation": "",
+    "context": "offline rule kind that asks which playlist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Plays",
+    "translation": "",
+    "context": "view info line and sort key",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Plays a short click on every output.",
+    "translation": "",
+    "context": "playback device sync action description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Pop",
+    "translation": "",
+    "context": "equalizer preset",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Position",
+    "translation": "",
+    "context": "seekbar accessible name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Preset",
+    "translation": "",
+    "context": "appearance setting | color scheme option | equalizer setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Press keys…",
+    "translation": "",
+    "context": "Key combination field while it records",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Previous",
+    "translation": "",
+    "context": "transport button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Previous restarts the track after",
+    "translation": "",
+    "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Providers",
+    "translation": "",
+    "context": "lyrics settings section label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Providers and display",
+    "translation": "",
+    "context": "settings sidebar tab hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Purple",
+    "translation": "",
+    "context": "color palette name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Put the username and password in their own fields, not in the server address",
+    "translation": "",
+    "context": "why a server connection test failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Queue",
+    "translation": "",
+    "context": "the play queue: panel, toggle",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Quit Dux Player",
+    "translation": "",
+    "context": "window menu action that stops playback and the player",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rail",
+    "translation": "",
+    "context": "navigation style option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rail with labels",
+    "translation": "",
+    "context": "navigation style option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Random",
+    "translation": "",
+    "context": "auto-continue option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Random albums",
+    "translation": "",
+    "context": "home shelf",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rating",
+    "translation": "",
+    "context": "Accessible name of a star rating control | view info line",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Ratings are being written already",
+    "translation": "",
+    "context": "why writing ratings to files couldn't start",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Read-only file",
+    "translation": "",
+    "context": "why ratings weren't written to a file",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Read-only folder",
+    "translation": "",
+    "context": "why ratings weren't written to a file",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Recently added",
+    "translation": "",
+    "context": "home shelf of newly indexed albums",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Recently played",
+    "translation": "",
+    "context": "home shelf of recently played tracks | offline rule: the tracks you played last",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Recently played albums",
+    "translation": "",
+    "context": "home shelf of recently played albums",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Recently played and Most played tracks are removed first.",
+    "translation": "",
+    "context": "offline storage limit description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Recently played limit",
+    "translation": "",
+    "context": "offline rule limit dialog title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Red",
+    "translation": "",
+    "context": "color palette name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Reduce motion",
+    "translation": "",
+    "context": "appearance setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Remove",
+    "translation": "",
+    "context": "button that removes an item",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Remove \"%1\" from home?",
+    "translation": "",
+    "context": "remove home shelf confirmation title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Remove \"%1\" from the navigation?",
+    "translation": "",
+    "context": "remove navigation entry confirmation title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Remove \"%1\"?",
+    "translation": "",
+    "context": "remove library confirmation title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Remove %1",
+    "translation": "",
+    "context": "button on an editor row, %1 is the element",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Remove %1?",
+    "translation": "",
+    "context": "remove an element from a now-playing surface confirmation title, %1 is the element | remove offline rule confirmation title, %1 is the rule",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Remove folder",
+    "translation": "",
+    "context": "library dialog folder action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Remove from %1?",
+    "translation": "",
+    "context": "remove tracks from a playlist confirmation title, %1 is the playlist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Remove from favorites",
+    "translation": "",
+    "context": "track menu action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Remove from favorites on %1",
+    "translation": "",
+    "context": "favorite button tooltip, %1 is the server library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Remove from playlist",
+    "translation": "",
+    "context": "playlist track action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Remove from queue",
+    "translation": "",
+    "context": "queue row action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Remove from the queue?",
+    "translation": "",
+    "context": "remove a track from the queue confirmation title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Remove from this device",
+    "translation": "",
+    "context": "menu action that stops keeping an item offline",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Remove key",
+    "translation": "",
+    "context": "artist info API key action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Removed \"%1\" from home",
+    "translation": "",
+    "context": "toast after removing a home shelf",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Removed \"%1\" from the navigation",
+    "translation": "",
+    "context": "toast after removing a navigation entry",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Removed %1",
+    "translation": "",
+    "context": "toast after removing an element from a now-playing surface, %1 is the element",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Removed %1. Tracks kept by other rules stay downloaded.",
+    "translation": "",
+    "context": "toast after removing an offline rule, %1 is the rule",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Removed from %1",
+    "translation": "",
+    "context": "toast after removing tracks from a playlist, %1 is the playlist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Removed from the queue",
+    "translation": "",
+    "context": "toast after removing a track from the queue",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Removed item",
+    "translation": "",
+    "context": "navigation entry whose target was deleted",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Removing",
+    "translation": "",
+    "context": "general settings section label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rename",
+    "translation": "",
+    "context": "menu action that renames an item",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rename entry",
+    "translation": "",
+    "context": "navigation rename dialog title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rename playlist",
+    "translation": "",
+    "context": "playlist menu action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rename view",
+    "translation": "",
+    "context": "saved view action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Reorder tracks",
+    "translation": "",
+    "context": "playlist menu action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Repeat",
+    "translation": "",
+    "context": "now playing element",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Repeat all",
+    "translation": "",
+    "context": "transport button state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Repeat off",
+    "translation": "",
+    "context": "transport button state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Repeat one",
+    "translation": "",
+    "context": "transport button state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Replace",
+    "translation": "",
+    "context": "layout import confirm button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Replace your layout?",
+    "translation": "",
+    "context": "layout import confirmation title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "ReplayGain (album)",
+    "translation": "",
+    "context": "details field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "ReplayGain (track)",
+    "translation": "",
+    "context": "details field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Report an issue",
+    "translation": "",
+    "context": "about page link to the issue tracker",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Required by some services.",
+    "translation": "",
+    "context": "general setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Requires PipeWire (pipewire and pw-cli)",
+    "translation": "",
+    "context": "why the equalizer can't start",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Requires PipeWire (pipewire, pw-cli and pw-play)",
+    "translation": "",
+    "context": "why several outputs and the equalizer are unavailable",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Requires compositor blur and a transparent window.",
+    "translation": "",
+    "context": "appearance setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Requires ffmpeg to measure the silence.",
+    "translation": "",
+    "context": "why the skip silence settings are unavailable",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rescan",
+    "translation": "",
+    "context": "library row action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Reset",
+    "translation": "",
+    "context": "button that restores the defaults",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Reset %1",
+    "translation": "",
+    "context": "settings pages: resets one page or type, %1 is its name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Reset %1?",
+    "translation": "",
+    "context": "reset one now-playing surface confirmation title, %1 is the surface | settings pages: reset confirmation title, %1 is the page",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Reset all customization",
+    "translation": "",
+    "context": "general setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Reset all customization?",
+    "translation": "",
+    "context": "reset all customization confirmation title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Reset all now playing",
+    "translation": "",
+    "context": "now playing settings action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Reset home?",
+    "translation": "",
+    "context": "reset home confirmation title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Reset navigation",
+    "translation": "",
+    "context": "navigation settings action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Reset navigation?",
+    "translation": "",
+    "context": "reset navigation confirmation title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Reset now playing?",
+    "translation": "",
+    "context": "reset now playing confirmation title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Reset rows and menus",
+    "translation": "",
+    "context": "page edit mode: restores the shared rows and menus of a type",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Reset to %1",
+    "translation": "",
+    "context": "keyboard shortcut reset button, %1 is the default combination",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Restores the default entries, names and order.",
+    "translation": "",
+    "context": "navigation reset description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Restores where it starts, the style and every surface.",
+    "translation": "",
+    "context": "now playing reset description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Resume",
+    "translation": "",
+    "context": "continue listening action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Right",
+    "translation": "",
+    "context": "now playing zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Right-click menu",
+    "translation": "",
+    "context": "row actions zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Right-click menu same as ⋮ menu",
+    "translation": "",
+    "context": "page edit mode: the right-click menu follows the ⋮ menu",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Ripple and focus ring",
+    "translation": "",
+    "context": "appearance style group",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Ripple effects",
+    "translation": "",
+    "context": "appearance setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rock",
+    "translation": "",
+    "context": "equalizer preset",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rows and menus",
+    "translation": "",
+    "context": "settings pages section: the shared row and menu actions per type",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rows and menus · for all albums",
+    "translation": "",
+    "context": "page edit mode section shared by every page of the type",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rows and menus · for all artists",
+    "translation": "",
+    "context": "page edit mode section shared by every page of the type",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rows and menus · for all genres",
+    "translation": "",
+    "context": "page edit mode section shared by every page of the type",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rows and menus · for all playlists",
+    "translation": "",
+    "context": "page edit mode section shared by every page of the type",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rows and menus · for all tracks",
+    "translation": "",
+    "context": "page edit mode section shared by every page of the type",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rows and menus · for the queue",
+    "translation": "",
+    "context": "page edit mode section shared by every page of the type",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rules other than Recently played and Most played keep %1, over the %2 size limit. Downloads are paused.",
+    "translation": "",
+    "context": "offline warning: pinned songs exceed the size limit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Same as the ⋮ menu. Turn off the switch above to change it.",
+    "translation": "",
+    "context": "page edit mode: the right-click menu zone while it follows",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Save",
+    "translation": "",
+    "context": "dialog confirm button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Save as view…",
+    "translation": "",
+    "context": "view options action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Save to",
+    "translation": "",
+    "context": "new playlist dialog location label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Save view",
+    "translation": "",
+    "context": "save view dialog title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Saved view",
+    "translation": "",
+    "context": "a saved view: page label, playback context",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Saved view · %1",
+    "translation": "",
+    "context": "saved view page subtitle, %1 is the view type",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Saved views",
+    "translation": "",
+    "context": "add shelf section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Saved views are kept.",
+    "translation": "",
+    "context": "general setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Scanning…",
+    "translation": "",
+    "context": "library status while folders are read",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Scanning… %1 of %2",
+    "translation": "",
+    "context": "library row status while scanning",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Scrobble to Last.fm",
+    "translation": "",
+    "context": "scrobbling setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Scrobble to ListenBrainz",
+    "translation": "",
+    "context": "scrobbling setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Scrobbled to the server",
+    "translation": "",
+    "context": "scrobbling library row",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Scrobbled to your accounts",
+    "translation": "",
+    "context": "scrobbling library row",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Scrobbling",
+    "translation": "",
+    "context": "scrobbling: feature and settings tab",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Scrobbling (requires sign-in)",
+    "translation": "",
+    "context": "about page credit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search",
+    "translation": "",
+    "context": "header button | offline rule picker search field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search albums",
+    "translation": "",
+    "context": "Albums page search field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search albums, artists and tracks",
+    "translation": "",
+    "context": "search field placeholder",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search all enabled libraries.",
+    "translation": "",
+    "context": "search page hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search artists",
+    "translation": "",
+    "context": "Artists page search field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search everything",
+    "translation": "",
+    "context": "keyboard shortcut name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search favorite albums",
+    "translation": "",
+    "context": "Favorites page search field, Albums tab",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search favorite artists",
+    "translation": "",
+    "context": "Favorites page search field, Artists tab",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search favorite tracks",
+    "translation": "",
+    "context": "Favorites page search field, Tracks tab",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search field",
+    "translation": "",
+    "context": "home shelf: the large search field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search genres",
+    "translation": "",
+    "context": "Genres page search field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search in %1",
+    "translation": "",
+    "context": "a page's own search field, %1 is the page, playlist or artist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search playlists",
+    "translation": "",
+    "context": "Playlists page search field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search results",
+    "translation": "",
+    "context": "playback context label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search this page",
+    "translation": "",
+    "context": "keyboard shortcut name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search tracks",
+    "translation": "",
+    "context": "Tracks page search field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sections",
+    "translation": "",
+    "context": "page edit mode section: the page's own parts, ordered and hidden",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "See all",
+    "translation": "",
+    "context": "home shelf action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Seekbar",
+    "translation": "",
+    "context": "bar setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Seekbar row",
+    "translation": "",
+    "context": "now playing zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Select",
+    "translation": "",
+    "context": "track row checkbox",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Select all",
+    "translation": "",
+    "context": "selection bar action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Select at least two outputs",
+    "translation": "",
+    "context": "why the sync page is disabled",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Select none",
+    "translation": "",
+    "context": "selection bar action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sent automatically when the connection is restored.",
+    "translation": "",
+    "context": "scrobbling queue state description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Server",
+    "translation": "",
+    "context": "details field: the server address",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Server address",
+    "translation": "",
+    "context": "add server dialog field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Server status",
+    "translation": "",
+    "context": "row element: the cloud icon of a track from a server",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Server unreachable",
+    "translation": "",
+    "context": "track row cloud icon while the server is down | why a server library or its tracks can't be used",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Set a floating rule for the app id %1 in your compositor.",
+    "translation": "",
+    "context": "open floating note for compositors without known rules",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Set in Dux Shell settings. Choose Custom to override.",
+    "translation": "",
+    "context": "appearance group following the shell",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Settings",
+    "translation": "",
+    "context": "the settings window",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Shared by every page that shows them.",
+    "translation": "",
+    "context": "page edit mode: rows and menus are the same everywhere",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Shared secret",
+    "translation": "",
+    "context": "Last.fm sign-in field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Shelves",
+    "translation": "",
+    "context": "home zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Show",
+    "translation": "",
+    "context": "eye button on an editor row",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Show %1",
+    "translation": "",
+    "context": "eye button on an editor row, %1 is the element",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Show less",
+    "translation": "",
+    "context": "collapses an artist's biography",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Show more",
+    "translation": "",
+    "context": "expands an artist's biography",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Show tray icon",
+    "translation": "",
+    "context": "general setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Showing %1 of %2 matches",
+    "translation": "",
+    "context": "offline rule picker overflow",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Shuffle",
+    "translation": "",
+    "context": "button or mode that plays in random order",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Shuffle all",
+    "translation": "",
+    "context": "tracks page action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Side panel",
+    "translation": "",
+    "context": "now playing placement option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sign in",
+    "translation": "",
+    "context": "scrobbling account action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sign out",
+    "translation": "",
+    "context": "scrobbling account action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Signed in",
+    "translation": "",
+    "context": "scrobbling account state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Signed in as %1",
+    "translation": "",
+    "context": "scrobbling account state, %1 is the user name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Signing in with the password itself needs an https server address",
+    "translation": "",
+    "context": "why a server connection test failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Signs in with the password itself; this server doesn't accept token sign-in.",
+    "translation": "",
+    "context": "library notice",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Similar",
+    "translation": "",
+    "context": "auto-continue option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Similar artists",
+    "translation": "",
+    "context": "artist page section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Similar picks tracks by the same artist or genre.",
+    "translation": "",
+    "context": "playback setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Size",
+    "translation": "",
+    "context": "details field: file size | element option: how big the element is",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Size in GB",
+    "translation": "",
+    "context": "offline rule limit field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Size limit",
+    "translation": "",
+    "context": "offline storage limit slider",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Skip silence at the end",
+    "translation": "",
+    "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Skip silence at the start",
+    "translation": "",
+    "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Skipped",
+    "translation": "",
+    "context": "a file left alone when writing ratings",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Skipped %1 that no longer exist",
+    "translation": "",
+    "context": "snackbar when tracks of a played list no longer exist, %1 is a track count",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Skipped a track that couldn't play",
+    "translation": "",
+    "context": "toast when one track fails to play and the queue moves on",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Skipped tracks from %1 because it's unavailable",
+    "translation": "",
+    "context": "snackbar when the queue passes over a library's tracks, %1 is the library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sleep after this track",
+    "translation": "",
+    "context": "sleep timer button tooltip",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sleep in %1",
+    "translation": "",
+    "context": "sleep timer button tooltip, %1 is the remaining time",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sleep timer",
+    "translation": "",
+    "context": "now playing button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Small",
+    "translation": "",
+    "context": "size option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sort by",
+    "translation": "",
+    "context": "view options section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sorted ascending",
+    "translation": "",
+    "context": "State of a sortable column header",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sorted descending",
+    "translation": "",
+    "context": "State of a sortable column header",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Source code",
+    "translation": "",
+    "context": "about page link to the repository",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Space used",
+    "translation": "",
+    "context": "offline storage usage row",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Spacer",
+    "translation": "",
+    "context": "layout element: empty space",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Speed and queue",
+    "translation": "",
+    "context": "playback settings section label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Star ratings",
+    "translation": "",
+    "context": "library feature",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Start",
+    "translation": "",
+    "context": "lyrics alignment",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Start with",
+    "translation": "",
+    "context": "now playing setting: where now playing shows at start",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Stop",
+    "translation": "",
+    "context": "auto-continue option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Stored in the system keyring.",
+    "translation": "",
+    "context": "add server dialog password hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Stores ratings and favorites in the tags of your music files.",
+    "translation": "",
+    "context": "local library setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Streams from a %1 server",
+    "translation": "",
+    "context": "library badge tooltip, %1 is the server kind",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Streams from a server",
+    "translation": "",
+    "context": "track row cloud icon",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Style",
+    "translation": "",
+    "context": "navigation settings section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Subsonic",
+    "translation": "",
+    "context": "library kind option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Suggested",
+    "translation": "",
+    "context": "add shelf section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Surfaces",
+    "translation": "",
+    "context": "now playing settings section: bar, side panel and full views",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sync",
+    "translation": "",
+    "context": "playback device sync page",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sync now",
+    "translation": "",
+    "context": "library row action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Syncing…",
+    "translation": "",
+    "context": "library status while a server library syncs",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sync…",
+    "translation": "",
+    "context": "playback device action opening the delay settings",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "System",
+    "translation": "",
+    "context": "theme mode",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "System default",
+    "translation": "",
+    "context": "playback device name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "System volume",
+    "translation": "",
+    "context": "volume controls option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "System volume changes the volume of the default output.",
+    "translation": "",
+    "context": "playback setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "System volume requires wpctl (WirePlumber).",
+    "translation": "",
+    "context": "why the system volume option is unavailable",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Tag reading and writing (LGPL-2.1)",
+    "translation": "",
+    "context": "about page credit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Takes the title, controls and buttons from the bar, and the tabs in the order of their buttons there.",
+    "translation": "",
+    "context": "side panel editor setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Teal",
+    "translation": "",
+    "context": "color palette name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Test",
+    "translation": "",
+    "context": "scrobbling account action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Test connection",
+    "translation": "",
+    "context": "add server dialog action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Test the connection first.",
+    "translation": "",
+    "context": "add server dialog, why add is disabled",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Test tone",
+    "translation": "",
+    "context": "playback device sync action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Text size",
+    "translation": "",
+    "context": "appearance setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "That isn't an http(s) server address",
+    "translation": "",
+    "context": "why a server connection test failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The bar, the side panel and both full views return to their defaults.",
+    "translation": "",
+    "context": "reset now playing confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The cast device can't reach this computer",
+    "translation": "",
+    "context": "cast error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The cast device couldn't play this track",
+    "translation": "",
+    "context": "cast error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The cast device is no longer on the network",
+    "translation": "",
+    "context": "cast error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The cast device refused the cast",
+    "translation": "",
+    "context": "cast error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The connection isn't encrypted: sign-in tokens and what you play are readable on the network. Use an https address.",
+    "translation": "",
+    "context": "library notice",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The current track is written when the next one starts",
+    "translation": "",
+    "context": "why writing ratings to files waits",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The equalizer couldn't start: %1",
+    "translation": "",
+    "context": "equalizer state, %1 is the daemon's reason",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The equalizer doesn't apply while casting",
+    "translation": "",
+    "context": "equalizer state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The file has no colors",
+    "translation": "",
+    "context": "why a theme file can't be imported",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The file is empty",
+    "translation": "",
+    "context": "why a theme file can't be imported",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The file is too large",
+    "translation": "",
+    "context": "why a layout file can't be imported | why a theme file can't be imported",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The folders are removed from Dux Player. No files are deleted.",
+    "translation": "",
+    "context": "remove local library confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The page opens on the first one shown.",
+    "translation": "",
+    "context": "page edit mode: the artist page's sections",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The player didn't answer in time",
+    "translation": "",
+    "context": "why a request to the player daemon failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The playlist is deleted from %1 and every device that uses it. The tracks stay in their libraries.",
+    "translation": "",
+    "context": "delete server playlist confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The port for casting files is already in use",
+    "translation": "",
+    "context": "cast error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The server and its saved password are removed from Dux Player. Nothing is deleted on the server.",
+    "translation": "",
+    "context": "remove server library confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The server redirected to another address; use that address as the server",
+    "translation": "",
+    "context": "why a server connection test failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The server refused the username or password",
+    "translation": "",
+    "context": "why a server connection test failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The server's certificate isn't trusted",
+    "translation": "",
+    "context": "why a server connection test failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The system keyring is locked",
+    "translation": "",
+    "context": "why a server library can't sign in",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The tracks stay in their libraries.",
+    "translation": "",
+    "context": "delete local playlist confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The view button in the header changes it only temporarily.",
+    "translation": "",
+    "context": "now playing start description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Theme, shape and motion",
+    "translation": "",
+    "context": "settings sidebar tab hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Theme: %1",
+    "translation": "",
+    "context": "loaded custom theme name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "This album",
+    "translation": "",
+    "context": "page edit scope",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "This artist",
+    "translation": "",
+    "context": "page edit scope",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "This build",
+    "translation": "",
+    "context": "about page section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "This device",
+    "translation": "",
+    "context": "new playlist location option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "This genre",
+    "translation": "",
+    "context": "page edit scope",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "This library",
+    "translation": "",
+    "context": "page edit scope",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "This playlist",
+    "translation": "",
+    "context": "page edit scope",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "This playlist belongs to another user on %1",
+    "translation": "",
+    "context": "why a server playlist cannot be edited, %1 is the server library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "This server doesn't support scrobbling",
+    "translation": "",
+    "context": "scrobbling library row",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "This server's tracks can only be cast over https",
+    "translation": "",
+    "context": "cast error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Tile size",
+    "translation": "",
+    "context": "view options section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Time",
+    "translation": "",
+    "context": "track list column",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Title",
+    "translation": "",
+    "context": "track list column",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Title card",
+    "translation": "",
+    "context": "now playing zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Today",
+    "translation": "",
+    "context": "history day header",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Too many folders to watch (fs.inotify.max_user_watches); some changes show only after a rescan",
+    "translation": "",
+    "context": "library notice",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Top row",
+    "translation": "",
+    "context": "now playing zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Track",
+    "translation": "",
+    "context": "details field: track and disc number | replaygain mode",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Track actions",
+    "translation": "",
+    "context": "element picker group",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Track count",
+    "translation": "",
+    "context": "view info line",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Track details",
+    "translation": "",
+    "context": "details dialog title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Track info",
+    "translation": "",
+    "context": "element picker group",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Tracks",
+    "translation": "",
+    "context": "navigation destination",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Tracks without a rule are removed first when the size limit is reached.",
+    "translation": "",
+    "context": "library offline overview without rules",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Transitions",
+    "translation": "",
+    "context": "playback settings section label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Transparency",
+    "translation": "",
+    "context": "appearance style group",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Transport row",
+    "translation": "",
+    "context": "now playing zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Treble boost",
+    "translation": "",
+    "context": "equalizer preset",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Try again",
+    "translation": "",
+    "context": "library action that checks an unavailable library again",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Trying again…",
+    "translation": "",
+    "context": "main window state when the daemon is unreachable",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Turn off",
+    "translation": "",
+    "context": "sleep timer action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Turned off in settings",
+    "translation": "",
+    "context": "library card status",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Turning a library off hides its music without removing it.",
+    "translation": "",
+    "context": "libraries settings page intro",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "UI components and theming",
+    "translation": "",
+    "context": "about page credit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Unavailable",
+    "translation": "",
+    "context": "library card status",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Undo",
+    "translation": "",
+    "context": "snackbar button that reverts a removal",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Undo time",
+    "translation": "",
+    "context": "general setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Unnamed",
+    "translation": "",
+    "context": "custom theme without a name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Unpin from navigation",
+    "translation": "",
+    "context": "pin button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Unsynced",
+    "translation": "",
+    "context": "lyrics have no timestamps",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Up to 130%. Loud tracks may distort.",
+    "translation": "",
+    "context": "playback setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Use the equalizer",
+    "translation": "",
+    "context": "equalizer switch",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Use the system default output at startup",
+    "translation": "",
+    "context": "playback device setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Use your own API key",
+    "translation": "",
+    "context": "Last.fm advanced sign-in option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "User name",
+    "translation": "",
+    "context": "add server dialog field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "User token",
+    "translation": "",
+    "context": "ListenBrainz sign-in field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Uses Dux Shell colors until you choose one.",
+    "translation": "",
+    "context": "appearance palette fallback note",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Uses all style settings from Dux Shell. Turn off to set each group separately.",
+    "translation": "",
+    "context": "appearance setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Uses the ReplayGain values in the files.",
+    "translation": "",
+    "context": "playback setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Uses the server address",
+    "translation": "",
+    "context": "library dialog name placeholder for a server",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Version",
+    "translation": "",
+    "context": "about page daemon version column label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Version, license and credits",
+    "translation": "",
+    "context": "settings sidebar tab hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Vocal",
+    "translation": "",
+    "context": "equalizer preset",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Volume",
+    "translation": "",
+    "context": "audio volume: settings section, slider",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Volume controls",
+    "translation": "",
+    "context": "playback setting: what the volume slider changes",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Weight",
+    "translation": "",
+    "context": "font setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "When an output disconnects",
+    "translation": "",
+    "context": "playback device settings section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "When off, playback moves to the system default output.",
+    "translation": "",
+    "context": "playback device setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "When outputs change",
+    "translation": "",
+    "context": "playback device settings section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "When removing",
+    "translation": "",
+    "context": "general setting: what happens when removing a track, playlist, shelf or entry",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "When the queue ends",
+    "translation": "",
+    "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Window opacity",
+    "translation": "",
+    "context": "appearance setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Windows",
+    "translation": "",
+    "context": "general settings section label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Word by word",
+    "translation": "",
+    "context": "lyrics setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Write",
+    "translation": "",
+    "context": "button that writes ratings to files",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Write existing ratings now",
+    "translation": "",
+    "context": "local library action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Write ratings and favorites to files",
+    "translation": "",
+    "context": "local library setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Writes ratings and favorites set before this was turned on.",
+    "translation": "",
+    "context": "local library action description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Writing… %1 of %2",
+    "translation": "",
+    "context": "progress of writing ratings to files",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Year",
+    "translation": "",
+    "context": "view info line",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Yellow",
+    "translation": "",
+    "context": "color palette name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Yes",
+    "translation": "",
+    "context": "details value",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Yesterday",
+    "translation": "",
+    "context": "history day header",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "You can add it again with Add entry.",
+    "translation": "",
+    "context": "remove navigation entry confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "You can add it again with Add shelf.",
+    "translation": "",
+    "context": "remove home shelf confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Your server",
+    "translation": "",
+    "context": "lyrics provider row for a server library's own lyrics",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "cast-helper is out of date. Update it to cast.",
+    "translation": "",
+    "context": "playback device picker note",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "ffmpeg is not installed, so tracks without ReplayGain tags play without loudness correction",
+    "translation": "",
+    "context": "library notice",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "from %1 libraries",
+    "translation": "",
+    "context": "playlist info line",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "https://music.example.net",
+    "translation": "",
+    "context": "example server address in the add server dialog",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "peak %1",
+    "translation": "",
+    "context": "ReplayGain peak value",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "s",
+    "translation": "",
+    "context": "unit suffix for seconds",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "~/Music",
+    "translation": "",
+    "context": "example folder path in the library dialog",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "⋮ menu",
+    "translation": "",
+    "context": "row actions zone",
+    "reference": "",
+    "comment": ""
+  }
+]

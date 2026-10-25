@@ -1,0 +1,4 @@
+bin/
+coverage.out
+internal/shellembed/dist/
+/dplayer

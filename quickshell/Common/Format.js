@@ -1,0 +1,15 @@
+.pragma library
+
+function duration(seconds) {
+    const total = Math.max(0, Math.floor(seconds || 0));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = String(total % 60).padStart(2, "0");
+    if (h > 0)
+        return h + ":" + String(m).padStart(2, "0") + ":" + s;
+    return m + ":" + s;
+}
+
+function escapeHtml(text) {
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}

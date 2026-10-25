@@ -1,0 +1,27 @@
+pkgbase = dux-player-git
+	pkgdesc = Music player for local libraries and Navidrome, Subsonic and Jellyfin servers, in the style of Dux Shell (git version)
+	pkgver = r1.9f0b36c
+	pkgrel = 1
+	url = https://github.com/Conava/dux-player
+	arch = x86_64
+	arch = aarch64
+	license = MIT
+	license = LGPL-2.1-only
+	makedepends = go
+	makedepends = git
+	depends = mpv
+	depends = quickshell
+	depends = qt6-declarative
+	depends = qt6-svg
+	optdepends = ffmpeg: loudness measurement for even volume
+	optdepends = pipewire: playing to several outputs at once and the equalizer
+	optdepends = cast-helper: playing to Chromecast devices
+	optdepends = org.freedesktop.secrets: keeping server passwords in the keyring
+	provides = dux-player
+	conflicts = dux-player
+	source = git+https://github.com/Conava/dux-player.git
+	source = git+https://github.com/duxlabs-dev/dux-qml-common.git
+	sha256sums = SKIP
+	sha256sums = SKIP
+
+pkgname = dux-player-git

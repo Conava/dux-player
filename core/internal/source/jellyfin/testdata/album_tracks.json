@@ -1,0 +1,44 @@
+{
+ "Items": [
+  {
+   "Name": "Jellyfin",
+   "Id": "90b750a2cec4eb338c0dab3b40b8bb13",
+   "Genres": [
+    "Rap"
+   ],
+   "RunTimeTicks": 1830508539,
+   "ProductionYear": 2024,
+   "IndexNumber": 10,
+   "Type": "Audio",
+   "UserData": {
+    "IsFavorite": false,
+    "PlayCount": 8
+   },
+   "Artists": [
+    "Leap Fidei"
+   ],
+   "ArtistItems": [
+    {
+     "Name": "Leap Fidei",
+     "Id": "78e6763b3d9b58c349a58ce5eb7877c1"
+    }
+   ],
+   "Album": "Nemesis",
+   "AlbumId": "f7e6d83954e06a0d46724a6068fa21ff",
+   "AlbumPrimaryImageTag": "45ff5f4520bf2b3e9e7410e4c8766cb1",
+   "AlbumArtist": "Leap Fidei",
+   "AlbumArtists": [
+    {
+     "Name": "Leap Fidei",
+     "Id": "78e6763b3d9b58c349a58ce5eb7877c1"
+    }
+   ],
+   "ImageTags": {
+    "Primary": "e6ee40d5a27e25e143eebbe5b9bb489f"
+   },
+   "NormalizationGain": -4.3999996
+  }
+ ],
+ "TotalRecordCount": 1,
+ "StartIndex": 0
+}

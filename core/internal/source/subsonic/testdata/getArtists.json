@@ -1,0 +1,78 @@
+{
+ "subsonic-response": {
+  "status": "ok",
+  "version": "1.16.1",
+  "type": "navidrome",
+  "serverVersion": "0.64.2 (10114574)",
+  "openSubsonic": true,
+  "artists": {
+   "index": [
+    {
+     "name": "#",
+     "artist": [
+      {
+       "id": "33X3V2Xn7Cip7WqqfXNkL8",
+       "name": "2 Mello",
+       "coverArt": "ar-33X3V2Xn7Cip7WqqfXNkL8_ff4f9b91900cbc98",
+       "albumCount": 1,
+       "starred": "2026-10-24T06:34:06.032691097Z",
+       "userRating": 3,
+       "averageRating": 3,
+       "artistImageUrl": "https://demo.navidrome.org/share/img/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFyLTMzWDNWMlhuN0NpcDdXcXFmWE5rTDhfZmY0ZjliOTE5MDBjYmM5OCIsImlzcyI6Ik5EIn0.AOm9LQnbuNvXtTZSjA3QZBcayyvPZoPJYiHykGuW7uM?size=600",
+       "musicBrainzId": "",
+       "sortName": "2 mello",
+       "roles": [
+        "albumartist",
+        "artist",
+        "composer",
+        "maincredit"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "B",
+     "artist": [
+      {
+       "id": "04HrSORpypcLGNUdQp37gn",
+       "name": "Back On Earth",
+       "coverArt": "ar-04HrSORpypcLGNUdQp37gn_cd791a083ebf42c2",
+       "albumCount": 3,
+       "userRating": 5,
+       "averageRating": 5,
+       "artistImageUrl": "https://demo.navidrome.org/share/img/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFyLTA0SHJTT1JweXBjTEdOVWRRcDM3Z25fY2Q3OTFhMDgzZWJmNDJjMiIsImlzcyI6Ik5EIn0.xZi49RHk1ZH0rebVw2fVG9cuCcfFz1Mu7gRCHzpsps8?size=600",
+       "musicBrainzId": "",
+       "sortName": "back on earth",
+       "roles": [
+        "albumartist",
+        "artist",
+        "composer",
+        "maincredit"
+       ]
+      },
+      {
+       "id": "30YNjv3jIc6CC6EkI84uWi",
+       "name": "Binaerpilot",
+       "coverArt": "ar-30YNjv3jIc6CC6EkI84uWi_5ec75859be5c42f0",
+       "albumCount": 1,
+       "starred": "2026-10-21T04:27:05.807200373Z",
+       "userRating": 2,
+       "averageRating": 2,
+       "artistImageUrl": "https://demo.navidrome.org/share/img/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFyLTMwWU5qdjNqSWM2Q0M2RWtJODR1V2lfNWVjNzU4NTliZTVjNDJmMCIsImlzcyI6Ik5EIn0.lLwmQMM-1NCvux4SMWUvg4fOhghNUHMzYYVWBT6uu-Y?size=600",
+       "musicBrainzId": "",
+       "sortName": "binaerpilot",
+       "roles": [
+        "artist",
+        "composer",
+        "maincredit",
+        "albumartist"
+       ]
+      }
+     ]
+    }
+   ],
+   "lastModified": 1792400572000,
+   "ignoredArticles": "The El La Los Las Le Les Os As O A"
+  }
+ }
+}

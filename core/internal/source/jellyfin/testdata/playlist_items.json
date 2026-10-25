@@ -1,0 +1,106 @@
+{
+ "Items": [
+  {
+   "Name": "Thunderdays",
+   "Id": "933e3a903b3ea327b4acfbeb46445b92",
+   "PlaylistItemId": "entry0",
+   "RunTimeTicks": 1416881630,
+   "IndexNumber": 1,
+   "Type": "Audio",
+   "UserData": {
+    "IsFavorite": false,
+    "PlayCount": 5
+   },
+   "Artists": [
+    "Binaerpilot"
+   ],
+   "ArtistItems": [
+    {
+     "Name": "Binaerpilot",
+     "Id": "9ebcc113abb3ee375dbf1d68c9576ed5"
+    }
+   ],
+   "Album": "Promo",
+   "AlbumId": "920673748d7c8a4aa03144614f1f947f",
+   "AlbumPrimaryImageTag": "dcdaa02d4c5425aa20d7dbd3dc0df5fc",
+   "AlbumArtist": "Binaerpilot",
+   "AlbumArtists": [
+    {
+     "Name": "Binaerpilot",
+     "Id": "9ebcc113abb3ee375dbf1d68c9576ed5"
+    }
+   ],
+   "ImageTags": {},
+   "NormalizationGain": -8.7
+  },
+  {
+   "Name": "Cornered! (Promo Edit)",
+   "Id": "3f5cc1daea4e59e9204d939ba3e5345e",
+   "PlaylistItemId": "entry1",
+   "RunTimeTicks": 1716506120,
+   "IndexNumber": 4,
+   "Type": "Audio",
+   "UserData": {
+    "IsFavorite": false,
+    "PlayCount": 1
+   },
+   "Artists": [
+    "Binaerpilot"
+   ],
+   "ArtistItems": [
+    {
+     "Name": "Binaerpilot",
+     "Id": "9ebcc113abb3ee375dbf1d68c9576ed5"
+    }
+   ],
+   "Album": "Promo",
+   "AlbumId": "920673748d7c8a4aa03144614f1f947f",
+   "AlbumPrimaryImageTag": "dcdaa02d4c5425aa20d7dbd3dc0df5fc",
+   "AlbumArtist": "Binaerpilot",
+   "AlbumArtists": [
+    {
+     "Name": "Binaerpilot",
+     "Id": "9ebcc113abb3ee375dbf1d68c9576ed5"
+    }
+   ],
+   "ImageTags": {},
+   "NormalizationGain": -7.5
+  },
+  {
+   "Name": "Bend",
+   "Id": "a794b7c125d436df8dc2d870ad7b7e1e",
+   "PlaylistItemId": "entry2",
+   "RunTimeTicks": 2675461220,
+   "ProductionYear": 2006,
+   "IndexNumber": 1,
+   "Type": "Audio",
+   "UserData": {
+    "IsFavorite": false,
+    "PlayCount": 12
+   },
+   "Artists": [
+    "Binaerpilot"
+   ],
+   "ArtistItems": [
+    {
+     "Name": "Binaerpilot",
+     "Id": "9ebcc113abb3ee375dbf1d68c9576ed5"
+    }
+   ],
+   "Album": "You Can't Stop Da Funk",
+   "AlbumId": "f21ea9ece4e6e26ec26ebfb81b82ad78",
+   "AlbumPrimaryImageTag": "95b159065964e1210d8c39d255920ebc",
+   "AlbumArtist": "Binaerpilot",
+   "AlbumArtists": [
+    {
+     "Name": "Binaerpilot",
+     "Id": "9ebcc113abb3ee375dbf1d68c9576ed5"
+    }
+   ],
+   "ImageTags": {},
+   "NormalizationGain": -6.6000004
+  }
+ ],
+ "TotalRecordCount": 3,
+ "StartIndex": 0
+}

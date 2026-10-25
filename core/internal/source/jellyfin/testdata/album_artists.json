@@ -1,0 +1,46 @@
+{
+ "Items": [
+  {
+   "Name": "Binaerpilot",
+   "Id": "9ebcc113abb3ee375dbf1d68c9576ed5",
+   "RunTimeTicks": 6000000000,
+   "Type": "MusicArtist",
+   "UserData": {
+    "IsFavorite": false,
+    "PlayCount": 0
+   },
+   "ChildCount": 2,
+   "ImageTags": {
+    "Primary": "ac570184d1dceb91f6c47de54126557a"
+   }
+  },
+  {
+   "Name": "Joshua Boniface",
+   "Id": "6330eeddf969d120c0c4c054770f0ee0",
+   "RunTimeTicks": 3254508839,
+   "Type": "MusicArtist",
+   "UserData": {
+    "IsFavorite": false,
+    "PlayCount": 0
+   },
+   "ChildCount": 1,
+   "ImageTags": {}
+  },
+  {
+   "Name": "Leap Fidei",
+   "Id": "78e6763b3d9b58c349a58ce5eb7877c1",
+   "RunTimeTicks": 1830508539,
+   "Type": "MusicArtist",
+   "UserData": {
+    "IsFavorite": false,
+    "PlayCount": 0
+   },
+   "ChildCount": 1,
+   "ImageTags": {
+    "Primary": "9d23a06a81f0004b69b76dfa96c51a58"
+   }
+  }
+ ],
+ "TotalRecordCount": 3,
+ "StartIndex": 0
+}

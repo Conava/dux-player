@@ -1,0 +1,53 @@
+# Maintainer: Marlon Kranz <dev@marlonkranz.com>
+pkgname=dux-player-git
+_pkgname=dux-player
+pkgver=r1.9f0b36c
+pkgrel=1
+pkgdesc="Music player for local libraries and Navidrome, Subsonic and Jellyfin servers, in the style of Dux Shell (git version)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/Conava/dux-player"
+license=('MIT' 'LGPL-2.1-only')
+depends=('mpv' 'quickshell' 'qt6-declarative' 'qt6-svg')
+makedepends=('go' 'git')
+optdepends=('ffmpeg: loudness measurement for even volume'
+            'pipewire: playing to several outputs at once and the equalizer'
+            'cast-helper: playing to Chromecast devices'
+            'org.freedesktop.secrets: keeping server passwords in the keyring')
+provides=("$_pkgname")
+conflicts=("$_pkgname")
+source=("git+$url.git"
+        "git+https://github.com/duxlabs-dev/dux-qml-common.git")
+sha256sums=('SKIP'
+            'SKIP')
+
+pkgver() {
+  cd "$_pkgname"
+  ( set -o pipefail
+    git describe --long --tags --abbrev=7 2>/dev/null | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g' ||
+      printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)" )
+}
+
+prepare() {
+  cd "$_pkgname"
+  git submodule init
+  git config submodule.dux-qml-common.url "$srcdir/dux-qml-common"
+  git -c protocol.file.allow=always submodule update
+  cd core
+  go mod download
+}
+
+build() {
+  cd "$_pkgname"
+  export GOFLAGS="-buildmode=pie -trimpath -mod=readonly -modcacherw"
+  make build VERSION="$pkgver" COMMIT="$(git rev-parse --short=8 HEAD)"
+}
+
+check() {
+  cd "$_pkgname"
+  make test-go
+}
+
+package() {
+  cd "$_pkgname"
+  make install DESTDIR="$pkgdir" PREFIX=/usr LICENSE_DIR="/usr/share/licenses/$pkgname"
+}
