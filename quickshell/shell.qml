@@ -2,7 +2,7 @@
 //@ pragma Env QSG_RENDER_LOOP=threaded
 //@ pragma Env QT_QUICK_CONTROLS_STYLE=Material
 //@ pragma UseQApplication
-//@ pragma AppId com.marlonkranz.player
+//@ pragma AppId io.github.conava.DuxPlayer
 
 pragma ComponentBehavior: Bound
 

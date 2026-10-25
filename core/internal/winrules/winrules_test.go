@@ -3,6 +3,9 @@ package winrules
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -36,7 +39,7 @@ func TestArgv(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(add[5]), &r))
 	assert.Equal(t, map[string]any{
 		"id": RuleID, "enabled": true, "name": "Dux Player Floating Windows",
-		"matchCriteria": map[string]any{"appId": `^(com\.marlonkranz\.player)$`},
+		"matchCriteria": map[string]any{"appId": `^(io\.github\.conava\.DuxPlayer)$`},
 		"actions":       map[string]any{"openFloating": true},
 	}, r)
 	assert.Equal(t, []string{"dms", "config", "windowrules", "remove", "hyprland", RuleID}, removeArgv("hyprland"))
@@ -51,9 +54,49 @@ func TestActive(t *testing.T) {
 		`{"rules":[{"id":"dms-floating-windows","enabled":true,"actions":{"openFloating":true}}]}`:      false,
 		`{"rules":null}`: false,
 	} {
-		got, err := active(out)
+		got, _, err := active(out)
 		require.NoError(t, err)
 		assert.Equal(t, want, got, out)
+	}
+}
+
+// listed is a dms list with our rule matching appID.
+func listed(appID string, enabled bool) string {
+	m, _ := json.Marshal(appID)
+	return `{"rules":[{"id":"` + RuleID + `","enabled":` + strconv.FormatBool(enabled) + `,"matchCriteria":{"appId":` + string(m) + `},"actions":{"openFloating":true}}]}`
+}
+
+// A seeded start rewrites the rule only when it is on and matches another
+// app id (one from before a rename).
+func TestSeededStartReplacesOutdatedRule(t *testing.T) {
+	old := `^(org\.example\.Old)$`
+	for _, tc := range []struct {
+		name, list string
+		cmds       []string
+		active     bool
+	}{
+		{"current", listed(appIDMatch, true), []string{"list"}, true},
+		{"outdated", listed(old, true), []string{"list", "add", "reload"}, true},
+		{"outdated but off", listed(old, false), []string{"list"}, false},
+		{"absent", `{"rules":[]}`, []string{"list"}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			require.NoError(t, os.WriteFile(filepath.Join(dir, fileName), []byte(`{"floatingSeeded":["hyprland"]}`), 0o600))
+			f := &fake{}
+			s := service(t, dir, f)
+			s.run = func(_ context.Context, argv []string) (string, error) {
+				f.cmds = append(f.cmds, argv[3])
+				if argv[3] == "add" {
+					assert.Equal(t, addArgv("hyprland"), argv)
+				}
+				return tc.list, nil
+			}
+			st, err := s.Seed(context.Background())
+			require.NoError(t, err)
+			assert.Equal(t, tc.cmds, f.cmds)
+			assert.Equal(t, tc.active, st.Active)
+		})
 	}
 }
 
@@ -72,7 +115,7 @@ func (f *fake) run(_ context.Context, argv []string) (string, error) {
 		f.on = false
 	}
 	if f.on {
-		return `{"rules":[{"id":"` + RuleID + `","enabled":true,"actions":{"openFloating":true}}]}`, nil
+		return listed(appIDMatch, true), nil
 	}
 	return `{"rules":[]}`, nil
 }
@@ -86,8 +129,7 @@ func service(t *testing.T, dir string, f *fake) *Service {
 	return s
 }
 
-// Seeded once per compositor: turning it off sticks across restarts, and
-// later starts run no dms command.
+// Seeded once per compositor: turning it off sticks across restarts.
 func TestSeedOnce(t *testing.T) {
 	dir, f := t.TempDir(), &fake{}
 	ctx := context.Background()
@@ -102,7 +144,7 @@ func TestSeedOnce(t *testing.T) {
 	f.cmds = nil
 	_, err = service(t, dir, f).Seed(ctx)
 	require.NoError(t, err)
-	assert.Empty(t, f.cmds, "a seeded start runs nothing; winrules.status reads the state")
+	assert.Equal(t, []string{"list"}, f.cmds, "a seeded start only reads the rule")
 }
 
 // winrules.status runs in parallel with writes: a list that started before

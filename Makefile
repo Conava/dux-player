@@ -2,7 +2,7 @@
 
 BINARY_NAME=dplayer
 DEV_BINARY=dplayer-dev
-APP_ID=com.marlonkranz.player
+APP_ID=io.github.conava.DuxPlayer
 CORE_DIR=core
 BUILD_DIR=$(CORE_DIR)/bin
 SHELL_DIR=quickshell

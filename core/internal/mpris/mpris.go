@@ -83,7 +83,7 @@ func Start(ctx context.Context, conn *dbus.Conn, cfg Config) (*Server, error) {
 	props, err := prop.Export(conn, path, prop.Map{
 		ifaceRoot: {
 			"Identity":            ro("Dux Player"),
-			"DesktopEntry":        ro("com.marlonkranz.player"),
+			"DesktopEntry":        ro("io.github.conava.DuxPlayer"),
 			"CanQuit":             ro(cfg.Quit != nil),
 			"CanRaise":            ro(cfg.Raise != nil),
 			"HasTrackList":        ro(false),
@@ -272,7 +272,7 @@ func trackID(t *source.Track) dbus.ObjectPath {
 	}
 	h := fnv.New64a()
 	h.Write([]byte(t.Library + "\x00" + t.ID))
-	return dbus.ObjectPath(fmt.Sprintf("/com/marlonkranz/player/track/%016x", h.Sum64()))
+	return dbus.ObjectPath(fmt.Sprintf("/io/github/conava/DuxPlayer/track/%016x", h.Sum64()))
 }
 
 func metadata(id dbus.ObjectPath, t *source.Track, length float64, art string) map[string]dbus.Variant {

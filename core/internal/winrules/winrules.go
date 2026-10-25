@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -38,9 +39,11 @@ const (
 	ModeUnsupported = "unsupported"
 )
 
-// The settings window is a child of the main one with the same app id, so
-// one rule covers both.
-var rule = `{"id":"` + RuleID + `","enabled":true,"name":"Dux Player Floating Windows","matchCriteria":{"appId":"^(com\\.marlonkranz\\.player)$"},"actions":{"openFloating":true}}`
+// appIDMatch is the rule's pattern. The settings window is a child of the
+// main one with the same app id, so one rule covers both.
+const appIDMatch = `^(io\.github\.conava\.DuxPlayer)$`
+
+var rule = `{"id":"` + RuleID + `","enabled":true,"name":"Dux Player Floating Windows","matchCriteria":{"appId":` + strconv.Quote(appIDMatch) + `},"actions":{"openFloating":true}}`
 
 type Status struct {
 	// Compositor is hyprland, niri, mango or "".
@@ -77,36 +80,40 @@ func removeArgv(comp string) []string {
 func Snippet(comp string) string {
 	switch comp {
 	case "hyprland":
-		return "-- hyprland.lua\nhl.window_rule({ match = { class = \"^(com\\\\.marlonkranz\\\\.player)$\" }, float = true })\n\n" +
-			"# hyprland.conf\nwindowrule = float, class:^(com\\.marlonkranz\\.player)$"
+		return "-- hyprland.lua\nhl.window_rule({ match = { class = \"^(io\\\\.github\\\\.conava\\\\.DuxPlayer)$\" }, float = true })\n\n" +
+			"# hyprland.conf\nwindowrule = float, class:^(io\\.github\\.conava\\.DuxPlayer)$"
 	case "niri":
-		return "window-rule {\n    match app-id=r#\"^com\\.marlonkranz\\.player$\"#\n    open-floating true\n}"
+		return "window-rule {\n    match app-id=r#\"^io\\.github\\.conava\\.DuxPlayer$\"#\n    open-floating true\n}"
 	case "mango":
-		return "windowrule=isfloating:1,appid:^com\\.marlonkranz\\.player$"
+		return "windowrule=isfloating:1,appid:^io\\.github\\.conava\\.DuxPlayer$"
 	}
 	return ""
 }
 
-// active reads `dms config windowrules list` output.
-func active(out string) (bool, error) {
+// active reads `dms config windowrules list` output. stale means our rule is
+// on but matches another app id, so it has to be written again.
+func active(out string) (on, stale bool, err error) {
 	var list struct {
 		Rules []struct {
-			ID      string `json:"id"`
-			Enabled *bool  `json:"enabled"`
+			ID            string `json:"id"`
+			Enabled       *bool  `json:"enabled"`
+			MatchCriteria struct {
+				AppID string `json:"appId"`
+			} `json:"matchCriteria"`
 			Actions struct {
 				OpenFloating *bool `json:"openFloating"`
 			} `json:"actions"`
 		} `json:"rules"`
 	}
 	if err := json.Unmarshal([]byte(out), &list); err != nil {
-		return false, fmt.Errorf("read window rules: %w", err)
+		return false, false, fmt.Errorf("read window rules: %w", err)
 	}
 	for _, r := range list.Rules {
 		if r.ID == RuleID && (r.Enabled == nil || *r.Enabled) && r.Actions.OpenFloating != nil && *r.Actions.OpenFloating {
-			return true, nil
+			return true, r.MatchCriteria.AppID != appIDMatch, nil
 		}
 	}
-	return false, nil
+	return false, false, nil
 }
 
 type Service struct {
@@ -149,8 +156,8 @@ func (s *Service) Status() Status {
 }
 
 // Seed turns the rule on the first time the player runs under a compositor
-// (it's on by default, like the shell's own). Later starts run nothing:
-// winrules.status reads the state when the UI asks.
+// (it's on by default, like the shell's own). Later starts only rewrite a
+// rule that is on but outdated.
 func (s *Service) Seed(ctx context.Context) (Status, error) {
 	if s.Status().Mode != ModeShell {
 		return s.Status(), nil
@@ -159,7 +166,11 @@ func (s *Service) Seed(ctx context.Context) (Status, error) {
 	seeded := slices.Contains(s.seeded, s.comp)
 	s.mu.Unlock()
 	if seeded {
-		return s.Status(), nil
+		st, stale, err := s.refresh(ctx)
+		if err != nil || !stale {
+			return st, err
+		}
+		return s.Set(ctx, true)
 	}
 	st, err := s.Set(ctx, true)
 	if err != nil {
@@ -176,21 +187,27 @@ func (s *Service) Refresh(ctx context.Context) (Status, error) {
 	if s.Status().Mode != ModeShell {
 		return s.Status(), nil
 	}
+	st, _, err := s.refresh(ctx)
+	return st, err
+}
+
+func (s *Service) refresh(ctx context.Context) (Status, bool, error) {
 	s.mu.Lock()
 	sets := s.sets
 	s.mu.Unlock()
 	out, err := s.run(ctx, listArgv(s.comp))
-	var on bool
+	var on, outdated bool
 	if err == nil {
-		on, err = active(out)
+		on, outdated, err = active(out)
 	}
 	s.mu.Lock()
-	stale := s.sets != sets
+	overlapped := s.sets != sets
 	s.mu.Unlock()
-	if stale {
-		return s.Status(), nil
+	if overlapped {
+		return s.Status(), false, nil
 	}
-	return s.finish(on, err)
+	st, err := s.finish(on, err)
+	return st, outdated, err
 }
 
 // Set adds or removes the rule and has the compositor reload it.

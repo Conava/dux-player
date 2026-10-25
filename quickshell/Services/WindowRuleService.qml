@@ -11,7 +11,7 @@ Singleton {
 
     readonly property var log: Log.scoped("WindowRuleService")
 
-    readonly property string appId: "com.marlonkranz.player"
+    readonly property string appId: "io.github.conava.DuxPlayer"
     // winrules.status: {compositor, mode: shell | manual | unsupported, active, snippet?, error?}
     property var status: ({})
     readonly property string compositor: status.compositor ?? ""

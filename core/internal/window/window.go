@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	AppID = "com.marlonkranz.player"
+	AppID = "io.github.conava.DuxPlayer"
 	// Bounds Wait after qs exits; processes it forks can keep its output
 	// pipes open.
 	waitDelay = 2 * time.Second

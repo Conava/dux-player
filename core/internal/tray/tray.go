@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	AppID       = "com.marlonkranz.player"
+	AppID       = "io.github.conava.DuxPlayer"
 	watcherName = "org.kde.StatusNotifierWatcher"
 	itemPath    = dbus.ObjectPath("/StatusNotifierItem")
 	ifaceItem   = "org.kde.StatusNotifierItem"
@@ -35,7 +35,7 @@ const (
 // icon.png is the app icon rendered for hosts that can't find it in the
 // icon theme (a build run from the source tree).
 //
-//go:generate rsvg-convert -w 64 -h 64 -o icon.png ../../../assets/com.marlonkranz.player.svg
+//go:generate rsvg-convert -w 64 -h 64 -o icon.png ../../../assets/io.github.conava.DuxPlayer.svg
 //go:embed icon.png
 var iconPNG []byte
 

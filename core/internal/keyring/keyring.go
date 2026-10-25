@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	appID  = "com.marlonkranz.player"
+	appID  = "io.github.conava.DuxPlayer"
 	schema = appID + ".Credential"
 )
 
