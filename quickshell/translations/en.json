@@ -158,13 +158,13 @@
   {
     "term": "%1 files written",
     "context": "%1 files written",
-    "reference": "Modules/Settings/LibraryDialog.qml:346",
+    "reference": "Modules/Settings/LibraryDialog.qml:361",
     "comment": "ratings written to files"
   },
   {
     "term": "%1 files written, %2 failed",
     "context": "%1 files written, %2 failed",
-    "reference": "Modules/Settings/LibraryDialog.qml:346",
+    "reference": "Modules/Settings/LibraryDialog.qml:361",
     "comment": "ratings written to files"
   },
   {
@@ -434,7 +434,7 @@
   {
     "term": "Add",
     "context": "Add",
-    "reference": "Modules/Settings/OfflineLimitDialog.qml:95, Modules/Settings/LibraryDialog.qml:393",
+    "reference": "Modules/Settings/OfflineLimitDialog.qml:95, Modules/Settings/LibraryDialog.qml:417",
     "comment": "dialog confirm button"
   },
   {
@@ -470,7 +470,7 @@
   {
     "term": "Add at least one folder.",
     "context": "Add at least one folder.",
-    "reference": "Modules/Settings/LibraryDialog.qml:43",
+    "reference": "Modules/Settings/LibraryDialog.qml:45",
     "comment": "add local library dialog, why add is disabled"
   },
   {
@@ -488,13 +488,13 @@
   {
     "term": "Add folder",
     "context": "Add folder",
-    "reference": "Modules/Settings/LibraryDialog.qml:235",
+    "reference": "Modules/Settings/LibraryDialog.qml:250",
     "comment": "library dialog folder action"
   },
   {
     "term": "Add library",
     "context": "Add library",
-    "reference": "Modules/HomePage.qml:143, Modules/Settings/LibraryDialog.qml:113, Modules/Settings/LibrariesSettings.qml:589",
+    "reference": "Modules/HomePage.qml:143, Modules/Settings/LibraryDialog.qml:115, Modules/Settings/LibrariesSettings.qml:589",
     "comment": "libraries settings primary action"
   },
   {
@@ -1004,7 +1004,7 @@
   {
     "term": "Cancel",
     "context": "Cancel",
-    "reference": "Modules/TextPromptDialog.qml:46, Modules/NewPlaylistDialog.qml:89, Modules/ConfirmDialog.qml:25, Modules/AddToPlaylistDialog.qml:146, Modules/Settings/OfflineLimitDialog.qml:89, Modules/Settings/OfflineItemPicker.qml:117, Modules/Settings/LibraryDialog.qml:387",
+    "reference": "Modules/TextPromptDialog.qml:46, Modules/NewPlaylistDialog.qml:89, Modules/ConfirmDialog.qml:25, Modules/AddToPlaylistDialog.qml:146, Modules/Settings/OfflineLimitDialog.qml:89, Modules/Settings/OfflineItemPicker.qml:117, Modules/Settings/LibraryDialog.qml:411",
     "comment": "dialog dismiss button"
   },
   {
@@ -1078,6 +1078,12 @@
     "context": "Check again",
     "reference": "Modules/Settings/AboutSettings.qml:120",
     "comment": "about page action that checks the installed components again"
+  },
+  {
+    "term": "Choose folder",
+    "context": "Choose folder",
+    "reference": "Modules/Settings/LibraryDialog.qml:240, Modules/Settings/LibraryDialog.qml:403",
+    "comment": "library dialog folder action"
   },
   {
     "term": "Choose the outputs to play on at the same time.",
@@ -1202,7 +1208,7 @@
   {
     "term": "Connected",
     "context": "Connected",
-    "reference": "Modules/Settings/LibraryDialog.qml:308",
+    "reference": "Modules/Settings/LibraryDialog.qml:323",
     "comment": "add server dialog, connection test passed"
   },
   {
@@ -1298,7 +1304,7 @@
   {
     "term": "Couldn't connect to server",
     "context": "Couldn't connect to server",
-    "reference": "Modules/Settings/LibraryDialog.qml:308",
+    "reference": "Modules/Settings/LibraryDialog.qml:323",
     "comment": "add server dialog, connection test failed title"
   },
   {
@@ -1892,7 +1898,7 @@
   {
     "term": "Edit library",
     "context": "Edit library",
-    "reference": "Modules/Settings/LibraryDialog.qml:113",
+    "reference": "Modules/Settings/LibraryDialog.qml:115",
     "comment": "library dialog title"
   },
   {
@@ -1958,7 +1964,7 @@
   {
     "term": "Enter a name.",
     "context": "Enter a name.",
-    "reference": "Modules/Settings/LibraryDialog.qml:41",
+    "reference": "Modules/Settings/LibraryDialog.qml:43",
     "comment": "add local library dialog, why add is disabled"
   },
   {
@@ -1976,7 +1982,7 @@
   {
     "term": "Enter the server address and user name.",
     "context": "Enter the server address and user name.",
-    "reference": "Modules/Settings/LibraryDialog.qml:35",
+    "reference": "Modules/Settings/LibraryDialog.qml:37",
     "comment": "add server dialog, why add is disabled"
   },
   {
@@ -2060,7 +2066,7 @@
   {
     "term": "Failed",
     "context": "Failed",
-    "reference": "Modules/Settings/LibraryDialog.qml:368",
+    "reference": "Modules/Settings/LibraryDialog.qml:383",
     "comment": "a file that couldn't be written"
   },
   {
@@ -2174,7 +2180,7 @@
   {
     "term": "Folder",
     "context": "Folder",
-    "reference": "Modules/Settings/LibraryDialog.qml:224",
+    "reference": "Modules/Settings/LibraryDialog.qml:228",
     "comment": "library dialog folder field"
   },
   {
@@ -2504,7 +2510,7 @@
   {
     "term": "Includes subfolders. Changes are detected automatically.",
     "context": "Includes subfolders. Changes are detected automatically.",
-    "reference": "Modules/Settings/LibraryDialog.qml:248",
+    "reference": "Modules/Settings/LibraryDialog.qml:263",
     "comment": "library dialog folders hint"
   },
   {
@@ -2696,7 +2702,7 @@
   {
     "term": "Leave empty to keep the saved password. Stored in the system keyring.",
     "context": "Leave empty to keep the saved password. Stored in the system keyring.",
-    "reference": "Modules/Settings/LibraryDialog.qml:282",
+    "reference": "Modules/Settings/LibraryDialog.qml:297",
     "comment": "edit server dialog password hint"
   },
   {
@@ -2984,13 +2990,13 @@
   {
     "term": "Name",
     "context": "Name",
-    "reference": "Modules/TextPromptDialog.qml:16, Modules/NewPlaylistDialog.qml:57, Common/UiConfig.qml:215, Modules/Settings/LibraryDialog.qml:150",
+    "reference": "Modules/TextPromptDialog.qml:16, Modules/NewPlaylistDialog.qml:57, Common/UiConfig.qml:215, Modules/Settings/LibraryDialog.qml:152",
     "comment": "a name: field label, sort key"
   },
   {
     "term": "Name (optional)",
     "context": "Name (optional)",
-    "reference": "Modules/Settings/LibraryDialog.qml:150",
+    "reference": "Modules/Settings/LibraryDialog.qml:152",
     "comment": "library dialog field"
   },
   {
@@ -3446,7 +3452,7 @@
   {
     "term": "Password",
     "context": "Password",
-    "reference": "Modules/Settings/LibraryDialog.qml:281",
+    "reference": "Modules/Settings/LibraryDialog.qml:296",
     "comment": "add server dialog field"
   },
   {
@@ -3902,7 +3908,7 @@
   {
     "term": "Remove folder",
     "context": "Remove folder",
-    "reference": "Modules/Settings/LibraryDialog.qml:201",
+    "reference": "Modules/Settings/LibraryDialog.qml:203",
     "comment": "library dialog folder action"
   },
   {
@@ -4298,7 +4304,7 @@
   {
     "term": "Save",
     "context": "Save",
-    "reference": "Modules/TextPromptDialog.qml:10, Modules/MediaMenu.qml:183, Modules/BrowsePage.qml:321, Modules/BrowsePage.qml:322, Modules/Settings/PagesSettings.qml:198, Modules/Settings/OfflineLimitDialog.qml:95, Modules/Settings/LibraryDialog.qml:393",
+    "reference": "Modules/TextPromptDialog.qml:10, Modules/MediaMenu.qml:183, Modules/BrowsePage.qml:321, Modules/BrowsePage.qml:322, Modules/Settings/PagesSettings.qml:198, Modules/Settings/OfflineLimitDialog.qml:95, Modules/Settings/LibraryDialog.qml:417",
     "comment": "dialog confirm button"
   },
   {
@@ -4556,7 +4562,7 @@
   {
     "term": "Server address",
     "context": "Server address",
-    "reference": "Modules/Settings/LibraryDialog.qml:260",
+    "reference": "Modules/Settings/LibraryDialog.qml:275",
     "comment": "add server dialog field"
   },
   {
@@ -4754,7 +4760,7 @@
   {
     "term": "Skipped",
     "context": "Skipped",
-    "reference": "Modules/Settings/LibraryDialog.qml:368",
+    "reference": "Modules/Settings/LibraryDialog.qml:383",
     "comment": "a file left alone when writing ratings"
   },
   {
@@ -4868,13 +4874,13 @@
   {
     "term": "Stored in the system keyring.",
     "context": "Stored in the system keyring.",
-    "reference": "Modules/Settings/LibraryDialog.qml:282",
+    "reference": "Modules/Settings/LibraryDialog.qml:297",
     "comment": "add server dialog password hint"
   },
   {
     "term": "Stores ratings and favorites in the tags of your music files.",
     "context": "Stores ratings and favorites in the tags of your music files.",
-    "reference": "Modules/Settings/LibraryDialog.qml:330",
+    "reference": "Modules/Settings/LibraryDialog.qml:345",
     "comment": "local library setting description"
   },
   {
@@ -5000,13 +5006,13 @@
   {
     "term": "Test connection",
     "context": "Test connection",
-    "reference": "Modules/Settings/LibraryDialog.qml:294",
+    "reference": "Modules/Settings/LibraryDialog.qml:309",
     "comment": "add server dialog action"
   },
   {
     "term": "Test the connection first.",
     "context": "Test the connection first.",
-    "reference": "Modules/Settings/LibraryDialog.qml:37",
+    "reference": "Modules/Settings/LibraryDialog.qml:39",
     "comment": "add server dialog, why add is disabled"
   },
   {
@@ -5066,7 +5072,7 @@
   {
     "term": "The current track is written when the next one starts",
     "context": "The current track is written when the next one starts",
-    "reference": "Modules/Settings/LibraryDialog.qml:341",
+    "reference": "Modules/Settings/LibraryDialog.qml:356",
     "comment": "why writing ratings to files waits"
   },
   {
@@ -5450,7 +5456,7 @@
   {
     "term": "User name",
     "context": "User name",
-    "reference": "Modules/Settings/LibraryDialog.qml:271",
+    "reference": "Modules/Settings/LibraryDialog.qml:286",
     "comment": "add server dialog field"
   },
   {
@@ -5480,7 +5486,7 @@
   {
     "term": "Uses the server address",
     "context": "Uses the server address",
-    "reference": "Modules/Settings/LibraryDialog.qml:151",
+    "reference": "Modules/Settings/LibraryDialog.qml:153",
     "comment": "library dialog name placeholder for a server"
   },
   {
@@ -5576,31 +5582,31 @@
   {
     "term": "Write",
     "context": "Write",
-    "reference": "Modules/Settings/LibraryDialog.qml:353",
+    "reference": "Modules/Settings/LibraryDialog.qml:368",
     "comment": "button that writes ratings to files"
   },
   {
     "term": "Write existing ratings now",
     "context": "Write existing ratings now",
-    "reference": "Modules/Settings/LibraryDialog.qml:337",
+    "reference": "Modules/Settings/LibraryDialog.qml:352",
     "comment": "local library action"
   },
   {
     "term": "Write ratings and favorites to files",
     "context": "Write ratings and favorites to files",
-    "reference": "Modules/Settings/LibraryDialog.qml:329",
+    "reference": "Modules/Settings/LibraryDialog.qml:344",
     "comment": "local library setting"
   },
   {
     "term": "Writes ratings and favorites set before this was turned on.",
     "context": "Writes ratings and favorites set before this was turned on.",
-    "reference": "Modules/Settings/LibraryDialog.qml:347",
+    "reference": "Modules/Settings/LibraryDialog.qml:362",
     "comment": "local library action description"
   },
   {
     "term": "Writing… %1 of %2",
     "context": "Writing… %1 of %2",
-    "reference": "Modules/Settings/LibraryDialog.qml:340",
+    "reference": "Modules/Settings/LibraryDialog.qml:355",
     "comment": "progress of writing ratings to files"
   },
   {
@@ -5666,7 +5672,7 @@
   {
     "term": "https://music.example.net",
     "context": "https://music.example.net",
-    "reference": "Modules/Settings/LibraryDialog.qml:261",
+    "reference": "Modules/Settings/LibraryDialog.qml:276",
     "comment": "example server address in the add server dialog"
   },
   {
@@ -5684,7 +5690,7 @@
   {
     "term": "~/Music",
     "context": "~/Music",
-    "reference": "Modules/Settings/LibraryDialog.qml:225",
+    "reference": "Modules/Settings/LibraryDialog.qml:229",
     "comment": "example folder path in the library dialog"
   },
   {

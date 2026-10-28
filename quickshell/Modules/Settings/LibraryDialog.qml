@@ -5,6 +5,8 @@ import qs.Common
 import qs.Services
 import qs.Modules
 import qs.DCommon.Widgets
+import qs.DCommon.FileBrowser
+import Quickshell
 
 // Adds a library or edits one. Local libraries take folders; a server library is one account on a
 // (Open)Subsonic or Jellyfin server.
@@ -75,8 +77,8 @@ WindowDialog {
         nameField.forceActiveFocus();
     }
 
-    function addFolder() {
-        const path = folderField.text.trim();
+    function addFolder(typed) {
+        const path = Paths.expandTilde(typed.trim()).replace(/(.)\/+$/, "$1");
         if (path === "" || folders.indexOf(path) >= 0)
             return;
         folders = folders.concat([path]);
@@ -216,15 +218,28 @@ WindowDialog {
                 DTextField {
                     id: folderField
                     anchors.left: parent.left
-                    anchors.right: addFolderButton.left
+                    anchors.right: chooseFolderButton.left
                     anchors.leftMargin: Theme.spacingS
                     anchors.rightMargin: Theme.spacingS
                     anchors.verticalCenter: parent.verticalCenter
+                    // center the outlined box, not the floating label above it
+                    anchors.verticalCenterOffset: -containerTop / 2
                     outlined: true
                     labelText: I18n.tr("Folder", "library dialog folder field")
                     placeholderText: I18n.tr("~/Music", "example folder path in the library dialog")
                     leftIconName: "create_new_folder"
-                    onAccepted: root.addFolder()
+                    onAccepted: root.addFolder(text)
+                }
+
+                DIconButton {
+                    id: chooseFolderButton
+                    anchors.right: addFolderButton.left
+                    anchors.rightMargin: Theme.spacingXS
+                    anchors.verticalCenter: parent.verticalCenter
+                    iconName: "folder_open"
+                    tooltipText: I18n.tr("Choose folder", "library dialog folder action")
+                    Accessible.name: tooltipText
+                    onClicked: folderPicker.open()
                 }
 
                 DButton {
@@ -237,7 +252,7 @@ WindowDialog {
                     backgroundColor: Theme.secondaryContainer
                     textColor: Theme.onSecondaryContainer
                     enabled: folderField.text.trim() !== ""
-                    onClicked: root.addFolder()
+                    onClicked: root.addFolder(folderField.text)
                 }
             }
         }
@@ -380,6 +395,15 @@ WindowDialog {
         font.pixelSize: Theme.fontSizeSmall
         color: Theme.surfaceVariantText
         wrapMode: Text.WordWrap
+    }
+
+    FileBrowserModal {
+        id: folderPicker
+        parentModal: root.QsWindow.window
+        browserTitle: I18n.tr("Choose folder", "library dialog folder action")
+        bucket: "library"
+        folderMode: true
+        onFileSelected: path => root.addFolder(path)
     }
 
     actions: [

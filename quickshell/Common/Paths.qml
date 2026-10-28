@@ -35,7 +35,7 @@ Singleton {
     }
 
     function expandTilde(path: string): string {
-        if (!path.startsWith("~/"))
+        if (path !== "~" && !path.startsWith("~/"))
             return path;
         return strip(root.home) + path.substring(1);
     }

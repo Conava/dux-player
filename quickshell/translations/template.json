@@ -1260,6 +1260,13 @@
     "comment": ""
   },
   {
+    "term": "Choose folder",
+    "translation": "",
+    "context": "library dialog folder action",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Choose the outputs to play on at the same time.",
     "translation": "",
     "context": "playback device setting description",
