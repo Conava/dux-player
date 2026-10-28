@@ -3810,7 +3810,7 @@
   {
     "term": "Nothing matches.",
     "translation": "",
-    "context": "offline rule picker empty result",
+    "context": "offline rule picker empty result | settings search empty result",
     "reference": "",
     "comment": ""
   },
@@ -5229,6 +5229,13 @@
     "comment": ""
   },
   {
+    "term": "Search settings",
+    "translation": "",
+    "context": "settings search field placeholder",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Search this page",
     "translation": "",
     "context": "keyboard shortcut name",
@@ -6114,6 +6121,13 @@
     "term": "This server's tracks can only be cast over https",
     "translation": "",
     "context": "cast error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "This setting isn't available in the current setup.",
+    "translation": "",
+    "context": "settings search: the picked setting is hidden by other settings or missing hardware or software",
     "reference": "",
     "comment": ""
   },

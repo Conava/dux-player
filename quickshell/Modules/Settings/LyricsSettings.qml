@@ -20,6 +20,7 @@ SettingsPage {
 
         SettingsButtonGroupRow {
             text: I18n.tr("Text size", "appearance setting")
+            keywords: "font"
             model: [I18n.tr("Small", "size option"), I18n.tr("Medium", "size option"), I18n.tr("Large", "size option")]
             currentIndex: ["s", "m", "l"].indexOf(UiConfig.lyricsTextSize)
             onSelectionChanged: (index, selected) => {
@@ -32,6 +33,7 @@ SettingsPage {
 
         SettingsButtonGroupRow {
             text: I18n.tr("Alignment", "lyrics setting")
+            keywords: "center left right"
             description: I18n.tr("In duets, each singer keeps their own side.", "lyrics setting description")
             model: [I18n.tr("Center", "lyrics alignment"), I18n.tr("Start", "lyrics alignment")]
             currentIndex: UiConfig.lyricsAlignment === "start" ? 1 : 0
@@ -45,6 +47,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Word by word", "lyrics setting")
+            keywords: "karaoke synced"
             description: I18n.tr("Highlights each word as it's sung, when the lyrics include word timing.", "lyrics setting description")
             checked: UiConfig.lyricsWordSync
             onToggled: value => UiConfig.setLyricsDisplay({

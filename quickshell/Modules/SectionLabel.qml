@@ -7,6 +7,8 @@ Item {
     id: root
 
     property string text: ""
+    // for the settings search index (scripts/settings_index.py): synonyms the text doesn't contain
+    property string keywords: ""
     property alias actions: actionsRow.data
 
     Accessible.role: Accessible.StaticText

@@ -21,8 +21,8 @@ LICENSE_DIR ?= $(DATA_DIR)/licenses/dux-player
 TAGLIB_LICENSE = $(firstword $(wildcard $(CORE_DIR)/vendor/go.senan.xyz/taglib/LICENSE) \
 	$(shell cd $(CORE_DIR) && go list -m -f '{{.Dir}}' go.senan.xyz/taglib 2>/dev/null)/LICENSE)
 
-.PHONY: all build dev run deps clean check test test-go test-qml lint lint-go lint-qml lint-qml-format fmt vet install uninstall quit \
-	dist update-common i18n-extract help
+.PHONY: all build dev run deps clean check test test-go test-qml lint lint-go lint-qml lint-qml-format lint-settings-index fmt vet install uninstall quit \
+	dist update-common i18n-extract settings-index help
 
 all: build
 
@@ -34,7 +34,7 @@ dev:
 
 # Opens the window from the source tree, so QML edits hot-reload. A daemon left over from an older build is
 # stopped first, or the new window would attach to the old code.
-run: deps dev quit
+run: deps settings-index dev quit
 	$(BUILD_DIR)/$(DEV_BINARY) show -c $(CURDIR)/$(SHELL_DIR)
 
 # What run needs; install only warns about the runtime part, since a staged or packaged install runs elsewhere.
@@ -60,7 +60,7 @@ test-go:
 test-qml:
 	@for t in $(SHELL_DIR)/tests/*.test.js; do node "$$t" || exit 1; done
 
-lint: lint-go lint-qml lint-qml-format
+lint: lint-go lint-qml lint-qml-format lint-settings-index
 
 lint-go:
 	@$(MAKE) -C $(CORE_DIR) lint
@@ -74,6 +74,10 @@ lint-qml-format:
 	@command -v $(QMLFORMAT) >/dev/null || { echo "qmlformat (Qt 6) not found; set QMLFORMAT="; exit 127; }
 	@out="$$(for f in $(QML_FILES); do $(QMLFORMAT) "$$f" | cmp -s - "$$f" || echo "$$f"; done)"; \
 		[ -z "$$out" ] || { echo "not qmlformat clean (run make fmt):"; echo "$$out"; exit 1; }
+
+# The settings search index is generated from the settings pages; a stale one fails the check.
+lint-settings-index:
+	@python3 $(SHELL_DIR)/scripts/settings_index.py --check
 
 fmt:
 	@$(MAKE) -C $(CORE_DIR) fmt
@@ -124,6 +128,10 @@ dist:
 update-common:
 	git submodule update --remote --merge dux-qml-common
 
+# Regenerates quickshell/Modules/Settings/SettingsSearchIndex.js from the settings pages.
+settings-index:
+	@python3 $(SHELL_DIR)/scripts/settings_index.py
+
 # Regenerates quickshell/translations/en.json (and template.json) from the I18n.tr() calls.
 i18n-extract:
 	@python3 $(SHELL_DIR)/translations/extract_translations.py
@@ -139,7 +147,7 @@ help:
 	@echo ""
 	@echo "Check:"
 	@echo "  check          - lint, test and build: what CI runs"
-	@echo "  lint           - lint-go (gofmt -s, go vet, go mod tidy, golangci-lint), lint-qml (qmllint with warnings; needs qs) and lint-qml-format (qmlformat)"
+	@echo "  lint           - lint-go (gofmt -s, go vet, go mod tidy, golangci-lint), lint-qml (qmllint with warnings; needs qs), lint-qml-format (qmlformat) and lint-settings-index"
 	@echo "  test           - test-go (sandboxed Go tests) and test-qml (node logic tests)"
 	@echo "  fmt            - gofmt -s the Go code and qmlformat the QML"
 	@echo "  vet"
@@ -154,3 +162,4 @@ help:
 	@echo "Other:"
 	@echo "  update-common  - Bump the dux-qml-common submodule"
 	@echo "  i18n-extract   - Regenerate translations/en.json from I18n.tr() calls"
+	@echo "  settings-index - Regenerate the settings search index from the settings pages (run does this too)"

@@ -24,6 +24,7 @@ SettingsPage {
     // brand names stay untranslated
     SettingsCard {
         title: "ListenBrainz"
+        keywords: "account token"
 
         SettingsToggleRow {
             visible: root.listenbrainz.connected === true
@@ -85,6 +86,7 @@ SettingsPage {
 
     SettingsCard {
         title: "Last.fm"
+        keywords: "lastfm account"
 
         SettingsToggleRow {
             visible: root.lastfm.connected === true

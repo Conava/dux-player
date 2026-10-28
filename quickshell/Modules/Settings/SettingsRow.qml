@@ -15,10 +15,16 @@ T.Control {
 
     property string title: ""
     property string subtitle: ""
+    // for the settings search index (scripts/settings_index.py): synonyms the title and description don't contain,
+    // and false for a status row that isn't a setting
+    property string keywords: ""
+    property bool searchable: true
     property color subtitleColor: Theme.surfaceVariantText
     property string iconName: ""
     property bool clickable: false
     property bool showChevron: false
+    // set by the settings search while it points the row out
+    property bool highlighted: false
     property string trailingBadge: ""
     property color trailingBadgeColor: Theme.surfaceVariantText
     property real paddingH: SettingsMetrics.rowPaddingH
@@ -88,11 +94,20 @@ T.Control {
 
     Rectangle {
         anchors.fill: parent
-        color: root.rowColor
+        color: root.highlighted ? Theme.blend(root.rowColor, Theme.primary, SettingsMetrics.highlightBlend) : root.rowColor
         topLeftRadius: root.topRadius
         topRightRadius: root.topRadius
         bottomLeftRadius: root.bottomRadius
         bottomRightRadius: root.bottomRadius
+
+        Behavior on color {
+            enabled: Theme.animationsEnabled
+            ColorAnimation {
+                duration: SettingsMetrics.fadeDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+            }
+        }
     }
 
     Rectangle {

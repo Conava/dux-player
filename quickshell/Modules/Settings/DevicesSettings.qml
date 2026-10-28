@@ -17,6 +17,7 @@ SettingsPage {
     SettingsCard {
         visible: !root.syncPage
         title: I18n.tr("Outputs", "playback device settings section")
+        keywords: "speaker headphones audio cast"
 
         Repeater {
             model: PlayerService.outputDevices.filter(d => !PlayerService.multiOutput || !Phrases.isLocalOutput(d))
@@ -67,6 +68,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Pause when the output disconnects", "playback device setting")
+            keywords: "bluetooth headphones unplug"
             description: I18n.tr("When off, playback moves to the system default output.", "playback device setting description")
             checked: OutputService.pauseOnDisconnect
             onToggled: value => OutputService.setPauseOnDisconnect(value)
@@ -103,6 +105,7 @@ SettingsPage {
     SettingsCard {
         visible: !root.syncPage
         title: I18n.tr("Multiple outputs", "playback device settings section")
+        keywords: "pipewire several"
 
         Repeater {
             model: root.locals
@@ -132,6 +135,7 @@ SettingsPage {
 
         SettingsRow {
             title: I18n.tr("Sync", "playback device sync page")
+            keywords: "delay latency bluetooth"
             subtitle: root.syncing.length > 1 ? I18n.tr("Adjust the delay of each output", "playback device sync row") : I18n.tr("Select at least two outputs", "why the sync page is disabled")
             iconName: "tune"
             showChevron: true

@@ -331,6 +331,7 @@ Item {
 
             SettingsRow {
                 title: I18n.tr("Space used", "offline storage usage row")
+                keywords: "cache download storage disk"
                 subtitle: I18n.tr("%1 of %2", "storage usage: used of limit").arg(root.size(SettingsService.cache.used ?? 0)).arg(root.size(SettingsService.cache.limit ?? 0))
                 iconName: "hard_drive"
 
@@ -365,6 +366,7 @@ Item {
                 readonly property int saved: Math.round((SettingsService.cache.limit ?? 0) / root.gigabyte)
                 property int draft: saved
                 title: I18n.tr("Size limit", "offline storage limit slider")
+                keywords: "cache download storage disk"
                 subtitle: I18n.tr("Recently played and Most played tracks are removed first.", "offline storage limit description")
 
                 function commit() {
@@ -398,6 +400,7 @@ Item {
 
             SettingsButtonGroupRow {
                 text: I18n.tr("Download upcoming tracks", "offline setting: how many of the next server tracks download ahead")
+                keywords: "cache prefetch"
                 description: I18n.tr("Downloads the next tracks of the queue while one plays.", "offline setting description")
                 model: [I18n.tr("Off", "option that turns something off"), "1", "2", "3"]
                 currentIndex: SettingsService.settings.prefetchTracks
@@ -409,6 +412,7 @@ Item {
 
             SettingsToggleRow {
                 text: I18n.tr("Download on metered connections", "offline setting: keep downloading upcoming tracks on a metered connection")
+                keywords: "cache mobile data"
                 description: enabled ? "" : I18n.tr("Available when Download upcoming tracks is on.", "why the metered connections setting is unavailable")
                 enabled: SettingsService.settings.prefetchTracks > 0
                 checked: SettingsService.settings.prefetchOnMetered
@@ -417,6 +421,7 @@ Item {
 
             SettingsRow {
                 title: I18n.tr("Clear all downloads", "offline action")
+                keywords: "cache delete"
                 subtitle: (SettingsService.cache.count ?? 0) > 0 ? I18n.tr("Deletes downloaded tracks. Rules are kept.", "offline clear action description") : I18n.tr("No downloaded tracks", "why clearing the cache is disabled")
                 iconName: "delete_sweep"
 
@@ -510,12 +515,15 @@ Item {
             SettingsRow {
                 visible: SettingsService.cacheRules(root.cachePage).length === 0
                 title: I18n.tr("No rules", "a server library without offline rules")
+                searchable: false
                 subtitle: I18n.tr("Tracks without a rule are removed first when the size limit is reached.", "library offline overview without rules")
                 iconName: "rule"
             }
 
             SettingsRow {
                 title: I18n.tr("Clear downloads", "offline action for one library")
+                // one search result per server library instead (SettingsWindow)
+                searchable: false
                 subtitle: I18n.tr("Deletes downloaded tracks. Rules are kept.", "offline clear action description")
                 iconName: "delete_sweep"
 
@@ -541,6 +549,7 @@ Item {
             SettingsRow {
                 visible: root.cachedSongs === null
                 title: I18n.tr("Loading", "something still waiting for data: the play button, a list")
+                searchable: false
 
                 DLoadingIndicator {
                     anchors.verticalCenter: parent.verticalCenter
@@ -550,6 +559,7 @@ Item {
             SettingsRow {
                 visible: (root.cachedSongs ?? [null]).length === 0
                 title: I18n.tr("No downloaded tracks", "why clearing the cache is disabled")
+                searchable: false
             }
 
             // One row per cached track, capped; a paged list if caches of thousands become common

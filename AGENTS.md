@@ -99,6 +99,7 @@ The whole Dux suite follows Google's Material 3 Expressive (M3E). The app must l
 - A content-sized item (Column, Row) inside a settings group needs an explicit `width`, or the group renders 0×0.
 - Guard transient empty inputs (`Quickshell.screens` and other live lists can be empty for a moment).
 - **qmllint with warnings is the real check**, and `make lint` runs it: an unresolved type or an assignment to a property that doesn't exist only warns, yet breaks at runtime, so every `Could not find property` and unresolved type is a blocker. The lint script builds Quickshell's tooling files by itself when they're missing.
+- **Settings search is generated.** `make settings-index` builds `Modules/Settings/SettingsSearchIndex.js` from the settings pages (`quickshell/scripts/settings_index.py`); `make run` regenerates it and `make check` fails when it is stale. Never edit it by hand. A row, card or section label is found when its title is one literal `I18n.tr(…)` call; its description, option and button labels are searchable too. Give a row `keywords: "…"` for common synonyms its text doesn't contain (English, space-separated), and `searchable: false` when it is a status line rather than a setting. A new row type or a page file goes into the script's tables.
 
 ## State and persistence
 
@@ -144,8 +145,9 @@ Comment only what the code can't say: a non-obvious why, a trap, a workaround. A
 
 `make` is the interface for everything, locally and in CI:
 
-- `make check`: the gate before calling work done, and what CI runs. It is `make lint` (gofmt, `go vet`, `go mod tidy`, golangci-lint, qmllint with warnings, qmlformat; it only reports and never changes files), `make test` (sandboxed Go tests and the QML logic tests) and `make build` (the release binary with the UI embedded).
+- `make check`: the gate before calling work done, and what CI runs. It is `make lint` (gofmt, `go vet`, `go mod tidy`, golangci-lint, qmllint with warnings, qmlformat, a stale settings search index; it only reports and never changes files), `make test` (sandboxed Go tests and the QML logic tests) and `make build` (the release binary with the UI embedded).
 - `make run`: a fast dev build, then the window from the in-repo QML with hot reload.
 - `make fmt`: format the Go code (gofmt) and the QML (qmlformat, options in `.qmlformat.ini`).
+- `make settings-index`: regenerate the settings search index after changing a settings page.
 
 `make help` lists the rest (`install`, `dist`, `i18n-extract`, `update-common`).

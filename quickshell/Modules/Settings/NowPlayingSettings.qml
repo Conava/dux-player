@@ -122,6 +122,7 @@ Item {
 
         SectionLabel {
             text: I18n.tr("Surfaces", "now playing settings section: bar, side panel and full views")
+            keywords: "bar side panel full view layout controls"
         }
 
         Grid {
@@ -150,6 +151,7 @@ Item {
         SettingsCard {
             SettingsRow {
                 title: I18n.tr("Reset all now playing", "now playing settings action")
+                keywords: "defaults"
                 subtitle: I18n.tr("Restores where it starts, the style and every surface.", "now playing reset description")
                 iconName: "restart_alt"
                 clickable: true

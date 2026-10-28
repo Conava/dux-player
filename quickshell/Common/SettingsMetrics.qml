@@ -22,6 +22,7 @@ Singleton {
     readonly property real sectionLabelBottomGap: Theme.spacingM
     readonly property real navIconSize: Theme.avatarSize
     readonly property real navItemMinHeight: Theme.listItemHeight
+    readonly property real navGroupGap: Theme.spacingM
     readonly property real buttonGroupCompactThreshold: Theme.spacingXL * 8
     readonly property real fieldWidth: 320
     readonly property real dropdownWidth: fieldWidth / 2

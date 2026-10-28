@@ -36,6 +36,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Keep running in the background", "general setting")
+            keywords: "close quit daemon"
             description: I18n.tr("Playback continues after the window is closed.", "general setting description")
             checked: PlayerService.settings.keepRunning
             onToggled: value => PlayerService.setSetting("keepRunning", value)
@@ -43,6 +44,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Show tray icon", "general setting")
+            keywords: "system tray"
             description: SettingsService.trayKnown ? I18n.tr("Control playback from the system tray.", "general setting description") : PlayerService.unavailableText
             enabled: SettingsService.trayKnown
             checked: SettingsService.settings.showTrayIcon
@@ -55,6 +57,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Look up artist info online", "general setting")
+            keywords: "biography image"
             description: SettingsService.artistInfoKnown ? I18n.tr("Fetches missing artist images and biographies. Artist names are sent to %1.", "general setting description, %1 lists online services").arg(root.onlineServices) : PlayerService.unavailableText
             enabled: SettingsService.artistInfoKnown
             checked: SettingsService.settings.artistInfoOnline
@@ -65,6 +68,7 @@ SettingsPage {
             visible: root.keyProviders.length > 0
             enabled: SettingsService.settings.artistInfoOnline
             title: I18n.tr("API keys", "general setting: keys for online artist info services")
+            keywords: "fanart lastfm"
             subtitle: I18n.tr("Required by some services.", "general setting description")
             clickable: true
             Accessible.checkable: true
@@ -117,6 +121,7 @@ SettingsPage {
         SettingsToggleRow {
             visible: WindowRuleService.viaShell
             text: I18n.tr("Floating windows", "general setting")
+            keywords: "tiling window rules compositor"
             description: I18n.tr("Adds a window rule through Dux Shell.", "general setting description")
             checked: WindowRuleService.active
             onToggled: value => WindowRuleService.setFloating(value)
@@ -172,6 +177,7 @@ SettingsPage {
 
         SettingsRow {
             title: I18n.tr("Layout", "general setting: every customization as one file")
+            keywords: "export import backup"
             subtitle: I18n.tr("Now playing, pages, rows and menus, home and navigation, as one file.", "general setting description")
 
             body: Column {
@@ -211,6 +217,7 @@ SettingsPage {
 
         SettingsRow {
             title: I18n.tr("Reset all customization", "general setting")
+            keywords: "defaults"
             subtitle: I18n.tr("Saved views are kept.", "general setting description")
 
             DButton {
@@ -228,6 +235,7 @@ SettingsPage {
 
         SettingsButtonGroupRow {
             text: I18n.tr("When removing", "general setting: what happens when removing a track, playlist, shelf or entry")
+            keywords: "delete confirm"
             description: I18n.tr("Applies to tracks, playlists, shelves and navigation entries.", "general setting description")
             model: [I18n.tr("Offer undo", "removal mode option"), I18n.tr("Ask first", "removal mode option"), I18n.tr("None", "removal mode option")]
             currentIndex: root.removeModes.indexOf(UiConfig.removeMode)
@@ -241,6 +249,7 @@ SettingsPage {
 
         SettingsSliderRow {
             text: I18n.tr("Undo time", "general setting")
+            keywords: "delete"
             enabled: UiConfig.removeMode === "undo"
             minimum: 3
             maximum: 15
@@ -254,6 +263,7 @@ SettingsPage {
 
     SettingsCard {
         title: I18n.tr("Keyboard shortcuts", "general settings section label")
+        keywords: "keybinds hotkeys keys"
 
         Repeater {
             model: ["searchPage", "searchAll"]

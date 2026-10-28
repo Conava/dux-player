@@ -82,6 +82,7 @@ SettingsPage {
             SettingsRow {
                 visible: group.shellOwned
                 title: I18n.tr("From Dux Shell", "appearance group following the shell")
+                searchable: false
                 subtitle: I18n.tr("Set in Dux Shell settings. Choose Custom to override.", "appearance group following the shell")
                 iconName: "link"
             },
@@ -100,6 +101,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Follow Dux Shell", "appearance setting")
+            keywords: "theme"
             description: I18n.tr("Uses all style settings from Dux Shell. Turn off to set each group separately.", "appearance setting description")
             checked: SettingsData.followShell
             onToggled: value => SettingsData.followShell = value
@@ -109,6 +111,7 @@ SettingsPage {
             visible: StyleSource.following
             iconName: "link"
             title: I18n.tr("All style settings come from Dux Shell.", "appearance note while following the shell")
+            searchable: false
         }
     }
 
@@ -117,6 +120,7 @@ SettingsPage {
 
         SettingsButtonGroupRow {
             text: I18n.tr("Palette", "color source option")
+            keywords: "theme"
             model: [I18n.tr("Preset", "color scheme option"), I18n.tr("From a color", "color scheme option"), I18n.tr("Custom theme", "color scheme option")]
             description: SettingsData.colorScheme === "" && StyleSource.detected ? I18n.tr("Uses Dux Shell colors until you choose one.", "appearance palette fallback note") : ""
             currentIndex: SettingsData.colorScheme === "" && !StyleSource.detected ? 0 : root.colorSchemes.indexOf(SettingsData.colorScheme)
@@ -130,6 +134,7 @@ SettingsPage {
             id: presetRow
             visible: SettingsData.colorScheme === "stock" || (SettingsData.colorScheme === "" && !StyleSource.detected)
             title: I18n.tr("Preset", "appearance setting")
+            keywords: "theme"
 
             DDropdown {
                 id: presetDropdown
@@ -152,6 +157,7 @@ SettingsPage {
         SettingsRow {
             visible: SettingsData.colorScheme === "seed"
             title: I18n.tr("Base color", "appearance setting")
+            keywords: "theme seed accent"
             subtitle: I18n.tr("Light and dark palettes are generated from this color.", "appearance setting description")
 
             body: Column {
@@ -254,6 +260,7 @@ SettingsPage {
 
         SettingsButtonGroupRow {
             text: I18n.tr("Color mode", "appearance setting for light or dark")
+            keywords: "theme dark light"
             description: I18n.tr("Auto follows the desktop.", "appearance setting description")
             model: [I18n.tr("System", "theme mode"), I18n.tr("Light", "theme mode"), I18n.tr("Dark", "theme mode")]
             currentIndex: root.themeModes.indexOf(SettingsData.themeMode)
@@ -270,6 +277,7 @@ SettingsPage {
         SettingsRow {
             id: fontRow
             title: I18n.tr("Family", "font setting")
+            keywords: "typeface"
 
             DDropdown {
                 id: fontDropdown
@@ -294,6 +302,7 @@ SettingsPage {
 
         SettingsSliderRow {
             text: I18n.tr("Text size", "appearance setting")
+            keywords: "font scale"
             minimum: 80
             maximum: 140
             step: 5
@@ -305,6 +314,7 @@ SettingsPage {
         // numbers like the shell's own weight slider: weight names would share terms with the theme and size options
         SettingsSliderRow {
             text: I18n.tr("Weight", "font setting")
+            keywords: "bold"
             minimum: Font.Thin
             maximum: Font.Black
             step: 100
@@ -319,6 +329,7 @@ SettingsPage {
 
         SettingsSliderRow {
             text: I18n.tr("Window opacity", "appearance setting")
+            keywords: "transparent"
             minimum: 0
             maximum: 100
             step: 5
@@ -333,6 +344,7 @@ SettingsPage {
 
         SettingsSliderRow {
             text: I18n.tr("Corner roundness", "appearance setting")
+            keywords: "radius rounded"
             minimum: 0
             maximum: 100
             value: SettingsData.radiusStrength
@@ -345,6 +357,7 @@ SettingsPage {
 
         SettingsSliderRow {
             text: I18n.tr("Animation duration", "appearance setting")
+            keywords: "speed"
             enabled: !SettingsData.reduceMotion
             minimumLabel: I18n.tr("Off", "option that turns something off")
             minimum: 0
@@ -357,6 +370,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Reduce motion", "appearance setting")
+            keywords: "animation accessibility"
             checked: SettingsData.reduceMotion
             onToggled: value => SettingsData.reduceMotion = value
         }
@@ -373,6 +387,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Focus ring", "appearance setting")
+            keywords: "keyboard outline"
             description: I18n.tr("Highlights the focused control when using the keyboard.", "appearance setting description")
             checked: SettingsData.focusRingEnabled
             onToggled: value => SettingsData.focusRingEnabled = value
@@ -390,6 +405,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Blur behind menus", "appearance setting")
+            keywords: "transparency"
             description: I18n.tr("Requires compositor blur and a transparent window.", "appearance setting description")
             checked: SettingsData.blurEnabled
             onToggled: value => SettingsData.blurEnabled = value
@@ -401,6 +417,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Color now playing from the cover", "appearance setting")
+            keywords: "album art dynamic"
             description: I18n.tr("Applies to now playing and the now-playing bar.", "appearance setting description")
             checked: SettingsData.artColors
             onToggled: value => SettingsData.artColors = value
@@ -408,6 +425,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Color the whole app", "appearance setting: album art colors everywhere")
+            keywords: "album art dynamic theme"
             enabled: SettingsData.artColors
             checked: SettingsData.artColorsApp
             onToggled: value => SettingsData.artColorsApp = value

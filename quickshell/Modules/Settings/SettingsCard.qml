@@ -6,6 +6,8 @@ Column {
     id: root
 
     property string title: ""
+    // for the settings search index (scripts/settings_index.py): synonyms the title doesn't contain
+    property string keywords: ""
     default property alias content: contentGroup.data
     property alias headerActions: sectionLabel.actions
     readonly property bool hasHeader: title !== ""

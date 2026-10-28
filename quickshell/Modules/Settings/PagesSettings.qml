@@ -150,6 +150,7 @@ Item {
 
             SettingsButtonGroupRow {
                 text: I18n.tr("Navigation", "settings sidebar tab label")
+                keywords: "rail bar sidebar"
                 description: I18n.tr("Automatic shows a rail in wide windows and a bar in narrow ones.", "navigation style description")
                 model: UiConfig.navStyles.map(style => UiConfig.navStyleLabel(style))
                 currentIndex: UiConfig.navStyles.indexOf(SettingsData.navStyle)
@@ -253,6 +254,7 @@ Item {
         SettingsCard {
             width: parent.width
             title: I18n.tr("Rows and menus", "settings pages section: the shared row and menu actions per type")
+            keywords: "quick actions context menu"
 
             Repeater {
                 model: root.itemTypes
@@ -281,6 +283,7 @@ Item {
 
             SettingsRow {
                 title: I18n.tr("Reset navigation", "navigation settings action")
+                keywords: "defaults"
                 subtitle: I18n.tr("Restores the default entries, names and order.", "navigation reset description")
                 iconName: "restart_alt"
                 clickable: true

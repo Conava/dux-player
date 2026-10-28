@@ -58,6 +58,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Crossfade", "playback setting")
+            keywords: "fade"
             checked: root.settings.crossfade.enabled
             onToggled: value => PlayerService.setSetting("crossfade", {
                     "enabled": value
@@ -66,6 +67,7 @@ SettingsPage {
 
         SettingsSliderRow {
             text: I18n.tr("Crossfade duration", "playback setting")
+            keywords: "fade"
             enabled: root.settings.crossfade.enabled
             minimum: 1
             maximum: 12
@@ -78,6 +80,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Skip silence at the start", "playback setting")
+            keywords: "trim"
             description: SettingsService.ffmpeg ? "" : root.ffmpegNote
             enabled: SettingsService.ffmpeg
             checked: root.settings.skipSilenceStart
@@ -86,6 +89,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Skip silence at the end", "playback setting")
+            keywords: "trim"
             description: SettingsService.ffmpeg ? "" : root.ffmpegNote
             enabled: SettingsService.ffmpeg
             checked: root.settings.skipSilenceEnd
@@ -95,6 +99,7 @@ SettingsPage {
         // also keeps silence between an album's tracks, so it applies with crossfade off
         SettingsToggleRow {
             text: I18n.tr("Keep albums gapless", "playback setting")
+            keywords: "crossfade"
             description: I18n.tr("No crossfade or skipped silence between tracks of one album.", "playback setting description")
             checked: root.settings.crossfade.albumGapless
             onToggled: value => PlayerService.setSetting("crossfade", {
@@ -108,6 +113,7 @@ SettingsPage {
 
         SettingsButtonGroupRow {
             text: I18n.tr("Normalize volume", "playback setting: ReplayGain mode")
+            keywords: "replaygain loudness"
             description: I18n.tr("Uses the ReplayGain values in the files.", "playback setting description")
             model: [I18n.tr("Off", "option that turns something off"), I18n.tr("Track", "replaygain mode"), I18n.tr("Album", "an album: page label, list column, ReplayGain mode")]
             currentIndex: root.replayGainModes.indexOf(root.settings.replayGain)
@@ -119,6 +125,7 @@ SettingsPage {
 
         SettingsButtonGroupRow {
             text: I18n.tr("Volume controls", "playback setting: what the volume slider changes")
+            keywords: "system"
             description: SettingsService.systemVolume ? I18n.tr("System volume changes the volume of the default output.", "playback setting description") : I18n.tr("System volume requires wpctl (WirePlumber).", "why the system volume option is unavailable")
             enabled: SettingsService.systemVolume || root.settings.volumeTarget === "system"
             model: [I18n.tr("App volume", "volume controls option"), I18n.tr("System volume", "volume controls option")]
@@ -131,6 +138,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Allow volume above 100%", "playback setting")
+            keywords: "boost amplify"
             description: I18n.tr("Up to 130%. Loud tracks may distort.", "playback setting description")
             checked: root.settings.allowVolumeBoost
             onToggled: value => PlayerService.setSetting("allowVolumeBoost", value)
@@ -142,6 +150,7 @@ SettingsPage {
 
         SettingsToggleRow {
             text: I18n.tr("Use the equalizer", "equalizer switch")
+            keywords: "eq"
             description: root.eqNote
             descriptionColor: PlayerService.equalizerState === "unavailable" ? Theme.error : Theme.surfaceVariantText
             checked: root.settings.equalizer.enabled
@@ -153,6 +162,7 @@ SettingsPage {
         SettingsRow {
             id: presetRow
             title: I18n.tr("Preset", "equalizer setting")
+            keywords: "eq"
             enabled: root.settings.equalizer.enabled
 
             DDropdown {
@@ -178,6 +188,7 @@ SettingsPage {
         SettingsRow {
             enabled: root.settings.equalizer.enabled
             title: I18n.tr("Bands", "equalizer setting")
+            keywords: "eq bass treble"
             subtitle: I18n.tr("Changing a band switches the preset to Custom.", "equalizer setting description")
 
             body: Column {
@@ -234,6 +245,7 @@ SettingsPage {
 
         SettingsButtonGroupRow {
             text: I18n.tr("Playback speed", "now playing button")
+            keywords: "tempo"
             model: root.speeds.map(s => I18n.tr("%1×", "playback speed option").arg(s))
             currentIndex: root.speeds.indexOf(root.settings.speed)
             onSelectionChanged: (index, selected) => {
@@ -244,6 +256,7 @@ SettingsPage {
 
         SettingsButtonGroupRow {
             text: I18n.tr("When the queue ends", "playback setting")
+            keywords: "autoplay repeat stop"
             description: I18n.tr("Similar picks tracks by the same artist or genre.", "playback setting description")
             model: [I18n.tr("Stop", "auto-continue option"), I18n.tr("Random", "auto-continue option"), I18n.tr("Similar", "auto-continue option")]
             currentIndex: root.continueModes.indexOf(root.settings.autoContinue)
@@ -255,6 +268,7 @@ SettingsPage {
 
         SettingsSliderRow {
             text: I18n.tr("Previous restarts the track after", "playback setting")
+            keywords: "back rewind"
             description: I18n.tr("Before this point, Previous goes to the previous track.", "playback setting description")
             minimum: 0
             maximum: 30

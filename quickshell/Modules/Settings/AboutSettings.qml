@@ -76,6 +76,7 @@ SettingsPage {
         SettingsLinkRow {
             iconName: "code"
             title: I18n.tr("Source code", "about page link to the repository")
+            keywords: "github repository"
             subtitle: root.host(root.repoUrl)
             url: root.repoUrl
         }
@@ -83,6 +84,7 @@ SettingsPage {
         SettingsLinkRow {
             iconName: "bug_report"
             title: I18n.tr("Report an issue", "about page link to the issue tracker")
+            keywords: "bug github"
             subtitle: root.host(root.repoUrl + "/issues")
             url: root.repoUrl + "/issues"
         }
@@ -111,6 +113,7 @@ SettingsPage {
 
     SettingsCard {
         title: I18n.tr("Installed components", "about page section: the external programs and services the player uses")
+        keywords: "mpv ffmpeg pipewire wpctl wireplumber keyring secret service cast helper dependencies requirements missing programs"
         headerActions: DActionButton {
             iconName: "refresh"
             enabled: !SettingsService.componentsChecking
@@ -174,6 +177,7 @@ SettingsPage {
 
     SettingsCard {
         title: I18n.tr("Online services", "about page section")
+        keywords: "privacy network"
 
         SettingsRow {
             title: I18n.tr("Lyrics", "song lyrics: page, toggle, settings tab")
