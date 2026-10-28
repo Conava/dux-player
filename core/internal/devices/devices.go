@@ -215,7 +215,7 @@ func New(p Player, configDir, runDir string, eq EQ, extra Extra, publish func(St
 		player:   p,
 		path:     filepath.Join(configDir, fileName),
 		publish:  publish,
-		canMulti: pipewireAvailable(),
+		canMulti: PipeWireAvailable(),
 		ops:      make(chan func()),
 		listCh:   make(chan json.RawMessage, 1),
 		testDone: make(chan struct{}, 1),

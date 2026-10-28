@@ -90,6 +90,10 @@ Singleton {
     property var artistInfo: ({
             "providers": []
         })
+    // system.components: [{id, required, status: "ok" | "missing" | "tooOld" | "failed", version, minVersion,
+    // detail}]; checked only while the about page asks
+    property var components: []
+    property bool componentsChecking: false
 
     // provider: "fanarttv" | "lastfm"; "" clears the key
     function setArtistInfoKey(provider, key) {
@@ -467,6 +471,20 @@ Singleton {
 
     function _refreshSettings() {
         DaemonBridge.request("settings.get", null, null, r => root._applySettings(r));
+    }
+
+    function checkComponents() {
+        if (componentsChecking)
+            return;
+        componentsChecking = true;
+        DaemonBridge.call("system.components", null, r => {
+            root.componentsChecking = false;
+            if (r.error) {
+                root.log.warn("system.components", r.error);
+                return;
+            }
+            root.components = r.components ?? [];
+        });
     }
 
     function _refreshAll() {

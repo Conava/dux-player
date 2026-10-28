@@ -112,6 +112,13 @@ func (s *Store) Set(libraryID, key, value string) error {
 	return nil
 }
 
+// Available connects to the Secret Service if it isn't yet and says why
+// it can't be used.
+func (s *Store) Available() error {
+	_, err := s.backend()
+	return err
+}
+
 // Delete removes every secret of a library.
 func (s *Store) Delete(libraryID string) error {
 	b, err := s.backend()

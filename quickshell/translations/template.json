@@ -1183,6 +1183,13 @@
     "comment": ""
   },
   {
+    "term": "Casting",
+    "translation": "",
+    "context": "about page: what cast-helper is used for",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Casting failed",
     "translation": "",
     "context": "cast error",
@@ -1242,6 +1249,13 @@
     "term": "Changing a band switches the preset to Custom.",
     "translation": "",
     "context": "equalizer setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Check again",
+    "translation": "",
+    "context": "about page action that checks the installed components again",
     "reference": "",
     "comment": ""
   },
@@ -2926,6 +2940,27 @@
     "comment": ""
   },
   {
+    "term": "Installed",
+    "translation": "",
+    "context": "about page: a component is installed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Installed components",
+    "translation": "",
+    "context": "about page section: the external programs and services the player uses",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Installed, but doesn't start. Playback is unavailable.",
+    "translation": "",
+    "context": "about page: mpv is installed but broken",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Instrumental",
     "translation": "",
     "context": "track has no lyrics because it is instrumental",
@@ -3248,6 +3283,13 @@
     "comment": ""
   },
   {
+    "term": "Loudness and silence measurement",
+    "translation": "",
+    "context": "about page: what ffmpeg is used for",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Lyrics",
     "translation": "",
     "context": "song lyrics: page, toggle, settings tab",
@@ -3384,6 +3426,13 @@
     "term": "Multiple outputs",
     "translation": "",
     "context": "playback device settings section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Multiple outputs and the equalizer",
+    "translation": "",
+    "context": "about page: what the PipeWire tools are used for",
     "reference": "",
     "comment": ""
   },
@@ -3692,6 +3741,55 @@
     "term": "Not connected to the player",
     "translation": "",
     "context": "main window state when the daemon is unreachable | why a request to the player daemon failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not installed",
+    "translation": "",
+    "context": "about page: a component is missing",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not installed. Casting is unavailable.",
+    "translation": "",
+    "context": "about page: cast-helper is missing",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not installed. Loudness and silence aren't measured.",
+    "translation": "",
+    "context": "about page: ffmpeg is missing",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not installed. Multiple outputs and the equalizer are unavailable.",
+    "translation": "",
+    "context": "about page: the PipeWire tools are missing",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not installed. Playback is unavailable.",
+    "translation": "",
+    "context": "about page: mpv is missing",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not installed. System volume is unavailable.",
+    "translation": "",
+    "context": "about page: wpctl is missing",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Not running. Passwords and keys can't be saved.",
+    "translation": "",
+    "context": "about page: no Secret Service is running",
     "reference": "",
     "comment": ""
   },
@@ -5222,6 +5320,13 @@
     "comment": ""
   },
   {
+    "term": "Server passwords and service keys",
+    "translation": "",
+    "context": "about page: what the keyring is used for",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Server status",
     "translation": "",
     "context": "row element: the cloud icon of a track from a server",
@@ -5666,6 +5771,13 @@
     "term": "System default",
     "translation": "",
     "context": "playback device name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "System keyring",
+    "translation": "",
+    "context": "about page component: the Secret Service that stores passwords",
     "reference": "",
     "comment": ""
   },
@@ -6282,6 +6394,13 @@
     "term": "Version",
     "translation": "",
     "context": "about page daemon version column label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Version %1 is too old. Requires %2 or newer.",
+    "translation": "",
+    "context": "about page: the installed mpv can't be used",
     "reference": "",
     "comment": ""
   },

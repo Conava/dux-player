@@ -20,6 +20,46 @@ SettingsPage {
         return url.replace(/^https?:\/\//, "").replace(/\/$/, "");
     }
 
+    function componentName(id) {
+        switch (id) {
+        case "ffmpeg":
+            return "FFmpeg";
+        case "pipewire":
+            return "PipeWire";
+        case "wpctl":
+            return "WirePlumber (wpctl)";
+        case "keyring":
+            return I18n.tr("System keyring", "about page component: the Secret Service that stores passwords");
+        }
+        return id;
+    }
+
+    // what a component is for, or what is unavailable without it
+    function componentText(c) {
+        const ok = c.status === "ok";
+        switch (c.id) {
+        case "mpv":
+            if (c.status === "tooOld")
+                return I18n.tr("Version %1 is too old. Requires %2 or newer.", "about page: the installed mpv can't be used").arg(c.version).arg(c.minVersion);
+            if (c.status === "failed")
+                return I18n.tr("Installed, but doesn't start. Playback is unavailable.", "about page: mpv is installed but broken");
+            return ok ? I18n.tr("Audio playback", "about page credit") : I18n.tr("Not installed. Playback is unavailable.", "about page: mpv is missing");
+        case "ffmpeg":
+            return ok ? I18n.tr("Loudness and silence measurement", "about page: what ffmpeg is used for") : I18n.tr("Not installed. Loudness and silence aren't measured.", "about page: ffmpeg is missing");
+        case "pipewire":
+            return ok ? I18n.tr("Multiple outputs and the equalizer", "about page: what the PipeWire tools are used for") : I18n.tr("Not installed. Multiple outputs and the equalizer are unavailable.", "about page: the PipeWire tools are missing");
+        case "wpctl":
+            return ok ? I18n.tr("System volume", "volume controls option") : I18n.tr("Not installed. System volume is unavailable.", "about page: wpctl is missing");
+        case "keyring":
+            return ok ? I18n.tr("Server passwords and service keys", "about page: what the keyring is used for") : I18n.tr("Not running. Passwords and keys can't be saved.", "about page: no Secret Service is running");
+        case "cast-helper":
+            return ok ? I18n.tr("Casting", "about page: what cast-helper is used for") : I18n.tr("Not installed. Casting is unavailable.", "about page: cast-helper is missing");
+        }
+        return ok ? "" : I18n.tr("Not installed", "about page: a component is missing");
+    }
+
+    Component.onCompleted: SettingsService.checkComponents()
+
     DHeroCard {
         brand: I18n.tr("Player", "about page hero: the app's short name")
         caption: root.version !== "" ? "dplayer " + root.version : "dplayer"
@@ -66,6 +106,35 @@ SettingsPage {
             title: I18n.tr("MIT License", "about page license footer link")
             subtitle: I18n.tr("Copyright © 2026 Marlon Kranz", "about page license row")
             url: root.repoUrl + "/blob/master/LICENSE"
+        }
+    }
+
+    SettingsCard {
+        title: I18n.tr("Installed components", "about page section: the external programs and services the player uses")
+        headerActions: DActionButton {
+            iconName: "refresh"
+            enabled: !SettingsService.componentsChecking
+            tooltipText: I18n.tr("Check again", "about page action that checks the installed components again")
+            Accessible.name: tooltipText
+            onClicked: SettingsService.checkComponents()
+        }
+
+        Repeater {
+            model: SettingsService.components
+
+            SettingsRow {
+                required property var modelData
+                readonly property bool ok: modelData.status === "ok"
+                readonly property color stateColor: ok ? Theme.primary : modelData.required ? Theme.error : Theme.warning
+
+                title: root.componentName(modelData.id)
+                subtitle: root.componentText(modelData)
+                subtitleColor: ok ? Theme.surfaceVariantText : stateColor
+                iconName: ok ? "check_circle" : modelData.required ? "error" : "warning"
+                iconColor: stateColor
+                trailingBadge: ok ? modelData.version || I18n.tr("Installed", "about page: a component is installed") : ""
+                searchable: false
+            }
         }
     }
 
