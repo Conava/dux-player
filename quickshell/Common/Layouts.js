@@ -256,6 +256,14 @@ function hiddenInst(type) {
     });
 }
 
+function fillSpacer() {
+    return inst("spacer", {
+        "options": {
+            "size": "fill"
+        }
+    });
+}
+
 function insts(list) {
     return list.map(t => typeof t === "string" ? inst(t) : t);
 }
@@ -407,7 +415,7 @@ function defaultSurface(id) {
             "zones": {
                 "panes": [],
                 "title": insts(["title", "artists", "album", hiddenInst("libraryBadge")]),
-                "top": insts(["device", "volume"]),
+                "top": insts(["volume", fillSpacer(), "device"]),
                 "controls": insts(transport),
                 "seek": insts(seek),
                 "bottom": insts(["favorite", "sleep", "dock"])
@@ -419,7 +427,7 @@ function defaultSurface(id) {
                 "cover": [cover()],
                 "header": insts(["playingFrom"]),
                 "title": insts(["title", "artists", "album"]),
-                "top": insts(["volume", "lyrics", "queue", "device"]),
+                "top": insts(["volume", "lyrics", "queue", fillSpacer(), "device"]),
                 "controls": insts(transport),
                 "seek": insts(seek),
                 "bottom": insts(["favorite", "sleep"])
@@ -715,15 +723,18 @@ function sideFollowedZones() {
 
 // What the side panel takes from the bar while it follows: the track info (not the cover: the panel has a cover
 // pane), the transport, and the buttons, window buttons at the bottom. Lyrics and queue are the panel's tabs, and
-// the bar's spacers mean nothing in a column. Order, hidden state and placement come with them.
+// the bar's spacers mean nothing in a column. Order, hidden state and placement come with them; the device chip
+// goes to the far end of its row.
 function sideFromBar(bar) {
     const all = surfaceZones.bar.reduce((list, z) => list.concat(bar.zones[z.id]), []).filter(i => isKnownType(i.type));
     const of = (types, skip) => all.filter(i => types.indexOf(i.type) >= 0 && skip.indexOf(i.type) < 0).map(i => copy(i));
     const buttons = of(groups.buttons.concat(groups.actions), ["lyrics", "queue"]);
     const windowButtons = ["dock", "expand"];
+    const top = buttons.filter(i => windowButtons.indexOf(i.type) < 0);
+    const device = top.filter(i => i.type === "device");
     return {
         "title": of(groups.trackInfo, ["cover"]),
-        "top": buttons.filter(i => windowButtons.indexOf(i.type) < 0),
+        "top": device.length === 0 ? top : top.filter(i => i.type !== "device").concat([fillSpacer()], device),
         "controls": of(groups.transport, []),
         "bottom": buttons.filter(i => windowButtons.indexOf(i.type) >= 0)
     };

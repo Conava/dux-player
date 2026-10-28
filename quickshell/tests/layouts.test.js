@@ -628,6 +628,8 @@ const edBar = {
                     }, {
                         "type": "dock"
                     }, {
+                        "type": "device"
+                    }, {
                         "type": "volume"
                     }]
             }
@@ -647,7 +649,7 @@ const edBar = {
 const followCases = [
     ["title without the cover, hidden kept", "title", ["title", "album"], z => z.map(i => i.hidden)[1] === true],
     ["transport in bar order", "controls", ["previous", "playPause"], null],
-    ["buttons without tabs, spacers and window buttons, placement kept", "top", ["favorite", "volume"], z => z[0].placement === "overflow"],
+    ["buttons without tabs, spacers and window buttons, placement kept, device at the far end", "top", ["favorite", "volume", "spacer", "device"], z => z[0].placement === "overflow" && z[2].options.size === "fill"],
     ["window buttons at the bottom", "bottom", ["dock"], null],
     ["the seek line stays the panel's", "seek", ["elapsed"], null]
 ];
@@ -667,7 +669,7 @@ for (const [name, zone, expected, extra] of followCases) {
         "panesFollowBar": false,
         "zones": L.effective(edBar).surfaces.side.zones
     });
-    assert.deepStrictEqual(zoneTypes(L.effective(off), "side", "top"), ["favorite", "volume"]);
+    assert.deepStrictEqual(zoneTypes(L.effective(off), "side", "top"), ["favorite", "volume", "spacer", "device"]);
     assert.deepStrictEqual(L.effective(off).surfaces.side.zones.title.map(i => [i.type, i.hidden]), [["title", false], ["album", true]]);
 }
 

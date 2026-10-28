@@ -230,7 +230,7 @@
   {
     "term": "%1 of %2 stars",
     "context": "%1 of %2 stars",
-    "reference": "Widgets/DRatingBar.qml:26, Widgets/DRatingBar.qml:47, Modules/NowPlayingZone.qml:329",
+    "reference": "Widgets/DRatingBar.qml:26, Widgets/DRatingBar.qml:47, Modules/NowPlayingZone.qml:310",
     "comment": "Value of a star rating control"
   },
   {
@@ -2882,7 +2882,7 @@
   {
     "term": "More",
     "context": "More",
-    "reference": "Modules/RowEnd.qml:218, Modules/QueueList.qml:228, Modules/PlaylistPage.qml:99, Modules/NowPlayingZone.qml:303, Modules/MediaTile.qml:102, Modules/MainWindow.qml:113, Modules/ArtistPage.qml:188, Modules/AlbumPage.qml:61, Common/UiConfig.qml:1025",
+    "reference": "Modules/RowEnd.qml:218, Modules/QueueList.qml:228, Modules/PlaylistPage.qml:99, Modules/NowPlayingZone.qml:284, Modules/MediaTile.qml:102, Modules/MainWindow.qml:113, Modules/ArtistPage.qml:188, Modules/AlbumPage.qml:61, Common/UiConfig.qml:1025",
     "comment": "track row menu button"
   },
   {
@@ -2918,7 +2918,7 @@
   {
     "term": "Move to bottom bar",
     "context": "Move to bottom bar",
-    "reference": "Modules/NowPlayingZone.qml:143, Modules/NowPlayingSide.qml:59, Modules/NowPlayingElement.qml:625",
+    "reference": "Modules/NowPlayingZone.qml:129, Modules/NowPlayingSide.qml:59, Modules/NowPlayingElement.qml:625",
     "comment": "button moving now playing out of the sidebar"
   },
   {
@@ -3386,7 +3386,7 @@
   {
     "term": "Open now playing",
     "context": "Open now playing",
-    "reference": "Modules/NowPlayingZone.qml:225, Modules/NowPlayingElement.qml:145, Common/UiConfig.qml:853",
+    "reference": "Modules/NowPlayingZone.qml:211, Modules/NowPlayingElement.qml:145, Common/UiConfig.qml:853",
     "comment": "now playing bar button"
   },
   {

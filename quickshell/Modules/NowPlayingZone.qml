@@ -9,8 +9,8 @@ import qs.Widgets
 import "../Common/Overflow.js" as Overflow
 
 // One zone of a now-playing surface: its shown element instances in a row, runs of track info stacked into one
-// block (a column zone is a single block). With `room` set, what doesn't fit moves into a ⋮ menu at the end. In
-// the "row" look the device chip sits at the far end, and with `fill` the transport shares the width (play wider).
+// block (a column zone is a single block). With `room` set, what doesn't fit moves into a ⋮ menu at the end. With
+// `fill` the transport shares the width (play wider).
 RowLayout {
     id: root
 
@@ -45,15 +45,10 @@ RowLayout {
     readonly property var menuTypes: inMenu.map(i => i.type).filter((t, n, all) => all.indexOf(t) === n && t !== "spacer" && t !== "divider")
     readonly property var inRow: inMenu.length === 0 ? shown : shown.filter(i => inMenu.indexOf(i) < 0)
     readonly property real playWeight: PlayerMetrics.mediaPlayWidthRatio + inRow.filter(i => i.type === "shuffle" || i.type === "repeat").length * PlayerMetrics.mediaPlayWidthStep
-    // [{key, stack, filler, items}]
+    // [{key, stack, items}]
     readonly property var segments: {
         const out = [];
-        const atEnd = [];
         for (const inst of inRow) {
-            if (look === "row" && inst.type === "device") {
-                atEnd.push(inst);
-                continue;
-            }
             const text = column || textTypes.indexOf(inst.type) >= 0;
             const last = out[out.length - 1];
             if (text && last?.stack)
@@ -65,16 +60,7 @@ RowLayout {
                     "items": [inst]
                 });
         }
-        if (atEnd.length > 0)
-            out.push({
-                "key": "-end",
-                "filler": true,
-                "items": []
-            });
-        return out.concat(atEnd.map(inst => ({
-                    "key": inst.id,
-                    "items": [inst]
-                })));
+        return out;
     }
     // how much narrower the bar's track info blocks get before anything moves into the menu
     readonly property real shrinkable: textLook === "bar" && !column ? segments.filter(s => s.stack).length * (PlayerMetrics.barInfoWidth - PlayerMetrics.barInfoMinWidth) : 0
@@ -265,17 +251,12 @@ RowLayout {
             readonly property TextStack stack: item as TextStack
 
             visible: element ? element.shown : stack ? stack.shown : item !== null
-            sourceComponent: modelData.filler ? filler : modelData.stack ? stackComponent : elementComponent
+            sourceComponent: modelData.stack ? stackComponent : elementComponent
             Layout.fillWidth: element ? element.fillsWidth : item !== null
             Layout.preferredWidth: element ? element.preferredWidth : stack ? stack.preferredWidth : -1
             Layout.minimumWidth: element ? element.minimumWidth : stack ? stack.minimumWidth : -1
             Layout.maximumWidth: stack && stack.preferredWidth > 0 ? stack.preferredWidth : Number.POSITIVE_INFINITY
             Layout.alignment: Qt.AlignVCenter
-
-            Component {
-                id: filler
-                Item {}
-            }
 
             Component {
                 id: stackComponent
