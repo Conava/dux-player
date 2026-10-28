@@ -77,6 +77,13 @@ Item {
                     type: "tracks"
                     itemType: "track"
                 }
+
+                EmptyState {
+                    width: parent.width
+                    visible: PlayerService.historyEnd && root.entries.length === 0
+                    iconName: "history"
+                    text: I18n.tr("Nothing played yet.", "history and most played empty state")
+                }
             }
         }
     }

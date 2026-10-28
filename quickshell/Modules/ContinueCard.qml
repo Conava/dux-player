@@ -90,8 +90,9 @@ Rectangle {
                 DButton {
                     text: I18n.tr("Queue", "the play queue: panel, toggle")
                     iconName: "queue_music"
-                    backgroundColor: Theme.surfaceContainerHighest
-                    textColor: Theme.onSurface
+                    // a tonal container would melt into the primaryContainer card
+                    backgroundColor: Theme.surface
+                    textColor: Theme.primary
                     onClicked: Router.panel = "queue"
                 }
             }

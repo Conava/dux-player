@@ -32,6 +32,10 @@ Item {
             shown = routed;
     }
 
+    function takeFocus() {
+        switcher.requestFocus(false);
+    }
+
     LayoutMirroring.enabled: I18n.isRtl
     LayoutMirroring.childrenInherit: true
 

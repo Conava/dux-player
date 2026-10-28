@@ -44,7 +44,8 @@ DListItem {
     // modifiers: Qt.ControlModifier toggles, Qt.ShiftModifier extends, Qt.NoModifier toggles from the checkbox
     signal selectRequested(int modifiers)
 
-    implicitHeight: compact || subtitle === "" || (columns && unavailable === "") ? Theme.listItemHeight : Theme.listItemTwoLineHeight
+    implicitHeight: compact || subtitle === "" || (columns && unavailable === "") ? PlayerMetrics.listRowHeight : PlayerMetrics.listRowTwoLineHeight
+    surfaceColor: PlayerMetrics.listRowColor
     isSelected: selected
     // stays highlighted while its menu is open
     isHovered: hovered || menu.opened
@@ -137,9 +138,9 @@ DListItem {
             DIcon {
                 anchors.centerIn: parent
                 visible: root.isCurrent && !lead.checkbox && !(root.showArt && !root.compact)
-                name: PlayerService.playing ? "graphic_eq" : "pause"
+                name: "graphic_eq"
                 size: Theme.iconSize
-                color: Theme.primary
+                color: PlayerService.playing ? Theme.primary : Theme.surfaceVariantText
                 filled: true
             }
 

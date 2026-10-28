@@ -2,6 +2,7 @@ package library
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -84,6 +85,41 @@ func TestRereadKeepsTheMeasurement(t *testing.T) {
 			pending, err := s.PendingMeasure(ctx, "l", true, 10)
 			require.NoError(t, err)
 			require.Equal(t, !tt.kept, len(pending) == 1)
+		})
+	}
+}
+
+// An album shows the genre most of its tracks carry; the Genres page lists
+// albums by it.
+func TestAlbumGenreIsTheMostCommon(t *testing.T) {
+	tests := []struct {
+		name   string
+		genres []string
+		want   string
+	}{
+		{"most common wins", []string{"A", "B", "A"}, "A"},
+		{"empty tags ignored", []string{"", "", "B"}, "B"},
+		{"no genre", []string{"", ""}, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			s, err := Open(ctx, filepath.Join(t.TempDir(), "library.db"))
+			require.NoError(t, err)
+			defer s.Close()
+			require.NoError(t, s.AddLibrary(ctx, source.Library{ID: "l", Kind: "local", Name: "L", Enabled: true}))
+			b, err := s.Begin(ctx, "l", 1)
+			require.NoError(t, err)
+			for i, g := range tt.genres {
+				tr := IndexedTrack{Path: fmt.Sprintf("/m/%d.flac", i)}
+				tr.Library, tr.ID, tr.AlbumID, tr.ArtistID, tr.Genre = "l", fmt.Sprint(i), "al", "ar", g
+				require.NoError(t, b.PutTrack(ctx, tr, ""))
+			}
+			_, err = b.Finish(ctx)
+			require.NoError(t, err)
+			al, err := s.Album(ctx, "l", "al")
+			require.NoError(t, err)
+			require.Equal(t, tt.want, al.Genre)
 		})
 	}
 }

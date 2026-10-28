@@ -12,6 +12,7 @@ WindowDialog {
     property bool several: PlayerService.multiOutput
     // several outputs at once are local outputs only
     readonly property var shown: PlayerService.outputDevices.filter(d => !several || Phrases.isLocalOutput(d))
+    readonly property int localCount: PlayerService.outputDevices.filter(d => Phrases.isLocalOutput(d)).length
 
     opened: Router.devicePickerOpen
     title: I18n.tr("Playback device", "playback device: settings tab, button, dialog")
@@ -46,9 +47,16 @@ WindowDialog {
 
     DToggle {
         width: parent.width
-        enabled: PlayerService.canMultiOutput
+        // stays enabled while on, so it can be turned off after an output went away
+        enabled: PlayerService.canMultiOutput && (root.localCount > 1 || root.several)
         text: I18n.tr("Play on multiple outputs", "playback device setting")
-        description: PlayerService.canMultiOutput ? I18n.tr("Choose the outputs to play on at the same time.", "playback device setting description") : I18n.tr("Requires PipeWire (pipewire, pw-cli and pw-play)", "why several outputs and the equalizer are unavailable")
+        description: {
+            if (!PlayerService.canMultiOutput)
+                return I18n.tr("Requires PipeWire (pipewire, pw-cli and pw-play)", "why several outputs and the equalizer are unavailable");
+            if (!enabled)
+                return I18n.tr("Requires two or more outputs", "why playing on multiple outputs is unavailable");
+            return I18n.tr("Choose the outputs to play on at the same time.", "playback device setting description");
+        }
         checked: root.several
         onToggled: value => {
             root.several = value;

@@ -14,7 +14,8 @@ DListItem {
     property bool compact: false
     readonly property string info: UiConfig.infoText(item, lines)
 
-    implicitHeight: compact ? Theme.listItemHeight : Theme.listItemTwoLineHeight
+    implicitHeight: compact ? PlayerMetrics.listRowHeight : PlayerMetrics.listRowTwoLineHeight
+    surfaceColor: PlayerMetrics.listRowColor
     Accessible.name: Phrases.named(item?.title ?? item?.name ?? "", info)
     // stays highlighted while its menu is open
     isHovered: hovered || menu.opened

@@ -25,7 +25,7 @@ func RegisterLibraries(r *Registry, d *Deps) {
 	r.Group("libraries", func(ctx context.Context, w *ConnWriter, req Request) { handleLibraries(ctx, w, req, *d) },
 		MethodSpec{Name: "libraries.list", Desc: "Configured libraries with capabilities and errors", Read: true},
 		MethodSpec{Name: "libraries.kinds", Desc: "Library kinds that can be added: local (folders), subsonic ((Open)Subsonic), jellyfin", Read: true},
-		MethodSpec{Name: "libraries.add", Desc: "Add a library", Params: []ParamSpec{Req("kind", "one of libraries.kinds"), Req("name", ""), Opt("folders", "local: absolute folders"), Opt("url", "server address"), Opt("username", "server account"), Opt("password", "server password; stored in the keyring"), Opt("auth", "(Open)Subsonic: auto|token|password|apiKey")}},
+		MethodSpec{Name: "libraries.add", Desc: "Add a library; a local one is scanned right away", Params: []ParamSpec{Req("kind", "one of libraries.kinds"), Req("name", ""), Opt("folders", "local: absolute folders"), Opt("url", "server address"), Opt("username", "server account"), Opt("password", "server password; stored in the keyring"), Opt("auth", "(Open)Subsonic: auto|token|password|apiKey")}},
 		MethodSpec{Name: "libraries.remove", Desc: "Remove a library and its index", Params: []ParamSpec{Req("library", "")}},
 		MethodSpec{Name: "libraries.scan", Desc: "Rescan a library; progress on the libraries topic", Params: []ParamSpec{Req("library", "")}},
 		MethodSpec{Name: "libraries.ping", Desc: "Check a remote library's server", Params: []ParamSpec{Req("library", "")}, Read: true},
@@ -66,6 +66,9 @@ func handleLibraries(ctx context.Context, w *ConnWriter, req Request, deps Deps)
 		added, err := deps.Libraries.Add(ctx, Str(p, "kind"), Str(p, "name"), config, secrets)
 		if err == nil {
 			deps.Bus.Publish(library.TopicLibraries, map[string]any{"type": "changed"})
+			if _, serr := Capability[source.Scanner](deps.Libraries, added.ID, "scanning"); serr == nil {
+				go scan(deps, added.ID)
+			}
 		}
 		Reply(w, req.ID)(added, err)
 	case "libraries.remove":

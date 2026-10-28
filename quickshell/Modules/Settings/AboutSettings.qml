@@ -37,6 +37,8 @@ SettingsPage {
     // what a component is for, or what is unavailable without it
     function componentText(c) {
         const ok = c.status === "ok";
+        if (c.status === "restart")
+            return I18n.tr("Installed. Restart Dux Player to use it.", "about page: a component was installed after the player started");
         switch (c.id) {
         case "mpv":
             if (c.status === "tooOld")

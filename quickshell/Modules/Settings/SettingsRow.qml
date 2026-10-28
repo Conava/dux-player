@@ -19,6 +19,8 @@ T.Control {
     // and false for a status row that isn't a setting
     property string keywords: ""
     property bool searchable: true
+    // why the row is hidden in this setup, for the settings search; set next to the visible binding
+    property string unavailableReason: ""
     property color subtitleColor: Theme.surfaceVariantText
     property string iconName: ""
     property bool clickable: false

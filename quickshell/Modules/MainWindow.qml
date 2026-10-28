@@ -17,11 +17,19 @@ DFloatingWindow {
     // "rail" | "railLabels" | "bar"; automatic follows M3: a rail on wide windows, a bar on narrow ones
     readonly property string navMode: SettingsData.navStyle === "auto" ? (compact ? "bar" : "rail") : SettingsData.navStyle
     readonly property bool railNav: navMode !== "bar"
+    // the header search as a full field; a narrow window keeps the button
+    readonly property bool headerField: SettingsData.headerSearch === "field" && !compact
     readonly property bool sidePanel: Router.dockMode === "side" && !compact
     readonly property var navModel: Router.navEntries.map(e => ({
                 "text": UiConfig.entryLabel(e),
                 "icon": UiConfig.entryIcon(e)
             }))
+
+    Binding {
+        target: Router
+        property: "headerSearchField"
+        value: window.headerField
+    }
 
     title: I18n.tr("Dux Player", "app name")
     minimumSize: Qt.size(PlayerMetrics.windowMinWidth, PlayerMetrics.windowMinHeight)
@@ -96,9 +104,41 @@ DFloatingWindow {
                 z: Theme.zHeader
                 controls: windowControls
                 title: I18n.tr("Dux Player", "app name")
+                // a centered title would collide with the field
+                titleAlignment: window.headerField ? Text.AlignLeft : Text.AlignHCenter
                 onCloseRequested: window.closeRequested()
 
+                ScopedSearch {
+                    id: headerSearch
+                    visible: window.headerField
+                    pageField: false
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: PlayerMetrics.headerSearchWidth
+                    height: Theme.buttonHeightXS
+                    placeholderText: I18n.tr("Search albums, artists and tracks", "search field placeholder")
+                    Accessible.name: I18n.tr("Search", "header button")
+                    onTextChanged: {
+                        if (!inputFocused)
+                            return;
+                        PlayerService.search(text);
+                        if (text === "" || Router.page === "search")
+                            return;
+                        Router.go("search");
+                        // the search page focuses its own field when it loads
+                        forceActiveFocus();
+                    }
+
+                    // a Binding, not a plain one: Escape's clear assigns the text
+                    readonly property Binding _query: Binding {
+                        target: headerSearch
+                        property: "text"
+                        value: PlayerService.searchQuery
+                        when: !headerSearch.inputFocused
+                    }
+                }
+
                 DActionButton {
+                    visible: !window.headerField
                     iconName: "search"
                     buttonSize: Theme.buttonHeightXXS
                     tooltipText: I18n.tr("Search", "header button")
@@ -198,9 +238,9 @@ DFloatingWindow {
                     Rectangle {
                         id: contentPane
                         anchors.left: parent.left
-                        anchors.right: sideHost.left
+                        anchors.right: sideHost.overlay ? parent.right : sideHost.left
                         // grows with the side panel, so the gap doesn't jump as it slides in
-                        anchors.rightMargin: Theme.windowInset * Math.min(1, sideHost.width / sideHost.fullWidth)
+                        anchors.rightMargin: sideHost.overlay ? 0 : Theme.windowInset * sideHost.reveal
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
                         radius: PlayerMetrics.paneRadius
@@ -261,20 +301,55 @@ DFloatingWindow {
                     }
 
                     Rectangle {
+                        anchors.fill: parent
+                        visible: sideHost.overlay && sideHost.reveal > 0
+                        radius: PlayerMetrics.paneRadius
+                        color: Theme.scrimColor
+                        opacity: Theme.scrimAlpha * sideHost.reveal
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: Router.panel = ""
+                        }
+                    }
+
+                    Rectangle {
                         id: sideHost
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
-                        readonly property real fullWidth: window.sidePanel ? PlayerMetrics.sidePanelWidth : PlayerMetrics.queueWidth
+                        // a compact window has no room beside the page, so the panel covers it
+                        readonly property bool overlay: window.compact
+                        readonly property bool covering: overlay && Router.panel !== ""
+                        readonly property real fullWidth: overlay ? parent.width - PlayerMetrics.compactPanelPeek : window.sidePanel ? PlayerMetrics.sidePanelWidth : PlayerMetrics.queueWidth
                         readonly property bool shown: window.sidePanel || Router.panel !== ""
+                        // animated instead of the width, so resizing the window doesn't make the panel trail behind
+                        property real reveal: shown ? 1 : 0
+                        property Item returnFocus: null
 
-                        width: shown ? fullWidth : 0
-                        visible: width > 0
+                        width: fullWidth * reveal
+                        visible: reveal > 0
                         radius: PlayerMetrics.paneRadius
                         color: SettingsMetrics.paneColor
                         clip: true
 
-                        Behavior on width {
+                        onCoveringChanged: {
+                            if (covering) {
+                                returnFocus = Window.activeFocusItem;
+                                (panelLoader.item as SidePanel)?.takeFocus();
+                            } else if (returnFocus) {
+                                returnFocus.forceActiveFocus();
+                                returnFocus = null;
+                            }
+                        }
+
+                        readonly property EscapeLayer _escapeLayer: EscapeLayer {
+                            owner: sideHost
+                            active: sideHost.covering
+                            onEscaped: Router.panel = ""
+                        }
+
+                        Behavior on reveal {
                             enabled: Theme.animationsEnabled
                             NumberAnimation {
                                 duration: Theme.expressiveDurations.normal
@@ -285,12 +360,17 @@ DFloatingWindow {
 
                         // full width from the start: the panel slides in instead of reflowing as it grows
                         Loader {
+                            id: panelLoader
                             anchors.left: parent.left
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
                             width: sideHost.fullWidth
                             active: parent.visible
                             sourceComponent: window.sidePanel ? sidePanelComponent : panelComponent
+                            onLoaded: {
+                                if (sideHost.covering)
+                                    (item as SidePanel)?.takeFocus();
+                            }
                         }
                     }
                 }

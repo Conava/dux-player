@@ -35,12 +35,17 @@ SettingsRow {
     subtitle: description
     onValueChanged: slider.value = Math.round(value)
 
-    StyledText {
-        text: root.minimumLabel
+    // as wide as the widest value, so the title doesn't move while dragging
+    NumericText {
+        width: Math.ceil(reservedWidth)
+        anchors.verticalCenter: parent.verticalCenter
+        isMonospace: false
+        text: root.atMinimum ? root.minimumLabel : slider.formatValue(slider.value)
+        reserveText: [slider.formatValue(slider.minimum), slider.formatValue(slider.maximum), root.minimumLabel].reduce((widest, t) => t.length > widest.length ? t : widest, "")
         font.pixelSize: Theme.fontSizeSmall
         color: Theme.surfaceVariantText
-        visible: root.atMinimum
-        anchors.verticalCenter: parent.verticalCenter
+        opacity: root.enabled ? 1 : Theme.disabledOpacity
+        horizontalAlignment: Text.AlignRight
     }
 
     body: Row {
@@ -67,7 +72,7 @@ SettingsRow {
             anchors.verticalCenter: parent.verticalCenter
             enabled: root.enabled
             wheelEnabled: false
-            showValue: !root.atMinimum
+            showValue: false
             Component.onCompleted: value = Math.round(root.value)
             onSliderValueChanged: newValue => root.sliderValueChanged(newValue)
             onSliderDragFinished: finalValue => root.sliderDragFinished(finalValue)

@@ -31,6 +31,33 @@ Singleton {
         return n === 1 ? I18n.tr("1 album", "album count, singular") : I18n.tr("%1 albums", "album count, plural").arg(n);
     }
 
+    function artists(n) {
+        return n === 1 ? I18n.tr("1 artist", "artist count, singular") : I18n.tr("%1 artists", "artist count, plural").arg(n);
+    }
+
+    function playlists(n) {
+        return n === 1 ? I18n.tr("1 playlist", "playlist count, singular") : I18n.tr("%1 playlists", "playlist count, plural").arg(n);
+    }
+
+    function genres(n) {
+        return n === 1 ? I18n.tr("1 genre", "genre count, singular") : I18n.tr("%1 genres", "genre count, plural").arg(n);
+    }
+
+    // the count for a list of one type
+    function count(type, n) {
+        switch (type) {
+        case "albums":
+            return albums(n);
+        case "artists":
+            return artists(n);
+        case "playlists":
+            return playlists(n);
+        case "genres":
+            return genres(n);
+        }
+        return tracks(n);
+    }
+
     function plays(n) {
         return n === 1 ? I18n.tr("1 play", "play count, singular") : I18n.tr("%1 plays", "play count, plural").arg(n);
     }

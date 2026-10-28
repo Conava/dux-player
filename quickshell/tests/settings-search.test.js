@@ -5,7 +5,7 @@ const assert = require("assert");
 
 const dir = path.join(__dirname, "../Modules/Settings");
 const source = fs.readFileSync(path.join(dir, "SettingsSearch.js"), "utf8").replace(".pragma library", "");
-const S = new Function(source + "; return { search };")();
+const S = new Function(source + "; return { search, merge };")();
 
 const entries = [
     { page: "playback", title: "Playback", isPage: true },
@@ -43,5 +43,31 @@ const cases = [
 ];
 for (const [query, expected] of cases)
     assert.deepStrictEqual(titles(query), expected, JSON.stringify(query));
+
+// merging what the pages showed into the index: query, live rows, expected results as page:title[:state]
+const shown = (e) => e.page + ":" + e.title + (e.hidden ? ":hidden " + (e.reason ?? "") : "") + (e.subView ? ":" + e.subView : "");
+const index = [
+    { page: "appearance", pageLabel: "Appearance", section: "Dux Shell", title: "Follow Dux Shell", keywords: "theme" },
+    { page: "libraries", pageLabel: "Libraries", title: "Clear downloads" }
+];
+const mergeCases = [
+    // a hidden row replaces its index entry and keeps the entry's keywords
+    ["theme", [{ page: "appearance", title: "Follow Dux Shell", hidden: true, reason: "Requires Dux Shell." }], ["appearance:Follow Dux Shell:hidden Requires Dux Shell."]],
+    // a row the index lacks appears
+    ["lrclib", [{ page: "lyrics", pageLabel: "Lyrics", title: "LRCLIB", hidden: false }], ["lyrics:LRCLIB"]],
+    // a hidden copy of a shown row is dropped; each sub-view it is shown on is an entry
+    ["clear downloads", [
+        { page: "libraries", title: "Clear downloads", hidden: true, reason: "", subView: "" },
+        { page: "libraries", title: "Clear downloads", hidden: false, subView: "nas" },
+        { page: "libraries", title: "Clear downloads", hidden: false, subView: "home" }
+    ], ["libraries:Clear downloads:nas", "libraries:Clear downloads:home"]],
+    // hidden results sort after shown ones of the same score
+    ["follow", [
+        { page: "appearance", title: "Follow Dux Shell", hidden: true, reason: "Requires Dux Shell." },
+        { page: "nowplaying", pageLabel: "Now playing", title: "Follow the bottom bar", hidden: false, subView: "side" }
+    ], ["nowplaying:Follow the bottom bar:side", "appearance:Follow Dux Shell:hidden Requires Dux Shell."]]
+];
+for (const [query, live, expected] of mergeCases)
+    assert.deepStrictEqual(S.search(S.merge(index, live), query).map(shown), expected, JSON.stringify(query));
 
 console.log("settings-search: ok");

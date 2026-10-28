@@ -274,333 +274,344 @@ Item {
 
     implicitWidth: parent?.width ?? 0
     width: implicitWidth
-    implicitHeight: Math.min(column.height, pageHeight * maxShare)
+    // the card plus the gap before the page's list
+    implicitHeight: card.height + Theme.spacingL
     height: implicitHeight
 
-    DFlickable {
-        id: flick
-        anchors.fill: parent
-        contentWidth: width
-        contentHeight: column.height
-        interactive: contentHeight > height
-        clip: true
+    Rectangle {
+        id: card
+        width: parent.width
+        height: Math.min(column.height + Theme.spacingL * 2, root.pageHeight * root.maxShare)
+        radius: Theme.groupedListOuterRadius
+        color: Theme.surfaceContainerLow
+        border.width: Theme.layerOutlineWidth
+        border.color: Theme.outlineMedium
 
-        Column {
-            id: column
-            width: flick.width
-            spacing: Theme.spacingM
-            bottomPadding: Theme.spacingM
+        DFlickable {
+            id: flick
+            anchors.fill: parent
+            anchors.margins: Theme.spacingL
+            contentWidth: width
+            contentHeight: column.height
+            interactive: contentHeight > height
+            clip: true
 
-            SettingsGroup {
-                visible: root.scopeThis !== ""
+            Column {
+                id: column
+                width: flick.width
+                spacing: Theme.spacingM
 
-                SettingsButtonGroupRow {
-                    text: I18n.tr("Editing", "page edit mode: whether this page or every page of its kind is edited")
-                    model: [root.scopeThis, root.scopeAll]
-                    currentIndex: root.scope
+                SettingsGroup {
+                    visible: root.scopeThis !== ""
+
+                    SettingsButtonGroupRow {
+                        text: I18n.tr("Editing", "page edit mode: whether this page or every page of its kind is edited")
+                        model: [root.scopeThis, root.scopeAll]
+                        currentIndex: root.scope
+                        onSelectionChanged: (index, selected) => {
+                            if (selected)
+                                Router.editScope = index;
+                        }
+                    }
+                }
+
+                Loader {
+                    width: parent.width
+                    active: root.tabs.length > 0
+                    visible: active
+                    sourceComponent: sectionsBlock
+                }
+
+                DButtonGroup {
+                    visible: root.tabs.length > 1
+                    size: "small"
+                    model: root.tabs.map(t => UiConfig.sectionLabel(t))
+                    currentIndex: root.tabs.indexOf(root.currentTab)
                     onSelectionChanged: (index, selected) => {
                         if (selected)
-                            Router.editScope = index;
-                    }
-                }
-            }
-
-            Loader {
-                width: parent.width
-                active: root.tabs.length > 0
-                visible: active
-                sourceComponent: sectionsBlock
-            }
-
-            DButtonGroup {
-                visible: root.tabs.length > 1
-                size: "small"
-                model: root.tabs.map(t => UiConfig.sectionLabel(t))
-                currentIndex: root.tabs.indexOf(root.currentTab)
-                onSelectionChanged: (index, selected) => {
-                    if (selected)
-                        root.tabPicked(root.tabs[index]);
-                }
-            }
-
-            SectionLabel {
-                visible: listGroup.firstRow !== null
-                text: I18n.tr("Layout and sort", "page edit mode section")
-            }
-
-            SettingsGroup {
-                id: listGroup
-
-                SettingsButtonGroupRow {
-                    visible: root.layoutChoices.length > 1
-                    text: I18n.tr("Layout", "view options section")
-                    model: root.layoutChoices
-                    currentIndex: root.layoutChoices.findIndex(l => l.value === root.options.layout)
-                    onSelectionChanged: (index, selected) => {
-                        if (selected)
-                            root.apply({
-                                "layout": root.layoutChoices[index].value
-                            });
+                            root.tabPicked(root.tabs[index]);
                     }
                 }
 
-                SettingsButtonGroupRow {
-                    visible: root.options.layout === "grid" && root.layouts.indexOf("grid") >= 0
-                    text: I18n.tr("Tile size", "view options section")
-                    model: [I18n.tr("Small", "size option"), I18n.tr("Medium", "size option"), I18n.tr("Large", "size option")]
-                    currentIndex: ["s", "m", "l"].indexOf(root.options.tileSize)
-                    onSelectionChanged: (index, selected) => {
-                        if (selected)
-                            root.apply({
-                                "tileSize": ["s", "m", "l"][index]
-                            });
-                    }
+                SectionLabel {
+                    visible: listGroup.firstRow !== null
+                    text: I18n.tr("Layout and sort", "page edit mode section")
                 }
 
-                SettingsRow {
-                    visible: root.sorts.length > 0
-                    title: I18n.tr("Sort by", "view options section")
+                SettingsGroup {
+                    id: listGroup
 
-                    DDropdown {
-                        id: sortDropdown
-                        anchors.verticalCenter: parent?.verticalCenter
-                        dropdownWidth: SettingsMetrics.dropdownWidth
-                        options: root.sorts.map(k => root.sortText(k))
-                        optionValues: root.sorts
-                        onValueChanged: value => root.apply({
-                                "sort": value
-                            })
-                    }
-
-                    Binding {
-                        target: sortDropdown
-                        property: "currentValue"
-                        value: root.options.sort ?? ""
-                    }
-
-                    DButtonGroup {
-                        anchors.verticalCenter: parent?.verticalCenter
-                        size: "small"
-                        iconOnly: true
-                        model: [
-                            {
-                                "text": I18n.tr("Ascending", "sort direction"),
-                                "icon": "arrow_upward"
-                            },
-                            {
-                                "text": I18n.tr("Descending", "sort direction"),
-                                "icon": "arrow_downward"
-                            }
-                        ]
-                        currentIndex: root.options.descending ? 1 : 0
+                    SettingsButtonGroupRow {
+                        visible: root.layoutChoices.length > 1
+                        text: I18n.tr("Layout", "view options section")
+                        model: root.layoutChoices
+                        currentIndex: root.layoutChoices.findIndex(l => l.value === root.options.layout)
                         onSelectionChanged: (index, selected) => {
                             if (selected)
                                 root.apply({
-                                    "descending": index === 1
+                                    "layout": root.layoutChoices[index].value
                                 });
                         }
                     }
-                }
-            }
 
-            SectionLabel {
-                visible: filterGroup.firstRow !== null
-                text: I18n.tr("Filter", "view options section")
-            }
-
-            SettingsGroup {
-                id: filterGroup
-
-                SettingsRow {
-                    visible: root.filterKinds.indexOf("library") >= 0 && root.libraries.length > 1
-                    title: I18n.tr("Library", "track list column")
-
-                    DDropdown {
-                        id: libraryDropdown
-                        anchors.verticalCenter: parent?.verticalCenter
-                        dropdownWidth: SettingsMetrics.dropdownWidth
-                        // the "" value shows emptyText, not its option label
-                        emptyText: I18n.tr("All libraries", "library filter chip")
-                        options: [I18n.tr("All libraries", "library filter chip")].concat(root.libraries.map(l => l.name))
-                        optionValues: [""].concat(root.libraries.map(l => l.id))
-                        onValueChanged: value => root.applyFilters({
-                                "library": value
-                            })
-                    }
-
-                    Binding {
-                        target: libraryDropdown
-                        property: "currentValue"
-                        value: root.options.filters?.library ?? ""
-                    }
-                }
-
-                SettingsRow {
-                    visible: root.filterKinds.indexOf("genre") >= 0
-                    title: I18n.tr("Genre", "view info line")
-
-                    DDropdown {
-                        id: genreDropdown
-                        anchors.verticalCenter: parent?.verticalCenter
-                        dropdownWidth: SettingsMetrics.dropdownWidth
-                        emptyText: I18n.tr("All genres", "genre filter option")
-                        options: [I18n.tr("All genres", "genre filter option")].concat(PlayerService.genres.map(g => g.name))
-                        optionValues: [""].concat(PlayerService.genres.map(g => g.id))
-                        onValueChanged: value => root.applyFilters({
-                                "genre": value
-                            })
-                    }
-
-                    Binding {
-                        target: genreDropdown
-                        property: "currentValue"
-                        value: root.options.filters?.genre ?? ""
-                    }
-                }
-
-                SettingsToggleRow {
-                    visible: root.filterKinds.indexOf("favorites") >= 0
-                    text: I18n.tr("Favorites only", "view filter")
-                    checked: root.options.filters?.favorites === true
-                    onToggled: value => root.applyFilters({
-                            "favorites": value
-                        })
-                }
-            }
-
-            Loader {
-                width: parent.width
-                active: root.tabs.length === 0 && root.sections.length > 0
-                visible: active
-                sourceComponent: sectionsBlock
-            }
-
-            DZoneEditor {
-                visible: root.linesEditable
-                flickable: flick
-                rowColor: SettingsMetrics.rowColor
-                addText: I18n.tr("Add line", "button under the info lines in a page's edit mode")
-                emptyText: I18n.tr("No info lines", "page edit mode: the info lines zone is empty")
-                zones: [
-                    {
-                        "id": "lines",
-                        "label": I18n.tr("Info lines", "page edit mode section: the facts shown under an item"),
-                        "addable": root.lineChoices.some(l => (root.options.lines ?? []).indexOf(l) < 0),
-                        "rows": (root.options.lines ?? []).map(l => ({
-                                    "title": UiConfig.lineLabel(l),
-                                    "hideable": false
-                                }))
-                    }
-                ]
-                onMoved: (fromZone, fromIndex, toZone, toIndex) => root.apply({
-                        "lines": root.moved(root.options.lines, fromIndex, toIndex)
-                    })
-                onRemoved: (zone, index) => root.apply({
-                        "lines": root.options.lines.filter((_, i) => i !== index)
-                    })
-                onAddRequested: root.pickLine()
-            }
-
-            Row {
-                visible: root.savable || root.savedView !== null
-                spacing: Theme.spacingS
-
-                DButton {
-                    visible: root.savedView === null
-                    text: I18n.tr("Save as view…", "view options action")
-                    iconName: "bookmark_add"
-                    backgroundColor: Theme.secondaryContainer
-                    textColor: Theme.onSecondaryContainer
-                    onClicked: root.saveAsRequested()
-                }
-
-                DButton {
-                    visible: root.savedView !== null
-                    text: I18n.tr("Rename view", "saved view action")
-                    iconName: "edit"
-                    backgroundColor: Theme.secondaryContainer
-                    textColor: Theme.onSecondaryContainer
-                    onClicked: root.renameRequested()
-                }
-
-                DButton {
-                    visible: root.savedView !== null
-                    text: I18n.tr("Delete view", "saved view action")
-                    iconName: "delete"
-                    backgroundColor: "transparent"
-                    textColor: Theme.error
-                    onClicked: deleteDialog.ask()
-                }
-            }
-
-            DCollapsibleSection {
-                id: itemSection
-                width: parent.width
-                visible: root.item !== null
-                title: root.itemNoun(root.itemType)
-                description: I18n.tr("Shared by every page that shows them.", "page edit mode: rows and menus are the same everywhere")
-
-                Column {
-                    Layout.fillWidth: true
-                    spacing: Theme.spacingM
-
-                    Repeater {
-                        model: root.itemType !== "" ? UiConfig.problems(root.itemType) : []
-
-                        StyledText {
-                            required property string modelData
-                            width: parent.width
-                            text: "⚠ " + modelData
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.error
-                            wrapMode: Text.WordWrap
-                            horizontalAlignment: Text.AlignLeft
+                    SettingsButtonGroupRow {
+                        visible: root.options.layout === "grid" && root.layouts.indexOf("grid") >= 0
+                        text: I18n.tr("Tile size", "view options section")
+                        model: [I18n.tr("Small", "size option"), I18n.tr("Medium", "size option"), I18n.tr("Large", "size option")]
+                        currentIndex: ["s", "m", "l"].indexOf(root.options.tileSize)
+                        onSelectionChanged: (index, selected) => {
+                            if (selected)
+                                root.apply({
+                                    "tileSize": ["s", "m", "l"][index]
+                                });
                         }
                     }
 
-                    SettingsGroup {
-                        SettingsToggleRow {
-                            text: I18n.tr("Right-click menu same as ⋮ menu", "page edit mode: the right-click menu follows the ⋮ menu")
-                            checked: root.item?.contextSameAsMenu ?? true
-                            onToggled: value => UiConfig.setItem(root.itemType, {
-                                    "contextSameAsMenu": value
+                    SettingsRow {
+                        visible: root.sorts.length > 0
+                        title: I18n.tr("Sort by", "view options section")
+
+                        DDropdown {
+                            id: sortDropdown
+                            anchors.verticalCenter: parent?.verticalCenter
+                            dropdownWidth: SettingsMetrics.dropdownWidth
+                            options: root.sorts.map(k => root.sortText(k))
+                            optionValues: root.sorts
+                            onValueChanged: value => root.apply({
+                                    "sort": value
                                 })
                         }
+
+                        Binding {
+                            target: sortDropdown
+                            property: "currentValue"
+                            value: root.options.sort ?? ""
+                        }
+
+                        DButtonGroup {
+                            anchors.verticalCenter: parent?.verticalCenter
+                            size: "small"
+                            iconOnly: true
+                            model: [
+                                {
+                                    "text": I18n.tr("Ascending", "sort direction"),
+                                    "icon": "arrow_upward"
+                                },
+                                {
+                                    "text": I18n.tr("Descending", "sort direction"),
+                                    "icon": "arrow_downward"
+                                }
+                            ]
+                            currentIndex: root.options.descending ? 1 : 0
+                            onSelectionChanged: (index, selected) => {
+                                if (selected)
+                                    root.apply({
+                                        "descending": index === 1
+                                    });
+                            }
+                        }
+                    }
+                }
+
+                SectionLabel {
+                    visible: filterGroup.firstRow !== null
+                    text: I18n.tr("Filter", "view options section")
+                }
+
+                SettingsGroup {
+                    id: filterGroup
+
+                    SettingsRow {
+                        visible: root.filterKinds.indexOf("library") >= 0 && root.libraries.length > 1
+                        title: I18n.tr("Library", "track list column")
+
+                        DDropdown {
+                            id: libraryDropdown
+                            anchors.verticalCenter: parent?.verticalCenter
+                            dropdownWidth: SettingsMetrics.dropdownWidth
+                            // the "" value shows emptyText, not its option label
+                            emptyText: I18n.tr("All libraries", "library filter chip")
+                            options: [I18n.tr("All libraries", "library filter chip")].concat(root.libraries.map(l => l.name))
+                            optionValues: [""].concat(root.libraries.map(l => l.id))
+                            onValueChanged: value => root.applyFilters({
+                                    "library": value
+                                })
+                        }
+
+                        Binding {
+                            target: libraryDropdown
+                            property: "currentValue"
+                            value: root.options.filters?.library ?? ""
+                        }
                     }
 
-                    DZoneEditor {
-                        id: itemEditor
-                        property int revision: 0
-                        flickable: flick
-                        rowColor: SettingsMetrics.rowColor
-                        zones: {
-                            // a refused move rebuilds the rows it left
-                            const it = revision >= 0 ? root.item : null;
-                            if (!it)
-                                return [];
-                            return root.itemZoneMeta.map(z => {
-                                const following = z.id === "context" && it.contextSameAsMenu;
-                                return {
-                                    "id": z.id,
-                                    "label": z.label,
-                                    "note": following ? I18n.tr("Same as the ⋮ menu. Turn off the switch above to change it.", "page edit mode: the right-click menu zone while it follows") : "",
-                                    "disabled": following,
-                                    "addable": !following,
-                                    "rows": (it.zones[z.id] ?? []).map(inst => root.actionRow(inst))
-                                };
-                            });
+                    SettingsRow {
+                        visible: root.filterKinds.indexOf("genre") >= 0
+                        title: I18n.tr("Genre", "view info line")
+
+                        DDropdown {
+                            id: genreDropdown
+                            anchors.verticalCenter: parent?.verticalCenter
+                            dropdownWidth: SettingsMetrics.dropdownWidth
+                            emptyText: I18n.tr("All genres", "genre filter option")
+                            options: [I18n.tr("All genres", "genre filter option")].concat(PlayerService.genres.map(g => g.name))
+                            optionValues: [""].concat(PlayerService.genres.map(g => g.id))
+                            onValueChanged: value => root.applyFilters({
+                                    "genre": value
+                                })
                         }
-                        onMoved: (fromZone, fromIndex, toZone, toIndex) => root.moveAction(fromZone, fromIndex, toZone, toIndex)
-                        onRemoved: (zone, index) => root.removeAction(zone, index)
-                        onHiddenToggled: (zone, index, hidden) => root.hideAction(zone, index, hidden)
-                        onAddRequested: zone => root.pickAction(zone)
+
+                        Binding {
+                            target: genreDropdown
+                            property: "currentValue"
+                            value: root.options.filters?.genre ?? ""
+                        }
+                    }
+
+                    SettingsToggleRow {
+                        visible: root.filterKinds.indexOf("favorites") >= 0
+                        text: I18n.tr("Favorites only", "view filter")
+                        checked: root.options.filters?.favorites === true
+                        onToggled: value => root.applyFilters({
+                                "favorites": value
+                            })
+                    }
+                }
+
+                Loader {
+                    width: parent.width
+                    active: root.tabs.length === 0 && root.sections.length > 0
+                    visible: active
+                    sourceComponent: sectionsBlock
+                }
+
+                DZoneEditor {
+                    visible: root.linesEditable
+                    flickable: flick
+                    rowColor: SettingsMetrics.rowColor
+                    addText: I18n.tr("Add line", "button under the info lines in a page's edit mode")
+                    emptyText: I18n.tr("No info lines", "page edit mode: the info lines zone is empty")
+                    zones: [
+                        {
+                            "id": "lines",
+                            "label": I18n.tr("Info lines", "page edit mode section: the facts shown under an item"),
+                            "addable": root.lineChoices.some(l => (root.options.lines ?? []).indexOf(l) < 0),
+                            "rows": (root.options.lines ?? []).map(l => ({
+                                        "title": UiConfig.lineLabel(l),
+                                        "hideable": false
+                                    }))
+                        }
+                    ]
+                    onMoved: (fromZone, fromIndex, toZone, toIndex) => root.apply({
+                            "lines": root.moved(root.options.lines, fromIndex, toIndex)
+                        })
+                    onRemoved: (zone, index) => root.apply({
+                            "lines": root.options.lines.filter((_, i) => i !== index)
+                        })
+                    onAddRequested: root.pickLine()
+                }
+
+                Row {
+                    visible: root.savable || root.savedView !== null
+                    spacing: Theme.spacingS
+
+                    DButton {
+                        visible: root.savedView === null
+                        text: I18n.tr("Save as view…", "view options action")
+                        iconName: "bookmark_add"
+                        backgroundColor: Theme.secondaryContainer
+                        textColor: Theme.onSecondaryContainer
+                        onClicked: root.saveAsRequested()
                     }
 
                     DButton {
-                        text: I18n.tr("Reset rows and menus", "page edit mode: restores the shared rows and menus of a type")
+                        visible: root.savedView !== null
+                        text: I18n.tr("Rename view", "saved view action")
+                        iconName: "edit"
+                        backgroundColor: Theme.secondaryContainer
+                        textColor: Theme.onSecondaryContainer
+                        onClicked: root.renameRequested()
+                    }
+
+                    DButton {
+                        visible: root.savedView !== null
+                        text: I18n.tr("Delete view", "saved view action")
+                        iconName: "delete"
                         backgroundColor: "transparent"
-                        textColor: Theme.primary
-                        onClicked: UiConfig.resetItem(root.itemType)
+                        textColor: Theme.error
+                        onClicked: deleteDialog.ask()
+                    }
+                }
+
+                DCollapsibleSection {
+                    id: itemSection
+                    width: parent.width
+                    visible: root.item !== null
+                    title: root.itemNoun(root.itemType)
+                    description: I18n.tr("Shared by every page that shows them.", "page edit mode: rows and menus are the same everywhere")
+
+                    Column {
+                        Layout.fillWidth: true
+                        spacing: Theme.spacingM
+
+                        Repeater {
+                            model: root.itemType !== "" ? UiConfig.problems(root.itemType) : []
+
+                            StyledText {
+                                required property string modelData
+                                width: parent.width
+                                text: "⚠ " + modelData
+                                font.pixelSize: Theme.fontSizeSmall
+                                color: Theme.error
+                                wrapMode: Text.WordWrap
+                                horizontalAlignment: Text.AlignLeft
+                            }
+                        }
+
+                        SettingsGroup {
+                            SettingsToggleRow {
+                                text: I18n.tr("Right-click menu same as ⋮ menu", "page edit mode: the right-click menu follows the ⋮ menu")
+                                checked: root.item?.contextSameAsMenu ?? true
+                                onToggled: value => UiConfig.setItem(root.itemType, {
+                                        "contextSameAsMenu": value
+                                    })
+                            }
+                        }
+
+                        DZoneEditor {
+                            id: itemEditor
+                            property int revision: 0
+                            flickable: flick
+                            rowColor: SettingsMetrics.rowColor
+                            zones: {
+                                // a refused move rebuilds the rows it left
+                                const it = revision >= 0 ? root.item : null;
+                                if (!it)
+                                    return [];
+                                return root.itemZoneMeta.map(z => {
+                                    const following = z.id === "context" && it.contextSameAsMenu;
+                                    return {
+                                        "id": z.id,
+                                        "label": z.label,
+                                        "note": following ? I18n.tr("Same as the ⋮ menu. Turn off the switch above to change it.", "page edit mode: the right-click menu zone while it follows") : "",
+                                        "disabled": following,
+                                        "addable": !following,
+                                        "rows": (it.zones[z.id] ?? []).map(inst => root.actionRow(inst))
+                                    };
+                                });
+                            }
+                            onMoved: (fromZone, fromIndex, toZone, toIndex) => root.moveAction(fromZone, fromIndex, toZone, toIndex)
+                            onRemoved: (zone, index) => root.removeAction(zone, index)
+                            onHiddenToggled: (zone, index, hidden) => root.hideAction(zone, index, hidden)
+                            onAddRequested: zone => root.pickAction(zone)
+                        }
+
+                        DButton {
+                            text: I18n.tr("Reset rows and menus", "page edit mode: restores the shared rows and menus of a type")
+                            backgroundColor: "transparent"
+                            textColor: Theme.primary
+                            onClicked: UiConfig.resetItem(root.itemType)
+                        }
                     }
                 }
             }

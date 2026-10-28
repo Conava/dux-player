@@ -90,7 +90,7 @@ Singleton {
     property var artistInfo: ({
             "providers": []
         })
-    // system.components: [{id, required, status: "ok" | "missing" | "tooOld" | "failed", version, minVersion,
+    // system.components: [{id, required, status: "ok" | "missing" | "tooOld" | "failed" | "restart", version, minVersion,
     // detail}]; checked only while the about page asks
     property var components: []
     property bool componentsChecking: false

@@ -125,6 +125,9 @@ function navEntry(kind, target) {
     };
 }
 
+// every page the navigation can hold; one added in an update joins a stored list hidden
+var pageTargets = ["home", "playlists", "favorites", "tracks", "albums", "artists", "genres", "libraries", "history", "mostPlayed", "search"];
+
 function navEntries(stored, pages, shownByDefault) {
     const list = stored.length > 0 ? stored.slice() : shownByDefault.map(p => navEntry("page", p));
     for (const p of pages) {

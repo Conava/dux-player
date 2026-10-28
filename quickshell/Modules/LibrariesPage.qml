@@ -33,6 +33,17 @@ DFlickable {
             }
         }
 
+        EmptyState {
+            width: parent.width
+            visible: CatalogService.librariesLoaded && PlayerService.libraries.length === 0
+            iconName: "library_music"
+            title: I18n.tr("No libraries", "libraries page empty state")
+            text: I18n.tr("Add a music folder or server.", "home empty state when no library is set up")
+            actionText: I18n.tr("Add library", "libraries settings primary action")
+            actionIcon: "add"
+            onActionClicked: Router.addLibrary()
+        }
+
         Flow {
             width: parent.width
             spacing: Theme.spacingM
@@ -49,7 +60,7 @@ DFlickable {
                     height: cardColumn.implicitHeight + pad * 2
                     pad: Theme.spacingL
                     clickable: modelData.enabled
-                    tone: remote ? "tertiary" : "secondary"
+                    color: SettingsMetrics.rowColor
                     opacity: modelData.enabled ? 1 : Theme.disabledOpacity
                     Accessible.name: modelData.name
                     onClicked: Router.go("library", modelData.id)
@@ -93,7 +104,8 @@ DFlickable {
                                     text: card.remote ? Phrases.join(PlayerService.kindLabel(card.modelData.kind), card.modelData.url) : (card.modelData.folders ?? []).join(", ")
                                     font.pixelSize: Theme.fontSizeSmall
                                     color: card.mutedColor
-                                    elide: Text.ElideMiddle
+                                    // a path keeps its last folder, the part that tells libraries apart
+                                    elide: card.remote ? Text.ElideRight : Text.ElideLeft
                                     wrapMode: Text.NoWrap
                                 }
                             }

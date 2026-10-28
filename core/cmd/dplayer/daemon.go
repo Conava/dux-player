@@ -14,10 +14,12 @@ import (
 	"github.com/duxlabs-dev/dux-go/log"
 	"github.com/spf13/cobra"
 
+	"github.com/Conava/dux-player/core/internal/devices"
 	"github.com/Conava/dux-player/core/internal/ipc"
 	"github.com/Conava/dux-player/core/internal/keyring"
 	"github.com/Conava/dux-player/core/internal/library"
 	"github.com/Conava/dux-player/core/internal/loudness"
+	"github.com/Conava/dux-player/core/internal/pendingmarks"
 	"github.com/Conava/dux-player/core/internal/player"
 	"github.com/Conava/dux-player/core/internal/settings"
 	"github.com/Conava/dux-player/core/internal/source"
@@ -155,8 +157,10 @@ func runDaemon() error {
 
 	d := &daemon{
 		Deps: ipc.Deps{Bus: bus, Player: pl, Libraries: libs, Settings: prefs, Window: ui, FFmpeg: meter.Available(),
-			Version: Version, Commit: Commit, Ctx: ctx, Quit: cancel, CacheDir: cacheDir},
+			Version: Version, Commit: Commit, Ctx: ctx, Quit: cancel, CacheDir: cacheDir,
+			Marks: pendingmarks.Open(filepath.Join(stateDir, pendingmarks.FileName))},
 		ConfigDir: configDir, DataDir: dataDir, StateDir: stateDir, Secrets: secrets, Mixer: mixer,
+		PipeWire: devices.PipeWireAvailable(),
 	}
 	ready := make(chan struct{})
 	srv := ipc.NewServer(newRegistry(d), bus)

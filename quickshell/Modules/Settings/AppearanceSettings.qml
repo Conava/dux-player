@@ -22,6 +22,10 @@ SettingsPage {
     property string themeStatus: ""
     property bool themeStatusError: false
 
+    function paletteReason(option) {
+        return I18n.tr("Available when Palette is %1.", "why an appearance setting is hidden, %1 is a palette option").arg(option);
+    }
+
     function groupTitle(group) {
         switch (group) {
         case "colors":
@@ -67,6 +71,7 @@ SettingsPage {
 
         title: root.groupTitle(key)
         visible: !StyleSource.following
+        unavailableReason: I18n.tr("All style settings come from Dux Shell.", "appearance note while following the shell")
         headerActions: DButtonGroup {
             visible: StyleSource.detected
             size: "small"
@@ -88,6 +93,8 @@ SettingsPage {
             },
             Column {
                 id: body
+                // the settings search reads it
+                property string unavailableReason: I18n.tr("Set in Dux Shell settings. Choose Custom to override.", "appearance group following the shell")
                 visible: !group.shellOwned
                 width: parent?.width ?? 0
                 spacing: Theme.groupedListGap
@@ -97,6 +104,7 @@ SettingsPage {
 
     SettingsCard {
         visible: StyleSource.detected
+        unavailableReason: I18n.tr("Requires Dux Shell.", "why the Dux Shell settings are hidden")
         title: I18n.tr("Dux Shell", "appearance settings section label")
 
         SettingsToggleRow {
@@ -133,6 +141,7 @@ SettingsPage {
         SettingsRow {
             id: presetRow
             visible: SettingsData.colorScheme === "stock" || (SettingsData.colorScheme === "" && !StyleSource.detected)
+            unavailableReason: root.paletteReason(I18n.tr("Preset", "color scheme option"))
             title: I18n.tr("Preset", "appearance setting")
             keywords: "theme"
 
@@ -156,6 +165,7 @@ SettingsPage {
 
         SettingsRow {
             visible: SettingsData.colorScheme === "seed"
+            unavailableReason: root.paletteReason(I18n.tr("From a color", "color scheme option"))
             title: I18n.tr("Base color", "appearance setting")
             keywords: "theme seed accent"
             subtitle: I18n.tr("Light and dark palettes are generated from this color.", "appearance setting description")
@@ -216,6 +226,7 @@ SettingsPage {
 
         SettingsRow {
             visible: SettingsData.colorScheme === "custom"
+            unavailableReason: root.paletteReason(I18n.tr("Custom theme", "color scheme option"))
             title: SettingsData.customTheme ? I18n.tr("Theme: %1", "loaded custom theme name").arg(SettingsData.customTheme.name || I18n.tr("Unnamed", "custom theme without a name")) : I18n.tr("No custom theme loaded", "custom theme state")
             subtitle: I18n.tr("A Dux Shell theme file with light and dark palettes. Export the current colors to use as a starting point.", "custom theme description")
 
@@ -261,7 +272,6 @@ SettingsPage {
         SettingsButtonGroupRow {
             text: I18n.tr("Color mode", "appearance setting for light or dark")
             keywords: "theme dark light"
-            description: I18n.tr("Auto follows the desktop.", "appearance setting description")
             model: [I18n.tr("System", "theme mode"), I18n.tr("Light", "theme mode"), I18n.tr("Dark", "theme mode")]
             currentIndex: root.themeModes.indexOf(SettingsData.themeMode)
             onSelectionChanged: (index, selected) => {
@@ -347,6 +357,7 @@ SettingsPage {
             keywords: "radius rounded"
             minimum: 0
             maximum: 100
+            unit: "%"
             value: SettingsData.radiusStrength
             onSliderDragFinished: finalValue => SettingsData.radiusStrength = finalValue
         }
@@ -409,6 +420,27 @@ SettingsPage {
             description: I18n.tr("Requires compositor blur and a transparent window.", "appearance setting description")
             checked: SettingsData.blurEnabled
             onToggled: value => SettingsData.blurEnabled = value
+        }
+    }
+
+    SettingsCard {
+        title: I18n.tr("Lists", "appearance settings section label")
+
+        SettingsButtonGroupRow {
+            readonly property var densities: ["compact", "comfortable", "spacious"]
+            text: I18n.tr("Density", "appearance setting for the height of list rows")
+            description: I18n.tr("Height of the rows in track lists and the queue.", "appearance density description")
+            keywords: "row height compact spacious spacing size"
+            model: [I18n.tr("Compact", "density option"), I18n.tr("Default", "density option"), I18n.tr("Spacious", "density option")]
+            // an unknown stored value counts as the default, as in Theme.densityLevel
+            currentIndex: {
+                const i = densities.indexOf(SettingsData.density);
+                return i < 0 ? 1 : i;
+            }
+            onSelectionChanged: (index, selected) => {
+                if (selected)
+                    SettingsData.density = densities[index];
+            }
         }
     }
 

@@ -4,7 +4,8 @@ import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
 
-// An item's cover from the daemon; until it loads, or without one, the accent with a Material shape.
+// An item's cover from the daemon; until it loads, or without one, the accent with a Material shape, or
+// without an accent the placeholder icon.
 ClippingRectangle {
     id: root
 
@@ -15,21 +16,30 @@ ClippingRectangle {
 
     // an image found elsewhere (an artist's), in place of the item's cover
     property string imageUrl: ""
+    property string placeholderIcon: "album"
 
     readonly property var pair: Theme.accent(accent)
     readonly property string source: imageUrl !== "" ? imageUrl : item ? PlayerService.coverUrl(item) : ""
 
-    color: pair?.container ?? Theme.surfaceContainerHighest
+    color: pair?.container ?? Theme.secondaryContainer
     radius: Theme.cornerRadiusM
     Accessible.ignored: true
 
     DMaterialShape {
         anchors.centerIn: parent
-        visible: cover.status !== Image.Ready
+        visible: cover.status !== Image.Ready && root.pair !== null
         width: Math.round(parent.width * PlayerMetrics.artShapeRatio)
         height: width
         shape: root.shape
-        color: root.pair?.onContainer ?? Theme.onSurfaceVariant
+        color: root.pair?.onContainer ?? Theme.onSecondaryContainer
+    }
+
+    DIcon {
+        anchors.centerIn: parent
+        visible: cover.status !== Image.Ready && root.pair === null
+        name: root.placeholderIcon
+        size: Math.round(parent.width * PlayerMetrics.artShapeRatio)
+        color: Theme.onSecondaryContainer
     }
 
     Image {

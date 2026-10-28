@@ -30,6 +30,9 @@ const (
 	componentMissing = "missing"
 	componentTooOld  = "tooOld"
 	componentFailed  = "failed"
+	// componentRestart is installed now but was missing when the daemon
+	// started, which is when ffmpeg, wpctl and PipeWire are looked up.
+	componentRestart = "restart"
 )
 
 type component struct {
@@ -47,6 +50,14 @@ func found(id string, ok bool) component {
 		return component{ID: id, Status: componentOK}
 	}
 	return component{ID: id, Status: componentMissing}
+}
+
+// foundAtStart is found for a component the daemon only looks up at start.
+func foundAtStart(id string, now, atStart bool) component {
+	if now && !atStart {
+		return component{ID: id, Status: componentRestart}
+	}
+	return found(id, now)
 }
 
 // checkComponents runs every check at once; each bounds its own wait.
@@ -67,9 +78,9 @@ func checkComponents(ctx context.Context, d *daemon) []component {
 			}
 			return c
 		},
-		func() component { return found("ffmpeg", loudness.Find().Available()) },
-		func() component { return found("pipewire", devices.PipeWireAvailable()) },
-		func() component { return found("wpctl", sysvol.Find() != nil) },
+		func() component { return foundAtStart("ffmpeg", loudness.Find().Available(), d.FFmpeg) },
+		func() component { return foundAtStart("pipewire", devices.PipeWireAvailable(), d.PipeWire) },
+		func() component { return foundAtStart("wpctl", sysvol.Find() != nil, d.Mixer != nil) },
 		func() component {
 			err := d.Secrets.Available()
 			c := found("keyring", err == nil)

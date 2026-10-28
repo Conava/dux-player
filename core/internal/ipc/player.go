@@ -12,6 +12,7 @@ import (
 
 	"github.com/duxlabs-dev/dux-go/ipc/params"
 
+	"github.com/Conava/dux-player/core/internal/library"
 	"github.com/Conava/dux-player/core/internal/player"
 	"github.com/Conava/dux-player/core/internal/source"
 	"github.com/Conava/dux-player/core/internal/source/local"
@@ -155,6 +156,15 @@ func listFrom(ctx context.Context, p map[string]any, deps Deps, index int) ([]so
 	return tracks, origin, skip, err
 }
 
+// pathRef is the library track of an indexed file, so it gets the library's
+// cover and marks; any other file plays from the built-in files library.
+func pathRef(ctx context.Context, store *library.Store, path string) source.Ref {
+	if ref, ok := store.TrackByPath(ctx, path); ok {
+		return ref
+	}
+	return source.Ref{Library: local.FilesLibrary, ID: path}
+}
+
 func pickedFrom(ctx context.Context, p map[string]any, deps Deps) ([]source.Track, player.Origin, error) {
 	var origin player.Origin
 	rs, err := Refs(p, "tracks")
@@ -171,7 +181,7 @@ func pickedFrom(ctx context.Context, p map[string]any, deps Deps) ([]source.Trac
 			return nil, origin, err
 		}
 		for _, f := range files {
-			rs = append(rs, source.Ref{Library: local.FilesLibrary, ID: f})
+			rs = append(rs, pathRef(ctx, deps.Libraries.Store(), f))
 		}
 		if len(rs) > maxPathTracks {
 			return nil, origin, fmt.Errorf("more than %d files; add a library for this folder instead", maxPathTracks)

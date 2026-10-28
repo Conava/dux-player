@@ -216,6 +216,7 @@ Item {
                         radius: Theme.fullRadius(width, height)
                         item: root.artist
                         imageUrl: root.imageUrl
+                        placeholderIcon: "person"
                     }
 
                     Row {

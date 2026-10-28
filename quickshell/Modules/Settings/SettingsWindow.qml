@@ -31,7 +31,7 @@ DFloatingWindow {
             "group": 1,
             "accent": "purple",
             "label": I18n.tr("General", "settings sidebar tab label"),
-            "hint": I18n.tr("Background, windows and shortcuts", "settings sidebar tab hint"),
+            "hint": I18n.tr("Background and windows", "settings sidebar tab hint"),
             "icon": "tune"
         },
         {
@@ -143,7 +143,7 @@ DFloatingWindow {
     readonly property int searchHighlightDuration: 2500
 
     readonly property bool searching: searchField.text.trim() !== ""
-    readonly property var searchEntries: tabs.map(t => ({
+    readonly property var searchEntries: SettingsSearch.merge(tabs.map(t => ({
                 "page": t.id,
                 "title": t.label,
                 "text": t.hint,
@@ -155,14 +155,9 @@ DFloatingWindow {
                 "section": e.section ? translated(e.section) : "",
                 "text": (e.text ?? []).map(translated).join(" "),
                 "keywords": e.keywords ?? ""
-            }))).concat(dynamicEntries)
-    // rows the pages build from service lists, which the generated index can't see
-    readonly property var dynamicEntries: PlayerService.libraries.map(l => dynamicEntry("libraries", "", l.name, PlayerService.kindLabel(l.kind))).concat(PlayerService.lyricsProviders.map(p => dynamicEntry("lyrics", I18n.tr("Providers", "lyrics settings section label"), p.id === "server" ? I18n.tr("Your server", "lyrics provider row for a server library's own lyrics") : p.name, ""))).concat(Object.keys(UiConfig.shortcutDefaults).map(k => dynamicEntry("general", I18n.tr("Keyboard shortcuts", "general settings section label"), UiConfig.shortcutLabel(k), UiConfig.shortcut(k)))).concat(PlayerService.outputDevices.map(d => dynamicEntry("devices", I18n.tr("Outputs", "playback device settings section"), d.name, ""))).concat(offlineEntries)
-    // each server library's offline overview: picking one opens that library's
-    readonly property var offlineEntries: PlayerService.libraries.filter(l => PlayerService.isRemote(l.id)).map(l => Object.assign(dynamicEntry("libraries", I18n.tr("Offline rules for %1", "library offline overview section, %1 is the library").arg(l.name), I18n.tr("Clear downloads", "offline action for one library"), I18n.tr("Deletes downloaded tracks. Rules are kept.", "offline clear action description")), {
-            "cacheLibrary": l.id
-        }))
+            }))), liveEntries)
     readonly property var searchResults: searching ? SettingsSearch.search(searchEntries, searchField.text) : []
+    readonly property string unavailableNote: I18n.tr("This setting isn't available in the current setup.", "settings search: the picked setting is hidden by other settings or missing hardware or software")
     property int searchSelected: 0
     property string revealTitle: ""
     property int revealTries: 0
@@ -170,15 +165,107 @@ DFloatingWindow {
     property SettingsRow highlightedRow: null
     // the picked result's row exists but the current setup hides it
     property bool revealHidden: false
+    property string revealReason: ""
 
-    function dynamicEntry(page, section, title, text) {
-        return {
-            "page": page,
-            "pageLabel": tabLabel(page),
-            "title": title,
-            "section": section,
-            "text": text
+    // The search reads each page once per window session from an unseen copy, its sub-views too: the rows built
+    // from lists, and which rows the setup hides and why. About is left to the index, as loading it checks the
+    // installed programs. A page whose list changes is read again at the next search.
+    property var liveEntries: []
+    property var probeQueue: []
+    property var probeStale: []
+    property string probePage: ""
+    property bool probed: false
+
+    function startProbe() {
+        const pages = probed ? probeStale : tabs.map(t => t.id).filter(id => id !== "about");
+        probed = true;
+        probeStale = [];
+        probeQueue = probeQueue.concat(pages.filter(p => probeQueue.indexOf(p) < 0));
+        if (probePage === "")
+            probeNext();
+    }
+
+    function probeNext() {
+        probePage = probeQueue[0] ?? "";
+        probeQueue = probeQueue.slice(1);
+    }
+
+    function markStale(page) {
+        if (probed && probeStale.indexOf(page) < 0)
+            probeStale = probeStale.concat([page]);
+    }
+
+    function resetProbe() {
+        probed = false;
+        probeQueue = [];
+        probeStale = [];
+        probePage = "";
+        liveEntries = [];
+    }
+
+    function recordProbe(page) {
+        const id = probePage;
+        const views = [""].concat(page.subViews ?? []);
+        let rows = [];
+        for (let i = 0; i < views.length; i++) {
+            page.openSubView?.(views[i], true);
+            rows = rows.concat(probeRows(page, views[i]));
+        }
+        liveEntries = liveEntries.filter(e => e.page !== id).concat(rows.map(r => Object.assign(r, {
+                "page": id,
+                "pageLabel": tabLabel(id)
+            })));
+    }
+
+    // rows and cards with a title; a hidden one takes the reason of its outermost hidden container that has one
+    function probeRows(item, view) {
+        const rows = [];
+        const walk = (it, section, reason) => {
+            if (!reason && !it.visible && it.unavailableReason)
+                reason = it.unavailableReason;
+            const row = it.isSettingsRow === true || it.isSettingsEntry === true;
+            const card = it.isSettingsCard === true;
+            if ((row || card) && it.title && it.searchable !== false)
+                rows.push({
+                    "title": it.title,
+                    "section": card ? "" : section,
+                    "text": it.subtitle ?? "",
+                    "keywords": it.keywords ?? "",
+                    "hidden": !it.visible,
+                    "reason": it.visible ? "" : reason,
+                    "subView": view
+                });
+            if (row)
+                return;
+            for (let i = 0; i < it.children.length; i++)
+                walk(it.children[i], card ? it.title : section, reason);
         };
+        walk(item, "", "");
+        return rows;
+    }
+
+    function pageFile(id) {
+        switch (id) {
+        case "playback":
+            return "PlaybackSettings.qml";
+        case "lyrics":
+            return "LyricsSettings.qml";
+        case "scrobble":
+            return "ScrobbleSettings.qml";
+        case "devices":
+            return "DevicesSettings.qml";
+        case "general":
+            return "GeneralSettings.qml";
+        case "nowplaying":
+            return "NowPlayingSettings.qml";
+        case "pages":
+            return "PagesSettings.qml";
+        case "appearance":
+            return "AppearanceSettings.qml";
+        case "about":
+            return "AboutSettings.qml";
+        }
+        return "LibrariesSettings.qml";
     }
 
     // an index pair: [source, context] for I18n.tr, or [text, ""] for a brand name
@@ -195,9 +282,8 @@ DFloatingWindow {
     }
 
     function openSearchResult(entry) {
-        showPage(entry.page, "");
-        if (entry.cacheLibrary)
-            (pageLoader.item as LibrariesSettings)?.openCachePage(entry.cacheLibrary);
+        showPage(entry.page, entry.subView ?? "");
+        revealReason = entry.reason ?? "";
         menuVisible = false;
         clearHighlight();
         revealTitle = entry.isPage ? "" : entry.title;
@@ -223,13 +309,10 @@ DFloatingWindow {
 
     function reveal() {
         let target = findOnPage(pageLoader.item, revealTitle, false);
-        if (!target) {
-            target = findOnPage(pageLoader.item, revealTitle, true);
-            if (target && !openSubViewOf(target)) {
-                revealTimer.stop();
-                revealHidden = true;
-                return;
-            }
+        if (!target && findOnPage(pageLoader.item, revealTitle, true)) {
+            revealTimer.stop();
+            revealHidden = true;
+            return;
         }
         let flick = null;
         for (let p = target?.parent; p && !flick; p = p.parent)
@@ -260,29 +343,10 @@ DFloatingWindow {
         highlightedRow = null;
     }
 
-    // also returns Libraries and Playback device to their main view
+    // "" returns a page with sub-views to its main view
     function applySubPage() {
-        const nowPlaying = pageLoader.item as NowPlayingSettings;
-        if (nowPlaying)
-            nowPlaying.subPage = pendingSubPage;
-        const libraries = pageLoader.item as LibrariesSettings;
-        if (libraries)
-            libraries.cachePage = "";
-        const devices = pageLoader.item as DevicesSettings;
-        if (devices)
-            devices.syncPage = false;
-    }
-
-    // a hidden row that is on a sub-view: opens the sub-view when it can be opened
-    function openSubViewOf(item) {
-        const devices = pageLoader.item as DevicesSettings;
-        if (devices && devices.syncing.length > 1) {
-            devices.syncPage = true;
-            if (item.visible)
-                return true;
-            devices.syncPage = false;
-        }
-        return false;
+        const page = pageLoader.item;
+        page?.openSubView?.(pendingSubPage, false);
     }
 
     title: I18n.tr("Dux Player Settings", "settings window title")
@@ -292,6 +356,10 @@ DFloatingWindow {
     surfaceColor: Theme.withAlpha(Theme.surface, Theme.floatingWindowTransparency)
     visible: false
     onClosed: visible = false
+    onVisibleChanged: {
+        if (!visible)
+            resetProbe();
+    }
     onIsCompactModeChanged: menuVisible = false
 
     FocusScope {
@@ -355,6 +423,8 @@ DFloatingWindow {
                         onTextChanged: {
                             window.searchSelected = 0;
                             navFlick.contentY = 0;
+                            if (window.searching)
+                                window.startProbe();
                         }
 
                         Item {
@@ -438,7 +508,15 @@ DFloatingWindow {
                                         width: parent?.width ?? 0
                                         iconName: tab.icon
                                         title: modelData.title
-                                        hint: modelData.isPage ? tab.hint : tab.label
+                                        hint: {
+                                            if (modelData.hidden)
+                                                return modelData.reason || window.unavailableNote;
+                                            if (modelData.isPage)
+                                                return tab.hint;
+                                            // sub-view rows repeat per library or surface: their section tells them apart
+                                            return modelData.subView ? Phrases.joinAll([tab.label, modelData.section ?? ""]) : tab.label;
+                                        }
+                                        dimmed: modelData.hidden === true
                                         accent: tab.accent
                                         active: window.searchSelected === index
                                         isFirstInGroup: index === 0
@@ -538,7 +616,7 @@ DFloatingWindow {
                         anchors.rightMargin: SettingsMetrics.panePadding
                         visible: window.revealHidden
                         bottomPadding: Theme.spacingS
-                        text: I18n.tr("This setting isn't available in the current setup.", "settings search: the picked setting is hidden by other settings or missing hardware or software")
+                        text: window.revealReason || window.unavailableNote
                         font.pixelSize: Theme.fontSizeSmall
                         color: Theme.surfaceVariantText
                         wrapMode: Text.WordWrap
@@ -554,29 +632,7 @@ DFloatingWindow {
                         anchors.bottom: parent.bottom
                         anchors.leftMargin: SettingsMetrics.panePadding
                         anchors.rightMargin: SettingsMetrics.panePadding
-                        source: {
-                            switch (window.currentTab.id) {
-                            case "playback":
-                                return "PlaybackSettings.qml";
-                            case "lyrics":
-                                return "LyricsSettings.qml";
-                            case "scrobble":
-                                return "ScrobbleSettings.qml";
-                            case "devices":
-                                return "DevicesSettings.qml";
-                            case "general":
-                                return "GeneralSettings.qml";
-                            case "nowplaying":
-                                return "NowPlayingSettings.qml";
-                            case "pages":
-                                return "PagesSettings.qml";
-                            case "appearance":
-                                return "AppearanceSettings.qml";
-                            case "about":
-                                return "AboutSettings.qml";
-                            }
-                            return "LibrariesSettings.qml";
-                        }
+                        source: window.pageFile(window.currentTab.id)
                         onLoaded: window.applySubPage()
                     }
 
@@ -593,6 +649,49 @@ DFloatingWindow {
 
         Snackbar {
             z: Theme.zToast
+        }
+
+        // the search's unseen copy of a page: opacity, not visible, so each row's own visible binding can be read
+        Item {
+            width: pane.width
+            height: 0
+            clip: true
+            opacity: 0
+            enabled: false
+            Accessible.ignored: true
+
+            Loader {
+                width: parent.width
+                height: pane.height
+                asynchronous: true
+                active: window.probePage !== ""
+                source: active ? window.pageFile(window.probePage) : ""
+                onLoaded: {
+                    window.recordProbe(item);
+                    Qt.callLater(window.probeNext);
+                }
+                onStatusChanged: {
+                    if (status === Loader.Error)
+                        Qt.callLater(window.probeNext);
+                }
+            }
+        }
+    }
+
+    Connections {
+        target: PlayerService
+
+        function onLibrariesChanged() {
+            window.markStale("libraries");
+            window.markStale("scrobble");
+        }
+
+        function onOutputDevicesChanged() {
+            window.markStale("devices");
+        }
+
+        function onLyricsProvidersChanged() {
+            window.markStale("lyrics");
         }
     }
 

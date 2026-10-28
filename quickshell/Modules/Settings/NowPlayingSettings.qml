@@ -14,6 +14,8 @@ Item {
     property string subPage: ""
 
     readonly property var surfaces: ["bar", "side", "fullBento", "fullM3e"]
+    // sub-views the settings search opens
+    readonly property var subViews: surfaces
     readonly property var starts: ["bar", "side", "full"]
     readonly property var openPanes: ["last", "lyrics", "queue", "cover"]
     readonly property bool twoColumns: overview.width >= SettingsMetrics.compactBreakpoint
@@ -65,6 +67,10 @@ Item {
         const count = Object.keys(surface.zones).filter(z => z !== "panes").reduce((n, z) => n + surface.zones[z].filter(i => !i.hidden).length, 0);
         const elements = count === 1 ? I18n.tr("1 element", "now playing surface summary, singular") : I18n.tr("%1 elements", "now playing surface summary, plural").arg(count);
         return id === "side" && surface.panesFollowBar ? I18n.tr("%1 · follows the bar", "side panel summary, %1 is the element count").arg(elements) : elements;
+    }
+
+    function openSubView(id) {
+        subPage = id;
     }
 
     function resetAll() {

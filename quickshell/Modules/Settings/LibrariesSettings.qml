@@ -16,6 +16,9 @@ Item {
     // null while the list loads
     property var cachedSongs: null
     readonly property var servers: PlayerService.libraries.filter(l => PlayerService.isRemote(l.id))
+    // sub-views the settings search opens: each server library's offline overview
+    readonly property var subViews: servers.map(l => l.id)
+    readonly property string noServerReason: I18n.tr("Add a server library first.", "why the offline settings are hidden")
     readonly property var ruleKinds: ["everything", "favorites", "played", "mostPlayed", "playlist", "album", "artist"]
     readonly property real ruleIndent: SettingsMetrics.rowPaddingH + Theme.spacingXL
     readonly property real gigabyte: 1e9
@@ -157,6 +160,14 @@ Item {
         removeRuleDialog.run = run;
         removeRuleDialog.title = I18n.tr("Remove %1?", "remove offline rule confirmation title, %1 is the rule").arg(label);
         removeRuleDialog.ask();
+    }
+
+    // quiet: switch the view without loading its list (the settings search reading the page)
+    function openSubView(id, quiet) {
+        if (id === "" || quiet)
+            cachePage = id;
+        else
+            openCachePage(id);
     }
 
     function openCachePage(libraryId) {
@@ -327,6 +338,7 @@ Item {
         SettingsCard {
             width: parent.width
             visible: root.cachePage === "" && root.servers.length > 0
+            unavailableReason: root.noServerReason
             title: I18n.tr("Offline", "libraries settings section about cached server tracks")
 
             SettingsRow {
@@ -354,6 +366,7 @@ Item {
 
             SettingsRow {
                 visible: SettingsService.cache.pinnedOverLimit === true || SettingsService.cache.full === true
+                searchable: false
                 title: SettingsService.cache.pinnedOverLimit ? I18n.tr("Kept tracks exceed the size limit", "offline warning title") : I18n.tr("Offline storage is full", "offline warning title")
                 subtitle: SettingsService.cache.pinnedOverLimit ? I18n.tr("Rules other than Recently played and Most played keep %1, over the %2 size limit. Downloads are paused.", "offline warning: pinned songs exceed the size limit").arg(root.size(SettingsService.cache.pinned ?? 0)).arg(root.size(SettingsService.cache.limit ?? 0)) : I18n.tr("Downloads are paused. Raise the size limit or remove a rule.", "offline warning: the cache is full")
                 subtitleColor: Theme.error
@@ -501,6 +514,7 @@ Item {
         SettingsCard {
             width: parent.width
             visible: root.cachePage !== ""
+            unavailableReason: root.noServerReason
             title: I18n.tr("Offline rules for %1", "library offline overview section, %1 is the library").arg(PlayerService.libraryName(root.cachePage))
 
             Repeater {
@@ -522,8 +536,6 @@ Item {
 
             SettingsRow {
                 title: I18n.tr("Clear downloads", "offline action for one library")
-                // one search result per server library instead (SettingsWindow)
-                searchable: false
                 subtitle: I18n.tr("Deletes downloaded tracks. Rules are kept.", "offline clear action description")
                 iconName: "delete_sweep"
 
@@ -544,6 +556,7 @@ Item {
         SettingsCard {
             width: parent.width
             visible: root.cachePage !== ""
+            unavailableReason: root.noServerReason
             title: root.cachedSongs ? Phrases.join(I18n.tr("Downloaded tracks", "library offline overview section"), Phrases.tracks(root.cachedSongs.length)) : I18n.tr("Downloaded tracks", "library offline overview section")
 
             SettingsRow {
@@ -575,6 +588,7 @@ Item {
 
             SettingsRow {
                 visible: (root.cachedSongs ?? []).length > PlayerMetrics.cacheListLimit
+                searchable: false
                 title: Phrases.moreTracks((root.cachedSongs ?? []).length - PlayerMetrics.cacheListLimit)
             }
         }
@@ -649,6 +663,7 @@ Item {
         readonly property bool dynamic: modelData.kind === "played" || modelData.kind === "mostPlayed"
 
         title: root.ruleLabel(libraryId, modelData)
+        searchable: false
         subtitle: root.ruleFacts(modelData)
         iconName: root.ruleIcon(modelData.kind)
         paddingH: root.ruleIndent

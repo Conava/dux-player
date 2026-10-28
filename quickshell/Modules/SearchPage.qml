@@ -90,6 +90,8 @@ Item {
         anchors.leftMargin: PlayerMetrics.pagePadding
         anchors.rightMargin: PlayerMetrics.pagePadding
         title: root.editing ? UiConfig.pageKindLabel("search") : ""
+        // a top-level destination, like the navigation pages
+        showBack: false
         editable: true
         editing: root.editing
         onEditRequested: Router.editing = true
@@ -101,14 +103,19 @@ Item {
     ScopedSearch {
         id: field
         anchors.top: header.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.left: parent.left
+        anchors.leftMargin: PlayerMetrics.pagePadding
         width: Math.min(parent.width - PlayerMetrics.pagePadding * 2, SettingsMetrics.contentMaxWidth)
-        height: Theme.listItemHeight
+        height: visible ? Theme.listItemHeight : 0
+        visible: !Router.headerSearchField
         font.pixelSize: Theme.fontSizeLarge
         placeholderText: I18n.tr("Search albums, artists and tracks", "search field placeholder")
         text: PlayerService.searchQuery
         onTextChanged: PlayerService.search(text)
-        Component.onCompleted: forceActiveFocus()
+        Component.onCompleted: {
+            if (visible)
+                forceActiveFocus();
+        }
     }
 
     PageEditor {

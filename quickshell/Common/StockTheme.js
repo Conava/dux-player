@@ -4,6 +4,8 @@
 // Material tonal palette, mirroring Dux Shell's stock themes.
 const SEMANTIC_DARK = {
     error: "#F2B8B5",
+    errorContainer: "#8C1D18",
+    errorContainerText: "#F9DEDC",
     warning: "#FF9800",
     info: "#2196F3",
     success: "#4CAF50"
@@ -11,6 +13,8 @@ const SEMANTIC_DARK = {
 
 const SEMANTIC_LIGHT = {
     error: "#B3261E",
+    errorContainer: "#F9DEDC",
+    errorContainerText: "#410E0B",
     warning: "#E58A00",
     info: "#1565C0",
     success: "#2E7D32"

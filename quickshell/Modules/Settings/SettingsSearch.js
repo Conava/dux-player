@@ -2,7 +2,7 @@
 
 // Best match first: the title (exact, prefix, word start, anywhere); then entries holding every word of the query
 // in their title, keywords, section and page; then in their description and option labels too; then the same
-// with word endings and small typos forgiven. Ties keep the index order.
+// with word endings and small typos forgiven. Ties put hidden entries last, then keep the index order.
 function search(entries, query) {
     const q = normalize(query);
     if (q === "")
@@ -18,8 +18,49 @@ function search(entries, query) {
                 "order": i
             });
     }
-    scored.sort((a, b) => b.score - a.score || a.order - b.order);
+    scored.sort((a, b) => b.score - a.score || (a.entry.hidden === true) - (b.entry.hidden === true) || a.order - b.order);
     return scored.map(s => s.entry);
+}
+
+// The index entries updated with the rows read from the pages ({page, title, hidden, reason, subView}), matched by
+// page and title; rows the index lacks are added. Copies of a row give one entry per sub-view they are shown on,
+// or one hidden entry when none is shown.
+function merge(entries, live) {
+    const groups = {};
+    const keys = [];
+    for (let i = 0; i < live.length; i++) {
+        const key = live[i].page + "\n" + live[i].title;
+        if (!groups[key]) {
+            groups[key] = [];
+            keys.push(key);
+        }
+        groups[key].push(live[i]);
+    }
+    for (let i = 0; i < keys.length; i++) {
+        const copies = groups[keys[i]];
+        const shown = copies.filter((e, j) => !e.hidden && copies.findIndex(o => !o.hidden && o.subView === e.subView) === j);
+        groups[keys[i]] = shown.length > 0 ? shown : [copies.find(e => e.reason) ?? copies[0]];
+    }
+    const out = [];
+    for (let i = 0; i < entries.length; i++) {
+        const key = entries[i].page + "\n" + entries[i].title;
+        const copies = entries[i].isPage ? null : groups[key];
+        if (!copies) {
+            out.push(entries[i]);
+            continue;
+        }
+        delete groups[key];
+        for (let j = 0; j < copies.length; j++)
+            out.push(Object.assign({}, entries[i], {
+                "section": entries[i].section || copies[j].section,
+                "hidden": copies[j].hidden,
+                "reason": copies[j].reason,
+                "subView": copies[j].subView
+            }));
+    }
+    for (let i = 0; i < keys.length; i++)
+        out.push(...(groups[keys[i]] ?? []));
+    return out;
 }
 
 function normalize(text) {

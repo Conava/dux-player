@@ -112,38 +112,15 @@ Item {
             }
 
             // nothing to show until a library exists
-            Column {
+            EmptyState {
                 width: parent.width
                 visible: !root.editing && CatalogService.librariesLoaded && !root.hasLibraries
-                spacing: Theme.spacingM
-                topPadding: Theme.spacingXL
-
-                DIcon {
-                    name: "library_music"
-                    size: Theme.iconSizeLarge
-                    color: Theme.surfaceVariantText
-                }
-
-                StyledText {
-                    width: parent.width
-                    text: I18n.tr("No music", "home empty state title when no library is set up")
-                    font.pixelSize: Theme.fontSizeLarge
-                    color: Theme.surfaceText
-                }
-
-                StyledText {
-                    width: parent.width
-                    text: I18n.tr("Add a music folder or server.", "home empty state when no library is set up")
-                    font.pixelSize: Theme.fontSizeMedium
-                    color: Theme.surfaceVariantText
-                    wrapMode: Text.WordWrap
-                }
-
-                DButton {
-                    text: I18n.tr("Add library", "libraries settings primary action")
-                    iconName: "add"
-                    onClicked: Router.addLibrary()
-                }
+                iconName: "library_music"
+                title: I18n.tr("No music", "home empty state title when no library is set up")
+                text: I18n.tr("Add a music folder or server.", "home empty state when no library is set up")
+                actionText: I18n.tr("Add library", "libraries settings primary action")
+                actionIcon: "add"
+                onActionClicked: Router.addLibrary()
             }
 
             StyledText {

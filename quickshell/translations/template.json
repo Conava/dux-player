@@ -98,6 +98,13 @@
     "comment": ""
   },
   {
+    "term": "%1 artists",
+    "translation": "",
+    "context": "artist count, plural",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "%1 at %2",
     "translation": "",
     "context": "server account: user at address",
@@ -196,6 +203,13 @@
     "comment": ""
   },
   {
+    "term": "%1 genres",
+    "translation": "",
+    "context": "genre count, plural",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "%1 is still unavailable",
     "translation": "",
     "context": "snackbar after a retry, %1 is the library",
@@ -206,13 +220,6 @@
     "term": "%1 is unavailable",
     "translation": "",
     "context": "why a track can't play, %1 is its library",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "%1 items",
-    "translation": "",
-    "context": "browse page item count, plural",
     "reference": "",
     "comment": ""
   },
@@ -276,6 +283,13 @@
     "term": "%1 outputs",
     "translation": "",
     "context": "playback device chip, %1 is 2 or more",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 playlists",
+    "translation": "",
+    "context": "playlist count, plural",
     "reference": "",
     "comment": ""
   },
@@ -406,6 +420,13 @@
     "comment": ""
   },
   {
+    "term": "1 artist",
+    "translation": "",
+    "context": "artist count, singular",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "1 element",
     "translation": "",
     "context": "now playing surface summary, singular",
@@ -413,9 +434,9 @@
     "comment": ""
   },
   {
-    "term": "1 item",
+    "term": "1 genre",
     "translation": "",
-    "context": "browse page item count, singular",
+    "context": "genre count, singular",
     "reference": "",
     "comment": ""
   },
@@ -430,6 +451,13 @@
     "term": "1 play",
     "translation": "",
     "context": "play count, singular",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "1 playlist",
+    "translation": "",
+    "context": "playlist count, singular",
     "reference": "",
     "comment": ""
   },
@@ -511,13 +539,6 @@
     "comment": ""
   },
   {
-    "term": "Add \"%1\" to playlist",
-    "translation": "",
-    "context": "add to playlist dialog title for one track",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Add %1 tracks to playlist",
     "translation": "",
     "context": "add to playlist dialog title for several tracks",
@@ -528,6 +549,13 @@
     "term": "Add a music folder or server.",
     "translation": "",
     "context": "home empty state when no library is set up",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add a server library first.",
+    "translation": "",
+    "context": "why the offline settings are hidden",
     "reference": "",
     "comment": ""
   },
@@ -661,6 +689,13 @@
     "term": "Add tracks from their menu or drag them here.",
     "translation": "",
     "context": "empty playlist hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Add “%1” to playlist",
+    "translation": "",
+    "context": "add to playlist dialog title for one track",
     "reference": "",
     "comment": ""
   },
@@ -966,13 +1001,6 @@
     "comment": ""
   },
   {
-    "term": "Auto follows the desktop.",
-    "translation": "",
-    "context": "appearance setting description",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Auto moves it into ⋮ when the row runs out of space.",
     "translation": "",
     "context": "element placement description",
@@ -994,6 +1022,13 @@
     "comment": ""
   },
   {
+    "term": "Available after signing in.",
+    "translation": "",
+    "context": "why a scrobbling setting is hidden",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Available offline",
     "translation": "",
     "context": "track row cloud icon while the server is down",
@@ -1004,6 +1039,13 @@
     "term": "Available when Download upcoming tracks is on.",
     "translation": "",
     "context": "why the metered connections setting is unavailable",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Available when Palette is %1.",
+    "translation": "",
+    "context": "why an appearance setting is hidden, %1 is a palette option",
     "reference": "",
     "comment": ""
   },
@@ -1029,16 +1071,16 @@
     "comment": ""
   },
   {
-    "term": "Background vocals",
+    "term": "Background and windows",
     "translation": "",
-    "context": "lyrics setting",
+    "context": "settings sidebar tab hint",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "Background, windows and shortcuts",
+    "term": "Background vocals",
     "translation": "",
-    "context": "settings sidebar tab hint",
+    "context": "lyrics setting",
     "reference": "",
     "comment": ""
   },
@@ -1123,6 +1165,13 @@
     "term": "Bottom row",
     "translation": "",
     "context": "now playing zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Button",
+    "translation": "",
+    "context": "header search option",
     "reference": "",
     "comment": ""
   },
@@ -1309,6 +1358,13 @@
     "comment": ""
   },
   {
+    "term": "Clear filters",
+    "translation": "",
+    "context": "browse empty state action",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Clear history",
     "translation": "",
     "context": "history page action",
@@ -1402,7 +1458,7 @@
   {
     "term": "Compact",
     "translation": "",
-    "context": "view layout option",
+    "context": "density option | view layout option",
     "reference": "",
     "comment": ""
   },
@@ -1941,7 +1997,7 @@
   {
     "term": "Default",
     "translation": "",
-    "context": "font family dropdown option for the bundled font | now playing surface badge: the start surface, or the player style in use | settings pages: a page nobody has changed",
+    "context": "density option | font family dropdown option for the bundled font | now playing surface badge: the start surface, or the player style in use | settings pages: a page nobody has changed",
     "reference": "",
     "comment": ""
   },
@@ -1991,6 +2047,13 @@
     "term": "Deletes downloaded tracks. Rules are kept.",
     "translation": "",
     "context": "offline clear action description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Density",
+    "translation": "",
+    "context": "appearance setting for the height of list rows",
     "reference": "",
     "comment": ""
   },
@@ -2296,6 +2359,13 @@
     "comment": ""
   },
   {
+    "term": "Enter a path",
+    "translation": "",
+    "context": "library dialog action that shows a folder path field",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Enter at least %1 GB.",
     "translation": "",
     "context": "offline rule limit dialog, why save is disabled",
@@ -2460,6 +2530,13 @@
     "term": "Fetches missing artist images and biographies. Artist names are sent to %1.",
     "translation": "",
     "context": "general setting description, %1 lists online services",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Field",
+    "translation": "",
+    "context": "header search option",
     "reference": "",
     "comment": ""
   },
@@ -2800,6 +2877,13 @@
     "comment": ""
   },
   {
+    "term": "Height of the rows in track lists and the queue.",
+    "translation": "",
+    "context": "appearance density description",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Hex color",
     "translation": "",
     "context": "appearance seed color field",
@@ -2964,6 +3048,13 @@
     "term": "Installed, but doesn't start. Playback is unavailable.",
     "translation": "",
     "context": "about page: mpv is installed but broken",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Installed. Restart Dux Player to use it.",
+    "translation": "",
+    "context": "about page: a component was installed after the player started",
     "reference": "",
     "comment": ""
   },
@@ -3230,6 +3321,13 @@
     "term": "ListenBrainz and Last.fm",
     "translation": "",
     "context": "settings sidebar tab hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Lists",
+    "translation": "",
+    "context": "appearance settings section label",
     "reference": "",
     "comment": ""
   },
@@ -3542,6 +3640,20 @@
     "comment": ""
   },
   {
+    "term": "No albums",
+    "translation": "",
+    "context": "browse page empty state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No artists",
+    "translation": "",
+    "context": "browse page empty state",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "No cover, title or open button. Clicking the bar still opens the full view.",
     "translation": "",
     "context": "customization warning",
@@ -3584,6 +3696,13 @@
     "comment": ""
   },
   {
+    "term": "No genres",
+    "translation": "",
+    "context": "browse page empty state",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "No info lines",
     "translation": "",
     "context": "page edit mode: the info lines zone is empty",
@@ -3600,7 +3719,7 @@
   {
     "term": "No libraries",
     "translation": "",
-    "context": "libraries settings empty state",
+    "context": "libraries page empty state | libraries settings empty state",
     "reference": "",
     "comment": ""
   },
@@ -3628,7 +3747,7 @@
   {
     "term": "No playlists",
     "translation": "",
-    "context": "library feature missing",
+    "context": "browse page empty state | library feature missing",
     "reference": "",
     "comment": ""
   },
@@ -3664,6 +3783,13 @@
     "term": "No system keyring is running",
     "translation": "",
     "context": "why a server library can't sign in",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No tracks",
+    "translation": "",
+    "context": "browse page empty state",
     "reference": "",
     "comment": ""
   },
@@ -3818,6 +3944,13 @@
     "term": "Nothing matches.",
     "translation": "",
     "context": "offline rule picker empty result | settings search empty result",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Nothing played yet.",
+    "translation": "",
+    "context": "history and most played empty state",
     "reference": "",
     "comment": ""
   },
@@ -4046,23 +4179,23 @@
     "comment": ""
   },
   {
+    "term": "Pauses at the end of this track",
+    "translation": "",
+    "context": "sleep timer status",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Pauses in %1 min",
+    "translation": "",
+    "context": "sleep timer status, %1 is the remaining minutes",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Pauses playback after a set time.",
     "translation": "",
     "context": "sleep timer status when off",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Pausing after this track.",
-    "translation": "",
-    "context": "sleep timer status",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Pausing in %1.",
-    "translation": "",
-    "context": "sleep timer status",
     "reference": "",
     "comment": ""
   },
@@ -4343,6 +4476,13 @@
     "term": "Preset",
     "translation": "",
     "context": "appearance setting | color scheme option | equalizer setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Press Enter to add the folder.",
+    "translation": "",
+    "context": "library dialog folder field hint",
     "reference": "",
     "comment": ""
   },
@@ -4781,6 +4921,13 @@
     "comment": ""
   },
   {
+    "term": "Requires Dux Shell.",
+    "translation": "",
+    "context": "why the Dux Shell settings are hidden",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Requires PipeWire (pipewire and pw-cli)",
     "translation": "",
     "context": "why the equalizer can't start",
@@ -4805,6 +4952,13 @@
     "term": "Requires ffmpeg to measure the silence.",
     "translation": "",
     "context": "why the skip silence settings are unavailable",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Requires two or more outputs",
+    "translation": "",
+    "context": "why playing on multiple outputs is unavailable",
     "reference": "",
     "comment": ""
   },
@@ -5133,7 +5287,7 @@
   {
     "term": "Search",
     "translation": "",
-    "context": "header button | offline rule picker search field",
+    "context": "header button | navigation destination | offline rule picker search field",
     "reference": "",
     "comment": ""
   },
@@ -5211,6 +5365,13 @@
     "term": "Search in %1",
     "translation": "",
     "context": "a page's own search field, %1 is the page, playlist or artist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Search in header",
+    "translation": "",
+    "context": "general setting",
     "reference": "",
     "comment": ""
   },
@@ -5645,6 +5806,13 @@
     "term": "Spacer",
     "translation": "",
     "context": "layout element: empty space",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Spacious",
+    "translation": "",
+    "context": "density option",
     "reference": "",
     "comment": ""
   },

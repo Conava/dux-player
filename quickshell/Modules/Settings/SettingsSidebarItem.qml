@@ -11,6 +11,9 @@ Rectangle {
     property string accent: ""
     property bool active: false
     property bool highlighted: false
+    // a search result the current setup hides; hint says why
+    property bool dimmed: false
+    readonly property int hintMaxLines: 2
     property bool isFirstInGroup: true
     property bool isLastInGroup: true
 
@@ -144,7 +147,7 @@ Rectangle {
             text: root.title
             font.pixelSize: Theme.fontSizeMedium
             font.weight: Theme.fontWeightMedium
-            color: Theme.surfaceText
+            color: root.dimmed ? Theme.onSurface_38 : Theme.surfaceText
             elide: Text.ElideRight
             wrapMode: Text.NoWrap
             horizontalAlignment: Text.AlignLeft
@@ -154,9 +157,10 @@ Rectangle {
             width: parent.width
             text: root.hint
             font.pixelSize: Theme.fontSizeSmall
-            color: Theme.surfaceVariantText
+            color: root.dimmed ? Theme.onSurface_38 : Theme.surfaceVariantText
             elide: Text.ElideRight
-            wrapMode: Text.NoWrap
+            wrapMode: root.dimmed ? Text.Wrap : Text.NoWrap
+            maximumLineCount: root.hintMaxLines
             visible: root.hint !== ""
             horizontalAlignment: Text.AlignLeft
         }

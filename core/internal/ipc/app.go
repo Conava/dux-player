@@ -3,10 +3,13 @@ package ipc
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/duxlabs-dev/dux-go/ipc/params"
 	"github.com/duxlabs-dev/dux-go/log"
 
+	"github.com/Conava/dux-player/core/internal/library"
+	"github.com/Conava/dux-player/core/internal/pendingmarks"
 	"github.com/Conava/dux-player/core/internal/settings"
 	"github.com/Conava/dux-player/core/internal/source"
 )
@@ -131,6 +134,9 @@ func handleMarks(ctx context.Context, w *ConnWriter, req Request, deps Deps) {
 		err = r.SetRating(ctx, kind, id, rating)
 		event["rating"] = rating
 	}
+	if err != nil && queueMark(ctx, deps, event) {
+		err = nil
+	}
 	if err != nil {
 		w.RespondError(req.ID, err.Error())
 		return
@@ -150,4 +156,86 @@ func handleMarks(ctx context.Context, w *ConnWriter, req Request, deps Deps) {
 	}
 	deps.Bus.Publish(TopicMarks, event)
 	w.Respond(req.ID, event)
+}
+
+// queueMark keeps a favorite or rating its server couldn't take because it
+// is unreachable, to send once it is back. The event is the change; false
+// when it failed for another reason.
+func queueMark(ctx context.Context, deps Deps, event map[string]any) bool {
+	fav, hasFav := event["favorite"].(bool)
+	rating, hasRating := event["rating"].(int)
+	if deps.Marks == nil || !hasFav && !hasRating {
+		return false
+	}
+	lib := event["library"].(string)
+	if info, err := deps.Libraries.Retry(ctx, lib); err != nil || info.ErrorCode != library.CodeServerUnreachable {
+		return false
+	}
+	c := pendingmarks.Change{Library: lib, Kind: event["kind"].(string), ID: event["id"].(string)}
+	if hasFav {
+		c.Favorite = &fav
+	}
+	if hasRating {
+		c.Rating = &rating
+	}
+	if err := deps.Marks.Add(c); err != nil {
+		log.Warnf("queue a mark: %v", err)
+		return false
+	}
+	return true
+}
+
+// FlushMarks sends the queued favorites and ratings of the libraries that
+// are reachable again.
+func FlushMarks(ctx context.Context, deps Deps) {
+	if deps.Marks == nil || deps.Marks.Len() == 0 {
+		return
+	}
+	infos, err := deps.Libraries.List(ctx)
+	if err != nil {
+		log.Warnf("send queued marks: %v", err)
+		return
+	}
+	online := make(map[string]bool, len(infos))
+	for _, info := range infos {
+		online[info.ID] = info.Available
+	}
+	deps.Marks.Flush(ctx, online, func(ctx context.Context, c pendingmarks.Change) error {
+		err := sendMark(ctx, deps, c)
+		if err != nil {
+			if info, rerr := deps.Libraries.Retry(ctx, c.Library); rerr == nil && info.ErrorCode == library.CodeServerUnreachable {
+				return fmt.Errorf("%w: %w", pendingmarks.ErrUnreachable, err)
+			}
+		}
+		return err
+	})
+}
+
+func sendMark(ctx context.Context, deps Deps, c pendingmarks.Change) error {
+	ctx, cancel := context.WithTimeout(ctx, source.CallTimeout)
+	defer cancel()
+	event := map[string]any{"library": c.Library, "kind": c.Kind, "id": c.ID}
+	if c.Favorite != nil {
+		f, err := Capability[source.Favorites](deps.Libraries, c.Library, "favorites")
+		if err == nil {
+			err = f.SetFavorite(ctx, c.Kind, c.ID, *c.Favorite)
+		}
+		if err != nil {
+			return err
+		}
+		event["favorite"] = *c.Favorite
+	}
+	if c.Rating != nil {
+		r, err := Capability[source.Ratings](deps.Libraries, c.Library, "ratings")
+		if err == nil {
+			err = r.SetRating(ctx, c.Kind, c.ID, *c.Rating)
+		}
+		if err != nil {
+			return err
+		}
+		event["rating"] = *c.Rating
+	}
+	// The cache's favorites rule resyncs on it.
+	deps.Bus.Publish(TopicMarks, event)
+	return nil
 }

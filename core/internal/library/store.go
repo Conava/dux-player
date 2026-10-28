@@ -401,10 +401,13 @@ func (s *Store) Missing(ctx context.Context, libID, id string) bool {
 	return missing
 }
 
-// TrackByPath finds the indexed track of a file in any library.
+// TrackByPath finds the indexed track of a file in any enabled library.
+// CROSS JOIN keeps libraries the outer loop, so each lookup uses the
+// (library_id, path) index instead of scanning every track.
 func (s *Store) TrackByPath(ctx context.Context, path string) (source.Ref, bool) {
 	var ref source.Ref
-	err := s.db.QueryRowContext(ctx, "SELECT library_id, id FROM tracks WHERE path = ? LIMIT 1", path).Scan(&ref.Library, &ref.ID)
+	err := s.db.QueryRowContext(ctx, `SELECT t.library_id, t.id FROM libraries l CROSS JOIN tracks t
+		ON t.library_id = l.id AND t.path = ? WHERE l.enabled = 1 LIMIT 1`, path).Scan(&ref.Library, &ref.ID)
 	return ref, err == nil
 }
 
@@ -698,7 +701,9 @@ func (s *Store) queryArtists(ctx context.Context, libID, having string, args ...
 
 var albumCols = `al.id, al.name, al.artist, al.artist_id, al.year, al.cover, al.added,
 	(SELECT count(*) FROM tracks t WHERE t.library_id = al.library_id AND t.album_id = al.id),
-	(SELECT coalesce(sum(duration), 0) FROM tracks t WHERE t.library_id = al.library_id AND t.album_id = al.id), ` +
+	(SELECT coalesce(sum(duration), 0) FROM tracks t WHERE t.library_id = al.library_id AND t.album_id = al.id),
+	coalesce((SELECT t.genre FROM tracks t WHERE t.library_id = al.library_id AND t.album_id = al.id AND t.genre != ''
+		GROUP BY t.genre ORDER BY count(*) DESC, t.genre LIMIT 1), ''), ` +
 	markCols(source.ItemAlbum, "al") + `, ` + artistsCol(source.ItemAlbum, "al")
 
 func (s *Store) queryAlbums(ctx context.Context, libID, where string, limit int, args ...any) ([]source.Album, error) {
@@ -717,7 +722,7 @@ func (s *Store) queryAlbums(ctx context.Context, libID, where string, limit int,
 		a := source.Album{Library: libID}
 		var cover string
 		var artists []byte
-		if err := rows.Scan(&a.ID, &a.Name, &a.Artist, &a.ArtistID, &a.Year, &cover, &a.Added, &a.TrackCount, &a.Duration, &a.Favorite, &a.Rating, &artists); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Artist, &a.ArtistID, &a.Year, &cover, &a.Added, &a.TrackCount, &a.Duration, &a.Genre, &a.Favorite, &a.Rating, &artists); err != nil {
 			return nil, err
 		}
 		a.Artists = artistRefs(artists, a.Artist, a.ArtistID)

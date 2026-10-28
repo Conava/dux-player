@@ -16,7 +16,7 @@ WindowDialog {
     }
 
     opened: tracks.length > 0
-    title: tracks.length === 1 ? I18n.tr("Add \"%1\" to playlist", "add to playlist dialog title for one track").arg(tracks[0].title) : I18n.tr("Add %1 tracks to playlist", "add to playlist dialog title for several tracks").arg(tracks.length)
+    title: tracks.length === 1 ? I18n.tr("Add “%1” to playlist", "add to playlist dialog title for one track").arg(tracks[0].title) : I18n.tr("Add %1 tracks to playlist", "add to playlist dialog title for several tracks").arg(tracks.length)
     acceptEnabled: false
     onRejected: close()
     // later: taking focus inside the binding update loops through DDialog's focus tracking

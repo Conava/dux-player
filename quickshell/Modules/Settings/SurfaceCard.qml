@@ -8,6 +8,8 @@ DListItem {
     id: root
 
     property string title: ""
+    // found by the settings search
+    readonly property bool isSettingsEntry: true
     property string badge: ""
     property string summary: ""
     property string warning: ""

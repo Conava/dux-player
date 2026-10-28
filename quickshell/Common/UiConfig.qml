@@ -517,7 +517,7 @@ Singleton {
 
     // Navigation
 
-    readonly property var pageTargets: ["home", "playlists", "favorites", "tracks", "albums", "artists", "genres", "libraries", "history", "mostPlayed"]
+    readonly property var pageTargets: Catalog.pageTargets
     // every entry, turned off ones included, in the order set in Settings
     readonly property var navigation: Catalog.navEntries(effective.navigation, pageTargets, ["home", "playlists", "favorites", "tracks", "albums", "artists", "libraries"])
     readonly property var shownNavigation: navigation.filter(e => !e.hidden && entryValid(e))
@@ -534,6 +534,8 @@ Singleton {
             return I18n.tr("Favorites", "favorite tracks: page, cache mode, library feature");
         case "mostPlayed":
             return I18n.tr("Most played", "home shelf and page of the most played tracks");
+        case "search":
+            return I18n.tr("Search", "navigation destination");
         }
         return typeLabel(page);
     }
@@ -560,6 +562,8 @@ Singleton {
             return "favorite";
         case "mostPlayed":
             return "trending_up";
+        case "search":
+            return "search";
         }
         return "circle";
     }

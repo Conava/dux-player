@@ -139,6 +139,9 @@ def scan(page, source):
 def close(page, frame, stack, entries):
     props = frame["props"]
     options = frame["options"] + [p for name in OPTION_PROPS if name in props for p in tr_pairs(props[name])]
+    # a button outside any row ("Add entry" under the navigation list) is found by its label
+    if frame["type"] == "DButton" and not any(f["type"] in ENTRIES for f in stack):
+        frame["type"] = "DFab"
     if frame["type"] not in ENTRIES:
         # an element inside a row (a dropdown, a button) adds its labels to the row
         if stack:

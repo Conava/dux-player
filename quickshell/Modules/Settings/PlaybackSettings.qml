@@ -217,13 +217,14 @@ SettingsPage {
                         DSlider {
                             id: bandSlider
                             anchors.verticalCenter: parent.verticalCenter
-                            width: parent.width - PlayerMetrics.eqBandLabelWidth - parent.spacing
+                            width: parent.width - PlayerMetrics.eqBandLabelWidth - gain.width - parent.spacing * 2
                             size: "s"
                             minimum: -12
                             maximum: 12
                             unit: I18n.tr(" dB", "unit suffix for decibels")
                             enabled: root.settings.equalizer.enabled
                             wheelEnabled: false
+                            showValue: false
                             Accessible.name: band.label
                             // the daemon applies changes live, so the band is heard while dragging
                             onSliderValueChanged: newValue => PlayerService.setEqualizerBand(band.index, newValue)
@@ -233,6 +234,19 @@ SettingsPage {
                                 when: !bandSlider.isDragging
                                 restoreMode: Binding.RestoreNone
                             }
+                        }
+
+                        NumericText {
+                            id: gain
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Math.ceil(reservedWidth)
+                            isMonospace: false
+                            text: (bandSlider.value > 0 ? "+" : "") + bandSlider.formatValue(bandSlider.value)
+                            reserveText: "+" + bandSlider.formatValue(bandSlider.maximum)
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.surfaceVariantText
+                            opacity: bandSlider.enabled ? 1 : Theme.disabledOpacity
+                            horizontalAlignment: Text.AlignRight
                         }
                     }
                 }

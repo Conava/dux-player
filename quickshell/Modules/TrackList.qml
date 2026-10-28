@@ -148,7 +148,7 @@ Item {
             // mirrors TrackRow's wide layout
             RowLayout {
                 width: parent?.width ?? 0
-                visible: root.columns
+                visible: root.columns && root.tracks.length > 0
                 spacing: Theme.spacingM
 
                 Item {
@@ -237,8 +237,9 @@ Item {
             actionTracks: inSelection && root.selectedIndexes.length > 1 ? root.selectedTracks : [modelData]
             playlistId: root.playlistId
             playlistIndexes: inSelection && root.selectedIndexes.length > 1 ? root.selectedPositions : root.positionsOf([index])
-            firstInGroup: index === 0
-            lastInGroup: index === root.tracks.length - 1
+            // sections (discs, days) each start a group of their own
+            firstInGroup: index === 0 || ListView.section !== ListView.previousSection
+            lastInGroup: index === root.tracks.length - 1 || ListView.section !== ListView.nextSection
             onActivated: PlayerService.playTracks(root.tracks, index, root.context)
             onSelectRequested: modifiers => root.select(index, modifiers)
         }

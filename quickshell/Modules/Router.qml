@@ -26,6 +26,8 @@ Singleton {
     property bool speedPickerOpen: false
     // the shown page's own search field, which Ctrl+F focuses before the global search
     property Item pageSearch: null
+    // set by the main window while its header shows the search field, so the search page drops its own
+    property bool headerSearchField: false
     // the list picked in last (a track list, search results or the queue): Ctrl+A acts on its selection
     property Item selectionOwner: null
     // the active EscapeLayers, the last activated on top

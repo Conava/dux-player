@@ -12,6 +12,7 @@ SettingsPage {
     id: root
 
     readonly property var removeModes: ["undo", "confirm", "none"]
+    readonly property var headerSearchModes: ["button", "field"]
     readonly property var keyProviders: (SettingsService.artistInfo.providers ?? []).filter(p => p.needsKey)
     readonly property string onlineServices: (SettingsService.artistInfo.providers ?? []).map(p => p.name).join(", ")
     property bool keysShown: false
@@ -66,6 +67,7 @@ SettingsPage {
 
         SettingsRow {
             visible: root.keyProviders.length > 0
+            unavailableReason: SettingsService.artistInfoKnown ? "" : PlayerService.unavailableText
             enabled: SettingsService.settings.artistInfoOnline
             title: I18n.tr("API keys", "general setting: keys for online artist info services")
             keywords: "fanart lastfm"
@@ -151,7 +153,7 @@ SettingsPage {
                         text: WindowRuleService.snippet()
                         font.pixelSize: Theme.fontSizeSmall
                         color: Theme.onSurface
-                        wrapMode: Text.WrapAnywhere
+                        wrapMode: Text.Wrap
                     }
                 }
 
@@ -169,6 +171,17 @@ SettingsPage {
             visible: !WindowRuleService.supported
             title: I18n.tr("Floating windows", "general setting")
             subtitle: I18n.tr("Set a floating rule for the app id %1 in your compositor.", "open floating note for compositors without known rules").arg(WindowRuleService.appId)
+        }
+
+        SettingsButtonGroupRow {
+            text: I18n.tr("Search in header", "general setting")
+            keywords: "search field title bar header toolbar find"
+            model: [I18n.tr("Button", "header search option"), I18n.tr("Field", "header search option")]
+            currentIndex: Math.max(0, root.headerSearchModes.indexOf(SettingsData.headerSearch))
+            onSelectionChanged: (index, selected) => {
+                if (selected)
+                    SettingsData.headerSearch = root.headerSearchModes[index];
+            }
         }
     }
 
@@ -198,8 +211,8 @@ SettingsPage {
                     DButton {
                         text: I18n.tr("Import…", "button that opens a file to import")
                         iconName: "file_open"
-                        backgroundColor: "transparent"
-                        textColor: Theme.primary
+                        backgroundColor: Theme.secondaryContainer
+                        textColor: Theme.onSecondaryContainer
                         onClicked: importPicker.open()
                     }
                 }
@@ -274,6 +287,7 @@ SettingsPage {
                 // why the last combination was refused; cleared by the next try
                 property string problem: ""
                 title: UiConfig.shortcutLabel(modelData)
+                keywords: UiConfig.shortcut(modelData)
                 subtitle: problem
                 subtitleColor: Theme.error
 

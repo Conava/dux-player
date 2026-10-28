@@ -195,8 +195,12 @@ Item {
                 "location": p.kind === "server" ? I18n.tr("On %1", "playlists section for one server, %1 is the library name").arg(PlayerService.libraryName(p.library)) : I18n.tr("On this device", "playlists section for local playlists")
             })).sort((a, b) => locationOrder.indexOf(where(a)) - locationOrder.indexOf(where(b)));
     }
+    readonly property bool narrowed: filterText.trim() !== "" || Object.keys(options.filters ?? {}).some(k => (options.filters[k] ?? "") !== "" && options.filters[k] !== false)
     // the user narrowed the list (or it is a ranking): shuffling it can't hand the whole thing to the daemon
-    readonly property bool filtered: context.kind === "mostPlayed" || filterText.trim() !== "" || Object.keys(options.filters ?? {}).some(k => (options.filters[k] ?? "") !== "" && options.filters[k] !== false)
+    readonly property bool filtered: context.kind === "mostPlayed" || narrowed
+    readonly property bool noMusic: CatalogService.librariesLoaded && PlayerService.libraries.length === 0 && type !== "playlists"
+    // no empty state while the list may still arrive
+    readonly property bool showEmpty: items.length === 0 && CatalogService.librariesLoaded && !(type === "tracks" && CatalogService.tracksLoading)
     readonly property real tileWidth: options.tileSize === "s" ? PlayerMetrics.tileSizeS : options.tileSize === "l" ? PlayerMetrics.tileSizeL : PlayerMetrics.gridCellWidth
     readonly property bool isPlaylists: type === "playlists" && Router.page === "playlists"
     readonly property var homeShelves: UiConfig.surface("home")?.zones.shelves ?? []
@@ -221,6 +225,34 @@ Item {
             "sort": key,
             "descending": false
         }));
+    }
+
+    function clearFilters() {
+        // through the field, as Escape does, so the field and the list agree
+        const field = Router.pageSearch as ScopedSearch;
+        if (field)
+            field.text = "";
+        filterText = "";
+        const cleared = {};
+        for (const key of Object.keys(options.filters ?? {}))
+            cleared[key] = typeof options.filters[key] === "boolean" ? false : "";
+        setOptions(Object.assign({}, options, {
+            "filters": cleared
+        }));
+    }
+
+    function emptyTitle() {
+        switch (type) {
+        case "albums":
+            return I18n.tr("No albums", "browse page empty state");
+        case "artists":
+            return I18n.tr("No artists", "browse page empty state");
+        case "playlists":
+            return I18n.tr("No playlists", "browse page empty state");
+        case "genres":
+            return I18n.tr("No genres", "browse page empty state");
+        }
+        return I18n.tr("No tracks", "browse page empty state");
     }
 
     function addToHome() {
@@ -256,7 +288,7 @@ Item {
             subtitle: {
                 if (root.savedView)
                     return I18n.tr("Saved view · %1", "saved view page subtitle, %1 is the view type").arg(UiConfig.typeLabel(root.type));
-                const count = root.items.length === 1 ? I18n.tr("1 item", "browse page item count, singular") : I18n.tr("%1 items", "browse page item count, plural").arg(root.items.length);
+                const count = Phrases.count(root.type, root.items.length);
                 return root.type === "tracks" && CatalogService.tracksLoading ? I18n.tr("%1, loading more…", "browse page item count while tracks still load").arg(count) : count;
             }
 
@@ -346,14 +378,41 @@ Item {
             onClicked: PlayerService.shuffleTracks(root.items, root.playContext, root.filtered)
         }
 
-        StyledText {
+        EmptyState {
             width: parent.width
-            visible: root.items.length === 0
-            topPadding: Theme.spacingL
-            text: Router.page === "favorites" && root.filterText === "" ? I18n.tr("No favorites. Mark tracks, albums and artists with the heart.", "favorites empty state") : I18n.tr("Nothing matches these filters.", "browse empty state")
-            font.pixelSize: Theme.fontSizeMedium
-            color: Theme.surfaceVariantText
-            wrapMode: Text.WordWrap
+            visible: root.showEmpty
+            iconName: {
+                if (root.narrowed)
+                    return "search_off";
+                if (root.noMusic)
+                    return "library_music";
+                return UiConfig.pageIcon(Router.page === "favorites" || Router.page === "mostPlayed" ? Router.page : root.type);
+            }
+            title: {
+                if (root.narrowed)
+                    return "";
+                if (root.noMusic)
+                    return I18n.tr("No music", "home empty state title when no library is set up");
+                return Router.page === "favorites" || Router.page === "mostPlayed" ? "" : root.emptyTitle();
+            }
+            text: {
+                if (root.narrowed)
+                    return I18n.tr("Nothing matches these filters.", "browse empty state");
+                if (root.noMusic)
+                    return I18n.tr("Add a music folder or server.", "home empty state when no library is set up");
+                if (Router.page === "favorites")
+                    return I18n.tr("No favorites. Mark tracks, albums and artists with the heart.", "favorites empty state");
+                if (Router.page === "mostPlayed")
+                    return I18n.tr("Nothing played yet.", "history and most played empty state");
+                return "";
+            }
+            actionText: {
+                if (root.narrowed)
+                    return I18n.tr("Clear filters", "browse empty state action");
+                return root.noMusic ? I18n.tr("Add library", "libraries settings primary action") : "";
+            }
+            actionIcon: root.narrowed ? "filter_alt_off" : "add"
+            onActionClicked: root.narrowed ? root.clearFilters() : Router.addLibrary()
         }
     }
 

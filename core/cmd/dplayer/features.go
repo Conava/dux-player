@@ -14,6 +14,8 @@ type daemon struct {
 	Secrets                      *keyring.Store
 	// Mixer drives the system volume; nil without wpctl.
 	Mixer *sysvol.Mixer
+	// PipeWire says whether the PipeWire tools were found at startup.
+	PipeWire bool
 	// onNetwork runs after the network changed; starts add to it.
 	onNetwork []func()
 }

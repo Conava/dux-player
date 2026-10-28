@@ -4,7 +4,6 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
-import "../Common/Format.js" as Format
 
 WindowDialog {
     id: root
@@ -24,9 +23,9 @@ WindowDialog {
     supportingText: {
         switch (PlayerService.sleepMode) {
         case "minutes":
-            return I18n.tr("Pausing in %1.", "sleep timer status").arg(Format.duration(PlayerService.sleepRemaining));
+            return I18n.tr("Pauses in %1 min", "sleep timer status, %1 is the remaining minutes").arg(Math.max(1, Math.ceil(PlayerService.sleepRemaining / 60)));
         case "endOfTrack":
-            return I18n.tr("Pausing after this track.", "sleep timer status");
+            return I18n.tr("Pauses at the end of this track", "sleep timer status");
         }
         return I18n.tr("Pauses playback after a set time.", "sleep timer status when off");
     }
@@ -75,8 +74,8 @@ WindowDialog {
         DButton {
             visible: PlayerService.sleepMode !== "off"
             text: I18n.tr("Turn off", "sleep timer action")
-            backgroundColor: Theme.secondaryContainer
-            textColor: Theme.onSecondaryContainer
+            backgroundColor: "transparent"
+            textColor: Theme.primary
             onClicked: {
                 PlayerService.cancelSleepTimer();
                 Router.sleepPickerOpen = false;

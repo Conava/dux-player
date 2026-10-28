@@ -21,6 +21,7 @@ import (
 	"github.com/duxlabs-dev/dux-go/paths"
 
 	"github.com/Conava/dux-player/core/internal/library"
+	"github.com/Conava/dux-player/core/internal/pendingmarks"
 	"github.com/Conava/dux-player/core/internal/player"
 	"github.com/Conava/dux-player/core/internal/settings"
 	"github.com/Conava/dux-player/core/internal/window"
@@ -42,6 +43,9 @@ type Deps struct {
 	Commit string
 	// Stats adds play counts to browse replies; nil without history.
 	Stats interface{ Annotate(v any) }
+	// Marks holds favorites and ratings waiting for an unreachable server;
+	// nil outside the daemon.
+	Marks *pendingmarks.Queue
 	// CacheDir holds derived data such as cover colors.
 	CacheDir string
 	// Ctx outlives single requests; library scans run on it.

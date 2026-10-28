@@ -27,7 +27,7 @@ Item {
             item: root.item
             // the same image chain as the artist page, for every artist tile and row
             imageUrl: root.kind === "artist" ? CatalogService.artistImageUrl(root.item) : ""
-            shape: root.kind === "genre" ? "pill" : root.item?.shape ?? "circle"
+            placeholderIcon: root.kind === "artist" ? "person" : root.kind === "genre" ? "category" : "album"
         }
     }
 

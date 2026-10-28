@@ -159,9 +159,9 @@ Singleton {
     readonly property real containerTint: currentThemeData.containerTint ?? Tonal.defaultTint(surfaceContainer)
     property color primaryContainer: currentThemeData.softPrimaryContainer || Tonal.softContainer(primary, surfaceContainer, containerTint)
     property color secondary: currentThemeData.secondary
-    property color secondaryContainer: currentThemeData.secondaryContainer || blend(surfaceContainerHigh, secondary, 0.35)
+    property color secondaryContainer: currentThemeData.secondaryContainer || Tonal.softContainer(secondary, surfaceContainer, containerTint)
     property color tertiary: currentThemeData.tertiary || currentThemeData.secondary
-    property color tertiaryContainer: currentThemeData.tertiaryContainer || blend(surfaceContainerHigh, tertiary, 0.35)
+    property color tertiaryContainer: currentThemeData.tertiaryContainer || Tonal.softContainer(tertiary, surfaceContainer, containerTint)
     readonly property real selectedContainerTint: currentThemeData.selectedContainerTint ?? 0.2
     // DMS exports surfaceContainerHigh as secondary_container when the theme sets none
     readonly property bool themedSelectedContainer: !!currentThemeData.secondaryContainer && !Qt.colorEqual(secondaryContainer, surfaceContainerHigh) && Contrast.isTonal(secondaryContainer, onSecondaryContainer) && Contrast.isTonal(secondaryContainer, surfaceText)
@@ -255,7 +255,7 @@ Singleton {
         Binding {
             target: root
             property: "onErrorContainer"
-            value: root.currentThemeData.errorContainerText || root.onSurface
+            value: root.currentThemeData.errorContainerText
         },
         Binding {
             target: root
@@ -267,7 +267,7 @@ Singleton {
     readonly property real tonalTintAlpha: 0.16
 
     property color error: currentThemeData.error
-    property color errorContainer: currentThemeData.errorContainer || surfaceContainerHigh
+    property color errorContainer: currentThemeData.errorContainer
     property color warning: currentThemeData.warning
     property color info: currentThemeData.info
     property color success: currentThemeData.success

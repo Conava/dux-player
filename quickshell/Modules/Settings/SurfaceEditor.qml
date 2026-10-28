@@ -282,6 +282,7 @@ Item {
                 SettingsRow {
                     required property string modelData
                     title: modelData
+                    searchable: false
                     iconName: "warning"
                     iconColor: Theme.error
                 }

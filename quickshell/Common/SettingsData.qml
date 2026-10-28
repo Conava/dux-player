@@ -43,6 +43,8 @@ Singleton {
     property alias focusRingWidth: adapter.focusRingWidth
     property alias focusRingColor: adapter.focusRingColor
     property alias windowTitleBars: adapter.windowTitleBars
+    // "button" | "field": the header search as a button or a full field
+    property alias headerSearch: adapter.headerSearch
     property alias language: adapter.language
     // take every style value from Dux Shell when it is detected
     property alias followShell: adapter.followShell
@@ -162,6 +164,7 @@ Singleton {
             property real focusRingWidth: 1.5
             property string focusRingColor: "primary"
             property bool windowTitleBars: true
+            property string headerSearch: "button"
             property string language: ""
             property var layout: ({})
             property var lyricsDisplay: ({})

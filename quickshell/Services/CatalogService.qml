@@ -437,9 +437,7 @@ Singleton {
             "kind": "local",
             "name": name,
             "folders": folders
-        }, I18n.tr("Couldn't add the library", "toast when the daemon refuses a new local library"), lib => DaemonBridge.request("libraries.scan", {
-                "library": lib.id
-            }));
+        }, I18n.tr("Couldn't add the library", "toast when the daemon refuses a new local library"));
     }
 
     // The password goes to the keyring in the daemon; it never lands in libraries or settings.

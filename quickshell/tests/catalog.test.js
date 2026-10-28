@@ -4,7 +4,7 @@ const path = require("path");
 const assert = require("assert");
 
 const source = fs.readFileSync(path.join(__dirname, "../Services/Catalog.js"), "utf8").replace(".pragma library", "");
-const C = new Function(source + "; return { sortBy, suffixDurations, diff, singleMove, navEntries, setPinned, track, filterText };")();
+const C = new Function(source + "; return { sortBy, suffixDurations, diff, singleMove, navEntries, pageTargets, setPinned, track, filterText };")();
 
 function apply(list, edit) {
     const out = list.slice();
@@ -70,6 +70,9 @@ assert.strictEqual(pinned[0].hidden, true);
 pinned = C.setPinned(pinned, "page", "home", true);
 assert.deepStrictEqual(pinned.map(e => e.target + (e.hidden ? "-" : "")), ["home", "albums", "genres", "p1"]);
 assert.deepStrictEqual(C.navEntries([{"kind": "page", "target": "albums"}], ["home", "albums"], ["home"]).map(e => e.target + (e.hidden ? "-" : "")), ["albums", "home-"]);
+// a stored list from before the Search page gets it appended, hidden
+const upgraded = C.navEntries([{"kind": "page", "target": "home"}], C.pageTargets, ["home"]);
+assert.deepStrictEqual(upgraded.filter(e => e.target === "search").map(e => e.hidden), [true]);
 // artists: the daemon's list with library-scoped ids, else the single artist; no page without an id
 const artistsOf = t => C.track(Object.assign({"library": "l", "id": "t"}, t)).artists;
 assert.deepStrictEqual(artistsOf({"artist": "A • B", "artistId": "a", "artists": [{"id": "a", "name": "A"}, {"id": "", "name": "B"}]}), [{"id": "l:a", "name": "A"}, {"id": "", "name": "B"}]);

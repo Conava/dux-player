@@ -358,7 +358,8 @@ Item {
             readonly property string info: UiConfig.infoText(track ?? {}, root.lines)
             property int pressModifiers: Qt.NoModifier
             width: queueList.width
-            implicitHeight: info !== "" ? Theme.listItemTwoLineHeight : Theme.listItemHeight
+            implicitHeight: info !== "" ? PlayerMetrics.listRowTwoLineHeight : PlayerMetrics.listRowHeight
+            surfaceColor: PlayerMetrics.listRowColor
             isSelected: root.selecting ? selected : current
             isHovered: hovered || menu.opened
             firstInGroup: index === 0
@@ -407,7 +408,7 @@ Item {
                 }
                 onMoved: position => {
                     // near an edge the list scrolls along
-                    const edge = Theme.listItemTwoLineHeight;
+                    const edge = PlayerMetrics.listRowTwoLineHeight;
                     if (position.y - queueList.contentY < edge)
                         queueList.contentY = Math.max(queueList.originY, queueList.contentY - edge / 4);
                     else if (queueList.contentY + queueList.height - position.y < edge)

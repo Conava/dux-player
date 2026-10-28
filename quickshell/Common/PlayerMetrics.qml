@@ -24,6 +24,13 @@ Singleton {
     // an artist's biography before "Show more"
     readonly property int biographyLines: 4
     readonly property real rowArtSize: Theme.avatarSize + Theme.spacingXS
+    // list rows (tracks, albums, the queue) form one connected group on this surface
+    readonly property color listRowColor: SettingsMetrics.rowColor
+    readonly property real headerSearchWidth: 360
+    // Appearance → Density: each step from Default adds or takes this much row height
+    readonly property real densityStep: Theme.densityLevel * Theme.spacingS
+    readonly property real listRowHeight: Theme.listItemHeight + densityStep
+    readonly property real listRowTwoLineHeight: Theme.listItemTwoLineHeight + densityStep
     readonly property real barArtSize: Theme.buttonHeightM
     readonly property real barHeight: Theme.buttonHeightS + Theme.sliderHandleHeight + Theme.spacingS * 2
     readonly property real barInfoWidth: 280
@@ -45,6 +52,8 @@ Singleton {
     readonly property real volumePanelWidth: 280
     readonly property real sidePanelWidth: 340
     readonly property real queueWidth: 380
+    // M3 modal side sheet: the page strip left uncovered when the panel overlays a compact window
+    readonly property real compactPanelPeek: 56
     // a page's own search field in its header
     readonly property real scopedSearchWidth: 240
     readonly property real artShapeRatio: 0.46

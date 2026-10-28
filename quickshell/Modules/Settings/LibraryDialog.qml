@@ -19,6 +19,9 @@ WindowDialog {
     // "" | "testing" | "ok" | "failed"
     property string testState: ""
     property string testMessage: ""
+    // the reason Add is disabled shows only after the first edit or a submit attempt
+    property bool touched: false
+    property bool typingPath: false
 
     readonly property bool editing: editingId !== ""
     readonly property var library: editing ? PlayerService.library(editingId) : null
@@ -55,12 +58,14 @@ WindowDialog {
         folders = [];
         testState = "";
         testMessage = "";
+        typingPath = false;
     }
 
     function add() {
         reset();
         editingId = "";
         kind = "local";
+        touched = false;
         opened = true;
         nameField.forceActiveFocus();
     }
@@ -73,6 +78,7 @@ WindowDialog {
         folders = (library.folders ?? []).slice();
         urlField.text = library.url ?? "";
         userField.text = library.user ?? "";
+        touched = false;
         opened = true;
         nameField.forceActiveFocus();
     }
@@ -82,10 +88,12 @@ WindowDialog {
         if (path === "" || folders.indexOf(path) >= 0)
             return;
         folders = folders.concat([path]);
+        touched = true;
         folderField.text = "";
     }
 
     function save() {
+        touched = true;
         if (!valid)
             return;
         const name = nameField.text.trim();
@@ -151,6 +159,7 @@ WindowDialog {
         outlined: true
         labelText: root.remote ? I18n.tr("Name (optional)", "library dialog field") : I18n.tr("Name", "a name: field label, sort key")
         placeholderText: root.remote ? I18n.tr("Uses the server address", "library dialog name placeholder for a server") : ""
+        onTextChanged: root.touched = true
     }
 
     Column {
@@ -167,7 +176,7 @@ WindowDialog {
                 required property int index
                 width: parent.width
                 firstInGroup: index === 0
-                lastInGroup: false
+                lastInGroup: index === root.folders.length - 1
 
                 contentItem: Item {
                     DIcon {
@@ -208,53 +217,40 @@ WindowDialog {
             }
         }
 
-        DListRow {
-            width: parent.width
-            implicitHeight: folderField.height + Theme.spacingS * 2
-            firstInGroup: root.folders.length === 0
-            lastInGroup: true
+        Row {
+            topPadding: root.folders.length > 0 ? Theme.spacingS : 0
+            spacing: Theme.spacingS
 
-            contentItem: Item {
-                DTextField {
-                    id: folderField
-                    anchors.left: parent.left
-                    anchors.right: chooseFolderButton.left
-                    anchors.leftMargin: Theme.spacingS
-                    anchors.rightMargin: Theme.spacingS
-                    anchors.verticalCenter: parent.verticalCenter
-                    // center the outlined box, not the floating label above it
-                    anchors.verticalCenterOffset: -containerTop / 2
-                    outlined: true
-                    labelText: I18n.tr("Folder", "library dialog folder field")
-                    placeholderText: I18n.tr("~/Music", "example folder path in the library dialog")
-                    leftIconName: "create_new_folder"
-                    onAccepted: root.addFolder(text)
-                }
+            DButton {
+                text: I18n.tr("Add folder", "library dialog folder action")
+                iconName: "add"
+                backgroundColor: Theme.secondaryContainer
+                textColor: Theme.onSecondaryContainer
+                onClicked: folderPicker.open()
+            }
 
-                DIconButton {
-                    id: chooseFolderButton
-                    anchors.right: addFolderButton.left
-                    anchors.rightMargin: Theme.spacingXS
-                    anchors.verticalCenter: parent.verticalCenter
-                    iconName: "folder_open"
-                    tooltipText: I18n.tr("Choose folder", "library dialog folder action")
-                    Accessible.name: tooltipText
-                    onClicked: folderPicker.open()
-                }
-
-                DButton {
-                    id: addFolderButton
-                    anchors.right: parent.right
-                    anchors.rightMargin: Theme.spacingS
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: I18n.tr("Add folder", "library dialog folder action")
-                    buttonHeight: Theme.buttonHeightXS
-                    backgroundColor: Theme.secondaryContainer
-                    textColor: Theme.onSecondaryContainer
-                    enabled: folderField.text.trim() !== ""
-                    onClicked: root.addFolder(folderField.text)
+            DButton {
+                visible: !root.typingPath
+                text: I18n.tr("Enter a path", "library dialog action that shows a folder path field")
+                backgroundColor: "transparent"
+                textColor: Theme.primary
+                onClicked: {
+                    root.typingPath = true;
+                    folderField.forceActiveFocus();
                 }
             }
+        }
+
+        DTextField {
+            id: folderField
+            visible: root.typingPath
+            width: parent.width
+            outlined: true
+            labelText: I18n.tr("Folder", "library dialog folder field")
+            placeholderText: I18n.tr("~/Music", "example folder path in the library dialog")
+            supportingText: I18n.tr("Press Enter to add the folder.", "library dialog folder field hint")
+            leftIconName: "create_new_folder"
+            onAccepted: root.addFolder(text)
         }
 
         StyledText {
@@ -275,7 +271,10 @@ WindowDialog {
         labelText: I18n.tr("Server address", "add server dialog field")
         placeholderText: I18n.tr("https://music.example.net", "example server address in the add server dialog")
         leftIconName: "dns"
-        onTextChanged: root.testState = ""
+        onTextChanged: {
+            root.testState = "";
+            root.touched = true;
+        }
     }
 
     DTextField {
@@ -285,7 +284,10 @@ WindowDialog {
         outlined: true
         labelText: I18n.tr("User name", "add server dialog field")
         leftIconName: "person"
-        onTextChanged: root.testState = ""
+        onTextChanged: {
+            root.testState = "";
+            root.touched = true;
+        }
     }
 
     DTextField {
@@ -298,7 +300,10 @@ WindowDialog {
         echoMode: TextInput.Password
         showPasswordToggle: true
         leftIconName: "key"
-        onTextChanged: root.testState = ""
+        onTextChanged: {
+            root.testState = "";
+            root.touched = true;
+        }
     }
 
     Row {
@@ -390,7 +395,7 @@ WindowDialog {
 
     StyledText {
         width: parent.width
-        visible: root.blocker !== ""
+        visible: root.touched && root.blocker !== ""
         text: root.blocker
         font.pixelSize: Theme.fontSizeSmall
         color: Theme.surfaceVariantText

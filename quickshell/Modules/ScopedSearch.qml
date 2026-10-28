@@ -8,6 +8,9 @@ DSearchField {
     id: root
 
     objectName: "scopedSearch"
+    // false for a field outside the page (the header's), which the "Search this page" shortcut must not focus
+    property bool pageField: true
+
     width: PlayerMetrics.scopedSearchWidth
     height: Theme.buttonHeightS
     textColor: Theme.onSurface
@@ -33,7 +36,7 @@ DSearchField {
     }
 
     function claim() {
-        if (visible)
+        if (visible && pageField)
             Router.pageSearch = root;
         else if (Router.pageSearch === root)
             Router.pageSearch = null;

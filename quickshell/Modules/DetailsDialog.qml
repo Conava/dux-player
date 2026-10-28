@@ -92,6 +92,55 @@ WindowDialog {
             Qt.callLater(forceActiveFocus);
     }
 
+    // label at the start, value at the end on one line; the value takes what the label leaves and elides
+    component FactRow: SettingsRow {
+        id: fact
+        required property var modelData
+        readonly property real valueRoom: width - paddingH * 2 - SettingsMetrics.rowContentSpacing - labelMetrics.advanceWidth - (copyButton.visible ? copyButton.width + Theme.spacingS : 0)
+        width: parent?.width ?? 0
+        title: modelData.label
+        Accessible.description: modelData.value
+
+        TextMetrics {
+            id: labelMetrics
+            font.family: valueText.font.family
+            font.pixelSize: Theme.fontSizeMedium
+            font.weight: Theme.fontWeightMedium
+            text: fact.modelData.label
+        }
+
+        StyledText {
+            id: valueText
+            visible: !fact.modelData.artists
+            width: Math.max(0, Math.min(implicitWidth, fact.valueRoom))
+            anchors.verticalCenter: parent?.verticalCenter
+            text: fact.modelData.value
+            font.pixelSize: Theme.fontSizeMedium
+            color: Theme.surfaceVariantText
+            wrapMode: Text.NoWrap
+            elide: fact.modelData.copy ? Text.ElideMiddle : Text.ElideRight
+        }
+
+        ArtistLinks {
+            visible: !!fact.modelData.artists
+            width: Math.max(0, Math.min(implicitWidth, fact.valueRoom))
+            anchors.verticalCenter: parent?.verticalCenter
+            artists: fact.modelData.artists ?? []
+            fontSize: Theme.fontSizeMedium
+            onActivated: Router.details = null
+        }
+
+        DActionButton {
+            id: copyButton
+            visible: fact.modelData.copy === true
+            anchors.verticalCenter: parent?.verticalCenter
+            iconName: "content_copy"
+            tooltipText: I18n.tr("Copy", "copy a config snippet")
+            Accessible.name: tooltipText
+            onClicked: Quickshell.clipboardText = fact.modelData.value
+        }
+    }
+
     Column {
         width: parent.width
         spacing: Theme.spacingM
@@ -102,28 +151,7 @@ WindowDialog {
             Repeater {
                 model: root.facts
 
-                SettingsRow {
-                    id: fact
-                    required property var modelData
-                    width: parent?.width ?? 0
-                    title: modelData.label
-                    subtitle: modelData.artists ? "" : modelData.value
-                    subtitleContent: ArtistLinks {
-                        visible: !!fact.modelData.artists
-                        width: Math.min(implicitWidth, parent?.width ?? 0)
-                        artists: fact.modelData.artists ?? []
-                        onActivated: Router.details = null
-                    }
-
-                    DActionButton {
-                        visible: fact.modelData.copy
-                        anchors.verticalCenter: parent?.verticalCenter
-                        iconName: "content_copy"
-                        tooltipText: I18n.tr("Copy", "copy a config snippet")
-                        Accessible.name: tooltipText
-                        onClicked: Quickshell.clipboardText = fact.modelData.value
-                    }
-                }
+                FactRow {}
             }
         }
 
@@ -139,12 +167,7 @@ WindowDialog {
             Repeater {
                 model: root.tags
 
-                SettingsRow {
-                    required property var modelData
-                    width: parent?.width ?? 0
-                    title: modelData.label
-                    subtitle: modelData.value
-                }
+                FactRow {}
             }
         }
     }

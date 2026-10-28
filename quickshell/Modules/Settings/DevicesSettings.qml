@@ -11,8 +11,15 @@ SettingsPage {
     id: root
 
     property bool syncPage: false
+    // sub-views the settings search opens: the Sync page, when it can be opened
+    readonly property var subViews: syncing.length > 1 ? ["sync"] : []
+    readonly property string syncReason: I18n.tr("Select at least two outputs", "why the sync page is disabled")
     readonly property var locals: PlayerService.outputDevices.filter(d => Phrases.isLocalOutput(d))
     readonly property var syncing: PlayerService.selectedOutputs.map(id => PlayerService.output(id)).filter(d => d && Phrases.isLocalOutput(d))
+
+    function openSubView(id) {
+        syncPage = id === "sync";
+    }
 
     SettingsCard {
         visible: !root.syncPage
@@ -84,6 +91,7 @@ SettingsPage {
     // with several outputs, each one's disconnect can pause playback or leave the others playing
     SettingsCard {
         visible: !root.syncPage && root.syncing.length > 1
+        unavailableReason: root.syncReason
         title: I18n.tr("When an output disconnects", "playback device settings section")
 
         Repeater {
@@ -158,6 +166,7 @@ SettingsPage {
 
     SettingsCard {
         visible: root.syncPage
+        unavailableReason: root.syncReason
         title: I18n.tr("Delay", "playback device sync section")
 
         Repeater {

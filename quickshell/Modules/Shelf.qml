@@ -167,13 +167,17 @@ Column {
             randomOrder = PlayerService.shuffled(PlayerService.albums.map(a => a.id));
     }
 
-    Row {
-        spacing: Theme.spacingS
+    // the header and tiles bleed into the page padding so their labels and art line up with the page title
+    Item {
+        x: -Theme.spacingS
+        width: parent.width + Theme.spacingS * 2
+        height: Math.max(titleLink.height, shuffleButton.height)
 
         // the title opens the full page
         StyledButton {
             id: titleLink
             visible: root.source.type !== "continue"
+            anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             width: titleRow.implicitWidth + Theme.spacingS * 2
             height: Theme.buttonHeightXS
@@ -213,6 +217,8 @@ Column {
 
         StyledText {
             visible: root.source.type === "continue"
+            anchors.left: parent.left
+            anchors.leftMargin: Theme.spacingS
             anchors.verticalCenter: parent.verticalCenter
             text: root.title
             font.pixelSize: Theme.fontSizeLarge
@@ -221,6 +227,9 @@ Column {
         }
 
         DIconButton {
+            id: shuffleButton
+            anchors.right: parent.right
+            anchors.rightMargin: Theme.spacingS
             anchors.verticalCenter: parent.verticalCenter
             visible: root.shuffleable && root.items.length > (root.kind === "album" ? 0 : 1)
             iconName: "shuffle"
@@ -237,7 +246,8 @@ Column {
 
     DHorizontalList {
         id: carousel
-        width: parent.width
+        x: -Theme.spacingS
+        width: parent.width + Theme.spacingS * 2
         visible: root.layout === "carousel" && root.source.type !== "continue"
         height: visible ? root.tileWidth + Theme.spacingS * 2 + PlayerMetrics.gridCaptionHeight : 0
         spacing: Theme.spacingXS
@@ -303,7 +313,8 @@ Column {
 
     Flow {
         id: flow
-        width: parent.width
+        x: -Theme.spacingS
+        width: parent.width + Theme.spacingS * 2
         visible: root.layout === "grid" && root.source.type !== "continue"
         readonly property int columns: Math.max(1, Math.floor(width / (root.tileWidth + Theme.spacingS * 2)))
 

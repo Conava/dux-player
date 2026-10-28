@@ -130,6 +130,32 @@ Item {
         textColor: Theme.onSecondaryContainer
     }
 
+    // keeps its width while hidden, so the Edit buttons of all rows line up
+    component EditSlot: Item {
+        id: editSlot
+        property alias shown: editButton.visible
+        signal clicked
+        anchors.verticalCenter: parent?.verticalCenter
+        width: editButton.width
+        height: editButton.height
+
+        EditButton {
+            id: editButton
+            onClicked: editSlot.clicked()
+        }
+    }
+
+    // Edit and reset of a plain settings row, in the columns of the navigation rows above (DInstanceRow: actions,
+    // chevron, eye and remove, spacingXS apart, spacingS from the edge)
+    component TrailingColumns: Row {
+        readonly property real endGap: Theme.iconSize + Theme.buttonHeightXS * 2 + Theme.spacingXS * 3 + Theme.spacingS - SettingsMetrics.rowPaddingH
+
+        anchors.verticalCenter: parent?.verticalCenter
+        spacing: Theme.spacingXS
+        rightPadding: I18n.isRtl ? 0 : endGap
+        leftPadding: I18n.isRtl ? endGap : 0
+    }
+
     component ResetButton: DActionButton {
         property string label: ""
         signal reset
@@ -142,7 +168,6 @@ Item {
 
     SettingsPage {
         id: page
-        bottomPadding: SettingsMetrics.pagePaddingV + fab.height + Theme.spacingL
 
         SettingsCard {
             width: parent.width
@@ -199,8 +224,8 @@ Item {
                 onHiddenToggled: hidden => root.setShown(modelData, !hidden)
                 onRemoveRequested: root.remove(modelData)
                 actions: [
-                    EditButton {
-                        visible: entryRow.target !== null
+                    EditSlot {
+                        shown: entryRow.target !== null
                         onClicked: root.edit(entryRow.target.route, entryRow.target.itemId)
                     },
                     // kept when there is nothing to reset, so the buttons line up
@@ -221,6 +246,14 @@ Item {
             }
         }
 
+        DButton {
+            text: I18n.tr("Add entry", "navigation settings action")
+            iconName: "add"
+            backgroundColor: Theme.secondaryContainer
+            textColor: Theme.onSecondaryContainer
+            onClicked: addSheet.opened = true
+        }
+
         SettingsCard {
             width: parent.width
             title: I18n.tr("Other pages", "settings pages section: pages without a navigation entry")
@@ -237,15 +270,17 @@ Item {
                     title: modelData.label
                     subtitle: edited ? root.summary(modelData) : I18n.tr("Default", "settings pages: a page nobody has changed")
 
-                    EditButton {
-                        visible: pageRow.modelData.route !== ""
-                        onClicked: root.edit(pageRow.modelData.route, "")
-                    }
+                    TrailingColumns {
+                        EditSlot {
+                            shown: pageRow.modelData.route !== ""
+                            onClicked: root.edit(pageRow.modelData.route, "")
+                        }
 
-                    ResetButton {
-                        enabled: pageRow.edited
-                        label: pageRow.modelData.label
-                        onReset: root.ask(I18n.tr("Reset %1?", "settings pages: reset confirmation title, %1 is the page").arg(label), () => UiConfig.resetKind(pageRow.modelData.kind))
+                        ResetButton {
+                            enabled: pageRow.edited
+                            label: pageRow.modelData.label
+                            onReset: root.ask(I18n.tr("Reset %1?", "settings pages: reset confirmation title, %1 is the page").arg(label), () => UiConfig.resetKind(pageRow.modelData.kind))
+                        }
                     }
                 }
             }
@@ -269,10 +304,16 @@ Item {
                     subtitle: UiConfig.problems(modelData)[0] ?? (edited ? I18n.tr("Changed", "settings pages: a page or type with changes") : I18n.tr("Default", "settings pages: a page nobody has changed"))
                     subtitleColor: UiConfig.problems(modelData).length > 0 ? Theme.error : Theme.surfaceVariantText
 
-                    ResetButton {
-                        enabled: itemRow.edited
-                        label: itemRow.title
-                        onReset: root.ask(I18n.tr("Reset %1?", "settings pages: reset confirmation title, %1 is the page").arg(label), () => UiConfig.resetItem(itemRow.modelData))
+                    TrailingColumns {
+                        EditSlot {
+                            shown: false
+                        }
+
+                        ResetButton {
+                            enabled: itemRow.edited
+                            label: itemRow.title
+                            onReset: root.ask(I18n.tr("Reset %1?", "settings pages: reset confirmation title, %1 is the page").arg(label), () => UiConfig.resetItem(itemRow.modelData))
+                        }
                     }
                 }
             }
@@ -290,16 +331,6 @@ Item {
                 onClicked: navResetDialog.ask()
             }
         }
-    }
-
-    DFab {
-        id: fab
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: Theme.spacingL
-        text: I18n.tr("Add entry", "navigation settings action")
-        iconName: "add"
-        onClicked: addSheet.opened = true
     }
 
     TextPromptDialog {
