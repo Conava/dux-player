@@ -77,6 +77,9 @@ Singleton {
     readonly property string focusRingColor: fromShell.ripple ? shell.value("focusRingColor", "primary") : SettingsData.focusRingColor
 
     readonly property bool elevationEnabled: fromShell.effects ? shell.value("m3ElevationEnabled", true) : SettingsData.elevationEnabled
+    // the shell's defaults when not following: its shadows scale the base levels by intensity / 12 and opacity / 60
+    readonly property real elevationIntensity: fromShell.effects ? shell.value("m3ElevationIntensity", 12) : 12
+    readonly property real elevationOpacity: fromShell.effects ? shell.value("m3ElevationOpacity", 30) : 30
     readonly property bool blurEnabled: fromShell.effects ? shell.value("blurEnabled", false) : SettingsData.blurEnabled
     readonly property real blurLayerOutlineOpacity: fromShell.effects ? shell.value("blurLayerOutlineOpacity", 0) : 0
 

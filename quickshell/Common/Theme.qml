@@ -584,28 +584,31 @@ Singleton {
         };
     }
 
+    readonly property real elevationScale: StyleSource.elevationIntensity / 12
+    readonly property real elevationAlphaScale: StyleSource.elevationOpacity / 60
+
     readonly property var elevationLevel1: ({
-            blurPx: 4,
+            blurPx: 4 * elevationScale,
             offsetX: 0,
-            offsetY: 1,
+            offsetY: 1 * elevationScale,
             spreadPx: 0,
-            alpha: 0.2
+            alpha: 0.2 * elevationAlphaScale
         })
 
     readonly property var elevationLevel2: ({
-            blurPx: 8,
+            blurPx: 8 * elevationScale,
             offsetX: 0,
-            offsetY: 4,
+            offsetY: 4 * elevationScale,
             spreadPx: 0,
-            alpha: 0.25
+            alpha: 0.25 * elevationAlphaScale
         })
 
     readonly property var elevationLevel3: ({
-            blurPx: 12,
+            blurPx: 12 * elevationScale,
             offsetX: 0,
-            offsetY: 6,
+            offsetY: 6 * elevationScale,
             spreadPx: 0,
-            alpha: 0.3
+            alpha: 0.3 * elevationAlphaScale
         })
 
     readonly property var expressiveCurves: ({
