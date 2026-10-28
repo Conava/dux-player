@@ -131,3 +131,21 @@ func TestConnFailsPendingCommandsWhenMPVGoesAway(t *testing.T) {
 	_, err := c.command(context.Background(), "get_property", "pause")
 	require.Error(t, err)
 }
+
+func TestLogTextHidesStreamTokens(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"subsonic stream", "Failed to open https://music.example.net/rest/stream?u=me&t=abc&s=salt&id=1.\n", "Failed to open https://music.example.net/…"},
+		{"jellyfin stream", `cannot open "http://jf.lan:8096/Audio/42/universal?api_key=secret"`, `cannot open "http://jf.lan/…"`},
+		{"credentials in the host", "ffmpeg: http://user:pw@host/x", "ffmpeg: http://host/…"},
+		{"local path", "Could not open /home/me/Music/a.flac", "Could not open /home/me/Music/a.flac"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, logText(tt.in))
+		})
+	}
+}

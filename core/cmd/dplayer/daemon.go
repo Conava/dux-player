@@ -186,6 +186,14 @@ func runDaemon() error {
 	})
 	close(ready)
 	log.Infof("dplayer daemon ready (ipc=%s)", srv.SocketPath())
+	go func() {
+		version, err := player.CheckMPV(ctx, "mpv")
+		if err != nil {
+			log.Warnf("mpv check: %v", err)
+			return
+		}
+		log.Infof("using mpv %s", version)
+	}()
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)

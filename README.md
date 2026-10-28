@@ -52,6 +52,10 @@ make install
 
 `make help` to list every target.
 
+## Troubleshooting
+
+The daemon logs to `~/.local/state/dplayer/daemon.log` and the window to `ui.log` next to it, including mpv's warnings and the mpv version found at startup. To watch it live, run `dplayer quit`, then `dplayer daemon` in a terminal, and open the window.
+
 ## Online services
 
 Dux Player only contacts the servers you add, except for these features, each of which can be turned off in Settings:

@@ -511,6 +511,10 @@ func (p *Player) observe(ctx context.Context, proc *process) {
 			log.Warnf("mpv observe %s: %v", name, err)
 		}
 	}
+	// --no-terminal keeps mpv quiet, so its warnings (no audio output, a file it can't open) come over IPC
+	if _, err := proc.conn.command(ctx, "request_log_messages", "warn"); err != nil {
+		log.Warnf("mpv request_log_messages: %v", err)
+	}
 }
 
 type prop struct {
@@ -606,6 +610,8 @@ func (p *Player) handle(m message) {
 		p.publishStatus()
 	case "seek":
 		p.publishStatus()
+	case "log-message":
+		log.Warnf("mpv %s: %s", m.Prefix, logText(m.Text))
 	}
 }
 

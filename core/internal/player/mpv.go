@@ -8,10 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -46,6 +50,11 @@ type message struct {
 	Reason    string `json:"reason"`
 	FileError string `json:"file_error"`
 	EntryID   int64  `json:"playlist_entry_id"`
+
+	// log-message events
+	Prefix string `json:"prefix"`
+	Level  string `json:"level"`
+	Text   string `json:"text"`
 }
 
 func parseMessage(line []byte) (message, error) {
@@ -334,4 +343,63 @@ func (p *process) kill() {
 		<-p.exited
 	}
 	_ = os.Remove(p.socket)
+}
+
+const maxLogText = 500
+
+var urlPattern = regexp.MustCompile(`[a-zA-Z][a-zA-Z0-9+.-]*://[^\s"'<>]+`)
+
+// logText makes an mpv log line safe to log: stream URLs carry server tokens, so each URL keeps only its
+// scheme and host.
+func logText(s string) string {
+	s = urlPattern.ReplaceAllStringFunc(strings.TrimSpace(s), func(raw string) string {
+		u, err := url.Parse(raw)
+		if err != nil || u.Host == "" {
+			return "<url>"
+		}
+		return u.Scheme + "://" + u.Hostname() + "/…"
+	})
+	if len(s) > maxLogText {
+		s = strings.ToValidUTF8(s[:maxLogText], "") + "…"
+	}
+	return s
+}
+
+// MinMPV is the oldest mpv the player is tested with.
+var MinMPV = [2]int{0, 38}
+
+var mpvVersionPattern = regexp.MustCompile(`^mpv v?(\d+)\.(\d+)`)
+
+// CheckMPV runs `mpv --version` and returns its version, or why it can't be used.
+func CheckMPV(ctx context.Context, binary string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, binary, "--version")
+	var out limitedBuffer
+	cmd.Stdout = &out
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("%s --version: %w", binary, err)
+	}
+	line, _, _ := strings.Cut(out.String(), "\n")
+	m := mpvVersionPattern.FindStringSubmatch(line)
+	if m == nil {
+		return "", fmt.Errorf("%s --version printed %q, not an mpv version", binary, logText(line))
+	}
+	major, _ := strconv.Atoi(m[1])
+	minor, _ := strconv.Atoi(m[2])
+	version := m[1] + "." + m[2]
+	if major < MinMPV[0] || major == MinMPV[0] && minor < MinMPV[1] {
+		return version, fmt.Errorf("mpv %s is too old; dplayer needs %d.%d or newer", version, MinMPV[0], MinMPV[1])
+	}
+	return version, nil
+}
+
+// limitedBuffer keeps the first 4 KiB written to it.
+type limitedBuffer struct{ strings.Builder }
+
+func (b *limitedBuffer) Write(p []byte) (int, error) {
+	if room := 4<<10 - b.Len(); room > 0 {
+		b.Builder.Write(p[:min(len(p), room)])
+	}
+	return len(p), nil
 }
