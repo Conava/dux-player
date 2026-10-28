@@ -572,7 +572,7 @@
   {
     "term": "Added by you",
     "context": "Added by you",
-    "reference": "Modules/RowEnd.qml:197, Modules/QueueList.qml:366, Common/UiConfig.qml:1023",
+    "reference": "Modules/RowEnd.qml:197, Modules/QueueList.qml:368, Common/UiConfig.qml:1023",
     "comment": "queue row: a track put in with play next or add to queue"
   },
   {
@@ -1220,7 +1220,7 @@
   {
     "term": "Continue with similar tracks",
     "context": "Continue with similar tracks",
-    "reference": "Modules/QueueList.qml:324",
+    "reference": "Modules/QueueList.qml:326",
     "comment": "queue end button that keeps filling the queue"
   },
   {
@@ -2888,7 +2888,7 @@
   {
     "term": "More",
     "context": "More",
-    "reference": "Modules/RowEnd.qml:218, Modules/QueueList.qml:228, Modules/PlaylistPage.qml:99, Modules/NowPlayingZone.qml:284, Modules/MediaTile.qml:102, Modules/MainWindow.qml:113, Modules/ArtistPage.qml:188, Modules/AlbumPage.qml:61, Common/UiConfig.qml:1025",
+    "reference": "Modules/RowEnd.qml:225, Modules/QueueList.qml:228, Modules/PlaylistPage.qml:99, Modules/NowPlayingZone.qml:284, Modules/MediaTile.qml:102, Modules/MainWindow.qml:113, Modules/ArtistPage.qml:188, Modules/AlbumPage.qml:61, Common/UiConfig.qml:1025",
     "comment": "track row menu button"
   },
   {
@@ -4526,7 +4526,7 @@
   {
     "term": "Select",
     "context": "Select",
-    "reference": "Modules/TrackRow.qml:154, Modules/QueueList.qml:454",
+    "reference": "Modules/TrackRow.qml:154, Modules/QueueList.qml:456",
     "comment": "track row checkbox"
   },
   {
@@ -4814,13 +4814,13 @@
   {
     "term": "Sorted ascending",
     "context": "Sorted ascending",
-    "reference": "Widgets/DSortHeaderCell.qml:21",
+    "reference": "Widgets/DSortHeaderCell.qml:23",
     "comment": "State of a sortable column header"
   },
   {
     "term": "Sorted descending",
     "context": "Sorted descending",
-    "reference": "Widgets/DSortHeaderCell.qml:21",
+    "reference": "Widgets/DSortHeaderCell.qml:23",
     "comment": "State of a sortable column header"
   },
   {

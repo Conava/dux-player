@@ -213,12 +213,20 @@ Row {
             Component {
                 id: moreSlot
 
-                DActionButton {
-                    iconName: "more_vert"
-                    tooltipText: I18n.tr("More", "track row menu button")
-                    Accessible.name: tooltipText
-                    onClicked: end.actions.open(this)
-                    Component.onCompleted: end.moreButton = this
+                // a gap so the button doesn't sit against the duration
+                Item {
+                    width: moreButton.width + Theme.spacingS
+                    height: moreButton.height
+
+                    DActionButton {
+                        id: moreButton
+                        anchors.right: parent.right
+                        iconName: "more_vert"
+                        tooltipText: I18n.tr("More", "track row menu button")
+                        Accessible.name: tooltipText
+                        onClicked: end.actions.open(this)
+                        Component.onCompleted: end.moreButton = this
+                    }
                 }
             }
 

@@ -289,6 +289,8 @@ Item {
         anchors.topMargin: Theme.spacingM
         anchors.leftMargin: Theme.spacingM
         anchors.rightMargin: Theme.spacingM
+        // a Loader keeps its last size after unloading, which would leave the list pushed down
+        height: (item as PageEditor)?.implicitHeight ?? 0
         active: root.editing
 
         sourceComponent: PageEditor {

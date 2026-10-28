@@ -10,6 +10,8 @@ StyledButton {
     property bool active: false
     property bool descending: false
     property int align: Text.AlignLeft
+    // how far the hover and focus highlight reach past the label, so the label stays in line with the rows below
+    property real highlightPadding: Style.spacingS
 
     signal sortRequested
 
@@ -22,11 +24,13 @@ StyledButton {
     onClicked: sortRequested()
 
     StateLayer {
+        anchors.margins: -root.highlightPadding
         control: root
         stateColor: Style.onSurface
     }
 
     FocusRing {
+        anchors.margins: -(Style.focusRingOffset + root.highlightPadding)
         visible: root.visualFocus
     }
 
