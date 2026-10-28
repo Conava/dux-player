@@ -21,7 +21,7 @@ LICENSE_DIR ?= $(DATA_DIR)/licenses/dux-player
 TAGLIB_LICENSE = $(firstword $(wildcard $(CORE_DIR)/vendor/go.senan.xyz/taglib/LICENSE) \
 	$(shell cd $(CORE_DIR) && go list -m -f '{{.Dir}}' go.senan.xyz/taglib 2>/dev/null)/LICENSE)
 
-.PHONY: all build dev run clean check test test-go test-qml lint lint-go lint-qml lint-qml-format fmt vet install uninstall quit \
+.PHONY: all build dev run deps clean check test test-go test-qml lint lint-go lint-qml lint-qml-format fmt vet install uninstall quit \
 	dist update-common i18n-extract help
 
 all: build
@@ -34,8 +34,13 @@ dev:
 
 # Opens the window from the source tree, so QML edits hot-reload. A daemon left over from an older build is
 # stopped first, or the new window would attach to the old code.
-run: dev quit
+run: deps dev quit
 	$(BUILD_DIR)/$(DEV_BINARY) show -c $(CURDIR)/$(SHELL_DIR)
+
+# What run needs; install only warns about the runtime part, since a staged or packaged install runs elsewhere.
+RUNTIME_DEPS = qs mpv
+deps:
+	@for c in go $(RUNTIME_DEPS); do command -v $$c >/dev/null || { echo "$$c not found; see Requirements in the README"; exit 1; }; done
 
 # Stops the running player: daemon, window, mpv and its PipeWire children.
 quit:
@@ -85,6 +90,7 @@ install:
 	install -Dm644 $(ASSETS_DIR)/$(APP_ID).metainfo.xml $(DESTDIR)$(DATA_DIR)/metainfo/$(APP_ID).metainfo.xml
 	install -Dm644 LICENSE $(DESTDIR)$(LICENSE_DIR)/LICENSE
 	install -Dm644 $(TAGLIB_LICENSE) $(DESTDIR)$(LICENSE_DIR)/LICENSE.taglib
+	@test -n "$(DESTDIR)" || for c in $(RUNTIME_DEPS); do command -v $$c >/dev/null || echo "warning: $$c not found; dplayer needs it to run"; done
 	@test -n "$(DESTDIR)" || { gtk-update-icon-cache -q $(DATA_DIR)/icons/hicolor; update-desktop-database -q $(DATA_DIR)/applications; } 2>/dev/null || true
 
 uninstall:
@@ -126,6 +132,7 @@ help:
 	@echo "Develop:"
 	@echo "  run            - Dev build, then open the window from quickshell/ with hot reload"
 	@echo "  quit           - Stop the running player (daemon, window, mpv)"
+	@echo "  deps           - Check that go, qs and mpv are installed (run does this first)"
 	@echo "  dev            - Fast build without the embedded UI ($(BUILD_DIR)/$(DEV_BINARY))"
 	@echo "  build          - Release build with the UI embedded; VERSION= overrides git describe"
 	@echo "  clean"
