@@ -290,6 +290,8 @@ Item {
                             id: moreLess
                             visible: biographyText.truncated || root.biographyOpen
                             text: root.biographyOpen ? I18n.tr("Show less", "collapses an artist's biography") : I18n.tr("Show more", "expands an artist's biography")
+                            // the other label's width too, so the button doesn't resize when it switches
+                            reserveText: root.biographyOpen ? I18n.tr("Show more", "expands an artist's biography") : I18n.tr("Show less", "collapses an artist's biography")
                             buttonHeight: Theme.buttonHeightXS
                             backgroundColor: "transparent"
                             textColor: Theme.primary

@@ -182,6 +182,8 @@ SettingsPage {
             DButton {
                 anchors.verticalCenter: parent.verticalCenter
                 text: PlayerService.testTonePlaying ? I18n.tr("Playing…", "test tone state") : I18n.tr("Play", "button that starts playback")
+                // the other label's width too, so the button doesn't resize when it switches
+                reserveText: PlayerService.testTonePlaying ? I18n.tr("Play", "button that starts playback") : I18n.tr("Playing…", "test tone state")
                 iconName: "graphic_eq"
                 backgroundColor: Theme.secondaryContainer
                 textColor: Theme.onSecondaryContainer

@@ -2264,7 +2264,7 @@
   {
     "term": "From %1",
     "context": "From %1",
-    "reference": "Modules/ArtistPage.qml:302",
+    "reference": "Modules/ArtistPage.qml:304",
     "comment": "where an artist's biography comes from, %1 is the source"
   },
   {
@@ -3254,7 +3254,7 @@
   {
     "term": "Nothing matches \"%1\".",
     "context": "Nothing matches \"%1\".",
-    "reference": "Modules/SearchPage.qml:151, Modules/PlaylistPage.qml:168, Modules/ArtistPage.qml:366",
+    "reference": "Modules/SearchPage.qml:151, Modules/PlaylistPage.qml:168, Modules/ArtistPage.qml:368",
     "comment": "search page empty result"
   },
   {
@@ -3452,7 +3452,7 @@
   {
     "term": "Pause",
     "context": "Pause",
-    "reference": "Modules/NowPlayingElement.qml:552, Modules/ContinueCard.qml:83, Modules/Settings/DevicesSettings.qml:95",
+    "reference": "Modules/NowPlayingElement.qml:552, Modules/ContinueCard.qml:83, Modules/ContinueCard.qml:85, Modules/Settings/DevicesSettings.qml:95",
     "comment": "transport button"
   },
   {
@@ -3524,7 +3524,7 @@
   {
     "term": "Play",
     "context": "Play",
-    "reference": "Modules/SelectionBar.qml:75, Modules/PlayButtons.qml:25, Modules/NowPlayingElement.qml:552, Common/UiConfig.qml:976, Modules/Settings/DevicesSettings.qml:184",
+    "reference": "Modules/SelectionBar.qml:75, Modules/PlayButtons.qml:25, Modules/NowPlayingElement.qml:552, Modules/ContinueCard.qml:83, Modules/ContinueCard.qml:85, Common/UiConfig.qml:976, Modules/Settings/DevicesSettings.qml:184, Modules/Settings/DevicesSettings.qml:186",
     "comment": "button that starts playback"
   },
   {
@@ -3644,7 +3644,7 @@
   {
     "term": "Playing…",
     "context": "Playing…",
-    "reference": "Modules/Settings/DevicesSettings.qml:184",
+    "reference": "Modules/Settings/DevicesSettings.qml:184, Modules/Settings/DevicesSettings.qml:186",
     "comment": "test tone state"
   },
   {
@@ -3680,7 +3680,7 @@
   {
     "term": "Playlists with this artist",
     "context": "Playlists with this artist",
-    "reference": "Modules/ArtistPage.qml:313",
+    "reference": "Modules/ArtistPage.qml:315",
     "comment": "artist page section"
   },
   {
@@ -3764,7 +3764,7 @@
   {
     "term": "Queue",
     "context": "Queue",
-    "reference": "Modules/SidePanel.qml:17, Modules/QueueList.qml:189, Modules/NowPlayingSide.qml:28, Modules/NowPlayingElement.qml:285, Modules/ContinueCard.qml:89, Common/UiConfig.qml:308, Common/UiConfig.qml:879, Modules/Settings/NowPlayingSettings.qml:112",
+    "reference": "Modules/SidePanel.qml:17, Modules/QueueList.qml:189, Modules/NowPlayingSide.qml:28, Modules/NowPlayingElement.qml:285, Modules/ContinueCard.qml:91, Common/UiConfig.qml:308, Common/UiConfig.qml:879, Modules/Settings/NowPlayingSettings.qml:112",
     "comment": "the play queue: panel, toggle"
   },
   {
@@ -4206,12 +4206,6 @@
     "comment": "now playing reset description"
   },
   {
-    "term": "Resume",
-    "context": "Resume",
-    "reference": "Modules/ContinueCard.qml:83",
-    "comment": "continue listening action"
-  },
-  {
     "term": "Right",
     "context": "Right",
     "reference": "Common/UiConfig.qml:780",
@@ -4634,13 +4628,13 @@
   {
     "term": "Show less",
     "context": "Show less",
-    "reference": "Modules/ArtistPage.qml:292",
+    "reference": "Modules/ArtistPage.qml:292, Modules/ArtistPage.qml:294",
     "comment": "collapses an artist's biography"
   },
   {
     "term": "Show more",
     "context": "Show more",
-    "reference": "Modules/ArtistPage.qml:292",
+    "reference": "Modules/ArtistPage.qml:292, Modules/ArtistPage.qml:294",
     "comment": "expands an artist's biography"
   },
   {
@@ -4718,7 +4712,7 @@
   {
     "term": "Similar artists",
     "context": "Similar artists",
-    "reference": "Modules/ArtistPage.qml:334",
+    "reference": "Modules/ArtistPage.qml:336",
     "comment": "artist page section"
   },
   {

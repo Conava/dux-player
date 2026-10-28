@@ -76,6 +76,7 @@ The whole Dux suite follows Google's Material 3 Expressive (M3E). The app must l
 - **Content never outgrows its window.** Clamp popups and sheets to the window and scroll instead.
 - **Motion** uses the shared animation tokens and honors reduce-motion. No always-running animations; anything animated stops when hidden.
 - **Interaction:** a row click does the row's main action, its switch only toggles. A disabled action says why (a disabled Qt control shows no tooltip, so say it in visible text). Backspace acts like Delete; removing something takes more than a plain right-click. Keyboard: focus order, Enter to submit, Escape to close.
+- **Controls never resize when their state changes.** A button whose label switches (Play/Pause, Show more/less) keeps the width of its widest label in the current language: set `reserveText` to the other label.
 - **Accessibility and RTL:** custom controls set role, name and checked state; use `Row`/mirrored anchors, never a left-only anchor chain; flip literal arrows.
 - A setting that turns a feature off greys out that feature's other settings.
 

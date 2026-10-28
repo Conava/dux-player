@@ -80,7 +80,9 @@ Rectangle {
                 topPadding: Theme.spacingXS
 
                 DButton {
-                    text: PlayerService.playing ? I18n.tr("Pause", "transport button") : I18n.tr("Resume", "continue listening action")
+                    text: PlayerService.playing ? I18n.tr("Pause", "transport button") : I18n.tr("Play", "button that starts playback")
+                    // the other label's width too, so the button doesn't resize when it switches
+                    reserveText: PlayerService.playing ? I18n.tr("Play", "button that starts playback") : I18n.tr("Pause", "transport button")
                     iconName: PlayerService.playing ? "pause" : "play_arrow"
                     onClicked: PlayerService.toggle()
                 }
