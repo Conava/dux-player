@@ -12,6 +12,8 @@ Singleton {
     readonly property real screenMargin: 100
     readonly property real compactBreakpoint: 760
     readonly property real paneRadius: Theme.cornerRadiusL
+    // M3 fade through: the incoming page grows from this scale
+    readonly property real pageEnterScale: 0.92
     readonly property real pagePadding: Theme.spacingXL
     readonly property real pageHeaderHeight: Theme.fontSizeXXLarge + Theme.spacingXL + Theme.spacingM
     readonly property real gridCellWidth: 184

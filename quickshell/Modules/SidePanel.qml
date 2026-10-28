@@ -23,6 +23,15 @@ Item {
             }
         })
 
+    // keeps the closed pane on screen while the panel slides away
+    readonly property string routed: Router.panel
+    property string shown: routed !== "" ? routed : "queue"
+
+    onRoutedChanged: {
+        if (routed !== "")
+            shown = routed;
+    }
+
     LayoutMirroring.enabled: I18n.isRtl
     LayoutMirroring.childrenInherit: true
 
@@ -34,7 +43,7 @@ Item {
         size: "small"
         checkEnabled: false
         model: root.views.map(v => root.labels[v])
-        currentIndex: root.views.indexOf(Router.panel)
+        currentIndex: root.views.indexOf(root.shown)
         onSelectionChanged: (index, selected) => {
             if (selected)
                 Router.panel = root.views[index];
@@ -57,7 +66,7 @@ Item {
         anchors.top: switcher.bottom
         anchors.bottom: parent.bottom
         anchors.topMargin: Theme.spacingS
-        sourceComponent: Router.panel === "lyrics" ? lyrics : queue
+        sourceComponent: root.shown === "lyrics" ? lyrics : queue
     }
 
     Component {

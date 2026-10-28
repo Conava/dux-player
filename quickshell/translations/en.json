@@ -1148,7 +1148,7 @@
   {
     "term": "Close panel",
     "context": "Close panel",
-    "reference": "Modules/SidePanel.qml:49",
+    "reference": "Modules/SidePanel.qml:58",
     "comment": "side panel close button"
   },
   {
@@ -3206,7 +3206,7 @@
   {
     "term": "Not connected to the player",
     "context": "Not connected to the player",
-    "reference": "Modules/MainWindow.qml:291, Common/Phrases.qml:156",
+    "reference": "Modules/MainWindow.qml:337, Common/Phrases.qml:156",
     "comment": "main window state when the daemon is unreachable | why a request to the player daemon failed"
   },
   {
@@ -5366,7 +5366,7 @@
   {
     "term": "Trying again…",
     "context": "Trying again…",
-    "reference": "Modules/MainWindow.qml:299",
+    "reference": "Modules/MainWindow.qml:345",
     "comment": "main window state when the daemon is unreachable"
   },
   {

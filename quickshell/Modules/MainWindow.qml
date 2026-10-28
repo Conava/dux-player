@@ -198,8 +198,9 @@ DFloatingWindow {
                     Rectangle {
                         id: contentPane
                         anchors.left: parent.left
-                        anchors.right: sideHost.visible ? sideHost.left : parent.right
-                        anchors.rightMargin: sideHost.visible ? Theme.windowInset : 0
+                        anchors.right: sideHost.left
+                        // grows with the side panel, so the gap doesn't jump as it slides in
+                        anchors.rightMargin: Theme.windowInset * Math.min(1, sideHost.width / sideHost.fullWidth)
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
                         radius: PlayerMetrics.paneRadius
@@ -207,7 +208,14 @@ DFloatingWindow {
                         clip: true
 
                         Loader {
+                            id: pageLoader
+                            readonly property string route: Router.page + "/" + Router.itemId
+
                             anchors.fill: parent
+                            onRouteChanged: {
+                                if (Theme.animationsEnabled)
+                                    pageEnter.restart();
+                            }
                             source: {
                                 switch (Router.page) {
                                 case "album":
@@ -227,6 +235,28 @@ DFloatingWindow {
                                 }
                                 return "BrowsePage.qml";
                             }
+
+                            ParallelAnimation {
+                                id: pageEnter
+                                NumberAnimation {
+                                    target: pageLoader
+                                    property: "opacity"
+                                    from: 0
+                                    to: 1
+                                    duration: Theme.expressiveDurations.normal
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+                                }
+                                NumberAnimation {
+                                    target: pageLoader
+                                    property: "scale"
+                                    from: PlayerMetrics.pageEnterScale
+                                    to: 1
+                                    duration: Theme.expressiveDurations.normal
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+                                }
+                            }
                         }
                     }
 
@@ -235,14 +265,30 @@ DFloatingWindow {
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
-                        width: window.sidePanel ? PlayerMetrics.sidePanelWidth : PlayerMetrics.queueWidth
-                        visible: window.sidePanel || Router.panel !== ""
+                        readonly property real fullWidth: window.sidePanel ? PlayerMetrics.sidePanelWidth : PlayerMetrics.queueWidth
+                        readonly property bool shown: window.sidePanel || Router.panel !== ""
+
+                        width: shown ? fullWidth : 0
+                        visible: width > 0
                         radius: PlayerMetrics.paneRadius
                         color: SettingsMetrics.paneColor
                         clip: true
 
+                        Behavior on width {
+                            enabled: Theme.animationsEnabled
+                            NumberAnimation {
+                                duration: Theme.expressiveDurations.normal
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+                            }
+                        }
+
+                        // full width from the start: the panel slides in instead of reflowing as it grows
                         Loader {
-                            anchors.fill: parent
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            width: sideHost.fullWidth
                             active: parent.visible
                             sourceComponent: window.sidePanel ? sidePanelComponent : panelComponent
                         }
