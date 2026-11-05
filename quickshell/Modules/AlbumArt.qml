@@ -20,6 +20,10 @@ ClippingRectangle {
 
     readonly property var pair: Theme.accent(accent)
     readonly property string source: imageUrl !== "" ? imageUrl : item ? PlayerService.coverUrl(item) : ""
+    // Decoded in power-of-two steps, so resizing the window rarely reloads the cover; a reload keeps showing it.
+    readonly property int decodeSize: Math.pow(2, Math.ceil(Math.log2(Math.max(width, height, 1) * Screen.devicePixelRatio)))
+    property string readySource: ""
+    readonly property bool showsCover: cover.status === Image.Ready || cover.status === Image.Loading && readySource === source
 
     color: pair?.container ?? Theme.secondaryContainer
     radius: Theme.cornerRadiusM
@@ -27,7 +31,7 @@ ClippingRectangle {
 
     DMaterialShape {
         anchors.centerIn: parent
-        visible: cover.status !== Image.Ready && root.pair !== null
+        visible: !root.showsCover && root.pair !== null
         width: Math.round(parent.width * PlayerMetrics.artShapeRatio)
         height: width
         shape: root.shape
@@ -36,7 +40,7 @@ ClippingRectangle {
 
     DIcon {
         anchors.centerIn: parent
-        visible: cover.status !== Image.Ready && root.pair === null
+        visible: !root.showsCover && root.pair === null
         name: root.placeholderIcon
         size: Math.round(parent.width * PlayerMetrics.artShapeRatio)
         color: Theme.onSecondaryContainer
@@ -45,12 +49,17 @@ ClippingRectangle {
     Image {
         id: cover
         anchors.fill: parent
-        visible: status === Image.Ready
+        visible: root.showsCover
         source: root.source
-        sourceSize.width: width * Screen.devicePixelRatio
-        sourceSize.height: height * Screen.devicePixelRatio
+        sourceSize.width: root.decodeSize
+        sourceSize.height: root.decodeSize
+        retainWhileLoading: true
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         cache: true
+        onStatusChanged: {
+            if (status === Image.Ready)
+                root.readySource = root.source;
+        }
     }
 }
