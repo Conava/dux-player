@@ -40,7 +40,7 @@ func Register(r *ipc.Registry, c func() *Cache) {
 				w.RespondError(req.ID, err.Error())
 				return
 			}
-			ipc.ReplyOK(w, req.ID, c.SetLimit(ctx, int64(mb)<<20))
+			ipc.ReplyOK(w, req.ID, c.SetLimit(ctx, int64(mb)*1e6))
 		case "cache.list":
 			ipc.Reply(w, req.ID)(c.List(ctx, ipc.Str(p, "library")))
 		case "cache.clear":

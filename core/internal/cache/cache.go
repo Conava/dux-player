@@ -38,7 +38,7 @@ const (
 	configKey = "cache"
 
 	DefaultLimit = 10 << 30
-	minLimit     = 100 << 20
+	minLimit     = 100e6
 
 	maxFileBytes    = 2 << 30
 	downloadTimeout = 30 * time.Minute

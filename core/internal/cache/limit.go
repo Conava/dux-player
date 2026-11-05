@@ -36,7 +36,10 @@ func readFile(dir string) (map[string]any, error) {
 }
 
 func loadLimit(dir string) int64 {
-	m, _ := readFile(dir)
+	m, err := readFile(dir)
+	if err != nil {
+		log.Warnf("cache: the limit in cache.json is unreadable, using the default: %v", err)
+	}
 	if v, ok := m["limitBytes"].(float64); ok && v >= minLimit {
 		return int64(v)
 	}
@@ -46,7 +49,7 @@ func loadLimit(dir string) int64 {
 // SetLimit changes the size limit and evicts down to it.
 func (c *Cache) SetLimit(ctx context.Context, bytes int64) error {
 	if bytes < minLimit {
-		return fmt.Errorf("the limit must be at least %d MB", minLimit>>20)
+		return fmt.Errorf("the limit must be at least %d MB", int64(minLimit/1e6))
 	}
 	if err := c.writeKey("limitBytes", bytes); err != nil {
 		return err
@@ -103,7 +106,10 @@ func (c *Cache) editFile(edit func(m map[string]any)) error {
 func (c *Cache) localPlaylists() []string {
 	c.fileMu.Lock()
 	defer c.fileMu.Unlock()
-	m, _ := readFile(c.cfg.ConfigDir)
+	m, err := readFile(c.cfg.ConfigDir)
+	if err != nil {
+		log.Warnf("cache: the playlists in cache.json are unreadable: %v", err)
+	}
 	return playlistIDs(m)
 }
 
