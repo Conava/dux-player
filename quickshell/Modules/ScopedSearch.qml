@@ -17,6 +17,8 @@ DSearchField {
     font.pixelSize: Theme.fontSizeMedium
     backgroundColor: Theme.chipSurface
     normalBorderColor: Theme.outlineVariant
+    // a filter that changes the row count gives a list a new model, and the list's first row then takes the focus
+    onTextEdited: Qt.callLater(keepFocus)
     onVisibleChanged: claim()
     Component.onCompleted: claim()
     Component.onDestruction: {
@@ -33,6 +35,11 @@ DSearchField {
             else
                 root.setFocus(false);
         }
+    }
+
+    function keepFocus() {
+        if (visible && !inputFocused && (!pageField || Router.pageSearch === root))
+            forceActiveFocus();
     }
 
     function claim() {
