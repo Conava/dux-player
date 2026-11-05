@@ -89,4 +89,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 MIT, see [LICENSE](LICENSE). 
 Tag reading and writing uses [TagLib](https://taglib.org) (LGPL-2.1) through [go-taglib](https://github.com/sentriz/go-taglib). 
-The built-in player uses [flac](https://github.com/mewkiz/flac) (public domain), [go-mp3](https://github.com/hajimehoshi/go-mp3) (Apache-2.0), [oggvorbis](https://github.com/jfreymuth/oggvorbis) (MIT), [gopus](https://github.com/thesyncim/gopus) (BSD-3-Clause) and [pulse](https://github.com/jfreymuth/pulse) (MIT).
+The built-in player uses [flac](https://github.com/mewkiz/flac) (public domain), [go-mp3](https://github.com/hajimehoshi/go-mp3) (Apache-2.0), [oggvorbis](https://github.com/jfreymuth/oggvorbis) (MIT), [gopus](https://github.com/thesyncim/gopus) (BSD-3-Clause) and [pulse](https://github.com/jfreymuth/pulse) (MIT). 
+`make install` puts the license text of every dependency in `share/licenses/dux-player/THIRD_PARTY_LICENSES`.

@@ -17,11 +17,7 @@ BIN_DIR=$(PREFIX)/bin
 DATA_DIR=$(PREFIX)/share
 LICENSE_DIR ?= $(DATA_DIR)/licenses/dux-player
 
-# TagLib (LGPL-2.1) is compiled into the binary as WebAssembly, so its license ships with it.
-TAGLIB_LICENSE = $(firstword $(wildcard $(CORE_DIR)/vendor/go.senan.xyz/taglib/LICENSE) \
-	$(shell cd $(CORE_DIR) && go list -m -f '{{.Dir}}' go.senan.xyz/taglib 2>/dev/null)/LICENSE)
-
-.PHONY: all build dev run headless deps clean check test test-go test-qml lint lint-go lint-qml lint-qml-format lint-settings-index fmt vet install uninstall quit \
+.PHONY: all build dev run run-builtin headless deps clean check test test-go test-qml lint lint-go lint-qml lint-qml-format lint-settings-index fmt vet install uninstall quit \
 	dist update-common i18n-extract settings-index help
 
 all: build
@@ -101,7 +97,7 @@ install:
 	install -Dm644 $(ASSETS_DIR)/$(APP_ID).svg $(DESTDIR)$(DATA_DIR)/icons/hicolor/scalable/apps/$(APP_ID).svg
 	install -Dm644 $(ASSETS_DIR)/$(APP_ID).metainfo.xml $(DESTDIR)$(DATA_DIR)/metainfo/$(APP_ID).metainfo.xml
 	install -Dm644 LICENSE $(DESTDIR)$(LICENSE_DIR)/LICENSE
-	install -Dm644 $(TAGLIB_LICENSE) $(DESTDIR)$(LICENSE_DIR)/LICENSE.taglib
+	scripts/third-party-licenses.sh > $(DESTDIR)$(LICENSE_DIR)/THIRD_PARTY_LICENSES
 	@test -n "$(DESTDIR)" || for c in $(RUNTIME_DEPS); do command -v $$c >/dev/null || echo "warning: $$c not found; dplayer needs it to run"; done
 	@test -n "$(DESTDIR)" || { gtk-update-icon-cache -q $(DATA_DIR)/icons/hicolor; update-desktop-database -q $(DATA_DIR)/applications; } 2>/dev/null || true
 
@@ -110,7 +106,7 @@ uninstall:
 		$(DESTDIR)$(DATA_DIR)/applications/$(APP_ID).desktop \
 		$(DESTDIR)$(DATA_DIR)/icons/hicolor/scalable/apps/$(APP_ID).svg \
 		$(DESTDIR)$(DATA_DIR)/metainfo/$(APP_ID).metainfo.xml \
-		$(DESTDIR)$(LICENSE_DIR)/LICENSE $(DESTDIR)$(LICENSE_DIR)/LICENSE.taglib
+		$(DESTDIR)$(LICENSE_DIR)/LICENSE $(DESTDIR)$(LICENSE_DIR)/THIRD_PARTY_LICENSES
 	-rmdir $(DESTDIR)$(LICENSE_DIR) 2>/dev/null
 	@test -n "$(DESTDIR)" || { gtk-update-icon-cache -q $(DATA_DIR)/icons/hicolor; update-desktop-database -q $(DATA_DIR)/applications; } 2>/dev/null || true
 
