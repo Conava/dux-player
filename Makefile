@@ -21,7 +21,7 @@ LICENSE_DIR ?= $(DATA_DIR)/licenses/dux-player
 TAGLIB_LICENSE = $(firstword $(wildcard $(CORE_DIR)/vendor/go.senan.xyz/taglib/LICENSE) \
 	$(shell cd $(CORE_DIR) && go list -m -f '{{.Dir}}' go.senan.xyz/taglib 2>/dev/null)/LICENSE)
 
-.PHONY: all build dev run deps clean check test test-go test-qml lint lint-go lint-qml lint-qml-format lint-settings-index fmt vet install uninstall quit \
+.PHONY: all build dev run headless deps clean check test test-go test-qml lint lint-go lint-qml lint-qml-format lint-settings-index fmt vet install uninstall quit \
 	dist update-common i18n-extract settings-index help
 
 all: build
@@ -36,6 +36,10 @@ dev:
 # stopped first, or the new window would attach to the old code.
 run: deps settings-index dev quit
 	$(BUILD_DIR)/$(DEV_BINARY) show -c $(CURDIR)/$(SHELL_DIR)
+
+# The real app in a nested Hyprland, invisible on the desktop: scripts/headless/run.sh explains it. SCENARIO= picks one.
+headless: deps dev
+	@scripts/headless/run.sh $(SCENARIO)
 
 # What run needs; install only warns about the runtime part, since a staged or packaged install runs elsewhere.
 RUNTIME_DEPS = qs mpv
@@ -139,6 +143,7 @@ i18n-extract:
 help:
 	@echo "Develop:"
 	@echo "  run            - Dev build, then open the window from quickshell/ with hot reload"
+	@echo "  headless       - Run the app in a sandboxed nested compositor and take screenshots; SCENARIO=file.sh"
 	@echo "  quit           - Stop the running player (daemon, window, mpv)"
 	@echo "  deps           - Check that go, qs and mpv are installed (run does this first)"
 	@echo "  dev            - Fast build without the embedded UI ($(BUILD_DIR)/$(DEV_BINARY))"

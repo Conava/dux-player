@@ -44,6 +44,13 @@ Features are specified by the maintainer and mostly implemented with AI agents. 
 
 The developer's desktop session, often Dux Shell, keeps running while you work. Never restart the shell or other session services, never `make install`, and never write to the developer's real config (the shell's or the player's): test runs use sandboxed `XDG_*` dirs unless asked otherwise. Never run a script "to see what it prints" if it touches system state; read it. Never pick PIDs with `pgrep -f <pattern>` (it matches your own shell); start test processes yourself and use `$!`.
 
+For GUI work, use `make headless` before handing anything over. It runs the real daemon, window and mpv in a nested Hyprland that is invisible on the desktop, with private `HOME`, `XDG_*` dirs and session bus, null audio and a generated library, then writes screenshots and `ui.log` to a temp folder and prints the path. It fails on QML errors. Read the screenshots yourself: a clean run says nothing about how it looks. Unlike `QT_QPA_PLATFORM=offscreen`, it draws shaders, masks and art.
+
+- `make headless SCENARIO=file.sh` runs your own steps; `scripts/headless/lib.sh` lists the helpers (`go`, `expand`, `shot`, `dp`, `rpc`, `click`, `pointer`). Add a helper to the `headless` IPC target in `run.sh` when a scenario needs more than navigation.
+- Anything about pointer feel (drag, scroll, hover) goes through `pointer`/`click`. QtTest mouse events are throttled to about 60 a second and hide lag that a real pointer shows.
+- `make headless SCENARIO=scripts/headless/readme.sh` regenerates `docs/screenshots/` from a made-up library. Run it when the look changes.
+- Don't use `make run` or `make quit` for tests: `quit` can stop the developer's real player. Real audio output and PipeWire devices can't be tested here.
+
 ## Architecture rules
 
 - **The daemon owns playback.** Playback, the queue, library index, sources and MPRIS live in the Go daemon. The UI is a view: it sends commands and renders events. Closing the window must not stop playback when "keep running" is on.

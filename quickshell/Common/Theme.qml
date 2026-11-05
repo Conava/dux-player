@@ -174,6 +174,7 @@ Singleton {
     property color surfaceVariant: currentThemeData.surfaceVariant
     property color surfaceVariantText: currentThemeData.surfaceVariantText
     property color surfaceTint: currentThemeData.surfaceTint
+    readonly property color backdropColor: surface.hslLightness >= 0.5 ? surfaceDim : scrimColor
     property color surfaceBright: currentThemeData.surfaceBright || (isLightMode ? surface : surfaceContainerHighest)
     property color surfaceDim: currentThemeData.surfaceDim || (isLightMode ? surfaceContainer : background)
     property color background: currentThemeData.background
@@ -475,7 +476,7 @@ Singleton {
     readonly property real textFieldFastEffectsStiffness: 3800
     readonly property real textFieldSlowEffectsStiffness: 800
     readonly property real textEditHeight: Math.round(fontSizeMedium * 8)
-    readonly property real tooltipMaxWidth: 500
+    readonly property real tooltipMaxWidth: 300
     readonly property int tooltipDelay: 400
     readonly property real scrollbarThickness: 6
     readonly property real scrollbarGap: spacingXS
