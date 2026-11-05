@@ -4,7 +4,7 @@ const path = require("path");
 const assert = require("assert");
 
 const source = fs.readFileSync(path.join(__dirname, "../Common/Layouts.js"), "utf8").replace(".pragma library", "");
-const L = new Function(source + "; return { migrate, needsMigration, effective, problems, setSurface, setItem, setPageOptions, setKindDefault, resetKind, pageOptions, kindDefault, changedPages, parseImport, cleanSurface, resetAll, resetKindDefault, accepts, keepUnchanged };")();
+const L = new Function(source + "; return { migrate, needsMigration, effective, problems, setSurface, setItem, setPageOptions, setKindDefault, resetKind, pageOptions, kindDefault, changedPages, parseImport, cleanSurface, resetAll, resetKindDefault, accepts, keepUnchanged, setNowPlaying };")();
 
 const types = (list) => list.filter(i => !i.hidden).map(i => i.type);
 const zoneTypes = (eff, id, zone) => types(eff.surfaces[id].zones[zone]);
@@ -123,7 +123,8 @@ const edited = {
     assert.deepStrictEqual(eff.nowPlaying, {
         "start": "side",
         "style": "m3e",
-        "openPane": "queue"
+        "openPane": "queue",
+        "playerLook": "card"
     });
     for (const zone of ["top", "seek", "controls", "bottom"])
         assert.deepStrictEqual(zoneTypes(eff, "fullBento", zone), edited.nowPlaying.zones[zone], "fullBento " + zone);
@@ -186,7 +187,8 @@ const migrations = [
             assert.deepStrictEqual(eff.nowPlaying, {
                 "start": "bar",
                 "style": "bento",
-                "openPane": "last"
+                "openPane": "last",
+                "playerLook": "card"
             });
             assert.deepStrictEqual(eff.sidePanes, ["cover", "lyrics", "queue"]);
         }],
@@ -287,7 +289,8 @@ const migrations = [
             assert.deepStrictEqual(eff.nowPlaying, {
                 "start": "bar",
                 "style": "m3e",
-                "openPane": "lyrics"
+                "openPane": "lyrics",
+                "playerLook": "card"
             });
         }],
     ["the oldest bar without its seekbar", {
@@ -842,6 +845,85 @@ for (const [name, run, expected] of protoCases)
     const eff = L.effective(L.resetKindDefault(changed, "playlist"));
     assert.strictEqual(L.kindDefault(eff, "playlist").layout, "list");
     assert.strictEqual(L.pageOptions(eff, "playlist", "p1").sort, "title");
+}
+
+// The default bar has shuffle and repeat around the transport, and the side dock following it the same row
+{
+    const eff = L.effective({});
+    assert.deepStrictEqual(zoneTypes(eff, "bar", "controls"), ["shuffle", "previous", "playPause", "next", "repeat"]);
+    assert.deepStrictEqual(zoneTypes(eff, "side", "controls"), ["shuffle", "previous", "playPause", "next", "repeat"]);
+}
+
+// Player look: only known values are stored
+{
+    assert.strictEqual(L.effective(L.setNowPlaying({}, {
+        "playerLook": "x"
+    })).nowPlaying.playerLook, "card");
+    assert.strictEqual(L.effective(L.setNowPlaying({}, {
+        "playerLook": "attached"
+    })).nowPlaying.playerLook, "attached");
+}
+
+// Art shape and rotation: a stored value outside the schema falls back to the surface's own default
+{
+    const cover = (id, options) => L.cleanSurface(id, {
+            "zones": {
+                "cover": [{
+                        "type": "cover",
+                        "options": options
+                    }]
+            }
+        }).zones.cover[0].options;
+    const cases = [
+        ["unknown shape on Bento", "fullBento", {
+                "shape": "blob"
+            }, "shape", "cookie"],
+        ["Material defaults to rounded", "fullM3e", {}, "shape", "rounded"],
+        ["the side panel defaults to rounded", "side", {}, "shape", "rounded"],
+        ["a known shape stays on the side panel", "side", {
+                "shape": "cookie"
+            }, "shape", "cookie"],
+        ["a known shape stays", "fullM3e", {
+                "shape": "circle"
+            }, "shape", "circle"],
+        ["rotation off stays off", "fullBento", {
+                "rotate": false
+            }, "rotate", false],
+        ["rotation as text is dropped", "fullBento", {
+                "rotate": "no"
+            }, "rotate", true]
+    ];
+    for (const [name, id, options, key, want] of cases)
+        assert.strictEqual(cover(id, options)[key], want, name);
+}
+
+// Title style: Bento and the side panel offer it, defaulting to the expressive face
+{
+    const title = (id, options) => L.cleanSurface(id, {
+            "zones": {
+                "title": [{
+                        "type": "title",
+                        "options": options
+                    }]
+            }
+        }).zones.title[0].options.face;
+    assert.strictEqual(title("fullBento", {}), "expressive");
+    assert.strictEqual(title("side", {
+        "face": "display"
+    }), "display");
+    assert.strictEqual(title("side", {
+        "face": "comic"
+    }), "expressive");
+    assert.strictEqual(title("fullM3e", {}), undefined);
+    // the default layouts carry the heart; a customized title keeps what it had
+    assert.strictEqual(L.effective({}).surfaces.bar.zones.left.find(i => i.type === "title").options.favorite, true);
+    assert.strictEqual(L.setSurface({}, "side", {
+        "zones": {
+            "title": [{
+                    "type": "title"
+                }]
+        }
+    }).surfaces.side.zones.title[0].options.favorite, false);
 }
 
 // Import

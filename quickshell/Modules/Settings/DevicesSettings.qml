@@ -58,9 +58,9 @@ SettingsPage {
 
                     sourceComponent: MediaVolumeSlider {
                         fillColor: Theme.primary
-                        onFillColor: Theme.onPrimary
+                        fillContentColor: Theme.onPrimary
                         trackColor: Theme.secondaryContainer
-                        onTrackColor: Theme.onSecondaryContainer
+                        trackContentColor: Theme.onSecondaryContainer
                         showValue: true
                         accessibleName: I18n.tr("Volume", "audio volume: settings section, slider") + ": " + deviceRow.title
                     }

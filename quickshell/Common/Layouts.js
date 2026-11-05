@@ -17,6 +17,7 @@ const placements = ["auto", "keep", "overflow"];
 const starts = ["bar", "side", "full"];
 const styles = ["bento", "m3e"];
 const openPanes = ["last", "lyrics", "queue", "cover"];
+const playerLooks = ["card", "attached"];
 const paneTypes = ["cover", "lyrics", "queue"];
 
 const groups = dict({
@@ -48,8 +49,8 @@ function zone(id, kind, overflows) {
 // kind: "row" | "column" | "seek" (the seekbar line, a row) | "cover" | "panes" | "shelves"
 const surfaceZones = dict({
     "bar": [zone("left", "row"), zone("controls", "row"), zone("seek", "seek"), zone("right", "row", true)],
-    "side": [zone("panes", "panes"), zone("title", "column"), zone("top", "row", true), zone("controls", "row", true), zone("seek", "seek"), zone("bottom", "row", true)],
-    "fullBento": [zone("cover", "cover"), zone("header", "row"), zone("title", "column"), zone("top", "row", true), zone("controls", "row", true), zone("seek", "seek"), zone("bottom", "row", true)],
+    "side": [zone("panes", "panes"), zone("cover", "cover"), zone("title", "column"), zone("top", "row", true), zone("controls", "row", true), zone("seek", "seek"), zone("bottom", "row", true)],
+    "fullBento": [zone("cover", "cover"), zone("header", "row"), zone("title", "column"), zone("top", "row", true), zone("seek", "seek"), zone("controls", "row", true), zone("bottom", "row", true)],
     "fullM3e": [zone("header", "row"), zone("buttons", "row", true), zone("cover", "cover"), zone("title", "column"), zone("seek", "seek"), zone("controls", "row", true), zone("end", "row", true)],
     "home": [zone("shelves", "shelves")]
 });
@@ -221,6 +222,7 @@ const kinds = dict({
 const kindIds = Object.keys(kinds);
 const listLayouts = ["list", "grid", "compact"];
 const sizes = ["s", "m", "l"];
+const artShapes = ["cookie", "circle", "rounded", "square"];
 // facts a track row shows at its end (End of row), never as info lines
 const rowFacts = ["duration", "library"];
 
@@ -345,6 +347,11 @@ function typesFor(id, zoneId) {
 }
 
 // {key: {values: [..] | null (any short text), default?}}
+const titleFavorite = {
+    "values": [true, false],
+    "default": false
+};
+
 function optionSchema(id, type) {
     if (id === "home")
         return type === "search" ? {} : {
@@ -365,7 +372,38 @@ function optionSchema(id, type) {
             "size": {
                 "values": sizes,
                 "default": "m"
+            },
+            "shape": {
+                "values": artShapes,
+                "default": id === "fullBento" ? "cookie" : "rounded"
+            },
+            "rotate": {
+                "values": [true, false],
+                "default": true
             }
+        };
+    if (type === "cover" && id === "side")
+        return {
+            "shape": {
+                "values": artShapes,
+                "default": "rounded"
+            },
+            "rotate": {
+                "values": [true, false],
+                "default": true
+            }
+        };
+    if (type === "title" && (id === "fullBento" || id === "side"))
+        return {
+            "face": {
+                "values": ["expressive", "display"],
+                "default": "expressive"
+            },
+            "favorite": titleFavorite
+        };
+    if (type === "title" && (id === "bar" || id === "fullM3e"))
+        return {
+            "favorite": titleFavorite
         };
     if (type === "spacer")
         return {
@@ -394,6 +432,19 @@ function accepts(id, zoneId, list, type) {
 function defaultSurface(id) {
     const transport = ["shuffle", "previous", "playPause", "next", "repeat"];
     const seek = ["elapsed", "seekbar", "duration"];
+    const heartTitle = () => inst("title", {
+            "options": {
+                "favorite": true
+            }
+        });
+    const alwaysShown = type => inst(type, {
+            "placement": "keep"
+        });
+    const groupGap = () => inst("spacer", {
+            "options": {
+                "size": "s"
+            }
+        });
     const cover = () => inst("cover", {
             "options": {
                 "size": "m"
@@ -403,10 +454,10 @@ function defaultSurface(id) {
     case "bar":
         return {
             "zones": {
-                "left": insts(["cover", "title", "artists", hiddenInst("album"), hiddenInst("libraryBadge"), "castTarget"]),
+                "left": insts(["cover", heartTitle(), "artists", hiddenInst("album"), hiddenInst("libraryBadge"), "castTarget"]),
                 "controls": insts(transport),
                 "seek": insts(seek),
-                "right": insts(["lyrics", "queue", "device", "volume", "dock"])
+                "right": insts([alwaysShown("addToPlaylist"), "lyrics", "queue", "device", "volume", "dock"])
             }
         };
     case "side":
@@ -414,11 +465,12 @@ function defaultSurface(id) {
             "panesFollowBar": true,
             "zones": {
                 "panes": [],
-                "title": insts(["title", "artists", "album", hiddenInst("libraryBadge")]),
+                "cover": insts(["cover"]),
+                "title": insts([heartTitle(), "artists", "album", hiddenInst("libraryBadge")]),
                 "top": insts(["volume", fillSpacer(), "device"]),
                 "controls": insts(transport),
                 "seek": insts(seek),
-                "bottom": insts(["favorite", "sleep", "dock"])
+                "bottom": insts([alwaysShown("addToPlaylist"), "sleep", "dock"])
             }
         };
     case "fullBento":
@@ -426,11 +478,13 @@ function defaultSurface(id) {
             "zones": {
                 "cover": [cover()],
                 "header": insts(["playingFrom"]),
-                "title": insts(["title", "artists", "album"]),
-                "top": insts(["volume", "lyrics", "queue", fillSpacer(), "device"]),
-                "controls": insts(transport),
+                "title": insts([heartTitle(), "artists", "album"]),
+                "top": [],
                 "seek": insts(seek),
-                "bottom": insts(["favorite", "sleep"])
+                "controls": insts(transport),
+                "bottom": insts(["lyrics", "queue", groupGap(), "volume", "device", groupGap()]).concat([alwaysShown("addToPlaylist")], ["sleep", "speed", "goToAlbum", "goToArtist", "details"].map(type => inst(type, {
+                            "placement": "overflow"
+                        })))
             }
         };
     case "fullM3e":
@@ -439,10 +493,10 @@ function defaultSurface(id) {
                 "header": insts(["playingFrom"]),
                 "buttons": insts(["volume", "lyrics", "queue", "device"]),
                 "cover": [cover()],
-                "title": insts(["title", "artists", "album"]),
+                "title": insts([heartTitle(), "artists", "album"]),
                 "seek": insts(["seekbar", "elapsed", "duration"]),
                 "controls": insts(["playPause", "previous", "next"]),
-                "end": insts(["favorite", "sleep", "shuffle", "repeat"])
+                "end": insts([alwaysShown("addToPlaylist"), "sleep", "shuffle", "repeat"])
             }
         };
     case "home":
@@ -568,7 +622,8 @@ function cleanNowPlaying(stored) {
     return {
         "start": starts.indexOf(given.start) >= 0 ? given.start : "bar",
         "style": styles.indexOf(given.style) >= 0 ? given.style : "bento",
-        "openPane": openPanes.indexOf(given.openPane) >= 0 ? given.openPane : "last"
+        "openPane": openPanes.indexOf(given.openPane) >= 0 ? given.openPane : "last",
+        "playerLook": playerLooks.indexOf(given.playerLook) >= 0 ? given.playerLook : "card"
     };
 }
 
@@ -724,7 +779,7 @@ function sideFollowedZones() {
 // What the side panel takes from the bar while it follows: the track info (not the cover: the panel has a cover
 // pane), the transport, and the buttons, window buttons at the bottom. Lyrics and queue are the panel's tabs, and
 // the bar's spacers mean nothing in a column. Order, hidden state and placement come with them; the device chip
-// goes to the far end of its row.
+// goes to the far end of its row, and the transport is one row in its usual order, as the bar may split it.
 function sideFromBar(bar) {
     const all = surfaceZones.bar.reduce((list, z) => list.concat(bar.zones[z.id]), []).filter(i => isKnownType(i.type));
     const of = (types, skip) => all.filter(i => types.indexOf(i.type) >= 0 && skip.indexOf(i.type) < 0).map(i => copy(i));
@@ -735,7 +790,7 @@ function sideFromBar(bar) {
     return {
         "title": of(groups.trackInfo, ["cover"]),
         "top": device.length === 0 ? top : top.filter(i => i.type !== "device").concat([fillSpacer()], device),
-        "controls": of(groups.transport, []),
+        "controls": of(groups.transport, []).sort((a, b) => groups.transport.indexOf(a.type) - groups.transport.indexOf(b.type)),
         "bottom": buttons.filter(i => windowButtons.indexOf(i.type) >= 0)
     };
 }
@@ -1015,7 +1070,8 @@ function setNowPlaying(stored, patch) {
     const allowed = {
         "start": starts,
         "style": styles,
-        "openPane": openPanes
+        "openPane": openPanes,
+        "playerLook": playerLooks
     };
     for (const key of Object.keys(allowed)) {
         if (allowed[key].indexOf(given[key]) >= 0)

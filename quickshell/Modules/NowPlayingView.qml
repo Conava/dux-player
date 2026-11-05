@@ -7,7 +7,8 @@ import qs.DCommon.Widgets
 import qs.Widgets
 
 // Expanded now playing in the user's player style (Router.openNowPlaying picks the starting pane). Lyrics and the
-// queue sit in their own pane beside the player when wide, or take the art's place when narrow; never over it.
+// queue take the art's place in Bento; in Material they sit in their own pane beside the player when wide, or take
+// the art's place when narrow.
 Rectangle {
     id: root
 
@@ -15,14 +16,25 @@ Rectangle {
     readonly property bool wide: width >= PlayerMetrics.compactBreakpoint
     // what the second pane shows: "lyrics" | "queue" | ""
     readonly property string pane: Router.viewPane
-    readonly property bool beside: wide && pane !== ""
-    readonly property bool inPlace: !wide && pane !== ""
-    readonly property color paneColor: ArtColors.cardColor
+    readonly property bool beside: m3e && wide && pane !== ""
+    readonly property bool inPlace: pane !== "" && !beside
+    // the attached look: Material's player and pane share one card; Bento has no card to join, so the pane loses its own
+    readonly property bool joined: beside && UiConfig.attachedLook
+    // Material's pane in place sits inside the player's card, so it takes the art's corners and no fill of its own
+    readonly property bool bare: m3e && inPlace || joined || !m3e && UiConfig.attachedLook
+    readonly property color paneColor: bare ? "transparent" : ArtColors.cardColor
+    readonly property real paneRadius: m3e && inPlace ? PlayerMetrics.mediaInnerRadius : bare ? 0 : Theme.cornerRadiusXL
 
     // the window paints the background, so the view has the same transparency as every other page
     color: "transparent"
     focus: true
-    Component.onCompleted: forceActiveFocus()
+    // the tab chain would leave for the window's controls before reaching the view's own
+    Keys.onTabPressed: event => {
+        if (activeFocus)
+            closeButton.forceActiveFocus(Qt.TabFocusReason);
+        else
+            event.accepted = false;
+    }
 
     // swallows clicks so the pages underneath stay inert
     MouseArea {
@@ -49,7 +61,9 @@ Rectangle {
         anchors.top: parent.top
         anchors.margins: Theme.spacingL
         iconName: "tune"
-        iconColor: ArtColors.textVariant
+        variant: "tonal"
+        containerColor: ArtColors.accentSecondaryContainer
+        contentColor: ArtColors.onAccentSecondaryContainer
         Accessible.name: I18n.tr("Customize now playing", "now playing button opening its settings")
         tooltipText: Accessible.name
         onClicked: customizeMenu.open(customizeButton)
@@ -87,6 +101,21 @@ Rectangle {
         }
     }
 
+    Rectangle {
+        anchors.fill: player
+        anchors.rightMargin: player.width - root.width + Theme.spacingXL * 2
+        visible: root.joined
+        radius: Theme.cornerRadiusXL
+        color: ArtColors.cardColor
+
+        Rectangle {
+            x: player.width + Theme.spacingXL / 2
+            width: Theme.dividerWidth
+            height: parent.height
+            color: Theme.outlineMedium
+        }
+    }
+
     Loader {
         id: player
         anchors.left: parent.left
@@ -109,6 +138,8 @@ Rectangle {
         id: m3ePlayer
         M3EPlayer {
             inPlace: root.inPlace ? (root.pane === "queue" ? queuePane : lyricsPane) : null
+            beside: root.beside
+            joined: root.joined
         }
     }
 
@@ -126,7 +157,7 @@ Rectangle {
     Component {
         id: lyricsPane
         LyricsView {
-            radius: PlayerMetrics.mediaInnerRadius
+            radius: root.paneRadius
             backgroundColor: root.paneColor
             artScheme: ArtColors.nowPlaying
         }
@@ -135,7 +166,7 @@ Rectangle {
     Component {
         id: queuePane
         Rectangle {
-            radius: PlayerMetrics.mediaInnerRadius
+            radius: root.paneRadius
             color: root.paneColor
 
             QueueList {

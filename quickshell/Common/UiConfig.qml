@@ -673,6 +673,8 @@ Singleton {
     // the side panel's zones taken from the bar while it follows the bar
     readonly property var sideFollowedZones: Layouts.sideFollowedZones()
 
+    readonly property bool attachedLook: nowPlaying.playerLook === "attached"
+
     function setNowPlaying(patch) {
         SettingsData.layout = Layouts.setNowPlaying(SettingsData.layout, patch);
     }
@@ -783,17 +785,17 @@ Singleton {
         case "right":
             return I18n.tr("Right", "now playing zone");
         case "controls":
-            return id === "bar" ? I18n.tr("Above the seekbar", "now playing zone") : I18n.tr("Transport row", "now playing zone");
+            return id === "bar" ? I18n.tr("Below the seekbar", "now playing zone") : I18n.tr("Transport row", "now playing zone");
         case "seek":
             return I18n.tr("Seekbar row", "now playing zone");
         case "top":
             return I18n.tr("Top row", "now playing zone");
         case "bottom":
-            return I18n.tr("Bottom row", "now playing zone");
+            return id === "fullBento" ? I18n.tr("Button group", "now playing zone") : I18n.tr("Bottom row", "now playing zone");
         case "panes":
             return I18n.tr("Panes", "now playing zone: the side panel's tabs");
         case "title":
-            return I18n.tr("Title card", "now playing zone");
+            return I18n.tr("Title", "now playing zone");
         case "cover":
             return I18n.tr("Cover", "now playing element");
         case "header":
@@ -816,9 +818,21 @@ Singleton {
         return zone;
     }
 
-    // an element option's value: sizes and shelf layouts
+    // an element option's value: sizes, shelf layouts, art shapes and title styles
     function optionLabel(value) {
         switch (value) {
+        case "cookie":
+            return I18n.tr("Cookie", "artwork shape option");
+        case "circle":
+            return I18n.tr("Circle", "artwork shape option");
+        case "rounded":
+            return I18n.tr("Rounded", "artwork shape option");
+        case "square":
+            return I18n.tr("Square", "artwork shape option");
+        case "expressive":
+            return I18n.tr("Expressive", "title style option: the rounded condensed sans in the accent colour");
+        case "display":
+            return I18n.tr("Display", "title style option: the display caps face");
         case "s":
             return I18n.tr("Small", "size option");
         case "m":

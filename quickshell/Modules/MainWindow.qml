@@ -35,7 +35,7 @@ DFloatingWindow {
     minimumSize: Qt.size(PlayerMetrics.windowMinWidth, PlayerMetrics.windowMinHeight)
     implicitWidth: PlayerMetrics.windowWidth
     implicitHeight: screen ? Math.min(PlayerMetrics.windowHeight, screen.height - PlayerMetrics.screenMargin) : PlayerMetrics.windowHeight
-    surfaceColor: Theme.withAlpha(Router.nowPlayingOpen && ArtColors.nowPlaying ? ArtColors.nowPlaying.surface : Theme.surface, Theme.floatingWindowTransparency)
+    surfaceColor: Theme.withAlpha(Router.nowPlayingOpen ? ArtColors.surface : Theme.surface, Theme.floatingWindowTransparency)
     visible: true
     onClosed: window.closeRequested()
 
@@ -137,42 +137,49 @@ DFloatingWindow {
                     }
                 }
 
-                DActionButton {
-                    visible: !window.headerField
-                    iconName: "search"
-                    buttonSize: Theme.buttonHeightXXS
-                    tooltipText: I18n.tr("Search", "header button")
-                    Accessible.name: tooltipText
-                    onClicked: Router.searchEverything()
-                }
+                // the app's own actions as one connected group, apart from the window buttons
+                DActionGroup {
+                    anchors.verticalCenter: parent.verticalCenter
 
-                DActionButton {
-                    id: overflowButton
-                    iconName: "more_vert"
-                    buttonSize: Theme.buttonHeightXXS
-                    tooltipText: I18n.tr("More", "track row menu button")
-                    Accessible.name: tooltipText
-                    onClicked: overflowMenu.open(overflowButton)
+                    DActionGroup.Button {
+                        visible: !window.headerField
+                        buttonSize: Theme.buttonHeightXS
+                        iconSize: Theme.iconSizeSmall
+                        iconName: "search"
+                        tooltipText: I18n.tr("Search", "header button")
+                        Accessible.name: tooltipText
+                        onClicked: Router.searchEverything()
+                    }
 
-                    DMenu {
-                        id: overflowMenu
-                        model: [
-                            {
-                                "id": "settings",
-                                "text": I18n.tr("Settings", "the settings window"),
-                                "icon": "settings"
-                            },
-                            {
-                                "id": "quit",
-                                "text": I18n.tr("Quit Dux Player", "window menu action that stops playback and the player"),
-                                "icon": "power_settings_new"
+                    DActionGroup.Button {
+                        id: overflowButton
+                        buttonSize: Theme.buttonHeightXS
+                        iconSize: Theme.iconSizeSmall
+                        iconName: "more_vert"
+                        tooltipText: I18n.tr("More", "track row menu button")
+                        Accessible.name: tooltipText
+                        onClicked: overflowMenu.open(overflowButton)
+
+                        DMenu {
+                            id: overflowMenu
+                            model: [
+                                {
+                                    "id": "settings",
+                                    "text": I18n.tr("Settings", "the settings window"),
+                                    "icon": "settings"
+                                },
+                                {
+                                    "id": "quit",
+                                    "text": I18n.tr("Quit Dux Player", "window menu action that stops playback and the player"),
+                                    "icon": "power_settings_new"
+                                }
+                            ]
+                            onTriggered: id => {
+                                if (id === "settings")
+                                    Router.openSettings("");
+                                else
+                                    Router.flushUndo(() => DaemonBridge.request("daemon.quit", null, I18n.tr("Couldn't quit the player", "toast when quitting the player fails")));
                             }
-                        ]
-                        onTriggered: id => {
-                            if (id === "settings")
-                                Router.openSettings("");
-                            else
-                                Router.flushUndo(() => DaemonBridge.request("daemon.quit", null, I18n.tr("Couldn't quit the player", "toast when quitting the player fails")));
                         }
                     }
                 }
@@ -329,8 +336,8 @@ DFloatingWindow {
 
                         width: fullWidth * reveal
                         visible: reveal > 0
-                        radius: PlayerMetrics.paneRadius
-                        color: SettingsMetrics.paneColor
+                        radius: UiConfig.attachedLook ? 0 : PlayerMetrics.paneRadius
+                        color: UiConfig.attachedLook && !overlay ? "transparent" : SettingsMetrics.paneColor
                         clip: true
 
                         onCoveringChanged: {
@@ -390,6 +397,8 @@ DFloatingWindow {
                     active: Router.nowPlayingOpen && PlayerService.current !== null
                     z: Theme.zSheet
                     sourceComponent: NowPlayingView {}
+                    // only here is the view in the scene, so Tab starts in it and not at the window's controls
+                    onLoaded: (item as NowPlayingView)?.forceActiveFocus()
                 }
             }
 

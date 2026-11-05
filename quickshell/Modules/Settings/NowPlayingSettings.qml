@@ -18,6 +18,7 @@ Item {
     readonly property var subViews: surfaces
     readonly property var starts: ["bar", "side", "full"]
     readonly property var openPanes: ["last", "lyrics", "queue", "cover"]
+    readonly property var playerLooks: ["card", "attached"]
     readonly property bool twoColumns: overview.width >= SettingsMetrics.compactBreakpoint
 
     function surfaceLabel(id) {
@@ -79,7 +80,8 @@ Item {
         UiConfig.setNowPlaying({
             "start": "bar",
             "style": "bento",
-            "openPane": "last"
+            "openPane": "last",
+            "playerLook": "card"
         });
     }
 
@@ -109,6 +111,19 @@ Item {
                     if (selected)
                         UiConfig.setNowPlaying({
                             "style": UiConfig.playerStyles[index]
+                        });
+                }
+            }
+
+            SettingsButtonGroupRow {
+                text: I18n.tr("Player look", "now playing setting")
+                keywords: "bar bottom side panel lyrics queue pane flat background"
+                model: [I18n.tr("Card", "player look option"), I18n.tr("Attached", "player look option")]
+                currentIndex: root.playerLooks.indexOf(UiConfig.nowPlaying.playerLook)
+                onSelectionChanged: (index, selected) => {
+                    if (selected)
+                        UiConfig.setNowPlaying({
+                            "playerLook": root.playerLooks[index]
                         });
                 }
             }
@@ -199,11 +214,15 @@ Item {
 
     Component {
         id: bentoPreview
-        BentoPlayer {}
+        BentoPlayer {
+            preview: true
+        }
     }
 
     Component {
         id: m3ePreview
-        M3EPlayer {}
+        M3EPlayer {
+            preview: true
+        }
     }
 }

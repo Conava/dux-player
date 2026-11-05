@@ -7,7 +7,7 @@ import qs.Services
 import qs.DCommon.Widgets
 import qs.Widgets
 
-// The now-playing bar: the user's elements in left, center (above and on the seekbar line) and right zones.
+// The now-playing bar: the user's elements in left, center (the seekbar line over the transport) and right zones.
 // When the width runs short the track info and the seekbar shrink first, then right-zone elements move into its
 // ⋮ menu (Overflow.js). Narrow windows keep the left zone and the core transport.
 Rectangle {
@@ -17,14 +17,16 @@ Rectangle {
     // the arrangement to show; Settings passes a draft for its live preview
     property var zones: UiConfig.surface("bar").zones
     readonly property var artScheme: ArtColors.nowPlaying
+    readonly property bool attached: UiConfig.attachedLook
     readonly property string transportLook: UiConfig.nowPlaying.style === "m3e" ? "m3e" : "transport"
     readonly property bool hasSeekbar: zones.seek.some(i => i.type === "seekbar" && !i.hidden)
     // the width the right zone may take: the rest once the other zones are at their smallest
     readonly property real rightRoom: width - Theme.spacingM * 2 - Theme.spacingL * 2 - (leftZone.implicitWidth - leftZone.shrinkable) - Math.max(controlsZone.implicitWidth, hasSeekbar ? PlayerMetrics.barSeekMinWidth : 0)
 
     implicitHeight: Math.max(PlayerMetrics.barHeight, layout.implicitHeight + Theme.spacingS * 2)
-    radius: PlayerMetrics.paneRadius
-    color: artScheme?.surfaceContainer ?? SettingsMetrics.paneColor
+    // attached: no card, the bar sits on the window surface like the navigation rail
+    radius: attached ? 0 : PlayerMetrics.paneRadius
+    color: attached ? "transparent" : artScheme?.surfaceContainer ?? SettingsMetrics.paneColor
     LayoutMirroring.enabled: I18n.isRtl
     LayoutMirroring.childrenInherit: true
 
@@ -100,19 +102,20 @@ Rectangle {
             Layout.minimumWidth: controlsZone.implicitWidth
             Layout.alignment: Qt.AlignVCenter
             visible: !root.compact
-            spacing: 0
+            spacing: Theme.spacingS
+
+            NowPlayingZone {
+                Layout.fillWidth: true
+                instances: root.zones.seek
+            }
 
             NowPlayingZone {
                 id: controlsZone
                 Layout.alignment: Qt.AlignHCenter
                 instances: root.zones.controls
+                size: "m"
                 look: root.transportLook
                 transportOnly: true
-            }
-
-            NowPlayingZone {
-                Layout.fillWidth: true
-                instances: root.zones.seek
             }
         }
 
@@ -121,17 +124,31 @@ Rectangle {
             visible: root.compact
         }
 
-        NowPlayingZone {
+        // no room for the seek line: the progress stays as a line above the core transport
+        ColumnLayout {
             Layout.fillWidth: false
+            Layout.alignment: Qt.AlignVCenter
             visible: root.compact
-            instances: ["previous", "playPause", "next"].map(type => ({
-                        "id": type.toLowerCase(),
-                        "type": type,
-                        "hidden": false,
-                        "placement": "keep",
-                        "options": {}
-                    }))
-            look: root.transportLook
+            spacing: Theme.spacingS
+
+            MediaSeekbar {
+                Layout.fillWidth: true
+                interactive: false
+                flat: root.transportLook === "m3e"
+                thin: true
+            }
+
+            NowPlayingZone {
+                instances: ["previous", "playPause", "next"].map(type => ({
+                            "id": type.toLowerCase(),
+                            "type": type,
+                            "hidden": false,
+                            "placement": "keep",
+                            "options": {}
+                        }))
+                size: "m"
+                look: root.transportLook
+            }
         }
 
         NowPlayingZone {

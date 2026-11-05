@@ -32,7 +32,7 @@ Singleton {
     readonly property real listRowHeight: Theme.listItemHeight + densityStep
     readonly property real listRowTwoLineHeight: Theme.listItemTwoLineHeight + densityStep
     readonly property real barArtSize: Theme.buttonHeightM
-    readonly property real barHeight: Theme.buttonHeightS + Theme.sliderHandleHeight + Theme.spacingS * 2
+    readonly property real barHeight: Theme.buttonHeightM + mediaSeekbarHeight + Theme.spacingS * 3
     readonly property real barInfoWidth: 280
     // the bar's info block and seekbar shrink to these before buttons move into the overflow menu
     readonly property real barInfoMinWidth: 160
@@ -41,14 +41,46 @@ Singleton {
     readonly property real mediaCardMargin: Theme.spacingL
     readonly property real mediaInnerRadius: Math.max(Theme.cornerRadiusXS, Theme.cornerRadiusXL - mediaCardMargin - Theme.layerOutlineWidth)
     readonly property real mediaSeekbarHeight: 22
-    readonly property real mediaPlayWidthRatio: 1.5
-    readonly property real mediaPlayWidthStep: 0.75
+    // the Bento seekbar: a thicker wave with a round handle that turns into a pill while dragged
+    readonly property real mediaSeekbarExpressiveHeight: 30
+    readonly property real mediaSeekbarExpressiveLineWidth: 4
+    readonly property real mediaSeekbarExpressiveAmplitude: 1.8
+    readonly property real mediaSeekbarExpressiveWavelength: 22
+    readonly property real mediaSeekbarHandleSize: 16
+    readonly property real mediaSeekbarHandleDragWidth: 5
+    readonly property real mediaSeekbarHandleDragHeight: 28
+    readonly property real mediaSeekbarHandleGap: 7
+    // Bento's art column takes this share of the width (the cover's size option), the deck the rest
+    readonly property real mediaArtColumnRatioS: 0.4
+    readonly property real mediaArtColumnRatioM: 0.5
+    readonly property real mediaArtColumnRatioL: 0.6
+    readonly property real mediaDeckMaxWidth: 680
+    // narrower than this, the deck goes below the art
+    readonly property real mediaDeckMinWidth: 320
+    // the stacked layout needs at least this much art; with less, art and deck stay side by side
+    readonly property real mediaArtMinSize: 160
+    readonly property real mediaTransportMaxHeight: 70
+    readonly property real mediaArtLyricsScale: 0.88
+    readonly property int mediaArtRotationDuration: 30000
+    // Material's shared axis for the Play on sheet: 30 dp of travel, the outgoing side gone by 35 % of it
+    readonly property real mediaSheetSlideDistance: 30
+    readonly property real mediaSheetFadeThreshold: 0.35
+    readonly property real mediaSheetSettleProgress: 0.002
+    // Google Sans Flex, condensed and rounded (the shell's expressive media title)
+    readonly property var mediaTitleFontAxes: ({
+            "wght": 700,
+            "wdth": 25,
+            "ROND": 100,
+            "GRAD": 100
+        })
+    readonly property real mediaPlayWidthRatio: 2
     readonly property real mediaTransportPressScale: 1.2
     readonly property real mediaDeviceNameWidthRatio: 0.42
     readonly property real mediaTextScrollSpeed: 40
     readonly property int mediaTextScrollStep: 30
     readonly property real accentTrackAlpha: 0.28
     readonly property real accentSubtleAlpha: 0.55
+    readonly property real accentRailMix: 0.3
     readonly property real volumePanelWidth: 280
     readonly property real sidePanelWidth: 340
     readonly property real queueWidth: 380

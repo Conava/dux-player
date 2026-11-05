@@ -6,9 +6,10 @@ import qs.DCommon.Common
 import qs.DCommon.Widgets
 
 // An action menu: icons, labels, a checked state and dividers, opened under a button or at the pointer.
-// model: [{id, text, description, icon, iconFilled, checked, enabled, divider}]; a divider entry only needs
+// model: [{id, text, description, icon, iconFilled, active, checked, enabled, divider}]; a divider entry only needs
 // `divider: true`. description is a second line, e.g. why a disabled entry is disabled. A toggle entry shows
-// the state after its action as the icon (filled or outlined) instead of a check mark.
+// the state after its action as the icon (filled or outlined) instead of a check mark. active is a toggle that is
+// on: a filled icon in the accent colour. checked marks the current pick of a list of choices.
 Item {
     id: root
 
@@ -250,8 +251,8 @@ Item {
                                     Accessible.role: Accessible.MenuItem
                                     Accessible.name: row.modelData.text ?? ""
                                     Accessible.description: row.modelData.description ?? ""
-                                    Accessible.checkable: row.modelData.checked !== undefined
-                                    Accessible.checked: row.modelData.checked === true
+                                    Accessible.checkable: row.modelData.checked !== undefined || row.modelData.active !== undefined
+                                    Accessible.checked: row.modelData.checked === true || row.modelData.active === true
                                     onHoveredChanged: {
                                         if (hovered)
                                             root.highlightIndex = row.index;
@@ -274,9 +275,9 @@ Item {
                                             anchors.verticalCenter: parent.verticalCenter
                                             visible: (row.modelData.icon ?? "") !== ""
                                             name: row.modelData.icon ?? ""
-                                            filled: row.modelData.iconFilled === true
+                                            filled: row.modelData.iconFilled === true || row.modelData.active === true
                                             size: Style.iconSizeMedium
-                                            color: action.enabled ? Style.onSurfaceVariant : Style.onSurface_38
+                                            color: !action.enabled ? Style.onSurface_38 : row.modelData.active === true ? Style.primary : Style.onSurfaceVariant
                                         }
 
                                         Column {

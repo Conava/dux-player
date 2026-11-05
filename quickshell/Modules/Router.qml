@@ -22,6 +22,10 @@ Singleton {
     // the pane beside (or in place of) the full view's art: "" | "lyrics" | "queue"
     property string viewPane: ""
     property bool devicePickerOpen: false
+    // Bento's full view shows the devices in a sheet over its deck; focus goes back to playOnFrom when it closes
+    property bool playOnOpen: false
+    property Item playOnFrom: null
+    onNowPlayingOpenChanged: playOnOpen = playOnOpen && nowPlayingOpen
     property bool sleepPickerOpen: false
     property bool speedPickerOpen: false
     // the shown page's own search field, which Ctrl+F focuses before the global search
@@ -205,8 +209,8 @@ Singleton {
     }
 
     // a now-playing button's action. context: "bar" (lyrics and the queue open the main window's panel), "side"
-    // (they switch the side panel's tab) or "view" (the full view's pane)
-    function runElement(type, context) {
+    // (they switch the side panel's tab) or "view" (the full view's pane); from: the button, if one was pressed
+    function runElement(type, context, from) {
         const track = PlayerService.current;
         switch (type) {
         case "shuffle":
@@ -238,7 +242,12 @@ Singleton {
             return;
         case "device":
         case "castTarget":
-            devicePickerOpen = true;
+            if (context === "view" && UiConfig.nowPlaying.style !== "m3e") {
+                playOnFrom = from ?? null;
+                playOnOpen = true;
+            } else {
+                devicePickerOpen = true;
+            }
             return;
         case "favorite":
             PlayerService.setFavorite("track", track, CatalogService.withMarks(track)?.favorite !== true);

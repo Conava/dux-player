@@ -518,13 +518,6 @@
     "comment": ""
   },
   {
-    "term": "Above the seekbar",
-    "translation": "",
-    "context": "now playing zone",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Account",
     "translation": "",
     "context": "scrobbling settings row",
@@ -535,13 +528,6 @@
     "term": "Add",
     "translation": "",
     "context": "dialog confirm button",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Add %1 tracks to playlist",
-    "translation": "",
-    "context": "add to playlist dialog title for several tracks",
     "reference": "",
     "comment": ""
   },
@@ -689,13 +675,6 @@
     "term": "Add tracks from their menu or drag them here.",
     "translation": "",
     "context": "empty playlist hint",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Add “%1” to playlist",
-    "translation": "",
-    "context": "add to playlist dialog title for one track",
     "reference": "",
     "comment": ""
   },
@@ -987,6 +966,13 @@
     "comment": ""
   },
   {
+    "term": "Attached",
+    "translation": "",
+    "context": "player look option",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Audio playback",
     "translation": "",
     "context": "about page credit",
@@ -1120,6 +1106,13 @@
     "comment": ""
   },
   {
+    "term": "Below the seekbar",
+    "translation": "",
+    "context": "now playing zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Bento",
     "translation": "",
     "context": "now playing player style",
@@ -1225,6 +1218,13 @@
     "comment": ""
   },
   {
+    "term": "Card",
+    "translation": "",
+    "context": "player look option",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Carousel",
     "translation": "",
     "context": "home shelf layout option",
@@ -1326,6 +1326,13 @@
     "term": "Chromecast",
     "translation": "",
     "context": "playback device note",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Circle",
+    "translation": "",
+    "context": "artwork shape option",
     "reference": "",
     "comment": ""
   },
@@ -1487,6 +1494,13 @@
     "term": "Control playback from the system tray.",
     "translation": "",
     "context": "general setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Cookie",
+    "translation": "",
+    "context": "artwork shape option",
     "reference": "",
     "comment": ""
   },
@@ -2088,7 +2102,7 @@
   {
     "term": "Display",
     "translation": "",
-    "context": "lyrics settings section label",
+    "context": "lyrics settings section label | title style option: the display caps face",
     "reference": "",
     "comment": ""
   },
@@ -2474,6 +2488,13 @@
     "term": "Export…",
     "translation": "",
     "context": "button that saves a file to export | playlist menu action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Expressive",
+    "translation": "",
+    "context": "title style option: the rounded condensed sans in the accent colour",
     "reference": "",
     "comment": ""
   },
@@ -4074,6 +4095,13 @@
     "comment": ""
   },
   {
+    "term": "Only for the cookie shape",
+    "translation": "",
+    "context": "why the rotate artwork option is unavailable",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Only local playlists can be exported",
     "translation": "",
     "context": "why export is disabled for a server playlist",
@@ -4284,6 +4312,13 @@
     "comment": ""
   },
   {
+    "term": "Play on",
+    "translation": "",
+    "context": "now playing sheet choosing the playback device",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Play on multiple outputs",
     "translation": "",
     "context": "playback device setting",
@@ -4336,6 +4371,13 @@
     "term": "Player",
     "translation": "",
     "context": "about page hero: the app's short name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Player look",
+    "translation": "",
+    "context": "now playing setting",
     "reference": "",
     "comment": ""
   },
@@ -4431,9 +4473,23 @@
     "comment": ""
   },
   {
+    "term": "Playlists with these %1 tracks",
+    "translation": "",
+    "context": "add to playlist dialog title for several tracks",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Playlists with this artist",
     "translation": "",
     "context": "artist page section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playlists with “%1”",
+    "translation": "",
+    "context": "add to playlist dialog title for one track",
     "reference": "",
     "comment": ""
   },
@@ -5110,6 +5166,20 @@
     "comment": ""
   },
   {
+    "term": "Rotate artwork",
+    "translation": "",
+    "context": "element option: the cookie-shaped artwork turns while playing",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rounded",
+    "translation": "",
+    "context": "artwork shape option",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Rows and menus",
     "translation": "",
     "context": "settings pages section: the shared row and menu actions per type",
@@ -5530,6 +5600,13 @@
     "comment": ""
   },
   {
+    "term": "Shape",
+    "translation": "",
+    "context": "element option: the artwork's outline",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Shared by every page that shows them.",
     "translation": "",
     "context": "page edit mode: rows and menus are the same everywhere",
@@ -5820,6 +5897,13 @@
     "term": "Speed and queue",
     "translation": "",
     "context": "playback settings section label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Square",
+    "translation": "",
+    "context": "artwork shape option",
     "reference": "",
     "comment": ""
   },
@@ -6316,14 +6400,14 @@
   {
     "term": "Title",
     "translation": "",
-    "context": "track list column",
+    "context": "now playing zone | track list column",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "Title card",
+    "term": "Title style",
     "translation": "",
-    "context": "now playing zone",
+    "context": "element option: the title's typeface",
     "reference": "",
     "comment": ""
   },

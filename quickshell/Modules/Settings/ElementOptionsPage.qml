@@ -34,8 +34,28 @@ SettingsPage {
         switch (key) {
         case "size":
             return I18n.tr("Size", "element option: how big the element is");
+        case "shape":
+            return I18n.tr("Shape", "element option: the artwork's outline");
+        case "rotate":
+            return I18n.tr("Rotate artwork", "element option: the cookie-shaped artwork turns while playing");
+        case "favorite":
+            return UiConfig.elementLabel("favorite");
+        case "face":
+            return I18n.tr("Title style", "element option: the title's typeface");
         }
         return key;
+    }
+
+    function isToggle(key) {
+        const values = schema[key].values;
+        return values.length === 2 && values.indexOf(true) >= 0 && values.indexOf(false) >= 0;
+    }
+
+    // why an option does nothing with the element's other options, or ""
+    function blocker(key, options) {
+        if (key === "rotate" && options?.shape !== "cookie")
+            return I18n.tr("Only for the cookie shape", "why the rotate artwork option is unavailable");
+        return "";
     }
 
     function patched(patch) {
@@ -75,7 +95,7 @@ SettingsPage {
         }
 
         Repeater {
-            model: root.optionKeys
+            model: root.optionKeys.filter(k => !root.isToggle(k))
 
             SettingsButtonGroupRow {
                 id: optionRow
@@ -89,6 +109,28 @@ SettingsPage {
                         return;
                     const options = Object.assign({}, root.instance.options);
                     options[optionRow.modelData] = optionRow.values[index];
+                    root.edited(root.patched({
+                        "options": options
+                    }));
+                }
+            }
+        }
+
+        // on/off options; one that needs another option's value is greyed out with the reason
+        Repeater {
+            model: root.optionKeys.filter(k => root.isToggle(k))
+
+            SettingsToggleRow {
+                id: toggleRow
+                required property string modelData
+                readonly property string blocker: root.blocker(modelData, root.instance?.options)
+                text: root.optionName(modelData)
+                description: blocker
+                enabled: blocker === ""
+                checked: root.instance?.options?.[modelData] ?? root.schema[modelData]?.default ?? false
+                onToggled: value => {
+                    const options = Object.assign({}, root.instance.options);
+                    options[toggleRow.modelData] = value;
                     root.edited(root.patched({
                         "options": options
                     }));

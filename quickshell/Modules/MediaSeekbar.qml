@@ -3,17 +3,28 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import qs.Common
 import qs.Services
+import qs.DCommon.Common as DC
 import qs.DCommon.Widgets
+import "../Common/SeekTrack.js" as SeekTrack
 
-// The shell's wavy seekbar on the player's position clock: the wave moves only while shown and playing.
+// The shell's wavy seekbar on the player's position clock: the wave moves only while shown and playing, and lies
+// flat while paused. Expressive (Bento): a thicker wave and a round handle on an opaque rail. Flat (Material): the
+// M3 slider, thin in the bar.
 Item {
     id: root
 
     readonly property real length: PlayerService.duration
     // false: a progress bar only (no seeking, no focus)
     property bool interactive: true
+    property bool expressive: false
+    property bool flat: false
+    property bool thin: false
     property color fillColor: ArtColors.accent
-    property color trackColor: ArtColors.accentTrack
+    property color trackColor: expressive ? ArtColors.accentRail : ArtColors.accentTrack
+    // the handle keeps half its width from the ends, so the track maps onto the span between them
+    readonly property real handleInset: flat ? Theme.sliderHandleWidth / 2 : expressive ? handleWidth / 2 : 0
+    property real handleWidth: flat ? (isSeeking ? Theme.sliderHandleWidthPressed : Theme.sliderHandleWidth) : isSeeking ? PlayerMetrics.mediaSeekbarHandleDragWidth : PlayerMetrics.mediaSeekbarHandleSize
+    property real handleHeight: flat ? (thin ? PlayerMetrics.mediaSeekbarHeight : Theme.sliderHandleHeight) : isSeeking ? PlayerMetrics.mediaSeekbarHandleDragHeight : PlayerMetrics.mediaSeekbarHandleSize
     readonly property bool canSeek: interactive && enabled && length > 0 && PlayerService.current !== null
     // a minimized window still counts as visible to its items
     readonly property bool shown: visible && Window.visibility !== Window.Minimized && Window.visibility !== Window.Hidden
@@ -28,6 +39,11 @@ Item {
 
     function clampRatio(ratio) {
         return Math.max(0, Math.min(1, ratio));
+    }
+
+    // a 0–1 ratio as a position along the drawn track
+    function trackValue(ratio) {
+        return width > 0 ? SeekTrack.handleCenter(ratio, width, handleInset) / width : ratio;
     }
 
     function ratioOf(seconds) {
@@ -52,7 +68,7 @@ Item {
             seekPreviewRatio = -1;
     }
 
-    implicitHeight: PlayerMetrics.mediaSeekbarHeight
+    implicitHeight: flat ? handleHeight : expressive ? PlayerMetrics.mediaSeekbarExpressiveHeight : PlayerMetrics.mediaSeekbarHeight
     activeFocusOnTab: canSeek
     LayoutMirroring.enabled: false
     LayoutMirroring.childrenInherit: true
@@ -126,45 +142,141 @@ Item {
         visible: root.activeFocus
     }
 
+    Behavior on handleWidth {
+        enabled: Theme.animationsEnabled
+        NumberAnimation {
+            duration: Theme.expressiveDurations.expressiveEffects
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+        }
+    }
+
+    Behavior on handleHeight {
+        enabled: Theme.animationsEnabled
+        NumberAnimation {
+            duration: Theme.expressiveDurations.expressiveEffects
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+        }
+    }
+
     M3WaveProgress {
         anchors.fill: parent
-        visible: root.length > 0
-        value: root.value
-        actualValue: root.playerValue
-        showActualPlaybackState: root.isSeeking
+        visible: !root.flat && root.length > 0
+        value: root.trackValue(root.value)
+        actualValue: root.trackValue(root.playerValue)
+        // the handle carries the played wave along, so a drag shows no separate preview
+        showActualPlaybackState: root.isSeeking && !root.expressive
+        showHandle: root.expressive
+        handleWidth: root.handleWidth
+        handleHeight: root.handleHeight
+        handleGap: PlayerMetrics.mediaSeekbarHandleGap
+        handleColor: root.fillColor
         fillColor: root.fillColor
         playheadColor: root.fillColor
         trackColor: root.trackColor
         actualProgressColor: ArtColors.accentSubtle
         isPlaying: root.playing && root.shown
 
-        MouseArea {
-            id: mouse
-            anchors.fill: parent
-            cursorShape: root.canSeek ? Qt.PointingHandCursor : Qt.ArrowCursor
-            enabled: root.canSeek
+        Binding on lineWidth {
+            when: root.expressive
+            value: PlayerMetrics.mediaSeekbarExpressiveLineWidth
+        }
 
-            function preview(x) {
-                root.seekPreviewRatio = root.clampRatio(x / width);
+        Binding on amp {
+            when: root.expressive
+            value: PlayerMetrics.mediaSeekbarExpressiveAmplitude
+        }
+
+        Binding on wavelength {
+            when: root.expressive
+            value: PlayerMetrics.mediaSeekbarExpressiveWavelength
+        }
+    }
+
+    // the M3 slider: active track, handle, a gap either side, the inactive track with a stop at its end
+    Item {
+        id: flatTrack
+        readonly property real trackHeight: root.thin ? Theme.sliderHandleWidth : Theme.sliderTrackHeight
+        readonly property real outsideCorner: Theme.scaledRadius(DC.Style.sliderTrackCornerRadius, trackHeight / 2)
+        readonly property real insideCorner: Theme.scaledRadius(DC.Style.sliderTrackInsideCornerRadius, trackHeight / 2)
+        anchors.fill: parent
+        visible: root.flat && root.length > 0
+
+        Rectangle {
+            anchors.verticalCenter: parent.verticalCenter
+            width: Math.max(0, handle.x - Theme.sliderHandleGap)
+            height: flatTrack.trackHeight
+            // no hairline at the start
+            visible: width >= flatTrack.outsideCorner
+            topLeftRadius: flatTrack.outsideCorner
+            bottomLeftRadius: flatTrack.outsideCorner
+            topRightRadius: flatTrack.insideCorner
+            bottomRightRadius: flatTrack.insideCorner
+            color: root.fillColor
+        }
+
+        Rectangle {
+            id: handle
+            x: SeekTrack.handleCenter(root.value, root.width, root.handleInset) - width / 2
+            anchors.verticalCenter: parent.verticalCenter
+            width: root.handleWidth
+            height: root.handleHeight
+            radius: Theme.fullRadius(width, height)
+            color: root.fillColor
+        }
+
+        Rectangle {
+            x: handle.x + handle.width + Theme.sliderHandleGap
+            anchors.verticalCenter: parent.verticalCenter
+            width: Math.max(0, parent.width - x)
+            height: flatTrack.trackHeight
+            visible: width > 0
+            topLeftRadius: flatTrack.insideCorner
+            bottomLeftRadius: flatTrack.insideCorner
+            topRightRadius: flatTrack.outsideCorner
+            bottomRightRadius: flatTrack.outsideCorner
+            color: root.trackColor
+
+            Rectangle {
+                anchors.right: parent.right
+                anchors.rightMargin: (flatTrack.trackHeight - width) / 2
+                anchors.verticalCenter: parent.verticalCenter
+                width: Theme.sliderStopSize
+                height: width
+                radius: Theme.fullRadius(width, height)
+                visible: parent.width > Theme.sliderHandleGap * 2 + width
+                color: root.fillColor
             }
+        }
+    }
 
-            onPressed: event => {
-                root.clearPreview();
-                root.isSeeking = true;
+    MouseArea {
+        id: mouse
+        anchors.fill: parent
+        cursorShape: root.canSeek ? Qt.PointingHandCursor : Qt.ArrowCursor
+        enabled: root.canSeek
+
+        function preview(x) {
+            root.seekPreviewRatio = SeekTrack.ratioAt(x, root.width, root.handleInset);
+        }
+
+        onPressed: event => {
+            root.clearPreview();
+            root.isSeeking = true;
+            preview(event.x);
+        }
+        onPositionChanged: event => {
+            if (pressed)
                 preview(event.x);
-            }
-            onPositionChanged: event => {
-                if (pressed)
-                    preview(event.x);
-            }
-            onReleased: {
-                root.isSeeking = false;
-                root.seekTo(root.seekPreviewRatio * root.length);
-            }
-            onCanceled: {
-                root.isSeeking = false;
-                root.clearPreview();
-            }
+        }
+        onReleased: {
+            root.isSeeking = false;
+            root.seekTo(root.seekPreviewRatio * root.length);
+        }
+        onCanceled: {
+            root.isSeeking = false;
+            root.clearPreview();
         }
     }
 }

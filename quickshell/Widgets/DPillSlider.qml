@@ -20,8 +20,8 @@ Item {
     property string unit: ""
     property color fillColor: Style.primary
     property color trackColor: Style.secondaryContainer
-    property color onFillColor: Style.onPrimary
-    property color onTrackColor: Style.onSecondaryContainer
+    property color fillContentColor: Style.onPrimary
+    property color trackContentColor: Style.onSecondaryContainer
     readonly property bool dragging: mouse.pressed && !mouse.onIcon
     readonly property real ratio: maximum > minimum ? Math.max(0, Math.min(1, (value - minimum) / (maximum - minimum))) : 0
     readonly property real fillWidth: ratio > 0 ? Math.max(height, width * ratio) : 0
@@ -83,7 +83,7 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: parent.radius
-            color: root.onTrackColor
+            color: root.trackContentColor
             opacity: mouse.pressed ? Style.stateLayerPressed : mouse.containsMouse ? Style.stateLayerHover : 0
         }
     }
@@ -95,7 +95,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         name: root.iconName
         size: Math.min(Style.iconSize, root.height - Style.spacingXS * 2)
-        color: root.fillWidth >= root.iconBox * 0.75 ? root.onFillColor : root.onTrackColor
+        color: root.fillWidth >= root.iconBox * 0.75 ? root.fillContentColor : root.trackContentColor
     }
 
     StyledText {
@@ -105,7 +105,7 @@ Item {
         text: Math.round(root.value) + root.unit
         font.pixelSize: Style.fontSizeSmall
         font.weight: Style.fontWeightMedium
-        color: root.fillWidth >= root.width - Style.spacingM ? root.onFillColor : root.onTrackColor
+        color: root.fillWidth >= root.width - Style.spacingM ? root.fillContentColor : root.trackContentColor
     }
 
     MouseArea {

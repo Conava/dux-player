@@ -21,9 +21,9 @@ DPillSlider {
     showValue: tonal
     unit: "%"
     fillColor: tonal ? ArtColors.accentContainer : ArtColors.accent
-    onFillColor: tonal ? ArtColors.onAccentContainer : ArtColors.onAccent
+    fillContentColor: tonal ? ArtColors.onAccentContainer : ArtColors.onAccent
     trackColor: tonal ? ArtColors.accentSecondaryContainer : ArtColors.accentTrack
-    onTrackColor: tonal ? ArtColors.onAccentSecondaryContainer : ArtColors.accent
+    trackContentColor: tonal ? ArtColors.onAccentSecondaryContainer : ArtColors.accent
     Accessible.name: accessibleName
     onMoved: value => PlayerService.setVolume(value / 100)
     onIconClicked: PlayerService.setMuted(!PlayerService.muted)

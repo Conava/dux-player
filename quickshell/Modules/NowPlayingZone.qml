@@ -7,10 +7,12 @@ import qs.Services
 import qs.DCommon.Widgets
 import qs.Widgets
 import "../Common/Overflow.js" as Overflow
+import "../DCommon/Common/FocusNavigation.js" as FocusNavigation
 
 // One zone of a now-playing surface: its shown element instances in a row, runs of track info stacked into one
 // block (a column zone is a single block). With `room` set, what doesn't fit moves into a ⋮ menu at the end. With
-// `fill` the transport shares the width (play wider).
+// `fill` the transport shares the width (play wider). The group look joins the buttons (and ⋮) into connected runs,
+// broken by spacers and dividers.
 RowLayout {
     id: root
 
@@ -19,6 +21,8 @@ RowLayout {
     property string context: "bar"
     property string size: "s"
     property string look: "plain"
+    // the transport's button height when it isn't the size's (Bento's deck)
+    property real buttonHeight: 0
     // per element: the plain look for everything but the transport
     property bool transportOnly: false
     property bool fill: false
@@ -44,7 +48,6 @@ RowLayout {
     // one entry per type; spacers and dividers just go
     readonly property var menuTypes: inMenu.map(i => i.type).filter((t, n, all) => all.indexOf(t) === n && t !== "spacer" && t !== "divider")
     readonly property var inRow: inMenu.length === 0 ? shown : shown.filter(i => inMenu.indexOf(i) < 0)
-    readonly property real playWeight: PlayerMetrics.mediaPlayWidthRatio + inRow.filter(i => i.type === "shuffle" || i.type === "repeat").length * PlayerMetrics.mediaPlayWidthStep
     // [{key, stack, items}]
     readonly property var segments: {
         const out = [];
@@ -60,6 +63,23 @@ RowLayout {
                     "items": [inst]
                 });
         }
+        return out;
+    }
+    // the group look: each shown segment's place in its run of buttons, by key; "more" is the ⋮ button
+    readonly property var groupPositions: {
+        if (look !== "group")
+            return ({});
+        const out = {};
+        const runs = [[]];
+        const keys = segments.filter(s => s.items.some(i => shows(i.type))).map(s => s.items[0].type === "spacer" || s.items[0].type === "divider" ? "" : s.key);
+        for (const key of keys.concat(menuTypes.length > 0 ? ["more"] : [])) {
+            if (key === "")
+                runs.push([]);
+            else
+                runs[runs.length - 1].push(key);
+        }
+        for (const run of runs)
+            run.forEach((key, i) => out[key] = run.length === 1 ? "only" : i === 0 ? "start" : i === run.length - 1 ? "end" : "middle");
         return out;
     }
     // how much narrower the bar's track info blocks get before anything moves into the menu
@@ -112,9 +132,10 @@ RowLayout {
             return 0;
         if (fill)
             return Theme.iconSizeMedium + Theme.spacingXS * 2;
-        // from every shown mode button, not playWeight: that one follows the overflow this feeds
+        if (look === "group")
+            return groupProbe.width;
         if (look === "transport" && inst.type === "playPause")
-            return Math.round(button * (PlayerMetrics.mediaPlayWidthRatio + shown.filter(i => i.type === "shuffle" || i.type === "repeat").length * PlayerMetrics.mediaPlayWidthStep));
+            return Math.round(button * PlayerMetrics.mediaPlayWidthRatio);
         return button;
     }
 
@@ -130,24 +151,25 @@ RowLayout {
             entry.icon = Router.dockMode === "side" ? "bottom_panel_open" : "right_panel_open";
             break;
         case "shuffle":
-            entry.checked = PlayerService.shuffle;
+            entry.active = PlayerService.shuffle;
             break;
         case "repeat":
-            entry.checked = PlayerService.repeat !== "off";
+            entry.active = PlayerService.repeat !== "off";
+            entry.text = Phrases.repeatState(PlayerService.repeat);
             entry.icon = PlayerService.repeat === "one" ? "repeat_one" : "repeat";
             break;
         case "lyrics":
         case "queue":
-            entry.checked = context === "bar" ? Router.panel === type : context === "side" ? Router.sideTab === type : Router.viewPane === type;
+            entry.active = context === "bar" ? Router.panel === type : context === "side" ? Router.sideTab === type : Router.viewPane === type;
             break;
         case "sleep":
-            entry.checked = PlayerService.sleepMode !== "off";
+            entry.active = PlayerService.sleepMode !== "off";
             break;
         case "speed":
-            entry.checked = PlayerService.settings.speed !== 1;
+            entry.active = PlayerService.settings.speed !== 1;
             break;
         case "favorite":
-            entry.checked = CatalogService.withMarks(track)?.favorite === true;
+            entry.active = CatalogService.withMarks(track)?.favorite === true;
             entry.enabled = track !== null && PlayerService.whyNot("favorite", track) === "";
             break;
         case "rating":
@@ -171,19 +193,37 @@ RowLayout {
     // has something to show; read this rather than visible, which also follows the parents
     readonly property bool populated: segments.length > 0 || menuTypes.length > 0
 
-    spacing: Theme.spacingS
+    spacing: look === "group" ? Theme.groupedListGap : Theme.spacingS
     visible: populated
     LayoutMirroring.enabled: false
     LayoutMirroring.childrenInherit: true
 
+    // Left and Right move along a button group; Tab leaves it
+    Keys.enabled: look === "group"
+    Keys.onPressed: event => {
+        const buttons = Array.from(children).filter(c => c.visible && (c === moreButton || c.element)).sort((a, b) => a.x - b.x);
+        event.accepted = FocusNavigation.handleHorizontalKey(event, buttons.map(c => c === moreButton ? c : c.element.item), false);
+    }
+
+    // a wide icon button, the width every group member takes
+    DIconButton {
+        id: groupProbe
+        visible: false
+        size: root.size
+        buttonSize: root.buttonHeight > 0 ? root.buttonHeight : (root.size === "m" ? Theme.buttonHeightM : Theme.buttonHeightS)
+        widthMode: "wide"
+    }
+
     component Element: NowPlayingElement {
         context: root.context
         size: root.size
+        buttonHeight: root.buttonHeight
+        groupWidth: groupProbe.width
         look: root.transportOnly && !transportId ? "plain" : root.look
         textLook: root.textLook
         centered: root.centered
         fill: root.fill
-        weight: elementId === "playPause" ? root.playWeight : 1
+        weight: elementId === "playPause" ? PlayerMetrics.mediaPlayWidthRatio : 1
         shown: root.shows(elementId)
         rowWidth: root.width
     }
@@ -268,6 +308,7 @@ RowLayout {
             Component {
                 id: elementComponent
                 Element {
+                    groupPosition: root.groupPositions[segment.modelData.key] ?? "only"
                     elementId: segment.modelData.items[0].type
                     options: segment.modelData.items[0].options ?? {}
                 }
@@ -277,16 +318,29 @@ RowLayout {
 
     DIconButton {
         id: moreButton
+        readonly property bool grouped: root.look === "group"
+        readonly property string groupPosition: root.groupPositions.more ?? "only"
         visible: root.menuTypes.length > 0
         size: root.size
+        buttonSize: groupProbe.buttonSize
+        widthMode: grouped ? "wide" : "default"
+        variant: grouped ? "tonal" : "standard"
+        containerColor: ArtColors.accentContainer
+        contentColor: ArtColors.onAccentContainer
+        radius: grouped ? (pressed ? Theme.cornerRadiusXS : Theme.cornerRadiusS) : pressed ? Theme.buttonRadius(width, height, buttonSize, true, false) : roundRadius
+        topLeftRadius: grouped && (groupPosition === "start" || groupPosition === "only") ? roundRadius : radius
+        bottomLeftRadius: topLeftRadius
+        topRightRadius: grouped && (groupPosition === "end" || groupPosition === "only") ? roundRadius : radius
+        bottomRightRadius: topRightRadius
         iconName: "more_vert"
-        iconColor: ArtColors.textVariant
+        iconColor: grouped ? contentColor : ArtColors.textVariant
         tooltipText: I18n.tr("More", "track row menu button")
         Accessible.name: tooltipText
         onClicked: moreMenu.open(moreButton)
 
         DMenu {
             id: moreMenu
+            minimumWidth: 0
             model: root.menuTypes.map(type => root.menuEntry(type))
             onTriggered: id => {
                 switch (id) {

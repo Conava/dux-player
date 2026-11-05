@@ -18,9 +18,15 @@ Loader {
     // "bar" | "side" | "view": where lyrics and the queue open (Router.runElement)
     property string context: "bar"
     property string size: "s"
-    // "plain" | "transport" (Bento's tonal buttons) | "m3e" (the M3E player's transport) | "outlined" (the M3E
-    // player's button group) | "row" (Bento's device row: volume as a ring, the device as a chip)
+    // "plain" | "transport" (Bento's tonal buttons) | "m3e" (Material's standard buttons) | "row" (Bento's device
+    // row: volume as a ring, the device as a chip) | "group" (one connected button group, Bento's option row)
     property string look: "plain"
+    // in the group look: where this button sits in its run, "start" | "middle" | "end" | "only" (left to right)
+    property string groupPosition: "only"
+    // in the group look: the width of a wide icon button, which every member takes
+    property real groupWidth: buttonSize
+    // overrides size's button height (Bento's transport fills the deck's height)
+    property real buttonHeight: 0
     // track info: "bar" | "side" | "bento" | "m3e"
     property string textLook: "bar"
     property bool centered: false
@@ -34,9 +40,15 @@ Loader {
 
     readonly property var track: PlayerService.current
     readonly property bool transportId: ["shuffle", "previous", "playPause", "next", "repeat"].indexOf(elementId) >= 0
-    readonly property real buttonSize: size === "m" ? Theme.buttonHeightM : Theme.buttonHeightS
+    readonly property real sizeHeight: size === "m" ? Theme.buttonHeightM : Theme.buttonHeightS
+    readonly property real buttonSize: buttonHeight > 0 ? buttonHeight : sizeHeight
+    // icons grow with a button made taller than its size
+    readonly property real iconScale: buttonSize / sizeHeight
+    readonly property bool grouped: look === "group"
+    readonly property bool groupStart: groupPosition === "start" || groupPosition === "only"
+    readonly property bool groupEnd: groupPosition === "end" || groupPosition === "only"
     // the volume is a button showing the level (Bento's ring, M3E's fill); scroll changes it, a click opens the slider
-    readonly property Component volumeComponent: UiConfig.nowPlaying.style === "m3e" ? volumeLevel : volumeRing
+    readonly property Component volumeComponent: UiConfig.nowPlaying.style === "m3e" || grouped ? volumeLevel : volumeRing
     readonly property real spacerSize: {
         switch (options.size ?? "m") {
         case "s":
@@ -51,6 +63,15 @@ Loader {
         if (centered)
             return (total - itemWidth) / 2;
         return I18n.isRtl ? total - itemWidth : 0;
+    }
+
+    // a group member's corner: the run's outer ends fully round, the rest as the button's own radius
+    function corner(item, outer) {
+        return grouped && outer ? Theme.fullRadius(item.width, item.height) : item.radius;
+    }
+
+    function groupRadius(item, pressed, checked) {
+        return pressed ? Theme.cornerRadiusXS : checked ? Theme.fullRadius(item.width, item.height) : Theme.cornerRadiusS;
     }
 
     // what the zone lays out by: a row's layout reads these, since the element sits in a wrapper
@@ -107,8 +128,12 @@ Loader {
     component Springy: DIconButton {
         id: springy
         readonly property real targetWeight: root.weight * (pressed ? PlayerMetrics.mediaTransportPressScale : 1)
-        // Bento's buttons outside a filled row: squares, play wider
-        width: root.look === "transport" && !root.fills ? Math.round(buttonSize * root.weight) : iconSize + horizontalInset * 2
+        // Bento's buttons outside a filled row: round, play wider
+        width: root.grouped ? root.groupWidth : root.look === "transport" && !root.fills ? Math.round(buttonSize * root.weight) : iconSize + horizontalInset * 2
+        topLeftRadius: root.corner(springy, root.groupStart)
+        bottomLeftRadius: root.corner(springy, root.groupStart)
+        topRightRadius: root.corner(springy, root.groupEnd)
+        bottomRightRadius: root.corner(springy, root.groupEnd)
         onTargetWeightChanged: spring.retarget(targetWeight)
 
         Binding {
@@ -156,12 +181,34 @@ Loader {
     Component {
         id: title
         Item {
-            implicitWidth: titleLoader.implicitWidth
+            id: titleBox
+
+            // the track's heart sits right after the text, wherever that ends
+            readonly property bool hasHeart: root.options.favorite === true
+            readonly property real heartSpace: hasHeart ? heart.width + Theme.spacingXS : 0
+            // one of the title components below, which share no type
+            readonly property var titleText: titleLoader.item
+            readonly property real textWidth: titleText?.fullTextWidth ?? titleText?.implicitTextWidth ?? 0
+
+            implicitWidth: titleLoader.implicitWidth + heartSpace
             implicitHeight: titleLoader.implicitHeight
+
+            FavoriteButton {
+                id: heart
+                x: titleLoader.x + titleLoader.width + Theme.spacingXS
+                anchors.verticalCenter: titleLoader.verticalCenter
+                visible: titleBox.hasHeart
+                kind: "track"
+                item: root.track
+                buttonSize: root.textLook === "bar" ? Theme.buttonHeightXS : Theme.buttonHeightS
+                activeColor: ArtColors.accent
+                inactiveColor: ArtColors.textVariant
+            }
 
             Loader {
                 id: titleLoader
-                width: parent.width
+                x: root.centered && titleBox.hasHeart ? Math.round((parent.width - width - titleBox.heartSpace) / 2) : 0
+                width: titleBox.hasHeart ? Math.min(parent.width - titleBox.heartSpace, titleBox.textWidth) : parent.width
                 sourceComponent: {
                     switch (root.textLook) {
                     case "side":
@@ -194,6 +241,7 @@ Loader {
             Component {
                 id: sideTitle
                 MediaTitle {
+                    expressive: root.options.face !== "display"
                     fullPixelSize: Theme.fontSizeXXLarge
                     minimumPixelSize: Theme.fontSizeXLarge
                     text: root.track?.title ?? ""
@@ -205,6 +253,7 @@ Loader {
             Component {
                 id: bentoTitle
                 MediaTitle {
+                    expressive: root.options.face !== "display"
                     text: root.track?.title ?? ""
                     horizontalAlignment: root.centered ? Text.AlignHCenter : Text.AlignLeft
                     active: PlayerService.playing && root.visible
@@ -214,13 +263,22 @@ Loader {
             Component {
                 id: m3eTitle
                 StyledText {
+                    id: m3eText
+                    // on one line: a wrapped text's own width depends on the room it is given
+                    readonly property real fullTextWidth: m3eSize.advanceWidth
                     text: root.track?.title ?? ""
                     color: ArtColors.text
-                    font.pixelSize: Theme.fontSizeXXLarge
+                    font.pixelSize: root.context === "side" ? Theme.fontSizeXLarge : Theme.fontSizeXXLarge
                     elide: Text.ElideRight
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     maximumLineCount: 2
                     horizontalAlignment: root.centered ? Text.AlignHCenter : Text.AlignLeft
+
+                    TextMetrics {
+                        id: m3eSize
+                        text: m3eText.text
+                        font: m3eText.font
+                    }
                 }
             }
         }
@@ -262,7 +320,7 @@ Loader {
                 id: chipRow
                 x: root.alignedX(Math.min(implicitWidth, parent.width), parent.width)
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: Theme.spacingS
+                spacing: Theme.spacingM
 
                 StyledText {
                     id: sourceLabel
@@ -270,7 +328,7 @@ Loader {
                     width: Math.min(implicitWidth, chipRow.parent.width / 2)
                     text: I18n.tr("Playing from", "now playing: label before where the queue came from")
                     color: ArtColors.textVariant
-                    font.pixelSize: Theme.fontSizeSmall
+                    font.pixelSize: Theme.fontSizeMedium
                     wrapMode: Text.NoWrap
                     elide: Text.ElideRight
                 }
@@ -278,10 +336,10 @@ Loader {
                 DButton {
                     maximumWidth: Math.max(0, chipRow.parent.width - sourceLabel.width - chipRow.spacing)
                     buttonHeight: Theme.buttonHeightXS
-                    horizontalPadding: Theme.spacingM
+                    horizontalPadding: Theme.spacingL
                     text: UiConfig.contextLabel(PlayerService.playContext)
-                    backgroundColor: ArtColors.accentContainer
-                    textColor: ArtColors.onAccentContainer
+                    backgroundColor: ArtColors.accentSecondaryContainer
+                    textColor: ArtColors.onAccentSecondaryContainer
                     tooltipText: I18n.tr("Queue", "the play queue: panel, toggle")
                     Accessible.name: I18n.tr("Playing from", "now playing: label before where the queue came from") + " " + text
                     onClicked: Router.runElement("playingFrom", root.context)
@@ -290,15 +348,17 @@ Loader {
         }
     }
 
+    // Material's overline, which opens the queue like Bento's chip
     Component {
         id: playingFromText
-        StyledText {
+        LinkText {
+            linked: root.textLook === "m3e"
             text: UiConfig.contextLabel(PlayerService.playContext)
+            Accessible.name: linked ? I18n.tr("Playing from", "now playing: label before where the queue came from") + " " + text : text
+            onActivated: Router.runElement("playingFrom", root.context)
             color: ArtColors.textVariant
             font.pixelSize: root.textLook === "m3e" ? Theme.fontSizeMedium : Theme.fontSizeSmall
             font.weight: root.textLook === "m3e" ? Theme.fontWeightMedium : Font.Normal
-            wrapMode: Text.NoWrap
-            elide: Text.ElideRight
             horizontalAlignment: root.centered ? Text.AlignHCenter : Text.AlignLeft
         }
     }
@@ -341,11 +401,19 @@ Loader {
     Component {
         id: favorite
         FavoriteButton {
+            id: favoriteButton
             kind: "track"
             item: root.track
             buttonSize: root.buttonSize
-            activeColor: ArtColors.accent
-            inactiveColor: ArtColors.textVariant
+            width: root.grouped ? root.groupWidth : buttonSize
+            radius: root.grouped ? root.groupRadius(favoriteButton, pressed, favoriteButton.favorite) : Theme.buttonRadius(width, height, buttonSize, pressed, circular)
+            topLeftRadius: root.corner(favoriteButton, root.groupStart)
+            bottomLeftRadius: root.corner(favoriteButton, root.groupStart)
+            topRightRadius: root.corner(favoriteButton, root.groupEnd)
+            bottomRightRadius: root.corner(favoriteButton, root.groupEnd)
+            backgroundColor: !root.grouped ? "transparent" : favoriteButton.favorite ? ArtColors.accent : ArtColors.accentContainer
+            activeColor: root.grouped ? ArtColors.onAccent : ArtColors.accent
+            inactiveColor: root.grouped ? ArtColors.onAccentContainer : ArtColors.textVariant
         }
     }
 
@@ -379,7 +447,10 @@ Loader {
 
     Component {
         id: seekbar
-        MediaSeekbar {}
+        MediaSeekbar {
+            flat: UiConfig.nowPlaying.style === "m3e"
+            thin: root.context === "bar"
+        }
     }
 
     // Bento's volume: a ring showing the level around a button opening the volume panel
@@ -428,15 +499,19 @@ Loader {
         }
     }
 
-    // M3E's volume: a tonal button filling up from the bottom with the level
+    // Material's volume: a standard button filling up from the bottom with the level (tonal in a group)
     Component {
         id: volumeLevel
         StyledButton {
             id: levelButton
             readonly property real level: PlayerService.muted ? 0 : PlayerService.volume / Math.max(0.01, PlayerService.volumeMax)
-            width: root.buttonSize
-            height: width
-            radius: Theme.fullRadius(width, height)
+            width: root.grouped ? root.groupWidth : root.buttonSize
+            height: root.buttonSize
+            radius: root.grouped ? root.groupRadius(levelButton, pressed, false) : Theme.fullRadius(width, height)
+            topLeftRadius: root.corner(levelButton, root.groupStart)
+            bottomLeftRadius: root.corner(levelButton, root.groupStart)
+            topRightRadius: root.corner(levelButton, root.groupEnd)
+            bottomRightRadius: root.corner(levelButton, root.groupEnd)
             color: "transparent"
             Accessible.name: I18n.tr("Volume", "audio volume: settings section, slider") + ": " + Math.round(PlayerService.volume * 100) + "%"
             onClicked: levelPanel.show()
@@ -444,7 +519,11 @@ Loader {
             Rectangle {
                 anchors.fill: parent
                 radius: parent.radius
-                color: ArtColors.accentSecondaryContainer
+                topLeftRadius: parent.topLeftRadius
+                bottomLeftRadius: parent.bottomLeftRadius
+                topRightRadius: parent.topRightRadius
+                bottomRightRadius: parent.bottomRightRadius
+                color: root.grouped ? ArtColors.accentSecondaryContainer : "transparent"
             }
 
             // the level: the same circle, cut off at its height
@@ -466,6 +545,10 @@ Loader {
                     width: levelButton.width
                     height: levelButton.height
                     radius: levelButton.radius
+                    topLeftRadius: levelButton.topLeftRadius
+                    bottomLeftRadius: levelButton.bottomLeftRadius
+                    topRightRadius: levelButton.topRightRadius
+                    bottomRightRadius: levelButton.bottomRightRadius
                     color: ArtColors.accentContainer
                 }
             }
@@ -479,7 +562,7 @@ Loader {
                 anchors.centerIn: parent
                 name: PlayerService.muted || PlayerService.volume === 0 ? "volume_off" : PlayerService.volume < 0.5 ? "volume_down" : "volume_up"
                 size: Theme.iconSize
-                color: levelButton.level > 0.5 ? ArtColors.onAccentContainer : ArtColors.onAccentSecondaryContainer
+                color: levelButton.level > 0.5 ? ArtColors.onAccentContainer : root.grouped ? ArtColors.onAccentSecondaryContainer : ArtColors.textVariant
             }
 
             MouseArea {
@@ -521,11 +604,21 @@ Loader {
     Component {
         id: device
         DeviceButton {
+            id: deviceButton
+            context: root.context
             size: root.size
-            variant: root.look === "outlined" ? "outlined" : "standard"
-            containerColor: ArtColors.accentContainer
-            contentColor: ArtColors.onAccentContainer
-            iconColor: checked ? ArtColors.onAccentContainer : ArtColors.textVariant
+            buttonSize: root.buttonSize
+            widthMode: root.grouped ? "wide" : "default"
+            width: root.grouped ? root.groupWidth : iconSize + horizontalInset * 2
+            variant: root.grouped ? "tonal" : "standard"
+            radius: root.grouped ? root.groupRadius(deviceButton, pressed, checked) : pressed ? Theme.buttonRadius(width, height, buttonSize, true, false) : round !== checked ? roundRadius : squareRadius
+            topLeftRadius: root.corner(deviceButton, root.groupStart)
+            bottomLeftRadius: root.corner(deviceButton, root.groupStart)
+            topRightRadius: root.corner(deviceButton, root.groupEnd)
+            bottomRightRadius: root.corner(deviceButton, root.groupEnd)
+            containerColor: root.grouped && checked ? ArtColors.accent : ArtColors.accentContainer
+            contentColor: root.grouped && checked ? ArtColors.onAccent : ArtColors.onAccentContainer
+            iconColor: filled ? contentColor : ArtColors.textVariant
         }
     }
 
@@ -541,13 +634,14 @@ Loader {
             // the M3E play button turns into a pill while playing
             checkable: true
             checked: PlayerService.playing
-            radius: bento ? Theme.buttonRadius(width, height, buttonSize, pressed, false) : (pressed ? Theme.buttonRadius(width, height, buttonSize, true, false) : checked ? roundRadius : squareRadius)
-            containerColor: ArtColors.accentContainer
-            contentColor: ArtColors.onAccentContainer
+            radius: bento ? Theme.buttonRadius(width, height, buttonSize, pressed, true) : (pressed ? Theme.buttonRadius(width, height, buttonSize, true, false) : checked ? roundRadius : squareRadius)
+            // the one filled button of the transport, in every style
+            containerColor: ArtColors.accent
+            contentColor: ArtColors.onAccent
             // a stream still being looked up shows the loading indicator instead of a position that stands still
             iconName: PlayerService.loading ? "" : PlayerService.playing ? "pause" : "play_arrow"
-            iconFilled: false
-            iconSize: root.size === "m" ? Theme.iconSizeLarge : Theme.iconSize
+            iconFilled: true
+            iconSize: Math.round((root.size === "m" ? Theme.iconSizeLarge : Theme.iconSize) * root.iconScale)
             enabled: PlayerService.current !== null
             Accessible.name: PlayerService.loading ? I18n.tr("Loading", "something still waiting for data: the play button, a list") : PlayerService.playing ? I18n.tr("Pause", "transport button") : I18n.tr("Play", "button that starts playback")
             tooltipText: Accessible.name
@@ -565,19 +659,23 @@ Loader {
     Component {
         id: button
         Springy {
+            id: elementButton
             readonly property string id_: root.elementId
             readonly property bool bento: root.look === "transport"
+            readonly property bool skip: id_ === "previous" || id_ === "next"
             size: root.size
             round: !bento
             buttonSize: root.buttonSize
-            radius: bento ? Theme.buttonRadius(width, height, buttonSize, pressed, false) : (pressed ? Theme.buttonRadius(width, height, buttonSize, true, false) : round !== checked ? roundRadius : squareRadius)
-            variant: bento ? "tonal" : root.look === "outlined" ? "outlined" : "standard"
+            iconSize: Math.round(Theme.iconSize * root.iconScale)
+            widthMode: root.grouped ? "wide" : "default"
+            radius: root.grouped ? root.groupRadius(elementButton, pressed, checked) : bento ? Theme.buttonRadius(width, height, buttonSize, pressed, true) : (pressed ? Theme.buttonRadius(width, height, buttonSize, true, false) : round !== checked ? roundRadius : squareRadius)
+            variant: bento || root.grouped ? "tonal" : "standard"
             // M3 toggles: a Bento mode that is on fills with the accent, off stays tonal; M3E's standard buttons
-            // fill with the container when on
-            containerColor: !bento ? ArtColors.accentContainer : checked ? ArtColors.accent : ArtColors.accentSecondaryContainer
-            contentColor: !bento ? ArtColors.onAccentContainer : checked ? ArtColors.onAccent : ArtColors.onAccentSecondaryContainer
+            // fill with the container when on. Previous and next take the accent container beside the filled play.
+            containerColor: root.grouped ? (checked ? ArtColors.accent : ArtColors.accentContainer) : !bento || skip ? ArtColors.accentContainer : checked ? ArtColors.accent : ArtColors.accentSecondaryContainer
+            contentColor: root.grouped ? (checked ? ArtColors.onAccent : ArtColors.onAccentContainer) : !bento || skip ? ArtColors.onAccentContainer : checked ? ArtColors.onAccent : ArtColors.onAccentSecondaryContainer
             iconColor: filled ? contentColor : ArtColors.textVariant
-            iconFilled: false
+            iconFilled: bento && root.transportId || root.grouped && checked
             iconName: {
                 switch (id_) {
                 case "repeat":
@@ -620,7 +718,7 @@ Loader {
             Accessible.name: {
                 switch (id_) {
                 case "repeat":
-                    return PlayerService.repeat === "all" ? I18n.tr("Repeat all", "transport button state") : PlayerService.repeat === "one" ? I18n.tr("Repeat one", "transport button state") : I18n.tr("Repeat off", "transport button state");
+                    return Phrases.repeatState(PlayerService.repeat);
                 case "dock":
                     return Router.dockMode === "side" ? I18n.tr("Move to bottom bar", "button moving now playing out of the sidebar") : I18n.tr("Move to sidebar", "button moving now playing from the bottom bar into the sidebar");
                 }

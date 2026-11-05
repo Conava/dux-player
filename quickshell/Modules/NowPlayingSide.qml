@@ -6,13 +6,14 @@ import qs.Services
 import qs.DCommon.Widgets
 import qs.Widgets
 
-// Now playing as a side panel: its panes (cover, lyrics, the queue) on top, the title card and controls below.
+// Now playing as a side panel: its panes (cover, lyrics, the queue) on top, the title and controls below.
 Item {
     id: root
 
     // the arrangement to show; Settings passes a draft for its live preview
     property var zones: UiConfig.surface("side").zones
     readonly property var track: PlayerService.current
+    readonly property var cover: zones.cover.find(i => i.type === "cover" && !i.hidden) ?? null
     readonly property var views: UiConfig.sidePanes
     readonly property bool m3e: UiConfig.nowPlaying.style === "m3e"
     readonly property var labels: ({
@@ -91,15 +92,18 @@ Item {
         anchors.top: switcher.visible ? switcher.bottom : parent.top
         anchors.bottom: controls.top
         anchors.topMargin: Theme.spacingM
-        anchors.bottomMargin: Theme.spacingM
+        anchors.bottomMargin: root.m3e ? Theme.spacingL + PlayerMetrics.mediaCardMargin : Theme.spacingL
 
-        AlbumArt {
-            visible: Router.sideTab === "cover"
-            anchors.centerIn: parent
-            width: Math.min(parent.width - Theme.spacingL * 2, parent.height)
+        // sits on the title, so the free height gathers under the tabs instead of between art and title
+        PlayerArt {
+            visible: Router.sideTab === "cover" && root.track !== null && root.cover !== null
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            width: Math.max(0, Math.min(parent.width - Theme.spacingL * 2, parent.height))
             height: width
-            radius: Theme.cornerRadiusXL
             item: root.track
+            shape: root.cover?.options?.shape ?? "rounded"
+            rotate: root.cover?.options?.rotate ?? true
         }
 
         Loader {
@@ -123,87 +127,74 @@ Item {
         }
     }
 
+    // Material: one card behind the title and the controls
+    Rectangle {
+        anchors.fill: controls
+        anchors.margins: -PlayerMetrics.mediaCardMargin
+        visible: root.m3e && !UiConfig.attachedLook
+        radius: Theme.cornerRadiusXL
+        color: ArtColors.chipColor
+
+        Behavior on color {
+            enabled: Theme.animationsEnabled
+            ColorAnimation {
+                duration: Theme.expressiveDurations.expressiveEffects
+            }
+        }
+    }
+
+    // the title, the seek block, the transport, then the top and bottom zones (Bento: one button group, no card)
     Column {
         id: controls
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        anchors.margins: Theme.spacingL
-        spacing: Theme.spacingS
+        anchors.margins: root.m3e ? Theme.spacingL + PlayerMetrics.mediaCardMargin : Theme.spacingL
+        spacing: Theme.spacingL
 
-        Rectangle {
+        NowPlayingZone {
+            id: titleZone
             width: parent.width
-            height: titleZone.implicitHeight + Theme.spacingS * 2
-            visible: titleZone.populated
-            radius: PlayerMetrics.mediaInnerRadius
-            color: ArtColors.chipColor
-            border.width: Theme.layerOutlineWidth
-            border.color: Theme.outlineMedium
-
-            NowPlayingZone {
-                id: titleZone
-                x: Theme.spacingS
-                y: Theme.spacingS
-                width: parent.width - Theme.spacingS * 2
-                instances: root.zones.title
-                context: "side"
-                textLook: "side"
-                centered: true
-                column: true
-                opensView: true
-            }
+            instances: root.zones.title
+            context: "side"
+            textLook: root.m3e ? "m3e" : "side"
+            centered: !root.m3e
+            column: true
+            opensView: true
         }
 
-        Rectangle {
+        SeekBlock {
             width: parent.width
-            height: playback.implicitHeight + Theme.spacingL * 2
-            visible: topZone.populated || controlsZone.populated || seekZone.populated || bottomZone.populated
-            radius: PlayerMetrics.mediaInnerRadius
-            color: ArtColors.chipColor
-            border.width: Theme.layerOutlineWidth
-            border.color: Theme.outlineMedium
+            visible: populated && !root.m3e
+            instances: root.zones.seek
+            context: "side"
+        }
 
-            Column {
-                id: playback
-                x: Theme.spacingL
-                y: Theme.spacingL
-                width: parent.width - Theme.spacingL * 2
-                spacing: Theme.spacingS
+        NowPlayingZone {
+            width: parent.width
+            visible: populated && root.m3e
+            instances: root.zones.seek
+            context: "side"
+        }
 
-                NowPlayingZone {
-                    id: topZone
-                    width: parent.width
-                    instances: root.zones.top
-                    context: "side"
-                    look: "row"
-                    room: width
-                }
+        NowPlayingZone {
+            id: controlsZone
+            width: parent.width
+            instances: root.zones.controls
+            context: "side"
+            look: root.m3e ? "m3e" : "transport"
+            fill: !root.m3e
+            room: width
+        }
 
-                NowPlayingZone {
-                    id: controlsZone
-                    width: parent.width
-                    instances: root.zones.controls
-                    context: "side"
-                    look: root.m3e ? "m3e" : "transport"
-                    fill: !root.m3e
-                    room: width
-                }
-
-                NowPlayingZone {
-                    id: seekZone
-                    width: parent.width
-                    instances: root.zones.seek
-                    context: "side"
-                }
-
-                NowPlayingZone {
-                    id: bottomZone
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    instances: root.zones.bottom
-                    context: "side"
-                    room: parent.width
-                }
-            }
+        NowPlayingZone {
+            readonly property bool spreads: instances.some(i => !i.hidden && i.type === "spacer" && i.options?.size === "fill")
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: spreads ? parent.width : implicitWidth
+            instances: root.zones.top.concat(root.zones.bottom)
+            context: "side"
+            look: root.m3e ? "m3e" : "group"
+            room: parent.width
         }
     }
 }

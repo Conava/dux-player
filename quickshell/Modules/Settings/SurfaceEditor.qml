@@ -57,9 +57,14 @@ Item {
         const parts = [];
         if (placeable(zone, entry))
             parts.push(optionsPage.placementLabel(inst.placement));
-        for (const key of Object.keys(inst.options ?? {}))
-            if (Array.isArray(entry?.options?.[key]?.values))
+        for (const key of Object.keys(inst.options ?? {})) {
+            if (typeof inst.options[key] === "boolean") {
+                if (inst.options[key] && optionsPage.blocker(key, inst.options) === "")
+                    parts.push(optionsPage.optionName(key));
+            } else if (Array.isArray(entry?.options?.[key]?.values)) {
                 parts.push(UiConfig.optionLabel(inst.options[key]));
+            }
+        }
         return parts.join(" · ");
     }
 

@@ -8,6 +8,16 @@ import qs.Services
 // Shared wording: joins, counts with their singular form, and the library and device lines several views show.
 // A count has a "1 …" term and a "%1 …" term, like the shell's I18n.duration.
 Singleton {
+    function repeatState(mode) {
+        switch (mode) {
+        case "all":
+            return I18n.tr("Repeat all", "transport button state");
+        case "one":
+            return I18n.tr("Repeat one", "transport button state");
+        }
+        return I18n.tr("Repeat off", "transport button state");
+    }
+
     function join(first, second) {
         return I18n.tr("%1 · %2", "two facts joined by a dot").arg(first).arg(second);
     }
