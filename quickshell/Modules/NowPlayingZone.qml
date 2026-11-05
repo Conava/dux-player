@@ -166,7 +166,7 @@ RowLayout {
             entry.active = PlayerService.sleepMode !== "off";
             break;
         case "speed":
-            entry.active = PlayerService.settings.speed !== 1;
+            entry.active = PlayerService.effectiveSpeed !== 1;
             break;
         case "favorite":
             entry.active = CatalogService.withMarks(track)?.favorite === true;

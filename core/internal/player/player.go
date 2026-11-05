@@ -10,20 +10,25 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os/exec"
 	"reflect"
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/duxlabs-dev/dux-go/log"
 
 	"github.com/Conava/dux-player/core/internal/loudness"
+	"github.com/Conava/dux-player/core/internal/player/engine"
 	"github.com/Conava/dux-player/core/internal/source"
 )
 
 const (
-	TopicStatus   = "player"
+	TopicStatus = "player"
+	// TopicBackend carries the backend that plays from now on.
+	TopicBackend  = "playerBackend"
 	TopicPosition = "position"
 	TopicQueue    = "queue"
 	TopicError    = "playerError"
@@ -32,6 +37,11 @@ const (
 	TopicPlayed = "played"
 	// TopicAudioDevices carries mpv's audio-device-list on every change.
 	TopicAudioDevices = "mpvAudioDevices"
+	// CodeNeedsMPV is the code of a TopicError for a track in a format only
+	// mpv plays, while the built-in player plays.
+	CodeNeedsMPV = "needsMpv"
+	// CodeNoOutput is the code of a TopicError when the output won't open.
+	CodeNoOutput = "noOutput"
 
 	maxRestarts   = 3
 	restartWindow = time.Minute
@@ -85,6 +95,12 @@ type Config struct {
 	Binary    string
 	Socket    string
 	ExtraArgs []string
+	// Backend BackendBuiltin plays with the built-in engine even when mpv
+	// is installed; otherwise mpv plays when it is on PATH and starts.
+	Backend string
+	// OnBackend is told on the loop which backend plays from now on; it
+	// must not block.
+	OnBackend func(backend string)
 	Resolver  Resolver
 	Publish   func(topic string, data any)
 	// Continue returns tracks to play after last when the queue runs out
@@ -141,6 +157,11 @@ type Options struct {
 }
 
 const (
+	BackendMPV     = "mpv"
+	BackendBuiltin = "builtin"
+)
+
+const (
 	VolumeApp    = "app"
 	VolumeSystem = "system"
 )
@@ -193,7 +214,17 @@ type Status struct {
 	// SystemVolume says the system target is available.
 	VolumeTarget string `json:"volumeTarget"`
 	SystemVolume bool   `json:"systemVolume"`
-	Error        string `json:"error,omitempty"`
+	// Backend plays the audio: BackendMPV or BackendBuiltin, which can't
+	// crossfade or change the speed. Seekable says the current track can
+	// seek.
+	Backend      string `json:"backend"`
+	CanCrossfade bool   `json:"canCrossfade"`
+	// CanRoute is false on the built-in player: the equalizer and several
+	// outputs are PipeWire sinks that only mpv can reach.
+	CanRoute       bool   `json:"canRoute"`
+	CanChangeSpeed bool   `json:"canChangeSpeed"`
+	Seekable       bool   `json:"seekable"`
+	Error          string `json:"error,omitempty"`
 }
 
 // Played is a TopicPlayed event.
@@ -305,6 +336,11 @@ type Player struct {
 	idleTimer <-chan time.Time
 	// deviceList is mpv's last audio-device-list, kept while mpv is down.
 	deviceList json.RawMessage
+	// backend is what plays (Backend*); noSeek is set while the current
+	// track can't seek.
+	backend   string
+	onBuiltin atomic.Bool
+	noSeek    bool
 }
 
 // load is a current-track load waiting for its stream URL.
@@ -361,6 +397,7 @@ func New(cfg Config) *Player {
 func (p *Player) Run(ctx context.Context) {
 	defer close(p.done)
 	p.runCtx = ctx
+	p.setBackend(p.preferred())
 	p.restore()
 	for {
 		p.armIdle()
@@ -380,7 +417,7 @@ func (p *Player) Run(ctx context.Context) {
 		case <-p.idleTimer:
 			p.idleTimer = nil
 			if p.idle() {
-				log.Infof("mpv idle for %s; stopping it until the next play", p.opts.IdleExit)
+				log.Infof("%s idle for %s; stopping it until the next play", p.backendName(), p.opts.IdleExit)
 				p.dropProc()
 			}
 		case <-fadeNotify:
@@ -478,19 +515,20 @@ func (p *Player) ensureProc(ctx context.Context) error {
 	if p.proc != nil {
 		return nil
 	}
-	proc, err := startProcess(ctx, p.cfg.Binary, p.cfg.Socket, p.cfg.ExtraArgs, p.audioEnv)
-	if err != nil && ctx.Err() == nil {
-		log.Warnf("mpv: %v; starting it again", err)
-		proc, err = startProcess(ctx, p.cfg.Binary, p.cfg.Socket, p.cfg.ExtraArgs, p.audioEnv)
-	}
+	proc, err := p.startBackend(ctx)
 	if err != nil {
 		p.procErr = err
-		log.Warnf("mpv unavailable: %v", err)
-		return fmt.Errorf("mpv unavailable: %w", err)
+		log.Warnf("playback unavailable: %v", err)
+		return err
 	}
 	p.proc = proc
 	p.procErr = nil
-	p.devices = pipewireReachable()
+	backend := BackendMPV
+	if proc.builtin() {
+		backend = BackendBuiltin
+	}
+	p.setBackend(backend)
+	p.devices = proc.builtin() || pipewireReachable()
 	p.observe(ctx, proc)
 	p.applyOptions(ctx)
 	p.applyRepeat(ctx)
@@ -501,10 +539,89 @@ func (p *Player) ensureProc(ctx context.Context) error {
 	return nil
 }
 
+// preferred is the backend to try first: mpv when it is installed.
+func (p *Player) preferred() string {
+	if p.cfg.Backend == BackendBuiltin {
+		return BackendBuiltin
+	}
+	if _, err := exec.LookPath(p.cfg.Binary); err != nil {
+		return BackendBuiltin
+	}
+	return BackendMPV
+}
+
+// startBackend starts mpv, once more if it fails, and the built-in engine
+// when mpv is missing or won't start. The choice is made again on every
+// start, so installing or removing mpv takes effect at the next one.
+func (p *Player) startBackend(ctx context.Context) (*process, error) {
+	if p.preferred() == BackendMPV {
+		proc, err := startProcess(ctx, p.cfg.Binary, p.cfg.Socket, p.cfg.ExtraArgs, p.audioEnv)
+		if err != nil && ctx.Err() == nil {
+			log.Warnf("mpv: %v; starting it again", err)
+			proc, err = startProcess(ctx, p.cfg.Binary, p.cfg.Socket, p.cfg.ExtraArgs, p.audioEnv)
+		}
+		if err == nil || ctx.Err() != nil {
+			return proc, err
+		}
+		log.Warnf("mpv unavailable: %v; using the built-in player", err)
+	}
+	return startBuiltin(ctx, p.audioEnv)
+}
+
+// setBackend notes which backend plays; a change is logged, told to
+// Config.OnBackend and published.
+func (p *Player) setBackend(b string) {
+	if b == p.backend {
+		return
+	}
+	switch {
+	case b == BackendMPV:
+		log.Infof("using mpv")
+	case p.cfg.Backend == BackendBuiltin:
+		log.Infof("using the built-in player (DPLAYER_BACKEND=builtin)")
+	default:
+		log.Infof("using the built-in player (mpv is missing or doesn't start)")
+	}
+	if p.backend != "" {
+		// Server streams were asked for in the old backend's formats.
+		clear(p.streams)
+	}
+	p.backend = b
+	p.onBuiltin.Store(b == BackendBuiltin)
+	if p.cfg.OnBackend != nil {
+		p.cfg.OnBackend(b)
+	}
+	p.cfg.Publish(TopicBackend, b)
+	p.publishStatus()
+}
+
+func (p *Player) builtin() bool { return p.backend == BackendBuiltin }
+
+// Builtin says the built-in engine plays; safe from any goroutine.
+func (p *Player) Builtin() bool { return p.onBuiltin.Load() }
+
+func (p *Player) backendName() string {
+	if p.builtin() {
+		return "the built-in player"
+	}
+	return "mpv"
+}
+
+// speed is what mpv plays at; the built-in player only plays at 1.
+func (p *Player) speed() float64 {
+	if p.builtin() {
+		return 1
+	}
+	return max(p.opts.Speed, 0.5)
+}
+
 func (p *Player) observe(ctx context.Context, proc *process) {
 	props := []string{"pause", "time-pos", "duration", "volume"}
 	if p.devices {
 		props = append(props, "audio-device-list")
+	}
+	if proc.builtin() {
+		props = append(props, "seekable")
 	}
 	for i, name := range props {
 		if _, err := proc.conn.command(ctx, "observe_property", i+1, name); err != nil {
@@ -527,7 +644,7 @@ func (p *Player) optionProps() []prop {
 		p.volume = p.opts.VolumeMax
 	}
 	props := []prop{{"volume-max", p.opts.VolumeMax}, {"gapless-audio", p.opts.Gapless}, {"replaygain", p.opts.ReplayGain},
-		{"speed", max(p.opts.Speed, 0.5)}}
+		{"speed", p.speed()}}
 	switch {
 	case p.system():
 		props = append(props, prop{"volume", 100})
@@ -562,7 +679,7 @@ func (p *Player) applyRepeat(ctx context.Context) {
 }
 
 func (p *Player) onCrash(ctx context.Context) {
-	log.Warnf("mpv exited unexpectedly")
+	log.Warnf("%s exited unexpectedly", p.backendName())
 
 	now := time.Now()
 	recent := p.restarts[:0]
@@ -574,7 +691,7 @@ func (p *Player) onCrash(ctx context.Context) {
 	p.restarts = append(recent, now)
 	if len(p.restarts) > maxRestarts {
 		p.dropProc()
-		p.procErr = errors.New("mpv keeps crashing; giving up until the next command")
+		p.procErr = fmt.Errorf("%s keeps crashing; giving up until the next command", p.backendName())
 		p.restarts = nil
 		p.active = false
 		p.publishError(p.procErr.Error())
@@ -587,7 +704,7 @@ func (p *Player) onCrash(ctx context.Context) {
 		p.publishStatus()
 		return
 	}
-	log.Infof("mpv restarted")
+	log.Infof("%s restarted", p.backendName())
 }
 
 func (p *Player) handle(m message) {
@@ -598,6 +715,10 @@ func (p *Player) handle(m message) {
 		p.onStartFile(m.EntryID)
 	case "end-file":
 		p.onEndFile(m)
+	case engine.OutputError:
+		msg := "couldn't open the audio output: " + m.FileError
+		log.Warnf("playback: %s", msg)
+		p.cfg.Publish(TopicError, map[string]string{"message": msg, "code": CodeNoOutput})
 	case "file-loaded":
 		p.loaded = true
 		p.applyEnd(context.Background())
@@ -656,6 +777,12 @@ func (p *Player) onProperty(name string, data json.RawMessage) {
 	case "audio-device-list":
 		p.deviceList = data
 		p.cfg.Publish(TopicAudioDevices, data)
+	case "seekable":
+		var v bool
+		if json.Unmarshal(data, &v) == nil && p.loaded {
+			p.noSeek = !v
+			p.publishStatus()
+		}
 	}
 }
 
@@ -679,7 +806,7 @@ func (p *Player) onStartFile(entry int64) {
 		// mpv sends no duration change when both tracks are equally long.
 		p.dur = it.Track.Duration
 	}
-	p.loaded, p.pendingSeek = false, -1
+	p.loaded, p.pendingSeek, p.noSeek = false, -1, false
 	ctx := context.Background()
 	if _, err := p.cmd(ctx, "playlist-clear"); err != nil {
 		log.Warnf("mpv playlist-clear: %v", err)
@@ -695,6 +822,19 @@ func (p *Player) onEndFile(m message) {
 	}
 	switch m.Reason {
 	case "error":
+		if m.FileError == engine.NeedsMPV {
+			msg := fmt.Sprintf("couldn't play %q: its format requires mpv", p.currentTitle())
+			log.Warnf("playback: %s", msg)
+			p.cfg.Publish(TopicError, map[string]string{"message": msg, "code": CodeNeedsMPV})
+			// The queue passes over it even when the next track isn't lined up yet.
+			if p.nextEntry == 0 && p.queue.Advance() {
+				if err := p.loadCurrent(context.Background(), 0, false); err != nil && !errors.Is(err, errLoading) {
+					p.publishError(err.Error())
+				}
+				return
+			}
+			break
+		}
 		p.publishError(fmt.Sprintf("couldn't play %q: %s", p.currentTitle(), m.FileError))
 		if a, ok := p.cfg.Resolver.(Availability); ok {
 			if it, ok := p.queue.Current(); ok {
@@ -996,7 +1136,7 @@ func (p *Player) open(ctx context.Context, it Item, st Stream, start float64, pl
 	p.curEntry = id
 	p.nextEntry, p.nextUID = 0, 0
 	p.active = true
-	p.loaded, p.pendingSeek = false, -1
+	p.loaded, p.pendingSeek, p.noSeek = false, -1, false
 	p.pos, p.lastPos = from, -1
 	p.startAt, p.endAt = head, 0
 	p.dur = it.Track.Duration
@@ -1705,6 +1845,12 @@ func (p *Player) status() Status {
 
 		Continuing: p.cfg.Continue != nil && p.continueMode() != "",
 		Casting:    p.remote != nil,
+
+		Backend:        p.backend,
+		CanCrossfade:   !p.builtin(),
+		CanRoute:       !p.builtin(),
+		CanChangeSpeed: !p.builtin(),
+		Seekable:       !p.noSeek || p.remote != nil,
 	}
 	if p.system() {
 		st.Volume, st.Muted, st.VolumeTarget = p.sysVolume, p.sysMuted, VolumeSystem
@@ -1757,7 +1903,7 @@ func (p *Player) publishQueue() {
 func (p *Player) publishPosition() {
 	p.lastPos = p.pos
 	p.cfg.Publish(TopicPosition, Position{Position: p.pos, Duration: p.dur, Playing: p.active && p.loaded && !p.paused,
-		Speed: max(p.opts.Speed, 0.5), At: time.Now().UnixMilli()})
+		Speed: p.speed(), At: time.Now().UnixMilli()})
 }
 
 func (p *Player) publishError(msg string) {

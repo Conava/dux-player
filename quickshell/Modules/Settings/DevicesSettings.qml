@@ -123,9 +123,9 @@ SettingsPage {
                 required property var modelData
                 readonly property bool selected: PlayerService.selectedOutputs.indexOf(modelData.id) >= 0
                 title: modelData.name
-                subtitle: !modelData.available ? I18n.tr("Not connected", "playback device state") : PlayerService.canMultiOutput ? "" : I18n.tr("Requires PipeWire (pipewire, pw-cli and pw-play)", "why several outputs and the equalizer are unavailable")
+                subtitle: !modelData.available ? I18n.tr("Not connected", "playback device state") : !SettingsService.canRoute ? I18n.tr("Requires mpv.", "why a playback setting is unavailable") : PlayerService.canMultiOutput ? "" : I18n.tr("Requires PipeWire (pipewire, pw-cli and pw-play)", "why several outputs and the equalizer are unavailable")
                 iconName: UiConfig.deviceIcon(modelData.kind)
-                enabled: modelData.available && PlayerService.canMultiOutput
+                enabled: modelData.available && SettingsService.canRoute && PlayerService.canMultiOutput
                 clickable: true
                 Accessible.role: Accessible.CheckBox
                 Accessible.checked: selected

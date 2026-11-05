@@ -306,3 +306,16 @@ func TestEditedLibrarySignsInAgain(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 2, f.logins)
 }
+
+// For the built-in player only its formats play as they are; the server
+// transcodes the rest to Opus.
+func TestStreamURLForNamesTheFormats(t *testing.T) {
+	f := newFake(t)
+	s := newSource(t, f, memSecrets{"jf/password": ""})
+	u, err := s.StreamURLFor(context.Background(), "a1", []string{"flac", "mp3"})
+	require.NoError(t, err)
+	q, _ := url.Parse(u)
+	assert.Equal(t, "flac,mp3", q.Query().Get("Container"))
+	assert.Equal(t, "opus", q.Query().Get("AudioCodec"))
+	assert.Equal(t, "tok1", q.Query().Get("ApiKey"))
+}

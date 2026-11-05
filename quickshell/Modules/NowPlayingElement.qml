@@ -698,7 +698,7 @@ Loader {
                 case "sleep":
                     return PlayerService.sleepMode !== "off";
                 case "speed":
-                    return PlayerService.settings.speed !== 1;
+                    return PlayerService.effectiveSpeed !== 1;
                 }
                 return false;
             }
@@ -730,7 +730,7 @@ Loader {
                 if (id_ === "sleep" && PlayerService.sleepMode === "endOfTrack")
                     return I18n.tr("Sleep after this track", "sleep timer button tooltip");
                 if (id_ === "speed")
-                    return I18n.tr("Playback speed %1×", "speed button tooltip").arg(PlayerService.settings.speed);
+                    return I18n.tr("Playback speed %1×", "speed button tooltip").arg(PlayerService.effectiveSpeed);
                 return Accessible.name;
             }
             onClicked: Router.runElement(id_, root.context)

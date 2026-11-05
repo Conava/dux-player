@@ -135,6 +135,8 @@ Singleton {
             return I18n.tr("Folders not found. They were removed or their drive isn't mounted.", "library error");
         case "trackFolderMissing":
             return I18n.tr("Folder not found. It was removed or its drive isn't mounted.", "why a track can't play");
+        case "needsMpv":
+            return I18n.tr("Requires mpv to play this format", "why a track can't play");
         case "libraryOff":
             return I18n.tr("Library turned off or removed", "why a track can't play");
         case "outputFailed":

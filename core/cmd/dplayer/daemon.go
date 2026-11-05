@@ -21,6 +21,7 @@ import (
 	"github.com/Conava/dux-player/core/internal/loudness"
 	"github.com/Conava/dux-player/core/internal/pendingmarks"
 	"github.com/Conava/dux-player/core/internal/player"
+	"github.com/Conava/dux-player/core/internal/player/engine"
 	"github.com/Conava/dux-player/core/internal/settings"
 	"github.com/Conava/dux-player/core/internal/source"
 	"github.com/Conava/dux-player/core/internal/source/jellyfin"
@@ -38,7 +39,8 @@ var daemonCmd = &cobra.Command{
 Every playback command starts it in the background when it isn't running.
 For development only: DPLAYER_MPV_ARGS adds mpv options, e.g.
 DPLAYER_MPV_ARGS=--ao=null. They come last and override the daemon's own,
-TLS verification included.`,
+TLS verification included. DPLAYER_BACKEND=builtin plays with the built-in
+player even when mpv is installed.`,
 	RunE: func(_ *cobra.Command, _ []string) error { return runDaemon() },
 }
 
@@ -122,9 +124,17 @@ func runDaemon() error {
 	pl := player.New(player.Config{
 		Socket:    filepath.Join(mpvDir, fmt.Sprintf("mpv-%d.sock", os.Getpid())),
 		ExtraArgs: strings.Fields(os.Getenv("DPLAYER_MPV_ARGS")),
-		Resolver:  libs,
-		Publish:   bus.Publish,
-		Continue:  continueQueue(libs),
+		Backend:   os.Getenv("DPLAYER_BACKEND"),
+		OnBackend: func(backend string) {
+			if backend == player.BackendBuiltin {
+				libs.SetPlayable(engine.Containers)
+			} else {
+				libs.SetPlayable(nil)
+			}
+		},
+		Resolver: libs,
+		Publish:  bus.Publish,
+		Continue: continueQueue(libs),
 		Refeed: func(ctx context.Context, o player.Origin) (player.Feed, error) {
 			sh, err := libs.ShuffleSource(ctx, o.Kind, o.ID)
 			if err == nil && sh.Feed == nil {

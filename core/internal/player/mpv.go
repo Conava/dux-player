@@ -20,6 +20,10 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"github.com/duxlabs-dev/dux-go/log"
+
+	"github.com/Conava/dux-player/core/internal/player/engine"
 )
 
 // Variables so tests can shorten them.
@@ -213,12 +217,41 @@ func (c *conn) commandWithin(ctx context.Context, timeout time.Duration, args ..
 	}
 }
 
-// process is a running mpv with its IPC connection.
+// process is a running mpv with its IPC connection, or the built-in
+// engine (cmd nil) answering the same IPC in-process.
 type process struct {
 	cmd    *exec.Cmd
 	conn   *conn
 	socket string
 	exited chan struct{}
+}
+
+func (p *process) builtin() bool { return p.cmd == nil }
+
+// builtinOutput is where the built-in engine plays; tests replace it.
+var builtinOutput = func(ctx context.Context) (engine.Output, error) { return engine.Pulse(ctx) }
+
+// startBuiltin starts the built-in engine; env is what mpv would get
+// (PIPEWIRE_PROPS).
+func startBuiltin(ctx context.Context, env []string) (*process, error) {
+	out, err := builtinOutput(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("playback needs mpv or a sound server: %w", err)
+	}
+	a, b := net.Pipe()
+	p := &process{exited: make(chan struct{})}
+	go func() {
+		defer close(p.exited)
+		if err := engine.Serve(a, out, env); err != nil {
+			log.Debugf("built-in player stopped: %v", err)
+		}
+	}()
+	p.conn = newConn(b)
+	if _, err := p.conn.command(ctx, "get_property", "mpv-version"); err != nil {
+		p.kill()
+		return nil, fmt.Errorf("built-in player: %w", err)
+	}
+	return p, nil
 }
 
 func baseArgs(socket string) []string {
@@ -334,6 +367,14 @@ func StartLocked(cmd *exec.Cmd) error {
 func (p *process) kill() {
 	if p.conn != nil {
 		p.conn.close()
+	}
+	if p.builtin() {
+		select {
+		case <-p.exited:
+		case <-time.After(2 * time.Second):
+			log.Warnf("built-in player did not stop")
+		}
+		return
 	}
 	_ = p.cmd.Process.Signal(syscall.SIGTERM)
 	select {

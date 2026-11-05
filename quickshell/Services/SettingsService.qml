@@ -51,6 +51,10 @@ Singleton {
     property bool systemVolume: false
     // status.ffmpeg: silence and loudness can be measured
     property bool ffmpeg: true
+    // the player's status: mpv plays and can crossfade and change the speed; the built-in player can't
+    property bool canCrossfade: true
+    property bool canChangeSpeed: true
+    property bool canRoute: true
     // the daemon's volume ceiling, 1.3 with the boost on
     readonly property real volumeMax: settings.allowVolumeBoost ? 1.3 : 1
 

@@ -10,7 +10,7 @@ WindowDialog {
 
     opened: Router.speedPickerOpen
     title: I18n.tr("Playback speed", "now playing button")
-    supportingText: I18n.tr("Pitch is preserved.", "playback speed note")
+    supportingText: SettingsService.canChangeSpeed ? I18n.tr("Pitch is preserved.", "playback speed note") : I18n.tr("Requires mpv.", "why a playback setting is unavailable")
     acceptEnabled: false
     onRejected: Router.speedPickerOpen = false
     onOpenedChanged: {
@@ -20,7 +20,8 @@ WindowDialog {
 
     DButtonGroup {
         model: root.speeds.map(s => I18n.tr("%1×", "playback speed option").arg(s))
-        currentIndex: root.speeds.indexOf(PlayerService.settings.speed)
+        enabled: SettingsService.canChangeSpeed
+        currentIndex: root.speeds.indexOf(PlayerService.effectiveSpeed)
         onSelectionChanged: (index, selected) => {
             if (selected)
                 PlayerService.setSetting("speed", root.speeds[index]);

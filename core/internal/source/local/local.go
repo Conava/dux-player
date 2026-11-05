@@ -321,10 +321,7 @@ func (s *Source) Unavailable() library.Reason {
 }
 
 func (s *Source) TrackUnavailable(ctx context.Context, id string) library.Reason {
-	if s.store.Missing(ctx, s.lib.ID, id) {
-		return library.TrackMissing
-	}
-	return library.Reason{}
+	return s.store.TrackReason(ctx, s.lib.ID, id)
 }
 
 func (s *Source) TrackCount(ctx context.Context) (int, error) {

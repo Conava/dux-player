@@ -15,7 +15,7 @@ cd dux-player
 make run
 ```
 
-You need Go, Quickshell with Qt 6, mpv and Node.js (for the QML logic tests). `make help` lists every target.
+You need Go, Quickshell with Qt 6, mpv and Node.js (for the QML logic tests). `make run-builtin` runs the player with its built-in playback instead of mpv. `make help` lists every target.
 
 ## Making a change
 

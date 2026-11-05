@@ -44,8 +44,8 @@ SettingsPage {
             if (c.status === "tooOld")
                 return I18n.tr("Version %1 is too old. Requires %2 or newer.", "about page: the installed mpv can't be used").arg(c.version).arg(c.minVersion);
             if (c.status === "failed")
-                return I18n.tr("Installed, but doesn't start. Playback is unavailable.", "about page: mpv is installed but broken");
-            return ok ? I18n.tr("Audio playback", "about page credit") : I18n.tr("Not installed. Playback is unavailable.", "about page: mpv is missing");
+                return I18n.tr("Installed, but doesn't start. Playback uses the built-in player, which plays fewer formats.", "about page: mpv is installed but broken");
+            return ok ? I18n.tr("Audio playback", "about page credit") : I18n.tr("Not installed. Playback uses the built-in player, which plays fewer formats.", "about page: mpv is missing");
         case "ffmpeg":
             return ok ? I18n.tr("Loudness and silence measurement", "about page: what ffmpeg is used for") : I18n.tr("Not installed. Loudness and silence aren't measured.", "about page: ffmpeg is missing");
         case "pipewire":
@@ -130,12 +130,12 @@ SettingsPage {
             SettingsRow {
                 required property var modelData
                 readonly property bool ok: modelData.status === "ok"
-                readonly property color stateColor: ok ? Theme.primary : modelData.required ? Theme.error : Theme.warning
+                readonly property color stateColor: ok ? Theme.primary : Theme.warning
 
                 title: root.componentName(modelData.id)
                 subtitle: root.componentText(modelData)
                 subtitleColor: ok ? Theme.surfaceVariantText : stateColor
-                iconName: ok ? "check_circle" : modelData.required ? "error" : "warning"
+                iconName: ok ? "check_circle" : "warning"
                 iconColor: stateColor
                 trailingBadge: ok ? modelData.version || I18n.tr("Installed", "about page: a component is installed") : ""
                 searchable: false
@@ -168,6 +168,12 @@ SettingsPage {
             title: "mpv"
             subtitle: I18n.tr("Audio playback", "about page credit")
             url: "https://mpv.io"
+        }
+
+        SettingsLinkRow {
+            title: I18n.tr("Built-in player", "about page credit: the playback used when mpv is missing")
+            subtitle: "flac, go-mp3, oggvorbis, gopus, pulse"
+            url: root.repoUrl + "#license"
         }
 
         SettingsLinkRow {

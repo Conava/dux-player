@@ -13,6 +13,8 @@ SettingsPage {
     readonly property var continueModes: ["off", "random", "similar"]
     readonly property var speeds: PlayerMetrics.playbackSpeeds
     readonly property string ffmpegNote: I18n.tr("Requires ffmpeg to measure the silence.", "why the skip silence settings are unavailable")
+    readonly property string mpvNote: I18n.tr("Requires mpv.", "why a playback setting is unavailable")
+    readonly property bool eqUsable: SettingsService.canRoute && settings.equalizer.enabled
     readonly property string eqNote: {
         switch (PlayerService.equalizerState) {
         case "casting":
@@ -56,10 +58,13 @@ SettingsPage {
             onToggled: value => PlayerService.setSetting("gapless", value)
         }
 
+        // without mpv the rows show what plays (off, 1×) and keep the saved choice for when mpv is back
         SettingsToggleRow {
             text: I18n.tr("Crossfade", "playback setting")
             keywords: "fade"
-            checked: root.settings.crossfade.enabled
+            description: SettingsService.canCrossfade ? "" : root.mpvNote
+            enabled: SettingsService.canCrossfade
+            checked: SettingsService.canCrossfade && root.settings.crossfade.enabled
             onToggled: value => PlayerService.setSetting("crossfade", {
                     "enabled": value
                 })
@@ -68,7 +73,8 @@ SettingsPage {
         SettingsSliderRow {
             text: I18n.tr("Crossfade duration", "playback setting")
             keywords: "fade"
-            enabled: root.settings.crossfade.enabled
+            description: SettingsService.canCrossfade ? "" : root.mpvNote
+            enabled: SettingsService.canCrossfade && root.settings.crossfade.enabled
             minimum: 1
             maximum: 12
             unit: I18n.tr("s", "unit suffix for seconds")
@@ -151,9 +157,10 @@ SettingsPage {
         SettingsToggleRow {
             text: I18n.tr("Use the equalizer", "equalizer switch")
             keywords: "eq"
-            description: root.eqNote
+            description: SettingsService.canRoute ? root.eqNote : root.mpvNote
+            enabled: SettingsService.canRoute
             descriptionColor: PlayerService.equalizerState === "unavailable" ? Theme.error : Theme.surfaceVariantText
-            checked: root.settings.equalizer.enabled
+            checked: root.eqUsable
             onToggled: value => PlayerService.setSetting("equalizer", {
                     "enabled": value
                 })
@@ -163,7 +170,7 @@ SettingsPage {
             id: presetRow
             title: I18n.tr("Preset", "equalizer setting")
             keywords: "eq"
-            enabled: root.settings.equalizer.enabled
+            enabled: root.eqUsable
 
             DDropdown {
                 id: presetDropdown
@@ -186,7 +193,7 @@ SettingsPage {
 
         // one row per band; DCommon has no vertical slider for the usual fader look
         SettingsRow {
-            enabled: root.settings.equalizer.enabled
+            enabled: root.eqUsable
             title: I18n.tr("Bands", "equalizer setting")
             keywords: "eq bass treble"
             subtitle: I18n.tr("Changing a band switches the preset to Custom.", "equalizer setting description")
@@ -222,7 +229,7 @@ SettingsPage {
                             minimum: -12
                             maximum: 12
                             unit: I18n.tr(" dB", "unit suffix for decibels")
-                            enabled: root.settings.equalizer.enabled
+                            enabled: root.eqUsable
                             wheelEnabled: false
                             showValue: false
                             Accessible.name: band.label
@@ -260,8 +267,10 @@ SettingsPage {
         SettingsButtonGroupRow {
             text: I18n.tr("Playback speed", "now playing button")
             keywords: "tempo"
+            description: SettingsService.canChangeSpeed ? "" : root.mpvNote
+            enabled: SettingsService.canChangeSpeed
             model: root.speeds.map(s => I18n.tr("%1×", "playback speed option").arg(s))
-            currentIndex: root.speeds.indexOf(root.settings.speed)
+            currentIndex: root.speeds.indexOf(PlayerService.effectiveSpeed)
             onSelectionChanged: (index, selected) => {
                 if (selected)
                     PlayerService.setSetting("speed", root.speeds[index]);

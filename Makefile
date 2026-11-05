@@ -37,12 +37,16 @@ dev:
 run: deps settings-index dev quit
 	$(BUILD_DIR)/$(DEV_BINARY) show -c $(CURDIR)/$(SHELL_DIR)
 
+# Like run, with the built-in player playing even though mpv is installed.
+run-builtin: dev quit
+	DPLAYER_BACKEND=builtin $(BUILD_DIR)/$(DEV_BINARY) show -c $(CURDIR)/$(SHELL_DIR)
+
 # The real app in a nested Hyprland, invisible on the desktop: scripts/headless/run.sh explains it. SCENARIO= picks one.
 headless: deps dev
 	@scripts/headless/run.sh $(SCENARIO)
 
 # What run needs; install only warns about the runtime part, since a staged or packaged install runs elsewhere.
-RUNTIME_DEPS = qs mpv
+RUNTIME_DEPS = qs
 deps:
 	@for c in go $(RUNTIME_DEPS); do command -v $$c >/dev/null || { echo "$$c not found; see Requirements in the README"; exit 1; }; done
 
@@ -143,9 +147,10 @@ i18n-extract:
 help:
 	@echo "Develop:"
 	@echo "  run            - Dev build, then open the window from quickshell/ with hot reload"
+	@echo "  run-builtin    - Same, playing with the built-in player instead of mpv"
 	@echo "  headless       - Run the app in a sandboxed nested compositor and take screenshots; SCENARIO=file.sh"
 	@echo "  quit           - Stop the running player (daemon, window, mpv)"
-	@echo "  deps           - Check that go, qs and mpv are installed (run does this first)"
+	@echo "  deps           - Check that go and qs are installed (run does this first)"
 	@echo "  dev            - Fast build without the embedded UI ($(BUILD_DIR)/$(DEV_BINARY))"
 	@echo "  build          - Release build with the UI embedded; VERSION= overrides git describe"
 	@echo "  clean"

@@ -222,9 +222,10 @@ func (p *Player) fadeChans() (notify, exited <-chan struct{}) {
 	return p.xf.out.conn.notify, p.xf.out.exited
 }
 
-// crossfadeNext says whether the change to the next track should fade.
+// crossfadeNext says whether the change to the next track should fade; the
+// built-in player always plays it gapless.
 func (p *Player) crossfadeNext() bool {
-	if p.opts.Crossfade <= 0 || p.remote != nil || !p.active || !p.loaded || p.dur <= 0 || p.proc == nil ||
+	if p.opts.Crossfade <= 0 || p.builtin() || p.remote != nil || !p.active || !p.loaded || p.dur <= 0 || p.proc == nil ||
 		p.queue.Repeat() == RepeatOne || p.sleep.Mode == SleepEndOfTrack {
 		return false
 	}

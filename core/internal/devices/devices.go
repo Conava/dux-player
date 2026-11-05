@@ -60,8 +60,9 @@ type State struct {
 	// CanMulti is false without PipeWire's tools.
 	CanMulti bool `json:"canMulti"`
 	TestTone bool `json:"testTone"`
-	// Equalizer is off, on, casting (it can't reach a cast device) or
-	// unavailable (no PipeWire, or it failed: Error says why).
+	// Equalizer is off, on, casting (it can't reach a cast device), needsMpv
+	// (the built-in player can't reach it) or unavailable (no PipeWire, or it
+	// failed: Error says why).
 	Equalizer string `json:"equalizer"`
 	// Errors are the current problems; Error is their messages joined.
 	Errors []Reason `json:"errors,omitempty"`
@@ -95,6 +96,10 @@ type Player interface {
 	AudioDevices(ctx context.Context) (json.RawMessage, error)
 	SetAudioOutput(ctx context.Context, device string, env []string) error
 	Pause(ctx context.Context) error
+	// Builtin is true on the built-in player, which talks to the Pulse
+	// protocol: that can't reach the Internal sinks of the equalizer and of
+	// several outputs, and a stream aimed at one never opens.
+	Builtin() bool
 }
 
 // Extra adds playback targets that aren't mpv outputs (the cast feature).
@@ -181,13 +186,14 @@ type Service struct {
 	publish  func(State)
 	canMulti bool
 
-	ops      chan func()
-	listCh   chan json.RawMessage
-	testDone chan struct{}
-	ended    chan struct{}
-	eqCh     chan EQ
-	changed  chan struct{}
-	extra    Extra
+	ops       chan func()
+	listCh    chan json.RawMessage
+	testDone  chan struct{}
+	ended     chan struct{}
+	eqCh      chan EQ
+	backendCh chan struct{}
+	changed   chan struct{}
+	extra     Extra
 
 	// Owned by the loop.
 	prefs    prefs
@@ -212,21 +218,22 @@ type Service struct {
 // devices to the list.
 func New(p Player, configDir, runDir string, eq EQ, extra Extra, publish func(State)) *Service {
 	s := &Service{
-		player:   p,
-		path:     filepath.Join(configDir, fileName),
-		publish:  publish,
-		canMulti: PipeWireAvailable(),
-		ops:      make(chan func()),
-		listCh:   make(chan json.RawMessage, 1),
-		testDone: make(chan struct{}, 1),
-		ended:    make(chan struct{}, 1),
-		eqCh:     make(chan EQ, 1),
-		changed:  make(chan struct{}, 1),
-		extra:    extra,
-		eq:       eq,
-		names:    map[string]string{},
-		multi:    newMulti(runDir),
-		prefs:    prefs{Selected: []string{Default}, ResetOnStart: true, PauseOnDisconnect: true, Delays: map[string]int{}, OnDisconnect: map[string]string{}},
+		player:    p,
+		path:      filepath.Join(configDir, fileName),
+		publish:   publish,
+		canMulti:  PipeWireAvailable(),
+		ops:       make(chan func()),
+		listCh:    make(chan json.RawMessage, 1),
+		testDone:  make(chan struct{}, 1),
+		ended:     make(chan struct{}, 1),
+		eqCh:      make(chan EQ, 1),
+		backendCh: make(chan struct{}, 1),
+		changed:   make(chan struct{}, 1),
+		extra:     extra,
+		eq:        eq,
+		names:     map[string]string{},
+		multi:     newMulti(runDir),
+		prefs:     prefs{Selected: []string{Default}, ResetOnStart: true, PauseOnDisconnect: true, Delays: map[string]int{}, OnDisconnect: map[string]string{}},
 	}
 	if err := s.load(); err != nil {
 		log.Warnf("devices: %v; using the default output", err)
@@ -277,12 +284,29 @@ func (s *Service) Run(ctx context.Context) {
 		case e := <-s.eqCh:
 			s.setEQ(ctx, e)
 			s.update()
+		case <-s.backendCh:
+			if s.casting == nil {
+				if err := s.apply(ctx, s.prefs.Selected); err != nil {
+					log.Warnf("devices: after the player changed: %v", err)
+					s.err = outputFailed
+				}
+			}
+			s.update()
 		case <-s.changed:
 			s.update()
 		case <-s.testDone:
 			s.testTone = false
 			s.update()
 		}
+	}
+}
+
+// OnBackend re-routes after the playing backend changed. It never blocks:
+// the player loop publishes it.
+func (s *Service) OnBackend() {
+	select {
+	case s.backendCh <- struct{}{}:
+	default:
 	}
 }
 
@@ -345,7 +369,7 @@ func (s *Service) stopEQ() {
 // returns the device and env mpv plays to then. With the equalizer off, or
 // when it fails, mpv plays to device with env.
 func (s *Service) viaEQ(ctx context.Context, sink, device string, env []string) (string, []string) {
-	if !s.eq.On {
+	if !s.eq.On || s.player.Builtin() {
 		return device, env
 	}
 	if !s.canMulti {
@@ -394,6 +418,9 @@ func (s *Service) do(ctx context.Context, fn func(ctx context.Context) error) er
 // Select plays on ids: one device, or several local outputs at once.
 func (s *Service) Select(ctx context.Context, ids []string) error {
 	return s.do(ctx, func(ctx context.Context) error {
+		if len(ids) > 1 && s.player.Builtin() {
+			return errNeedsMPV
+		}
 		if err := s.apply(ctx, ids); err != nil {
 			return err
 		}
@@ -492,6 +519,11 @@ func (s *Service) TestTone(ctx context.Context) error {
 func (s *Service) apply(ctx context.Context, sel []string) error {
 	if len(sel) == 0 {
 		return errors.New("pick at least one output")
+	}
+	// A saved selection of several stays saved for when mpv is back.
+	if len(sel) > 1 && s.player.Builtin() {
+		log.Infof("devices: the built-in player plays on one output: %s", sel[0])
+		sel = sel[:1]
 	}
 	if len(sel) == 1 {
 		if e := s.extraFor(sel[0]); e != nil {
@@ -687,6 +719,8 @@ func (s *Service) update() {
 	case !s.eq.On:
 	case s.casting != nil:
 		eq = "casting"
+	case s.player.Builtin():
+		eq = "needsMpv"
 	case s.eqc != nil:
 		eq = "on"
 	default:

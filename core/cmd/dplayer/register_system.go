@@ -37,7 +37,6 @@ const (
 
 type component struct {
 	ID         string `json:"id"`
-	Required   bool   `json:"required,omitempty"`
 	Status     string `json:"status"`
 	Version    string `json:"version,omitempty"`
 	MinVersion string `json:"minVersion,omitempty"`
@@ -64,7 +63,7 @@ func foundAtStart(id string, now, atStart bool) component {
 func checkComponents(ctx context.Context, d *daemon) []component {
 	checks := []func() component{
 		func() component {
-			c := component{ID: "mpv", Required: true, Status: componentOK, MinVersion: fmt.Sprintf("%d.%d", player.MinMPV[0], player.MinMPV[1])}
+			c := component{ID: "mpv", Status: componentOK, MinVersion: fmt.Sprintf("%d.%d", player.MinMPV[0], player.MinMPV[1])}
 			version, err := player.CheckMPV(ctx, "mpv")
 			c.Version = version
 			switch {

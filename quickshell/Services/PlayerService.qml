@@ -41,6 +41,10 @@ Singleton {
     readonly property real positionRate: _clock.rate
     property real duration: 0
     property real volume: 0.7
+    // false while the current track is a stream the server converts as it plays
+    property bool seekable: true
+    // the speed that plays: the built-in player only plays at 1×
+    readonly property real effectiveSpeed: SettingsService.canChangeSpeed ? (SettingsService.settings.speed ?? 1) : 1
     property bool muted: false
     property bool shuffle: false
     // "off" | "all" | "one"
@@ -435,7 +439,7 @@ Singleton {
 
     // p: a status or position report; jump: no easing (a seek, a new track)
     function _syncClock(p, jump) {
-        const rate = p.speed ?? SettingsService.settings.speed ?? 1;
+        const rate = p.speed ?? effectiveSpeed;
         _clock = PositionClock.sync(_clock, {
             "position": p.position ?? 0,
             "at": p.at ?? 0,
@@ -463,6 +467,13 @@ Singleton {
         _applyContinuing(s);
         if (s.systemVolume !== undefined)
             SettingsService.systemVolume = s.systemVolume === true;
+        if (s.canCrossfade !== undefined)
+            SettingsService.canCrossfade = s.canCrossfade === true;
+        if (s.canChangeSpeed !== undefined)
+            SettingsService.canChangeSpeed = s.canChangeSpeed === true;
+        if (s.canRoute !== undefined)
+            SettingsService.canRoute = s.canRoute === true;
+        seekable = s.seekable !== false;
         queueIndex = s.index ?? -1;
         const t = s.track ? Catalog.track(s.track) : null;
         if (!t || !_statusTrack || Catalog.key(t) !== Catalog.key(_statusTrack))
@@ -551,10 +562,23 @@ Singleton {
         _lyricsState = "idle";
     }
 
+    // the seekbar was used on a track that can't seek
+    function explainNoSeek() {
+        notice(I18n.tr("Can't seek in a track the server converts while it plays", "snackbar when the seekbar is used on a stream that can't seek"));
+    }
+
     function _onPlayerError(e) {
         log.warn("playback:", e.message, e.reason ?? "");
         if (e.dropped > 0) {
             notice(I18n.tr("Skipped %1 that no longer exist", "snackbar when tracks of a played list no longer exist, %1 is a track count").arg(Phrases.tracks(e.dropped)));
+            return;
+        }
+        if (e.code === "noOutput") {
+            notice(I18n.tr("Couldn't open the audio output", "snackbar when playback stops because the sound output won't open"));
+            return;
+        }
+        if (e.code === "needsMpv") {
+            notice(I18n.tr("Skipped tracks that require mpv", "snackbar when the queue passes over tracks the built-in player can't play"));
             return;
         }
         // the daemon sends one per library until that library plays again

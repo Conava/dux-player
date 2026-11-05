@@ -40,7 +40,8 @@ Dux Player plays local libraries and streams from Navidrome, Subsonic and Jellyf
 
 ## Requirements
 
-- [Quickshell](https://quickshell.org) with Qt 6, and mpv 0.38 or newer
+- [Quickshell](https://quickshell.org) with Qt 6
+- Recommended: mpv 0.38 or newer. Without it a built-in player plays FLAC, MP3, Ogg Vorbis, Opus, WAV and AIFF through PulseAudio or PipeWire (pipewire-pulse), but not AAC/M4A, ALAC, WavPack, APE or Musepack files; it has no crossfade, speed control, equalizer or several outputs at once, and can't seek in a track the server converts while it plays
 - Go 1.27 to build
 - Optional: ffmpeg (loudness and silence measurement), PipeWire with WirePlumber (multiple outputs, equalizer, system volume), a Secret Service keyring (server passwords), `cast-helper` (casting)
 
@@ -87,4 +88,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 ## License
 
 MIT, see [LICENSE](LICENSE). 
-Tag reading and writing uses [TagLib](https://taglib.org) (LGPL-2.1) through [go-taglib](https://github.com/sentriz/go-taglib)
+Tag reading and writing uses [TagLib](https://taglib.org) (LGPL-2.1) through [go-taglib](https://github.com/sentriz/go-taglib). 
+The built-in player uses [flac](https://github.com/mewkiz/flac) (public domain), [go-mp3](https://github.com/hajimehoshi/go-mp3) (Apache-2.0), [oggvorbis](https://github.com/jfreymuth/oggvorbis) (MIT), [gopus](https://github.com/thesyncim/gopus) (BSD-3-Clause) and [pulse](https://github.com/jfreymuth/pulse) (MIT).

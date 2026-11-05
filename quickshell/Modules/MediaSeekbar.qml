@@ -25,7 +25,10 @@ Item {
     readonly property real handleInset: flat ? Theme.sliderHandleWidth / 2 : expressive ? handleWidth / 2 : 0
     property real handleWidth: flat ? (isSeeking ? Theme.sliderHandleWidthPressed : Theme.sliderHandleWidth) : isSeeking ? PlayerMetrics.mediaSeekbarHandleDragWidth : PlayerMetrics.mediaSeekbarHandleSize
     property real handleHeight: flat ? (thin ? PlayerMetrics.mediaSeekbarHeight : Theme.sliderHandleHeight) : isSeeking ? PlayerMetrics.mediaSeekbarHandleDragHeight : PlayerMetrics.mediaSeekbarHandleSize
-    readonly property bool canSeek: interactive && enabled && length > 0 && PlayerService.current !== null
+    readonly property bool usable: interactive && enabled && length > 0 && PlayerService.current !== null
+    readonly property bool canSeek: usable && PlayerService.seekable
+    // a track that can't seek dims the bar and says why when it is used
+    readonly property bool explains: usable && !PlayerService.seekable
     // a minimized window still counts as visible to its items
     readonly property bool shown: visible && Window.visibility !== Window.Minimized && Window.visibility !== Window.Hidden
     readonly property bool playing: PlayerService.playing && !PlayerService.loading
@@ -51,6 +54,8 @@ Item {
     }
 
     function seekTo(seconds) {
+        if (explains)
+            PlayerService.explainNoSeek();
         if (!canSeek)
             return;
         const clamped = Math.max(0, Math.min(seconds, length * 0.99));
@@ -69,17 +74,17 @@ Item {
     }
 
     implicitHeight: flat ? handleHeight : expressive ? PlayerMetrics.mediaSeekbarExpressiveHeight : PlayerMetrics.mediaSeekbarHeight
-    activeFocusOnTab: canSeek
+    activeFocusOnTab: usable
     LayoutMirroring.enabled: false
     LayoutMirroring.childrenInherit: true
     Accessible.role: interactive ? Accessible.Slider : Accessible.ProgressBar
     Accessible.name: I18n.tr("Position", "seekbar accessible name")
-    Accessible.focusable: canSeek
+    Accessible.focusable: usable
     Accessible.onIncreaseAction: seekTo(value * length + 5)
     Accessible.onDecreaseAction: seekTo(value * length - 5)
 
     Keys.onPressed: event => {
-        if (!canSeek)
+        if (!usable)
             return;
         switch (event.key) {
         case Qt.Key_Left:
@@ -163,6 +168,7 @@ Item {
     M3WaveProgress {
         anchors.fill: parent
         visible: !root.flat && root.length > 0
+        opacity: root.explains ? Theme.disabledOpacity : 1
         value: root.trackValue(root.value)
         actualValue: root.trackValue(root.playerValue)
         // the handle carries the played wave along, so a drag shows no separate preview
@@ -202,6 +208,7 @@ Item {
         readonly property real insideCorner: Theme.scaledRadius(DC.Style.sliderTrackInsideCornerRadius, trackHeight / 2)
         anchors.fill: parent
         visible: root.flat && root.length > 0
+        opacity: root.explains ? Theme.disabledOpacity : 1
 
         Rectangle {
             anchors.verticalCenter: parent.verticalCenter
@@ -255,22 +262,28 @@ Item {
         id: mouse
         anchors.fill: parent
         cursorShape: root.canSeek ? Qt.PointingHandCursor : Qt.ArrowCursor
-        enabled: root.canSeek
+        enabled: root.usable
 
         function preview(x) {
             root.seekPreviewRatio = SeekTrack.ratioAt(x, root.width, root.handleInset);
         }
 
         onPressed: event => {
+            if (root.explains) {
+                PlayerService.explainNoSeek();
+                return;
+            }
             root.clearPreview();
             root.isSeeking = true;
             preview(event.x);
         }
         onPositionChanged: event => {
-            if (pressed)
+            if (pressed && root.isSeeking)
                 preview(event.x);
         }
         onReleased: {
+            if (!root.isSeeking)
+                return;
             root.isSeeking = false;
             root.seekTo(root.seekPreviewRatio * root.length);
         }

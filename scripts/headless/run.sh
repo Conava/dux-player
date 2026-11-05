@@ -79,7 +79,7 @@ done
 
 env -i LANG=C.UTF-8 USER="$USER" HOME="$W/home" PATH="$W/bin:$repo/core/bin:/usr/bin:/bin" XDG_RUNTIME_DIR="$W/rt" \
     XDG_CONFIG_HOME="$W/config" XDG_STATE_HOME="$W/state" XDG_CACHE_HOME="$W/cache" XDG_DATA_HOME="$W/data" \
-    XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/share}" QT_QPA_PLATFORMTHEME=qtengine DPLAYER_WINRULES=off \
+    XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/share}" QT_QPA_PLATFORMTHEME=qtengine DPLAYER_WINRULES=off DPLAYER_BACKEND="${DPLAYER_BACKEND:-}" \
     DPLAYER_DISABLE_HOT_RELOAD=1 HYPRLAND_NO_SD_NOTIFY=1 HYPRLAND_NO_SD_VARS=1 HYPRLAND_NO_CRASHREPORTER=1 \
     W="$W" LIB="$here/lib.sh" SCENARIO="$scenario" \
     timeout -k 5 "${HEADLESS_TIMEOUT:-180}" dbus-run-session -- bash "$here/session.sh"

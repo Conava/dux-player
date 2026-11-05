@@ -36,6 +36,8 @@ func init() {
 				switch topic {
 				case player.TopicAudioDevices:
 					dev.OnDeviceList(data.(json.RawMessage))
+				case player.TopicBackend:
+					dev.OnBackend()
 				case ipc.TopicSettings:
 					// The equalizer runs in the devices' PipeWire path, not in mpv.
 					dev.OnEqualizer(eqOf(d.Settings.Get()))

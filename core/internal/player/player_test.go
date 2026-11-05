@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/Conava/dux-player/core/internal/player/engine"
 	"github.com/Conava/dux-player/core/internal/source"
 )
 
@@ -68,14 +69,47 @@ func (r *recorder) saw(pred func(Status) bool) bool {
 	return false
 }
 
-// Runs real mpv with the null audio output: the daemon's queue must follow
-// mpv's own move to the prefetched next track, and a killed mpv must come
-// back on the same track.
-func TestPlayerFollowsMPV(t *testing.T) {
-	bin, err := exec.LookPath("mpv")
-	if err != nil {
-		t.Skip("mpv not installed")
+// useNull makes the built-in player play to Null outputs; it returns the
+// one opened last.
+func useNull(t *testing.T) func() *engine.Null {
+	var mu sync.Mutex
+	var last *engine.Null
+	old := builtinOutput
+	builtinOutput = func(context.Context) (engine.Output, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		last = engine.NewNull(false)
+		return last, nil
 	}
+	t.Cleanup(func() { builtinOutput = old })
+	return func() *engine.Null {
+		mu.Lock()
+		defer mu.Unlock()
+		return last
+	}
+}
+
+// Runs both backends, mpv with its null audio output and the built-in one
+// with a Null output: the daemon's queue must follow the backend's own move
+// to the prefetched next track, and a crashed backend must come back on
+// the same track.
+func TestPlayerFollowsTheBackend(t *testing.T) {
+	t.Run("mpv", func(t *testing.T) {
+		bin, err := exec.LookPath("mpv")
+		if err != nil {
+			t.Skip("mpv not installed")
+		}
+		followTheBackend(t, Config{Binary: bin, ExtraArgs: []string{"--ao=null"}}, func(proc *process) {
+			require.NoError(t, proc.cmd.Process.Kill())
+		})
+	})
+	t.Run("builtin", func(t *testing.T) {
+		last := useNull(t)
+		followTheBackend(t, Config{Backend: BackendBuiltin}, func(*process) { last().Lose() })
+	})
+}
+
+func followTheBackend(t *testing.T, cfg Config, crash func(*process)) {
 	dir := t.TempDir()
 	res := pathResolver{}
 	var queue []source.Track
@@ -90,13 +124,8 @@ func TestPlayerFollowsMPV(t *testing.T) {
 	res["long"] = long
 
 	rec := &recorder{}
-	p := New(Config{
-		Binary:    bin,
-		Socket:    filepath.Join(dir, "mpv.sock"),
-		ExtraArgs: []string{"--ao=null"},
-		Resolver:  res,
-		Publish:   rec.publish,
-	})
+	cfg.Socket, cfg.Resolver, cfg.Publish = filepath.Join(dir, "mpv.sock"), res, rec.publish
+	p := New(cfg)
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	go p.Run(ctx)
@@ -121,7 +150,7 @@ func TestPlayerFollowsMPV(t *testing.T) {
 		st, _ := p.Status(ctx)
 		return st.Position >= 12
 	}, 5*time.Second, 20*time.Millisecond)
-	require.NoError(t, proc.cmd.Process.Kill())
+	crash(proc)
 
 	require.Eventually(t, func() bool {
 		var restarted bool

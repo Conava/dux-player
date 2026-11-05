@@ -400,6 +400,8 @@ func (l *limited) String() string {
 
 var errNoPipeWire = errors.New("several outputs at once need PipeWire (pipewire and pw-cli)")
 
+var errNeedsMPV = errors.New("several outputs at once need mpv")
+
 // PipeWireAvailable says whether the tools for several outputs at once are installed.
 func PipeWireAvailable() bool {
 	for _, bin := range []string{"pipewire", "pw-cli", "pw-play"} {

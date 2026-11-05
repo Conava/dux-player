@@ -208,6 +208,10 @@ func (s *Source) StreamURL(ctx context.Context, id string) (string, error) {
 	return s.client.StreamURL(ctx, id)
 }
 
+func (s *Source) StreamURLFor(ctx context.Context, id string, containers []string) (string, error) {
+	return s.client.StreamURLFor(ctx, id, containers)
+}
+
 func (s *Source) Artists(ctx context.Context) ([]source.Artist, error) {
 	list, err := s.client.Artists(ctx)
 	return s.artists(list), err

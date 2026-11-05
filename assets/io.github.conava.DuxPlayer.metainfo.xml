@@ -6,7 +6,7 @@
   <summary>Music player for the Dux desktop</summary>
 
   <description>
-    <p>Dux Player plays local music libraries and playlists and streams from Navidrome, Subsonic and Jellyfin servers. It is built with Quickshell, Qt 6, Go and mpv, and follows the look of Dux Shell.</p>
+    <p>Dux Player plays local music libraries and playlists and streams from Navidrome, Subsonic and Jellyfin servers. It is built with Quickshell, Qt 6 and Go, plays through mpv when it is installed, and follows the look of Dux Shell.</p>
   </description>
 
   <developer id="io.github.conava">

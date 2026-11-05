@@ -69,6 +69,7 @@ type fakePlayer struct {
 	outputs []string
 	env     []string
 	pauses  int
+	builtin bool
 }
 
 const speakerList = `[{"name":"pipewire/speaker","description":"Speaker"}]`
@@ -83,6 +84,8 @@ func (f *fakePlayer) SetAudioOutput(_ context.Context, device string, env []stri
 	f.outputs, f.env = append(f.outputs, device), env
 	return nil
 }
+
+func (f *fakePlayer) Builtin() bool { return f.builtin }
 
 func (f *fakePlayer) Pause(context.Context) error {
 	f.mu.Lock()
@@ -138,6 +141,19 @@ func TestSelectRejects(t *testing.T) {
 		assert.Error(t, s.Select(context.Background(), sel), "%v", sel)
 	}
 	assert.Equal(t, []string{Default}, s.State().Selected)
+}
+
+func TestBuiltinPlayerSkipsInternalSinks(t *testing.T) {
+	p := &fakePlayer{builtin: true}
+	s := New(p, t.TempDir(), t.TempDir(), EQ{On: true}, fakeCast{}, func(State) {})
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go s.Run(ctx)
+	require.Eventually(t, func() bool { return p.last() != "" }, time.Second, 5*time.Millisecond)
+
+	assert.Equal(t, "auto", p.last())
+	require.Eventually(t, func() bool { return s.State().Equalizer == "needsMpv" }, time.Second, 5*time.Millisecond)
+	assert.ErrorIs(t, s.Select(ctx, []string{"speaker", "headset"}), errNeedsMPV)
 }
 
 func TestMissingChoiceStaysListed(t *testing.T) {

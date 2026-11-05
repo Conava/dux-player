@@ -150,6 +150,13 @@ type Source interface {
 	Close() error
 }
 
+// PlayableStream is optional: a stream URL limited to the given containers
+// (file extensions), the server transcoding anything else. It carries
+// credentials like StreamURL.
+type PlayableStream interface {
+	StreamURLFor(ctx context.Context, id string, containers []string) (string, error)
+}
+
 // Browser lists and searches the library.
 type Browser interface {
 	Artists(ctx context.Context) ([]Artist, error)

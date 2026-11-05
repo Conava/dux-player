@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -137,6 +138,17 @@ func markCols(kind, table string) string {
 type Store struct {
 	db       *sql.DB
 	onChange atomic.Pointer[func(libID string, d *Delta)]
+	// playable is the file extensions the player plays; nil plays all.
+	playable atomic.Pointer[[]string]
+}
+
+// SetPlayable limits the file extensions that can play; nil allows all.
+func (s *Store) SetPlayable(exts []string) { s.playable.Store(&exts) }
+
+// canPlay says whether the player plays a file of this name.
+func (s *Store) canPlay(path string) bool {
+	p := s.playable.Load()
+	return p == nil || *p == nil || slices.Contains(*p, strings.TrimPrefix(strings.ToLower(filepath.Ext(path)), "."))
 }
 
 // Delta is which tracks an index change touched, by id.
@@ -394,11 +406,21 @@ func (s *Store) MarkMissing(ctx context.Context, libID, dir string) (bool, error
 	return n > 0, nil
 }
 
-// Missing reports whether a track's file is known to be gone.
-func (s *Store) Missing(ctx context.Context, libID, id string) bool {
+// TrackReason says why an indexed track can't play: its file is known to
+// be gone, or the player doesn't play its format.
+func (s *Store) TrackReason(ctx context.Context, libID, id string) Reason {
 	var missing bool
-	_ = s.db.QueryRowContext(ctx, "SELECT missing FROM tracks WHERE library_id = ? AND id = ?", libID, id).Scan(&missing)
-	return missing
+	var path string
+	err := s.db.QueryRowContext(ctx, "SELECT missing, path FROM tracks WHERE library_id = ? AND id = ?", libID, id).Scan(&missing, &path)
+	switch {
+	case err != nil:
+		return Reason{}
+	case missing:
+		return TrackMissing
+	case !s.canPlay(path):
+		return NeedsMPV
+	}
+	return Reason{}
 }
 
 // TrackByPath finds the indexed track of a file in any enabled library.
@@ -621,7 +643,7 @@ var trackCols = `t.library_id, t.id, t.path, t.title, t.artist, t.artist_id, t.a
 	t.track_no, t.disc_no, t.year, t.genre, t.duration, a.cover, t.missing, ` + markCols(source.ItemTrack, "t") + `, ` +
 	artistsCol(source.ItemTrack, "t")
 
-func scanTrack(rows interface{ Scan(...any) error }) (IndexedTrack, error) {
+func (s *Store) scanTrack(rows interface{ Scan(...any) error }) (IndexedTrack, error) {
 	var t IndexedTrack
 	var cover sql.NullString
 	var missing bool
@@ -636,8 +658,11 @@ func scanTrack(rows interface{ Scan(...any) error }) (IndexedTrack, error) {
 	if cover.String != "" {
 		t.CoverID = t.AlbumID
 	}
-	if missing {
+	switch {
+	case missing:
 		t.Unavailable, t.UnavailableCode = TrackMissing.Message, TrackMissing.Code
+	case !s.canPlay(t.Path):
+		t.Unavailable, t.UnavailableCode = NeedsMPV.Message, NeedsMPV.Code
 	}
 	return t, err
 }
@@ -652,7 +677,7 @@ func (s *Store) queryTracks(ctx context.Context, where string, args ...any) ([]s
 	defer rows.Close()
 	out := []source.Track{}
 	for rows.Next() {
-		t, err := scanTrack(rows)
+		t, err := s.scanTrack(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -666,7 +691,7 @@ func (s *Store) Track(ctx context.Context, libID, id string) (IndexedTrack, erro
 	row := s.db.QueryRowContext(ctx, "SELECT "+trackCols+` FROM tracks t
 		LEFT JOIN albums a ON a.library_id = t.library_id AND a.id = t.album_id
 		WHERE t.library_id = ? AND t.id = ?`, libID, id)
-	t, err := scanTrack(row)
+	t, err := s.scanTrack(row)
 	if errors.Is(err, sql.ErrNoRows) {
 		return IndexedTrack{}, fmt.Errorf("track %s: %w", id, source.ErrNotFound)
 	}

@@ -59,6 +59,8 @@ const (
 	CodeFoldersMissing     = "foldersMissing"
 	CodeTrackFolderMissing = "trackFolderMissing"
 	CodeLibraryOff         = "libraryOff"
+	// CodeNeedsMPV is a track in a format the built-in player can't play.
+	CodeNeedsMPV = player.CodeNeedsMPV
 )
 
 // Codes of a failed libraries.test (and serverUnreachable).
@@ -100,6 +102,7 @@ func testFailure(err error) Reason {
 
 var (
 	TrackMissing = Reason{CodeTrackFolderMissing, "Folder not found. It was removed or its drive isn't mounted."}
+	NeedsMPV     = Reason{CodeNeedsMPV, "Requires mpv to play this format"}
 	libraryOff   = Reason{CodeLibraryOff, "Library turned off or removed"}
 	unreachable  = Reason{CodeServerUnreachable, "Server unreachable"}
 )
@@ -162,6 +165,8 @@ type Manager struct {
 	builtin  map[string]source.Source
 	publish  atomic.Pointer[func(topic string, data any)]
 	offline  atomic.Pointer[Offline]
+	// playable is the containers the player plays; nil plays all.
+	playable atomic.Pointer[[]string]
 
 	mu       sync.RWMutex
 	sources  map[string]source.Source
@@ -508,7 +513,12 @@ func (m *Manager) Stream(ctx context.Context, ref source.Ref) (player.Stream, er
 	if err != nil {
 		return player.Stream{}, err
 	}
-	url, err := src.StreamURL(ctx, ref.ID)
+	var url string
+	if ps, ok := src.(source.PlayableStream); ok && m.playableList() != nil {
+		url, err = ps.StreamURLFor(ctx, ref.ID, m.playableList())
+	} else {
+		url, err = src.StreamURL(ctx, ref.ID)
+	}
 	if err != nil {
 		return player.Stream{}, err
 	}
@@ -658,6 +668,32 @@ func (m *Manager) SetPublish(publish func(topic string, data any)) {
 		m.emit(TopicLibraries, ev)
 		m.PublishChanges(context.Background())
 	})
+}
+
+// SetPlayable says which containers (file extensions) the player plays;
+// nil plays everything. Local files in other formats can't play then, and
+// servers are asked for these formats.
+func (m *Manager) SetPlayable(containers []string) {
+	m.playable.Store(&containers)
+	m.store.SetPlayable(containers)
+	m.mu.Lock()
+	var ids []string
+	for id, src := range m.sources {
+		if _, ok := src.(Availability); ok {
+			ids = append(ids, id)
+		}
+	}
+	m.mu.Unlock()
+	for _, id := range ids {
+		m.emit(TopicLibraries, map[string]any{"type": "indexChanged", "library": id})
+	}
+}
+
+func (m *Manager) playableList() []string {
+	if p := m.playable.Load(); p != nil {
+		return *p
+	}
+	return nil
 }
 
 // SetOffline makes cached copies of remote tracks playable.

@@ -122,6 +122,7 @@ var entries = [
     {"page": "about", "title": ["dux-qml-common", ""], "section": ["Credits", "about page section: the projects the player is made from"], "text": [["UI components and theming", "about page credit"]]},
     {"page": "about", "title": ["dux-go", ""], "section": ["Credits", "about page section: the projects the player is made from"], "text": [["Go libraries and lyrics engine", "about page credit"]]},
     {"page": "about", "title": ["mpv", ""], "section": ["Credits", "about page section: the projects the player is made from"], "text": [["Audio playback", "about page credit"]]},
+    {"page": "about", "title": ["Built-in player", "about page credit: the playback used when mpv is missing"], "section": ["Credits", "about page section: the projects the player is made from"]},
     {"page": "about", "title": ["TagLib", ""], "section": ["Credits", "about page section: the projects the player is made from"], "text": [["Tag reading and writing (LGPL-2.1)", "about page credit"]]},
     {"page": "about", "title": ["Online services", "about page section"], "keywords": "privacy network"},
     {"page": "about", "title": ["Lyrics", "song lyrics: page, toggle, settings tab"], "section": ["Online services", "about page section"], "text": [["Off", "option that turns something off"]]},

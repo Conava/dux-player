@@ -46,9 +46,11 @@ Column {
     DToggle {
         width: parent.width
         // stays enabled while on, so it can be turned off after an output went away
-        enabled: PlayerService.canMultiOutput && (root.localCount > 1 || root.several)
+        enabled: SettingsService.canRoute && PlayerService.canMultiOutput && (root.localCount > 1 || root.several)
         text: I18n.tr("Play on multiple outputs", "playback device setting")
         description: {
+            if (!SettingsService.canRoute)
+                return I18n.tr("Requires mpv.", "why a playback setting is unavailable");
             if (!PlayerService.canMultiOutput)
                 return I18n.tr("Requires PipeWire (pipewire, pw-cli and pw-play)", "why several outputs and the equalizer are unavailable");
             if (!enabled)

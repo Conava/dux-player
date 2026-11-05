@@ -26,8 +26,10 @@ func TestMain(m *testing.M) {
 		fakeMPV(ms)
 		return
 	}
-	// Keeps the tests and their mpv off the host's PipeWire.
+	// Keeps the tests, their mpv and the built-in player off the host's
+	// PipeWire and PulseAudio.
 	os.Setenv("PIPEWIRE_REMOTE", filepath.Join(os.TempDir(), "dplayer-test-no-pipewire"))
+	os.Setenv("PULSE_SERVER", filepath.Join(os.TempDir(), "dplayer-test-no-pulse"))
 	os.Exit(m.Run())
 }
 

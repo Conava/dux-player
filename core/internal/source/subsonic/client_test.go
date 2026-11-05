@@ -406,3 +406,29 @@ func TestAPIErrorSignInRefused(t *testing.T) {
 		assert.Equal(t, refused, errors.Is(err, source.ErrSignInRefused), code)
 	}
 }
+
+// For the built-in player a song plays as it is when its format is one it
+// decodes, and as Opus otherwise, also when the server doesn't say.
+func TestStreamURLForAskedFormats(t *testing.T) {
+	song := func(suffix string) string {
+		return strings.Replace(okEnvelope, "%s", `,"song":{"id":"s1","suffix":"`+suffix+`"}`, 1)
+	}
+	for _, tt := range []struct {
+		name, body, want string
+	}{
+		{"flac", song("flac"), "raw"},
+		{"upper case", song("MP3"), "raw"},
+		{"m4a", song("m4a"), "opus"},
+		{"unknown song", `{"subsonic-response":{"status":"failed","version":"1.16.1","error":{"code":70,"message":"not found"}}}`, "opus"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			f := newFake(t, "demo", map[string]string{"getSong": tt.body})
+			u, err := newSource(t, f, "demo").StreamURLFor(context.Background(), "s1", []string{"flac", "mp3", "ogg"})
+			require.NoError(t, err)
+			q, err := url.Parse(u)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, q.Query().Get("format"))
+			assert.Equal(t, "s1", q.Query().Get("id"))
+		})
+	}
+}

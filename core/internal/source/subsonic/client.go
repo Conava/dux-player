@@ -497,6 +497,21 @@ func (c *Client) StreamURL(ctx context.Context, id string) (string, error) {
 	return c.endpoint(c.state(), "stream", url.Values{"id": {id}, "format": {"raw"}}), nil
 }
 
+// StreamURLFor implements source.PlayableStream: the original file when its
+// suffix is in containers, else Opus. A server that doesn't transcode sends
+// the original anyway, which the player then skips.
+func (c *Client) StreamURLFor(ctx context.Context, id string, containers []string) (string, error) {
+	if err := c.ensureProbed(ctx); err != nil {
+		return "", err
+	}
+	q := url.Values{"id": {id}, "format": {"raw"}}
+	if song, err := c.Song(ctx, id); err != nil || !slices.Contains(containers, strings.ToLower(song.Suffix)) {
+		q.Set("format", "opus")
+		q.Set("maxBitRate", "320")
+	}
+	return c.endpoint(c.state(), "stream", q), nil
+}
+
 // CoverArt downloads cover art, capped at source.MaxCover bytes.
 func (c *Client) CoverArt(ctx context.Context, id string, size int) ([]byte, string, error) {
 	if err := c.ensureProbed(ctx); err != nil {

@@ -13,6 +13,41 @@ import (
 	"github.com/Conava/dux-player/core/internal/source"
 )
 
+// With the built-in player, a file in a format only mpv plays can't play,
+// in lists and for the queue; with mpv everything plays.
+func TestFormatsOnlyMPVPlays(t *testing.T) {
+	ctx := context.Background()
+	s, err := Open(ctx, filepath.Join(t.TempDir(), "library.db"))
+	require.NoError(t, err)
+	defer s.Close()
+	require.NoError(t, s.AddLibrary(ctx, source.Library{ID: "l", Kind: "local", Name: "L", Enabled: true}))
+	b, err := s.Begin(ctx, "l", 1)
+	require.NoError(t, err)
+	for id, path := range map[string]string{"flac": "/m/a.FLAC", "m4a": "/m/b.m4a"} {
+		tr := IndexedTrack{Path: path}
+		tr.Library, tr.ID, tr.AlbumID, tr.ArtistID = "l", id, "al", "ar"
+		require.NoError(t, b.PutTrack(ctx, tr, ""))
+	}
+	_, err = b.Finish(ctx)
+	require.NoError(t, err)
+
+	for _, tt := range []struct {
+		playable []string
+		want     map[string]string
+	}{
+		{nil, map[string]string{"flac": "", "m4a": ""}},
+		{[]string{"flac", "mp3"}, map[string]string{"flac": "", "m4a": CodeNeedsMPV}},
+	} {
+		s.SetPlayable(tt.playable)
+		for id, code := range tt.want {
+			require.Equal(t, code, s.TrackReason(ctx, "l", id).Code, "%s with %v", id, tt.playable)
+			got, err := s.Track(ctx, "l", id)
+			require.NoError(t, err)
+			require.Equal(t, code, got.UnavailableCode, "%s listed with %v", id, tt.playable)
+		}
+	}
+}
+
 // A scan writing its batch must not stall lookups: playback asks the index
 // on its loop while a big library is scanned.
 func TestReadsDontWaitForAScan(t *testing.T) {

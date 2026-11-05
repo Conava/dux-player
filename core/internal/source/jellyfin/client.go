@@ -259,10 +259,23 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 	return c.call(ctx, http.MethodGet, path, q, nil, out)
 }
 
+// mpvContainers are the containers mpv plays as they are.
+const mpvContainers = "flac,mp3,opus,ogg,oga,m4a,m4b,aac,alac,wav,wv,ape,mpc,aiff,aif,dsf,dff,webm,mka,wma"
+
 // StreamURL asks for the original file in every container mpv plays (direct
 // play) and Opus in Ogg when the server must transcode. It carries the
 // token: never log it.
 func (c *Client) StreamURL(ctx context.Context, id string) (string, error) {
+	return c.streamURL(ctx, id, mpvContainers)
+}
+
+// StreamURLFor implements source.PlayableStream: the original file only in
+// containers, Opus in Ogg otherwise.
+func (c *Client) StreamURLFor(ctx context.Context, id string, containers []string) (string, error) {
+	return c.streamURL(ctx, id, strings.Join(containers, ","))
+}
+
+func (c *Client) streamURL(ctx context.Context, id, containers string) (string, error) {
 	if !c.checked.Load() {
 		if err := c.get(ctx, "/Users/{user}", nil, nil); err != nil {
 			return "", err
@@ -276,7 +289,7 @@ func (c *Client) StreamURL(ctx context.Context, id string) (string, error) {
 	q := url.Values{
 		"UserId":               {uid},
 		"DeviceId":             {c.deviceID},
-		"Container":            {"flac,mp3,opus,ogg,oga,m4a,m4b,aac,alac,wav,wv,ape,mpc,aiff,aif,dsf,dff,webm,mka,wma"},
+		"Container":            {containers},
 		"TranscodingContainer": {"ogg"},
 		"TranscodingProtocol":  {"http"},
 		"AudioCodec":           {"opus"},

@@ -1162,6 +1162,13 @@
     "comment": ""
   },
   {
+    "term": "Built-in player",
+    "translation": "",
+    "context": "about page credit: the playback used when mpv is missing",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Button",
     "translation": "",
     "context": "header search option",
@@ -1207,6 +1214,13 @@
     "term": "Can't search for cast devices: discovery is unavailable",
     "translation": "",
     "context": "cast error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Can't seek in a track the server converts while it plays",
+    "translation": "",
+    "context": "snackbar when the seekbar is used on a stream that can't seek",
     "reference": "",
     "comment": ""
   },
@@ -1683,6 +1697,13 @@
     "term": "Couldn't load the playlist",
     "translation": "",
     "context": "toast when a playlist's tracks can't be loaded",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't open the audio output",
+    "translation": "",
+    "context": "snackbar when playback stops because the sound output won't open",
     "reference": "",
     "comment": ""
   },
@@ -3066,7 +3087,7 @@
     "comment": ""
   },
   {
-    "term": "Installed, but doesn't start. Playback is unavailable.",
+    "term": "Installed, but doesn't start. Playback uses the built-in player, which plays fewer formats.",
     "translation": "",
     "context": "about page: mpv is installed but broken",
     "reference": "",
@@ -3927,7 +3948,7 @@
     "comment": ""
   },
   {
-    "term": "Not installed. Playback is unavailable.",
+    "term": "Not installed. Playback uses the built-in player, which plays fewer formats.",
     "translation": "",
     "context": "about page: mpv is missing",
     "reference": "",
@@ -5012,6 +5033,20 @@
     "comment": ""
   },
   {
+    "term": "Requires mpv to play this format",
+    "translation": "",
+    "context": "why a track can't play",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Requires mpv.",
+    "translation": "",
+    "context": "why a playback setting is unavailable",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Requires two or more outputs",
     "translation": "",
     "context": "why playing on multiple outputs is unavailable",
@@ -5813,6 +5848,13 @@
     "term": "Skipped tracks from %1 because it's unavailable",
     "translation": "",
     "context": "snackbar when the queue passes over a library's tracks, %1 is the library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Skipped tracks that require mpv",
+    "translation": "",
+    "context": "snackbar when the queue passes over tracks the built-in player can't play",
     "reference": "",
     "comment": ""
   },
