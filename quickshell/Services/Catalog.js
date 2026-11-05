@@ -14,6 +14,19 @@ function refsOf(list) {
             }));
 }
 
+// the positions in a playlist's items of any of these tracks
+function trackPositions(items, tracks) {
+    const wanted = {};
+    for (const t of tracks)
+        wanted[t.library + "\n" + t.id] = true;
+    const out = [];
+    items.forEach((item, i) => {
+        if (wanted[item.library + "\n" + item.id])
+            out.push(i);
+    });
+    return out;
+}
+
 function shuffled(list) {
     const out = list.slice();
     for (let i = out.length - 1; i > 0; i--) {

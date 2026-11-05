@@ -25,6 +25,11 @@ Singleton {
         return playlists.find(p => p.id === id) ?? null;
     }
 
+    // where these tracks sit in a playlist, as far as its tracks are loaded
+    function trackPositions(id, tracks) {
+        return Catalog.trackPositions(playlist(id)?.items ?? [], tracks);
+    }
+
     function playlistTracks(id) {
         return (playlist(id)?.items ?? []).map(ref => CatalogService.track(ref)).filter(t => t !== null);
     }
@@ -68,7 +73,7 @@ Singleton {
     }
 
     // Adds what fits (a server playlist takes only its server's tracks) and returns how many were skipped.
-    function addToPlaylist(id, refs) {
+    function addToPlaylist(id, refs, failed) {
         const target = playlist(id);
         if (!target)
             return 0;
@@ -77,11 +82,11 @@ Singleton {
             if (target.kind === "local")
                 _editLocal(target, "localPlaylists.add", {
                     "tracks": Catalog.refsOf(parts.ok)
-                });
+                }, failed);
             else
                 _updatePlaylist(target, {
                     "add": parts.ok.map(t => t.id)
-                });
+                }, failed);
         }
         return parts.skipped;
     }
@@ -149,16 +154,16 @@ Singleton {
         });
     }
 
-    function removeFromPlaylist(id, indexes) {
+    function removeFromPlaylist(id, indexes, failed) {
         const p = playlist(id);
         if (p?.kind === "local")
             _editLocal(p, "localPlaylists.remove", {
                 "positions": indexes
-            });
+            }, failed);
         else
             _updatePlaylist(p, {
                 "remove": indexes
-            });
+            }, failed);
     }
 
     // finished() runs once the daemon answered, either way
@@ -298,8 +303,8 @@ Singleton {
         });
     }
 
-    // then() runs once the playlist's tracks are in
-    function loadPlaylist(id, then) {
+    // then() runs once the playlist's tracks are in, failed() if they can't be read
+    function loadPlaylist(id, then, failed) {
         const p = playlist(id);
         if (!p) {
             then?.();
@@ -315,6 +320,7 @@ Singleton {
             if (result.error) {
                 root.log.warn("playlist", id, result.error);
                 DaemonBridge.notice(I18n.tr("Couldn't load the playlist", "toast when a playlist's tracks can't be loaded"));
+                failed?.();
                 return;
             }
             const old = root.playlist(id);
@@ -362,13 +368,13 @@ Singleton {
     }
 
     // the playlists and localPlaylists events reload the playlist afterwards
-    function _updatePlaylist(p, params) {
+    function _updatePlaylist(p, params, failed) {
         if (!p)
             return;
         DaemonBridge.request("playlists.update", Object.assign({
             "library": p.library,
             "id": p.rawId
-        }, params), I18n.tr("Couldn't change the playlist", "toast when renaming, adding to, removing from or reordering a playlist fails"));
+        }, params), I18n.tr("Couldn't change the playlist", "toast when renaming, adding to, removing from or reordering a playlist fails"), null, failed);
     }
 
     function _editLocal(p, method, params, failed) {

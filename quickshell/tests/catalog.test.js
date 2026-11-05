@@ -4,7 +4,7 @@ const path = require("path");
 const assert = require("assert");
 
 const source = fs.readFileSync(path.join(__dirname, "../Services/Catalog.js"), "utf8").replace(".pragma library", "");
-const C = new Function(source + "; return { sortBy, suffixDurations, diff, singleMove, navEntries, pageTargets, setPinned, track, filterText };")();
+const C = new Function(source + "; return { trackPositions, sortBy, suffixDurations, diff, singleMove, navEntries, pageTargets, setPinned, track, filterText };")();
 
 function apply(list, edit) {
     const out = list.slice();
@@ -93,4 +93,12 @@ assert.deepStrictEqual(titles("SUBSTANCE"), ["Blue Monday"]);
 assert.deepStrictEqual(titles("trip"), ["Road trip"]);
 assert.deepStrictEqual(titles("joy"), ["Ceremony"]);
 assert.deepStrictEqual(titles("blue joy"), []);
+// trackPositions: every copy of a track, and the same id in another library is another track
+assert.deepStrictEqual(C.trackPositions([
+    { "library": "a", "id": "1" },
+    { "library": "b", "id": "1" },
+    { "library": "a", "id": "2" },
+    { "library": "a", "id": "1" }
+], [{ "library": "a", "id": "1" }]), [0, 3]);
+
 console.log("catalog.test.js: ok");

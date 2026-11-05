@@ -890,8 +890,8 @@ Singleton {
     function createPlaylist(name, libraryId, done) {
         PlaylistService.createPlaylist(name, libraryId, done);
     }
-    function addToPlaylist(id, refs) {
-        return PlaylistService.addToPlaylist(id, refs);
+    function addToPlaylist(id, refs, failed) {
+        return PlaylistService.addToPlaylist(id, refs, failed);
     }
     function renamePlaylist(id, name) {
         PlaylistService.renamePlaylist(id, name);
@@ -905,8 +905,8 @@ Singleton {
     function duplicatePlaylist(id, done) {
         PlaylistService.duplicatePlaylist(id, done);
     }
-    function removeFromPlaylist(id, indexes) {
-        PlaylistService.removeFromPlaylist(id, indexes);
+    function removeFromPlaylist(id, indexes, failed) {
+        PlaylistService.removeFromPlaylist(id, indexes, failed);
     }
     function deletePlaylist(id) {
         PlaylistService.deletePlaylist(id);
