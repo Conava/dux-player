@@ -6,15 +6,32 @@ Dux Player plays local libraries and streams from Navidrome, Subsonic and Jellyf
 
 > **Status: 0.0.1-alpha.** Early Development Version
 
-![Home](docs/screenshots/home.png)
+![Home with the player bar](docs/screenshots/home.png)
 
-| Side panel with lyrics | Full view |
+| Full view, Bento | Full view, Material |
 |---|---|
-| ![Most played with the side panel](docs/screenshots/side-panel.png) | ![Full view with lyrics](docs/screenshots/now-playing.png) |
+| ![Full view in the Bento style](docs/screenshots/now-playing.png) | ![Full view in the Material style](docs/screenshots/now-playing-material.png) |
+
+<details>
+<summary>More screenshots</summary>
+
+| Synced lyrics | Queue beside the player |
+|---|---|
+| ![Synced lyrics in the Bento full view](docs/screenshots/lyrics.png) | ![Queue beside the Material player](docs/screenshots/material-queue.png) |
+| **Side panel** | **Light mode** |
+| ![Home with the side panel](docs/screenshots/side-panel.png) | ![Home in light mode](docs/screenshots/light.png) |
+| **Albums** | **Album** |
+| ![Albums page](docs/screenshots/albums.png) | ![An album page](docs/screenshots/album.png) |
+| **Playlists** | **Add to playlists** |
+| ![Playlists page](docs/screenshots/playlists.png) | ![Dialog listing which playlists hold the track](docs/screenshots/playlist-dialog.png) |
+| **Settings** | **Settings search** |
+| ![Now playing settings](docs/screenshots/settings.png) | ![Settings search results](docs/screenshots/settings-search.png) |
+
+</details>
 
 ## Features
 - Local libraries (several folders, indexed and watched) and any number of server libraries
-- Local playlists that mix tracks from any library, plus server native playlists
+- Local playlists that mix tracks from any library, plus server native playlists; add a track to several at once and see which ones hold it
 - Offline rules per server library, caching and preloading the next songs for a seamless experience; favorites and ratings set while a server is unreachable are sent once it is back
 - Gapless playback, crossfade, volume normalization, skipping leading and trailing silence, equalizer several outputs at once
 - Synced lyrics, scrobbling (through the server, or to ListenBrainz and Last.fm), casting through [dux-cast](https://github.com/Conava/dux-cast)
