@@ -525,6 +525,13 @@
     "comment": ""
   },
   {
+    "term": "Adaptive width",
+    "translation": "",
+    "context": "element option: the track info fits the title instead of keeping a fixed width",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Add",
     "translation": "",
     "context": "dialog confirm button",
@@ -1575,6 +1582,13 @@
     "comment": ""
   },
   {
+    "term": "Couldn't change playback",
+    "translation": "",
+    "context": "snackbar when play, pause, skip or seek fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Couldn't change the library",
     "translation": "",
     "context": "toast when turning a library on or off fails",
@@ -1652,6 +1666,13 @@
     "comment": ""
   },
   {
+    "term": "Couldn't export to %1",
+    "translation": "",
+    "context": "export failed status",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Couldn't import the layout: %1",
     "translation": "",
     "context": "layout import failed, %1 is the reason",
@@ -1697,13 +1718,6 @@
     "term": "Couldn't load the playlist",
     "translation": "",
     "context": "toast when a playlist's tracks can't be loaded",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Couldn't open the audio output",
-    "translation": "",
-    "context": "snackbar when playback stops because the sound output won't open",
     "reference": "",
     "comment": ""
   },
@@ -1879,6 +1893,13 @@
     "term": "Couldn't switch the playback device",
     "translation": "",
     "context": "toast when switching the playback device fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't use the audio output",
+    "translation": "",
+    "context": "snackbar when playback pauses because the sound output failed",
     "reference": "",
     "comment": ""
   },
@@ -2795,7 +2816,7 @@
   {
     "term": "Full view",
     "translation": "",
-    "context": "now playing start option",
+    "context": "now playing placement option | now playing start option",
     "reference": "",
     "comment": ""
   },
@@ -3234,6 +3255,13 @@
     "comment": ""
   },
   {
+    "term": "Largest",
+    "translation": "",
+    "context": "size option",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Last played",
     "translation": "",
     "context": "sort key",
@@ -3440,6 +3468,13 @@
     "term": "Lyrics",
     "translation": "",
     "context": "song lyrics: page, toggle, settings tab",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Lyrics and queue look",
+    "translation": "",
+    "context": "now playing setting",
     "reference": "",
     "comment": ""
   },
@@ -4228,6 +4263,13 @@
     "comment": ""
   },
   {
+    "term": "Paused because the output disconnected",
+    "translation": "",
+    "context": "snackbar when the playing output goes away",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Pauses at the end of this track",
     "translation": "",
     "context": "sleep timer status",
@@ -4389,6 +4431,13 @@
     "comment": ""
   },
   {
+    "term": "Playback stopped because of an error",
+    "translation": "",
+    "context": "toast when the player itself fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Player",
     "translation": "",
     "context": "about page hero: the app's short name",
@@ -4397,13 +4446,6 @@
   },
   {
     "term": "Player look",
-    "translation": "",
-    "context": "now playing setting",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Player style",
     "translation": "",
     "context": "now playing setting",
     "reference": "",
@@ -5267,6 +5309,13 @@
     "term": "Rules other than Recently played and Most played keep %1, over the %2 size limit. Downloads are paused.",
     "translation": "",
     "context": "offline warning: pinned songs exceed the size limit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Same as player",
+    "translation": "",
+    "context": "lyrics and queue look option",
     "reference": "",
     "comment": ""
   },
@@ -6426,6 +6475,13 @@
     "comment": ""
   },
   {
+    "term": "This style places these itself; you can show or hide them.",
+    "translation": "",
+    "context": "layout editor note on the seekbar row",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Tile size",
     "translation": "",
     "context": "view options section",
@@ -6779,6 +6835,13 @@
     "term": "When the queue ends",
     "translation": "",
     "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Width",
+    "translation": "",
+    "context": "element option: how wide the track info is",
     "reference": "",
     "comment": ""
   },

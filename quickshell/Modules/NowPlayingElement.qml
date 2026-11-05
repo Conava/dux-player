@@ -48,7 +48,7 @@ Loader {
     readonly property bool groupStart: groupPosition === "start" || groupPosition === "only"
     readonly property bool groupEnd: groupPosition === "end" || groupPosition === "only"
     // the volume is a button showing the level (Bento's ring, M3E's fill); scroll changes it, a click opens the slider
-    readonly property Component volumeComponent: UiConfig.nowPlaying.style === "m3e" || grouped ? volumeLevel : volumeRing
+    readonly property Component volumeComponent: UiConfig.styleOf(context) === "m3e" || grouped ? volumeLevel : volumeRing
     readonly property real spacerSize: {
         switch (options.size ?? "m") {
         case "s":
@@ -265,7 +265,7 @@ Loader {
                 StyledText {
                     id: m3eText
                     // on one line: a wrapped text's own width depends on the room it is given
-                    readonly property real fullTextWidth: m3eSize.advanceWidth
+                    readonly property real fullTextWidth: oneLine.implicitWidth
                     text: root.track?.title ?? ""
                     color: ArtColors.text
                     font.pixelSize: root.context === "side" ? Theme.fontSizeXLarge : Theme.fontSizeXXLarge
@@ -274,10 +274,14 @@ Loader {
                     maximumLineCount: 2
                     horizontalAlignment: root.centered ? Text.AlignHCenter : Text.AlignLeft
 
-                    TextMetrics {
-                        id: m3eSize
+                    // not TextMetrics: its width can fall a pixel short of the drawn text, which then wraps
+                    StyledText {
+                        id: oneLine
+                        visible: false
                         text: m3eText.text
-                        font: m3eText.font
+                        font.pixelSize: m3eText.font.pixelSize
+                        wrapMode: Text.NoWrap
+                        elide: Text.ElideNone
                     }
                 }
             }
@@ -448,7 +452,7 @@ Loader {
     Component {
         id: seekbar
         MediaSeekbar {
-            flat: UiConfig.nowPlaying.style === "m3e"
+            flat: UiConfig.styleOf(root.context) === "m3e"
             thin: root.context === "bar"
         }
     }

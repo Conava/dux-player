@@ -88,6 +88,11 @@ Item {
         };
     }
 
+    // these draw the seek zone in a fixed arrangement, so only showing or hiding its parts means anything
+    function fixedSeek(zoneId) {
+        return zoneId === "seek" && (surfaceId.startsWith("full") || surfaceId === "side" && UiConfig.styleOf("side") !== "m3e");
+    }
+
     function zoneModel(zone) {
         if (zone.id === "panes" && following) {
             const panes = UiConfig.sidePanes;
@@ -106,13 +111,16 @@ Item {
         }
         const types = accepted(zone.id);
         const followed = following && UiConfig.sideFollowedZones.indexOf(zone.id) >= 0;
+        const fixed = fixedSeek(zone.id);
         return {
             "id": zone.id,
             "label": zone.label,
-            "note": followed ? I18n.tr("Follows the bottom bar", "side panel editor: a zone taken from the bar") : "",
+            "note": followed ? I18n.tr("Follows the bottom bar", "side panel editor: a zone taken from the bar") : fixed ? I18n.tr("This style places these itself; you can show or hide them.", "layout editor note on the seekbar row") : "",
             "disabled": followed,
-            "addable": !followed,
-            "rows": (surface.zones[zone.id] ?? []).map(inst => rowOf(zone, types, inst))
+            "addable": !followed && !fixed,
+            "rows": (surface.zones[zone.id] ?? []).map(inst => Object.assign(rowOf(zone, types, inst), fixed && ["seekbar", "elapsed", "duration"].indexOf(inst.type) >= 0 ? {
+                    "removable": false
+                } : {}))
         };
     }
 

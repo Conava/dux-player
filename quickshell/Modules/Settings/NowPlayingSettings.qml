@@ -14,11 +14,15 @@ Item {
     property string subPage: ""
 
     readonly property var surfaces: ["bar", "side", "fullBento", "fullM3e"]
+    // one card for the full view: the layout of its current style
+    readonly property var cards: ["bar", "side", UiConfig.nowPlaying.style === "m3e" ? "fullM3e" : "fullBento"]
+    readonly property var styleNames: [I18n.tr("Bento", "now playing player style"), I18n.tr("Material", "now playing player style")]
     // sub-views the settings search opens
     readonly property var subViews: surfaces
     readonly property var starts: ["bar", "side", "full"]
     readonly property var openPanes: ["last", "lyrics", "queue", "cover"]
     readonly property var playerLooks: ["card", "attached"]
+    readonly property var paneLooks: ["player", "card", "attached"]
     readonly property bool twoColumns: overview.width >= SettingsMetrics.compactBreakpoint
 
     function surfaceLabel(id) {
@@ -56,10 +60,9 @@ Item {
         return Qt.size(PlayerMetrics.compactBreakpoint, PlayerMetrics.compactBreakpoint * 0.6);
     }
 
-    // one mark for the start surface and the player style in use
     function badgeOf(id) {
         const np = UiConfig.nowPlaying;
-        const marked = id === "bar" || id === "side" ? np.start === id : (id === "fullBento") === (np.style === "bento");
+        const marked = np.start === (id === "bar" || id === "side" ? id : "full");
         return marked ? I18n.tr("Default", "now playing surface badge: the start surface, or the player style in use") : "";
     }
 
@@ -81,7 +84,10 @@ Item {
             "start": "bar",
             "style": "bento",
             "openPane": "last",
-            "playerLook": "card"
+            "barStyle": "bento",
+            "sideStyle": "bento",
+            "playerLook": "card",
+            "paneLook": "player"
         });
     }
 
@@ -104,18 +110,6 @@ Item {
             }
 
             SettingsButtonGroupRow {
-                text: I18n.tr("Player style", "now playing setting")
-                model: [I18n.tr("Bento", "now playing player style"), I18n.tr("Material", "now playing player style")]
-                currentIndex: UiConfig.playerStyles.indexOf(UiConfig.nowPlaying.style)
-                onSelectionChanged: (index, selected) => {
-                    if (selected)
-                        UiConfig.setNowPlaying({
-                            "style": UiConfig.playerStyles[index]
-                        });
-                }
-            }
-
-            SettingsButtonGroupRow {
                 text: I18n.tr("Player look", "now playing setting")
                 keywords: "bar bottom side panel lyrics queue pane flat background"
                 model: [I18n.tr("Card", "player look option"), I18n.tr("Attached", "player look option")]
@@ -124,6 +118,19 @@ Item {
                     if (selected)
                         UiConfig.setNowPlaying({
                             "playerLook": root.playerLooks[index]
+                        });
+                }
+            }
+
+            SettingsButtonGroupRow {
+                text: I18n.tr("Lyrics and queue look", "now playing setting")
+                keywords: "side panel pane flat background"
+                model: [I18n.tr("Same as player", "lyrics and queue look option"), I18n.tr("Card", "player look option"), I18n.tr("Attached", "player look option")]
+                currentIndex: root.paneLooks.indexOf(UiConfig.nowPlaying.paneLook)
+                onSelectionChanged: (index, selected) => {
+                    if (selected)
+                        UiConfig.setNowPlaying({
+                            "paneLook": root.paneLooks[index]
                         });
                 }
             }
@@ -146,6 +153,47 @@ Item {
             keywords: "bar side panel full view layout controls"
         }
 
+        SettingsCard {
+            SettingsButtonGroupRow {
+                text: I18n.tr("Bottom bar", "now playing placement option")
+                keywords: "bento material style"
+                model: root.styleNames
+                currentIndex: UiConfig.playerStyles.indexOf(UiConfig.nowPlaying.barStyle)
+                onSelectionChanged: (index, selected) => {
+                    if (selected)
+                        UiConfig.setNowPlaying({
+                            "barStyle": UiConfig.playerStyles[index]
+                        });
+                }
+            }
+
+            SettingsButtonGroupRow {
+                text: I18n.tr("Side panel", "now playing placement option")
+                keywords: "bento material style"
+                model: root.styleNames
+                currentIndex: UiConfig.playerStyles.indexOf(UiConfig.nowPlaying.sideStyle)
+                onSelectionChanged: (index, selected) => {
+                    if (selected)
+                        UiConfig.setNowPlaying({
+                            "sideStyle": UiConfig.playerStyles[index]
+                        });
+                }
+            }
+
+            SettingsButtonGroupRow {
+                text: I18n.tr("Full view", "now playing placement option")
+                keywords: "bento material style"
+                model: root.styleNames
+                currentIndex: UiConfig.playerStyles.indexOf(UiConfig.nowPlaying.style)
+                onSelectionChanged: (index, selected) => {
+                    if (selected)
+                        UiConfig.setNowPlaying({
+                            "style": UiConfig.playerStyles[index]
+                        });
+                }
+            }
+        }
+
         Grid {
             id: cards
             width: parent.width
@@ -153,7 +201,7 @@ Item {
             spacing: Theme.spacingL
 
             Repeater {
-                model: root.surfaces
+                model: root.cards
 
                 SurfaceCard {
                     required property string modelData

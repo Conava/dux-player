@@ -36,6 +36,12 @@ Singleton {
     readonly property real barInfoWidth: 280
     // the bar's info block and seekbar shrink to these before buttons move into the overflow menu
     readonly property real barInfoMinWidth: 160
+    readonly property var barInfoWidths: ({
+            "s": 200,
+            "m": barInfoWidth,
+            "l": 360,
+            "xl": 440
+        })
     readonly property real barSeekMinWidth: 120
     // the shell's media chrome metrics (Bento and M3E players)
     readonly property real mediaCardMargin: Theme.spacingL

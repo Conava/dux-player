@@ -19,9 +19,9 @@ Rectangle {
     readonly property bool beside: m3e && wide && pane !== ""
     readonly property bool inPlace: pane !== "" && !beside
     // the attached look: Material's player and pane share one card; Bento has no card to join, so the pane loses its own
-    readonly property bool joined: beside && UiConfig.attachedLook
+    readonly property bool joined: beside && UiConfig.attachedPanes
     // Material's pane in place sits inside the player's card, so it takes the art's corners and no fill of its own
-    readonly property bool bare: m3e && inPlace || joined || !m3e && UiConfig.attachedLook
+    readonly property bool bare: m3e && inPlace || joined || !m3e && UiConfig.attachedPanes
     readonly property color paneColor: bare ? "transparent" : ArtColors.cardColor
     readonly property real paneRadius: m3e && inPlace ? PlayerMetrics.mediaInnerRadius : bare ? 0 : Theme.cornerRadiusXL
 

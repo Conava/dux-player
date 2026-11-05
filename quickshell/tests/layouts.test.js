@@ -124,7 +124,10 @@ const edited = {
         "start": "side",
         "style": "m3e",
         "openPane": "queue",
-        "playerLook": "card"
+        "barStyle": "m3e",
+        "sideStyle": "m3e",
+        "playerLook": "card",
+        "paneLook": "player"
     });
     for (const zone of ["top", "seek", "controls", "bottom"])
         assert.deepStrictEqual(zoneTypes(eff, "fullBento", zone), edited.nowPlaying.zones[zone], "fullBento " + zone);
@@ -188,7 +191,10 @@ const migrations = [
                 "start": "bar",
                 "style": "bento",
                 "openPane": "last",
-                "playerLook": "card"
+                "barStyle": "bento",
+                "sideStyle": "bento",
+                "playerLook": "card",
+        "paneLook": "player"
             });
             assert.deepStrictEqual(eff.sidePanes, ["cover", "lyrics", "queue"]);
         }],
@@ -290,7 +296,10 @@ const migrations = [
                 "start": "bar",
                 "style": "m3e",
                 "openPane": "lyrics",
-                "playerLook": "card"
+                "barStyle": "m3e",
+                "sideStyle": "m3e",
+                "playerLook": "card",
+        "paneLook": "player"
             });
         }],
     ["the oldest bar without its seekbar", {
@@ -852,6 +861,22 @@ for (const [name, run, expected] of protoCases)
     const eff = L.effective({});
     assert.deepStrictEqual(zoneTypes(eff, "bar", "controls"), ["shuffle", "previous", "playPause", "next", "repeat"]);
     assert.deepStrictEqual(zoneTypes(eff, "side", "controls"), ["shuffle", "previous", "playPause", "next", "repeat"]);
+}
+
+// Styles per surface: each follows the full view until set, and stays when that changes
+{
+    const eff = L.effective(L.setNowPlaying({}, {
+        "style": "m3e"
+    })).nowPlaying;
+    assert.strictEqual(eff.barStyle, "m3e");
+    assert.strictEqual(eff.sideStyle, "m3e");
+    const mixed = L.effective(L.setNowPlaying(L.setNowPlaying({}, {
+        "barStyle": "bento",
+        "sideStyle": "m3e"
+    }), {
+        "style": "bento"
+    })).nowPlaying;
+    assert.deepStrictEqual([mixed.barStyle, mixed.sideStyle, mixed.style], ["bento", "m3e", "bento"]);
 }
 
 // Player look: only known values are stored

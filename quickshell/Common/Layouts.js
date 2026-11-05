@@ -18,6 +18,7 @@ const starts = ["bar", "side", "full"];
 const styles = ["bento", "m3e"];
 const openPanes = ["last", "lyrics", "queue", "cover"];
 const playerLooks = ["card", "attached"];
+const paneLooks = ["player", "card", "attached"];
 const paneTypes = ["cover", "lyrics", "queue"];
 
 const groups = dict({
@@ -401,7 +402,19 @@ function optionSchema(id, type) {
             },
             "favorite": titleFavorite
         };
-    if (type === "title" && (id === "bar" || id === "fullM3e"))
+    if (type === "title" && id === "bar")
+        return {
+            "width": {
+                "values": ["s", "m", "l", "xl"],
+                "default": "m"
+            },
+            "adaptive": {
+                "values": [true, false],
+                "default": false
+            },
+            "favorite": titleFavorite
+        };
+    if (type === "title" && id === "fullM3e")
         return {
             "favorite": titleFavorite
         };
@@ -478,11 +491,11 @@ function defaultSurface(id) {
             "zones": {
                 "cover": [cover()],
                 "header": insts(["playingFrom"]),
-                "title": insts([heartTitle(), "artists", "album"]),
+                "title": insts(["title", "artists", "album"]),
                 "top": [],
                 "seek": insts(seek),
                 "controls": insts(transport),
-                "bottom": insts(["lyrics", "queue", groupGap(), "volume", "device", groupGap()]).concat([alwaysShown("addToPlaylist")], ["sleep", "speed", "goToAlbum", "goToArtist", "details"].map(type => inst(type, {
+                "bottom": insts(["lyrics", "queue", groupGap(), "volume", "device", groupGap()]).concat([alwaysShown("favorite"), alwaysShown("addToPlaylist")], ["sleep", "speed", "goToAlbum", "goToArtist", "details"].map(type => inst(type, {
                             "placement": "overflow"
                         })))
             }
@@ -493,10 +506,10 @@ function defaultSurface(id) {
                 "header": insts(["playingFrom"]),
                 "buttons": insts(["volume", "lyrics", "queue", "device"]),
                 "cover": [cover()],
-                "title": insts([heartTitle(), "artists", "album"]),
+                "title": insts(["title", "artists", "album"]),
                 "seek": insts(["seekbar", "elapsed", "duration"]),
-                "controls": insts(["playPause", "previous", "next"]),
-                "end": insts([alwaysShown("addToPlaylist"), "sleep", "shuffle", "repeat"])
+                "controls": insts(["previous", "playPause", "next"]),
+                "end": insts([alwaysShown("favorite"), alwaysShown("addToPlaylist"), "sleep", "shuffle", "repeat"])
             }
         };
     case "home":
@@ -619,11 +632,15 @@ function cleanItem(type, stored) {
 
 function cleanNowPlaying(stored) {
     const given = isObject(stored) ? stored : {};
+    const style = styles.indexOf(given.style) >= 0 ? given.style : "bento";
     return {
         "start": starts.indexOf(given.start) >= 0 ? given.start : "bar",
-        "style": styles.indexOf(given.style) >= 0 ? given.style : "bento",
+        "style": style,
+        "barStyle": styles.indexOf(given.barStyle) >= 0 ? given.barStyle : style,
+        "sideStyle": styles.indexOf(given.sideStyle) >= 0 ? given.sideStyle : style,
         "openPane": openPanes.indexOf(given.openPane) >= 0 ? given.openPane : "last",
-        "playerLook": playerLooks.indexOf(given.playerLook) >= 0 ? given.playerLook : "card"
+        "playerLook": playerLooks.indexOf(given.playerLook) >= 0 ? given.playerLook : "card",
+        "paneLook": paneLooks.indexOf(given.paneLook) >= 0 ? given.paneLook : "player"
     };
 }
 
@@ -1070,8 +1087,11 @@ function setNowPlaying(stored, patch) {
     const allowed = {
         "start": starts,
         "style": styles,
+        "barStyle": styles,
+        "sideStyle": styles,
         "openPane": openPanes,
-        "playerLook": playerLooks
+        "playerLook": playerLooks,
+        "paneLook": paneLooks
     };
     for (const key of Object.keys(allowed)) {
         if (allowed[key].indexOf(given[key]) >= 0)

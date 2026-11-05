@@ -15,7 +15,7 @@ Item {
     readonly property var track: PlayerService.current
     readonly property var cover: zones.cover.find(i => i.type === "cover" && !i.hidden) ?? null
     readonly property var views: UiConfig.sidePanes
-    readonly property bool m3e: UiConfig.nowPlaying.style === "m3e"
+    readonly property bool m3e: UiConfig.styleOf("side") === "m3e"
     readonly property var labels: ({
             "cover": {
                 "text": I18n.tr("Playing", "side panel view: cover art"),
@@ -131,7 +131,7 @@ Item {
     Rectangle {
         anchors.fill: controls
         anchors.margins: -PlayerMetrics.mediaCardMargin
-        visible: root.m3e && !UiConfig.attachedLook
+        visible: root.m3e && !UiConfig.attachedPanes
         radius: Theme.cornerRadiusXL
         color: ArtColors.chipColor
 

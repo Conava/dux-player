@@ -24,7 +24,7 @@ DArtShape {
     property real turn: 0
 
     morph: cookie ? morphMotion.value : 1
-    spin: rotate ? turn : 0
+    spin: cookie && rotate ? turn : 0
     onPlayingChanged: still ? morphMotion.snapTo(playing ? 1 : 0) : morphMotion.retarget(playing ? 1 : 0)
 
     DC.SpringMotion {

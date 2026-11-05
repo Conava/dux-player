@@ -82,8 +82,13 @@ RowLayout {
             run.forEach((key, i) => out[key] = run.length === 1 ? "only" : i === 0 ? "start" : i === run.length - 1 ? "end" : "middle");
         return out;
     }
+    // the bar's track info block: the title's size option, or with adaptive width as much of it as the text needs
+    readonly property var titleOptions: instances.find(i => i.type === "title")?.options ?? {}
+    readonly property real infoMaxWidth: PlayerMetrics.barInfoWidths[titleOptions.width ?? "m"]
+    readonly property real infoTextWidth: Math.max(titleSize.implicitWidth + (titleOptions.favorite ? Theme.buttonHeightXS + Theme.spacingXS : 0), artistSize.implicitWidth)
+    readonly property real infoWidth: titleOptions.adaptive === true ? Math.max(PlayerMetrics.barInfoMinWidth, Math.min(infoMaxWidth, infoTextWidth)) : infoMaxWidth
     // how much narrower the bar's track info blocks get before anything moves into the menu
-    readonly property real shrinkable: textLook === "bar" && !column ? segments.filter(s => s.stack).length * (PlayerMetrics.barInfoWidth - PlayerMetrics.barInfoMinWidth) : 0
+    readonly property real shrinkable: textLook === "bar" && !column ? segments.filter(s => s.stack).length * (infoWidth - PlayerMetrics.barInfoMinWidth) : 0
 
     // a cast target only while casting, an album only when the track has one
     function shows(type) {
@@ -108,7 +113,7 @@ RowLayout {
         const button = size === "m" ? Theme.buttonHeightM : Theme.buttonHeightS;
         switch (inst.type) {
         case "volume":
-            return UiConfig.nowPlaying.style === "m3e" ? button : Theme.buttonHeightXS + (Theme.outlineWidthFocused + Theme.dividerWidth + Theme.spacingXXS) * 2;
+            return UiConfig.styleOf(context) === "m3e" ? button : Theme.buttonHeightXS + (Theme.outlineWidthFocused + Theme.dividerWidth + Theme.spacingXXS) * 2;
         case "rating":
             return Theme.buttonHeightXXS * 5;
         case "cover":
@@ -235,11 +240,11 @@ RowLayout {
         property var items: []
         readonly property bool bar: root.textLook === "bar" && !root.column
         readonly property bool shown: items.some(i => root.shows(i.type))
-        readonly property real preferredWidth: bar ? PlayerMetrics.barInfoWidth : -1
+        readonly property real preferredWidth: bar ? root.infoWidth : -1
         readonly property real minimumWidth: bar ? PlayerMetrics.barInfoMinWidth : -1
         readonly property real padding: root.opensView ? Theme.spacingS : 0
 
-        implicitWidth: bar ? PlayerMetrics.barInfoWidth : lines.implicitWidth
+        implicitWidth: bar ? root.infoWidth : lines.implicitWidth
         implicitHeight: lines.implicitHeight + padding * 2
 
         StyledButton {
@@ -276,6 +281,25 @@ RowLayout {
                 }
             }
         }
+    }
+
+    StyledText {
+        id: titleSize
+        visible: false
+        text: root.titleOptions.adaptive === true ? PlayerService.current?.title ?? "" : ""
+        font.pixelSize: Theme.fontSizeMedium
+        font.weight: Theme.fontWeightMedium
+        wrapMode: Text.NoWrap
+        elide: Text.ElideNone
+    }
+
+    StyledText {
+        id: artistSize
+        visible: false
+        text: root.titleOptions.adaptive === true ? PlayerService.current?.artist ?? "" : ""
+        font.pixelSize: Theme.fontSizeSmall
+        wrapMode: Text.NoWrap
+        elide: Text.ElideNone
     }
 
     Repeater {

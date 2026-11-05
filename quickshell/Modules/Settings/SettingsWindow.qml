@@ -577,6 +577,8 @@ DFloatingWindow {
 
                 Item {
                     id: pane
+                    // the fade of a scrolled page matches this, not the window behind it
+                    readonly property color surfaceColor: SettingsMetrics.paneColor
                     anchors.left: window.isCompactMode ? parent.left : sidebar.right
                     anchors.right: parent.right
                     anchors.top: parent.top

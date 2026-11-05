@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Common
 import qs.Widgets
+import qs.DCommon.Widgets
 import qs.DCommon.Common as DC
 
 // A track title in the Bento title face, shrunk to fit down to XX-large, then scrolling (the shell's media title).
@@ -13,11 +14,11 @@ DScrollingText {
     property real minimumPixelSize: Theme.fontSizeXXLarge
 
     // at the full size: the shrunken width depends on the room given, so it can't decide that room
-    readonly property real fullTextWidth: fullSize.advanceWidth
+    readonly property real fullTextWidth: fullSize.implicitWidth
     readonly property real fittedPixelSize: {
-        if (fullSize.advanceWidth <= width)
+        if (fullTextWidth <= width)
             return fullPixelSize;
-        return Math.max(minimumPixelSize, Math.floor(fullPixelSize * width / fullSize.advanceWidth));
+        return Math.max(minimumPixelSize, Math.floor(fullPixelSize * width / fullTextWidth));
     }
 
     fontToken: expressive ? DC.Fonts.sans : DC.Fonts.notable
@@ -32,15 +33,17 @@ DScrollingText {
     pxPerMs: PlayerMetrics.mediaTextScrollSpeed / 1000
     stepInterval: PlayerMetrics.mediaTextScrollStep
 
-    TextMetrics {
+    // not TextMetrics: its width can fall a pixel short of the drawn text, which then scrolls
+    StyledText {
         id: fullSize
+        visible: false
         text: root.text
-        font: Qt.font({
-            "family": root.font.family,
-            "weight": root.font.weight,
-            "variableAxes": root.font.variableAxes,
-            "pixelSize": root.fullPixelSize
-        })
+        fontToken: root.fontToken
+        font.pixelSize: root.fullPixelSize
+        font.weight: root.font.weight
+        font.variableAxes: root.font.variableAxes
+        wrapMode: Text.NoWrap
+        elide: Text.ElideNone
     }
 
     FontMetrics {

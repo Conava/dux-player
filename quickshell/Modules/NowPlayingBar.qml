@@ -18,7 +18,7 @@ Rectangle {
     property var zones: UiConfig.surface("bar").zones
     readonly property var artScheme: ArtColors.nowPlaying
     readonly property bool attached: UiConfig.attachedLook
-    readonly property string transportLook: UiConfig.nowPlaying.style === "m3e" ? "m3e" : "transport"
+    readonly property string transportLook: UiConfig.styleOf("bar") === "m3e" ? "m3e" : "transport"
     readonly property bool hasSeekbar: zones.seek.some(i => i.type === "seekbar" && !i.hidden)
     // the width the right zone may take: the rest once the other zones are at their smallest
     readonly property real rightRoom: width - Theme.spacingM * 2 - Theme.spacingL * 2 - (leftZone.implicitWidth - leftZone.shrinkable) - Math.max(controlsZone.implicitWidth, hasSeekbar ? PlayerMetrics.barSeekMinWidth : 0)

@@ -336,8 +336,8 @@ DFloatingWindow {
 
                         width: fullWidth * reveal
                         visible: reveal > 0
-                        radius: UiConfig.attachedLook ? 0 : PlayerMetrics.paneRadius
-                        color: UiConfig.attachedLook && !overlay ? "transparent" : SettingsMetrics.paneColor
+                        radius: UiConfig.attachedPanes ? 0 : PlayerMetrics.paneRadius
+                        color: UiConfig.attachedPanes && !overlay ? "transparent" : SettingsMetrics.paneColor
                         clip: true
 
                         onCoveringChanged: {

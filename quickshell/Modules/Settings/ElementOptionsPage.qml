@@ -42,6 +42,10 @@ SettingsPage {
             return UiConfig.elementLabel("favorite");
         case "face":
             return I18n.tr("Title style", "element option: the title's typeface");
+        case "width":
+            return I18n.tr("Width", "element option: how wide the track info is");
+        case "adaptive":
+            return I18n.tr("Adaptive width", "element option: the track info fits the title instead of keeping a fixed width");
         }
         return key;
     }

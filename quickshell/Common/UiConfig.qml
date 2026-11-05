@@ -674,6 +674,13 @@ Singleton {
     readonly property var sideFollowedZones: Layouts.sideFollowedZones()
 
     readonly property bool attachedLook: nowPlaying.playerLook === "attached"
+    // lyrics and queue, in the side panel and beside the full view
+    readonly property bool attachedPanes: nowPlaying.paneLook === "player" ? attachedLook : nowPlaying.paneLook === "attached"
+
+    // context: "bar", "side" or the full "view"
+    function styleOf(context) {
+        return context === "bar" ? nowPlaying.barStyle : context === "side" ? nowPlaying.sideStyle : nowPlaying.style;
+    }
 
     function setNowPlaying(patch) {
         SettingsData.layout = Layouts.setNowPlaying(SettingsData.layout, patch);
@@ -833,6 +840,8 @@ Singleton {
             return I18n.tr("Expressive", "title style option: the rounded condensed sans in the accent colour");
         case "display":
             return I18n.tr("Display", "title style option: the display caps face");
+        case "xl":
+            return I18n.tr("Largest", "size option");
         case "s":
             return I18n.tr("Small", "size option");
         case "m":
