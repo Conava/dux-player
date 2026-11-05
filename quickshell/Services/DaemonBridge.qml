@@ -47,8 +47,10 @@ Singleton {
         onConnectionStateChanged: {
             root.connected = linkUp;
             subscribeSocket.connected = linkUp;
-            if (!linkUp)
+            if (!linkUp) {
+                root.log.warn("lost the connection to the daemon");
                 root._failPendingRequests("disconnected from the dplayer daemon", "daemonDisconnected");
+            }
         }
 
         parser: SplitParser {
@@ -59,7 +61,7 @@ Singleton {
                 try {
                     response = JSON.parse(line);
                 } catch (e) {
-                    root.log.warn("bad response", line.substring(0, 200));
+                    root.log.warn("bad response of", line.length, "characters");
                     return;
                 }
                 root._handleResponse(response);
@@ -202,6 +204,8 @@ Singleton {
     // callback(result) gets the result, or {error, code} with a plain-English message
     function call(method, params, callback) {
         const done = response => {
+            if (response.error && response.code !== "daemonOffline")
+                root.log.warn(method, response.error);
             if (!callback)
                 return;
             callback(response.error ? {
@@ -237,7 +241,6 @@ Singleton {
     function request(method, params, failText, then, failed) {
         call(method, params, result => {
             if (result.error) {
-                root.log.warn(method, result.error);
                 if (failText)
                     root.notice(failText);
                 failed?.(result.error);

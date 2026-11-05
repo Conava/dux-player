@@ -29,7 +29,6 @@ SettingsPage {
     function exportLayout(path) {
         exportFile.path = path;
         exportFile.setText(UiConfig.exportLayout());
-        setStatus(I18n.tr("Exported to %1", "custom theme export status").arg(path), false);
     }
 
     SettingsCard {
@@ -325,6 +324,11 @@ SettingsPage {
         id: exportFile
         printErrors: false
         atomicWrites: true
+        onSaved: root.setStatus(I18n.tr("Exported to %1", "custom theme export status").arg(path), false)
+        onSaveFailed: error => {
+            console.warn("layout export failed:", path, FileViewError.toString(error));
+            root.setStatus(I18n.tr("Couldn't export to %1", "export failed status").arg(path), true);
+        }
     }
 
     FileBrowserModal {

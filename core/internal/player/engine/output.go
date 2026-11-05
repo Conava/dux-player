@@ -51,8 +51,10 @@ type Null struct {
 	streams int
 	// OpenErr, when set, fails every Open.
 	OpenErr error
-	lost    chan struct{}
-	changed chan struct{}
+	// writeErr, once set, fails every Write.
+	writeErr error
+	lost     chan struct{}
+	changed  chan struct{}
 }
 
 // NewNull returns a Null output; keep records every frame written.
@@ -65,6 +67,13 @@ func (n *Null) Frames() ([]float32, int) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	return append([]float32(nil), n.frames...), n.streams
+}
+
+// FailWrites makes every Write fail, as an output removed mid-track does.
+func (n *Null) FailWrites(err error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.writeErr = err
 }
 
 // Lose ends the output as a server that went away would.
@@ -121,6 +130,12 @@ func (s *nullStream) advance() {
 const nullBuffer = 0.1
 
 func (s *nullStream) Write(ctx context.Context, frames []float32) (int, error) {
+	s.out.mu.Lock()
+	err := s.out.writeErr
+	s.out.mu.Unlock()
+	if err != nil {
+		return 0, err
+	}
 	for {
 		s.mu.Lock()
 		s.advance()

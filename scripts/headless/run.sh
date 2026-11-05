@@ -55,6 +55,28 @@ cat >>"$W/tree/shell.qml" <<'Q'
                 playerLook: look
             });
         }
+        function setStyle(key: string, style: string): void {
+            const patch = {};
+            patch[key] = style;
+            UiConfig.setNowPlaying(patch);
+        }
+        function barTitle(width: string, adaptive: bool): void {
+            const surface = JSON.parse(JSON.stringify(UiConfig.surface("bar")));
+            const title = surface.zones.left.find(i => i.type === "title");
+            title.options.width = width;
+            title.options.adaptive = adaptive;
+            UiConfig.setSurface("bar", surface);
+        }
+        function paneLook(look: string): void {
+            UiConfig.setNowPlaying({
+                paneLook: look
+            });
+        }
+        function coverShape(shape: string): void {
+            const surface = JSON.parse(JSON.stringify(UiConfig.surface("fullBento")));
+            surface.zones.cover[0].options.shape = shape;
+            UiConfig.setSurface("fullBento", surface);
+        }
         function artColors(on: bool): void {
             SettingsData.artColors = on;
         }

@@ -1,11 +1,17 @@
 package ipc
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/duxlabs-dev/dux-go/log"
+
+	"github.com/Conava/dux-player/core/internal/logtext"
 )
 
 const (
@@ -70,11 +76,13 @@ func (q *queuedConn) Close() error {
 // only logs a reply it can't encode, which would leave the client waiting.
 type replyConn struct {
 	net.Conn
-	wrote atomic.Bool
+	method string
+	wrote  atomic.Bool
 }
 
 func (r *replyConn) Write(b []byte) (int, error) {
 	r.wrote.Store(true)
+	r.logError(b)
 	return r.Conn.Write(b)
 }
 
@@ -91,5 +99,19 @@ func (q *queuedConn) run() {
 				return
 			}
 		}
+	}
+}
+
+// logError names the method of an error reply. A reply's error sits right
+// after its id, which spares parsing the large results.
+func (r *replyConn) logError(b []byte) {
+	if !bytes.Contains(b[:min(len(b), 40)], []byte(`"error"`)) {
+		return
+	}
+	var reply struct {
+		Error string `json:"error"`
+	}
+	if json.Unmarshal(b, &reply) == nil && reply.Error != "" {
+		log.Warnf("ipc %s: %s", r.method, logtext.Clean(reply.Error))
 	}
 }

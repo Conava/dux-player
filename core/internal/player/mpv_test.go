@@ -10,6 +10,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Conava/dux-player/core/internal/logtext"
 )
 
 func TestParseMessage(t *testing.T) {
@@ -145,7 +147,7 @@ func TestLogTextHidesStreamTokens(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, logText(tt.in))
+			assert.Equal(t, tt.want, logtext.Clean(tt.in))
 		})
 	}
 }

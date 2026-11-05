@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/duxlabs-dev/dux-go/log"
+
 	"github.com/Conava/dux-player/core/internal/source"
 )
 
@@ -121,5 +123,6 @@ func (p *Player) reportDropped(n int) {
 	if n == 0 {
 		return
 	}
+	log.Warnf("left out %d tracks that couldn't be found", n)
 	p.cfg.Publish(TopicError, map[string]any{"message": fmt.Sprintf("left out %d tracks that couldn't be found", n), "dropped": n})
 }

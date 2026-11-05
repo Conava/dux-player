@@ -95,7 +95,7 @@ var (
 type Player interface {
 	AudioDevices(ctx context.Context) (json.RawMessage, error)
 	SetAudioOutput(ctx context.Context, device string, env []string) error
-	Pause(ctx context.Context) error
+	PauseDisconnected(ctx context.Context) error
 	// Builtin is true on the built-in player, which talks to the Pulse
 	// protocol: that can't reach the Internal sinks of the equalizer and of
 	// several outputs, and a stream aimed at one never opens.
@@ -191,6 +191,7 @@ type Service struct {
 	testDone  chan struct{}
 	ended     chan struct{}
 	eqCh      chan EQ
+	defaults  defaultSink
 	backendCh chan struct{}
 	changed   chan struct{}
 	extra     Extra
@@ -246,6 +247,9 @@ func New(p Player, configDir, runDir string, eq EQ, extra Extra, publish func(St
 func (s *Service) Run(ctx context.Context) {
 	defer s.multi.stop()
 	defer s.stopEQ()
+	if s.canMulti {
+		go s.defaults.watch(ctx)
+	}
 	if raw, err := s.player.AudioDevices(ctx); err == nil {
 		s.onList(raw)
 	}
@@ -267,7 +271,7 @@ func (s *Service) Run(ctx context.Context) {
 			op()
 		case raw := <-s.listCh:
 			if s.onList(raw) {
-				if err := s.player.Pause(ctx); err != nil {
+				if err := s.player.PauseDisconnected(ctx); err != nil {
 					log.Warnf("devices: pause on disconnect: %v", err)
 				}
 			}
@@ -649,6 +653,14 @@ func (s *Service) onList(raw json.RawMessage) bool {
 	}
 	for _, id := range s.selected {
 		if was[id] && !now[id] && s.prefs.pauses(id, s.selected) {
+			return true
+		}
+	}
+	if !s.prefs.PauseOnDisconnect || !slices.Equal(s.selected, []string{Default}) {
+		return false
+	}
+	for id := range was {
+		if !now[id] && s.defaults.lost(id) {
 			return true
 		}
 	}

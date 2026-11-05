@@ -1,4 +1,5 @@
 # Helpers for scenarios. The window sits on a 2560x1440 output.
+# DPLAYER_BACKEND=builtin make headless also starts a private sound server with the sinks headless_a, _b and _c.
 #   shot NAME        screenshot to out/NAME.png
 #   go PAGE          show a page: home, libraries, history, search, ...
 #   expand true|false  open or close the full now playing view

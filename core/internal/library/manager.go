@@ -623,6 +623,7 @@ func (m *Manager) Skip(ref source.Ref) bool {
 		if lib, err := m.library(context.Background(), ref.Library); err == nil {
 			name = lib.Name
 		}
+		log.Warnf("skipping tracks from %s: %s", name, reason.Message)
 		m.emit(player.TopicError, map[string]string{"message": fmt.Sprintf("skipping tracks from %s: %s", name, reason.Message),
 			"library": ref.Library, "reason": reason.Message, "code": reason.Code})
 	}

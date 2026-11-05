@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,6 +22,7 @@ import (
 
 	"github.com/duxlabs-dev/dux-go/log"
 
+	"github.com/Conava/dux-player/core/internal/logtext"
 	"github.com/Conava/dux-player/core/internal/player/engine"
 )
 
@@ -236,7 +236,7 @@ var builtinOutput = func(ctx context.Context) (engine.Output, error) { return en
 func startBuiltin(ctx context.Context, env []string) (*process, error) {
 	out, err := builtinOutput(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("playback needs mpv or a sound server: %w", err)
+		return nil, fmt.Errorf("%w: %w", errNoSound, err)
 	}
 	a, b := net.Pipe()
 	p := &process{exited: make(chan struct{})}
@@ -386,26 +386,6 @@ func (p *process) kill() {
 	_ = os.Remove(p.socket)
 }
 
-const maxLogText = 500
-
-var urlPattern = regexp.MustCompile(`[a-zA-Z][a-zA-Z0-9+.-]*://[^\s"'<>]+`)
-
-// logText makes an mpv log line safe to log: stream URLs carry server tokens, so each URL keeps only its
-// scheme and host.
-func logText(s string) string {
-	s = urlPattern.ReplaceAllStringFunc(strings.TrimSpace(s), func(raw string) string {
-		u, err := url.Parse(raw)
-		if err != nil || u.Host == "" {
-			return "<url>"
-		}
-		return u.Scheme + "://" + u.Hostname() + "/…"
-	})
-	if len(s) > maxLogText {
-		s = strings.ToValidUTF8(s[:maxLogText], "") + "…"
-	}
-	return s
-}
-
 // MinMPV is the oldest mpv the player is tested with.
 var MinMPV = [2]int{0, 38}
 
@@ -424,7 +404,7 @@ func CheckMPV(ctx context.Context, binary string) (string, error) {
 	line, _, _ := strings.Cut(out.String(), "\n")
 	m := mpvVersionPattern.FindStringSubmatch(line)
 	if m == nil {
-		return "", fmt.Errorf("%s --version printed %q, not an mpv version", binary, logText(line))
+		return "", fmt.Errorf("%s --version printed %q, not an mpv version", binary, logtext.Clean(line))
 	}
 	major, _ := strconv.Atoi(m[1])
 	minor, _ := strconv.Atoi(m[2])

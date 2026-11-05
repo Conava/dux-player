@@ -30,8 +30,10 @@ type pump struct {
 	// segAt is the stream's written count where cur's segFrom frame went
 	// in: the base for the position heard.
 	segAt, segFrom int64
-	lastTick       time.Time
-	buf            []float32
+	// lastHeard is the frame last reported as heard.
+	lastHeard int64
+	lastTick  time.Time
+	buf       []float32
 }
 
 func (e *engine) pump() {
@@ -91,12 +93,20 @@ func (p *pump) step() {
 	if len(p.pending) == 0 && !p.decode() {
 		return
 	}
-	n, err := p.st.Write(wctx, p.pending)
+	// A stream whose sink is gone stays open and just stops taking audio.
+	sctx, cancel := context.WithTimeout(wctx, stallTimeout)
+	n, err := p.st.Write(sctx, p.pending)
+	cancel()
 	p.pending = p.pending[n:]
 	if err != nil && wctx.Err() == nil {
-		log.Warnf("built-in player: %v", err)
+		if errors.Is(err, context.DeadlineExceeded) {
+			err = errStalled
+		}
+		sink := p.stSink
 		p.closeStream()
-		e.pauseFor()
+		// Without a stream the position falls back to segFrom.
+		p.segFrom = p.lastHeard
+		p.outputFailed(sink, err)
 	}
 	p.report(false)
 }
@@ -179,12 +189,18 @@ func (e *engine) sink() string {
 	return sinkName(e.device)
 }
 
-// sinkLabel names a sink in an error.
-func sinkLabel(sink string) string {
+// stallTimeout is how long a playing output may refuse audio.
+const stallTimeout = 5 * time.Second
+
+var errStalled = errors.New("the output stopped taking audio")
+
+// outputFailed pauses and says why.
+func (p *pump) outputFailed(sink string, err error) {
 	if sink == "" {
-		return "default output"
+		sink = "default output"
 	}
-	return sink
+	p.e.event(OutputError, map[string]any{"file_error": fmt.Sprintf("%s: %v", sink, err)})
+	p.e.pauseFor()
 }
 
 func (p *pump) open() bool {
@@ -192,8 +208,7 @@ func (p *pump) open() bool {
 	sink := p.e.sink()
 	st, err := p.e.out.Open(f, sink, p.e.props, p.e.wait, false)
 	if err != nil {
-		p.e.event(OutputError, map[string]any{"file_error": fmt.Sprintf("%s: %v", sinkLabel(sink), err)})
-		p.e.pauseFor()
+		p.outputFailed(sink, err)
 		return false
 	}
 	p.st, p.stFmt, p.stSink, p.corked = st, f, sink, false
@@ -400,7 +415,8 @@ func (p *pump) report(now bool) {
 		return
 	}
 	p.lastTick = time.Now()
-	pos := float64(p.heard()) / float64(p.cur.dec.format().rate)
+	p.lastHeard = p.heard()
+	pos := float64(p.lastHeard) / float64(p.cur.dec.format().rate)
 	p.e.mu.Lock()
 	p.e.pos = pos
 	p.e.mu.Unlock()

@@ -37,7 +37,8 @@ func ServerURL(addr string) (*url.URL, error) {
 		return nil, ErrCredentialsInAddress
 	}
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
-		return nil, fmt.Errorf("server address %q: %w", addr, ErrBadAddress)
+		// addr stays out of this: a mistyped one can hold a password.
+		return nil, fmt.Errorf("server address: %w", ErrBadAddress)
 	}
 	return u, nil
 }

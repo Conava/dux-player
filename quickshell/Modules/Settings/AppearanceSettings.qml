@@ -57,8 +57,6 @@ SettingsPage {
         const name = SettingsData.customTheme?.name || I18n.tr("Dux Player theme", "default name of an exported theme");
         exportFile.path = path;
         exportFile.setText(CustomTheme.serialize(name, StyleSource.ownColors(StockTheme.getPreset(SettingsData.presetTheme, false), false), StyleSource.ownColors(StockTheme.getPreset(SettingsData.presetTheme, true), true)));
-        themeStatusError = false;
-        themeStatus = I18n.tr("Exported to %1", "custom theme export status").arg(path);
     }
 
     // One card per style group: the source in its header, its own controls only while it is "Custom".
@@ -502,6 +500,15 @@ SettingsPage {
         id: exportFile
         printErrors: false
         atomicWrites: true
+        onSaved: {
+            root.themeStatusError = false;
+            root.themeStatus = I18n.tr("Exported to %1", "custom theme export status").arg(path);
+        }
+        onSaveFailed: error => {
+            console.warn("theme export failed:", path, FileViewError.toString(error));
+            root.themeStatusError = true;
+            root.themeStatus = I18n.tr("Couldn't export to %1", "export failed status").arg(path);
+        }
     }
 
     FileBrowserModal {

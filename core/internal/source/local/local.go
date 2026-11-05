@@ -141,11 +141,13 @@ func (s *Source) Scan(ctx context.Context, progress func(done, total int)) (sour
 			gone = append(gone, root)
 			continue
 		}
-		found, err := Collect(ctx, root)
+		found, unreadable, err := collect(ctx, root)
 		if err != nil {
 			return stats, err
 		}
 		files = append(files, found...)
+		// Their tracks stay, as missing: they may only be out of reach for now.
+		gone = append(gone, unreadable...)
 	}
 	return s.index(ctx, files, gone, nil, progress, nil)
 }
@@ -409,19 +411,28 @@ func (s *Source) findCover(path, albumID string) string {
 // directories are skipped (tag writes stage their copies as hidden files);
 // symlinked directories are not followed.
 func Collect(ctx context.Context, root string) ([]string, error) {
+	files, _, err := collect(ctx, root)
+	return files, err
+}
+
+// collect also returns the folders it couldn't read.
+func collect(ctx context.Context, root string) (files, unreadable []string, err error) {
 	info, err := os.Stat(root)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if !info.IsDir() {
 		if !IsAudio(root) {
-			return nil, fmt.Errorf("%s is not an audio file", root)
+			return nil, nil, fmt.Errorf("%s is not an audio file", root)
 		}
-		return []string{root}, nil
+		return []string{root}, nil, nil
 	}
-	var out []string
 	err = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
+			log.Warnf("library: skipping %s: %v", p, err)
+			if d != nil && d.IsDir() {
+				unreadable = append(unreadable, p)
+			}
 			return nil
 		}
 		if ctx.Err() != nil {
@@ -434,12 +445,12 @@ func Collect(ctx context.Context, root string) ([]string, error) {
 			return nil
 		}
 		if d.Type().IsRegular() && IsAudio(p) {
-			out = append(out, p)
+			files = append(files, p)
 		}
 		return nil
 	})
-	slices.Sort(out)
-	return out, err
+	slices.Sort(files)
+	return files, unreadable, err
 }
 
 func underAny(dirs []string, path string) bool {

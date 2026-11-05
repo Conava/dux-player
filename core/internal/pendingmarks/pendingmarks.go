@@ -69,6 +69,8 @@ func Open(path string) *Queue {
 	if json.Unmarshal(data, &saved) != nil || saved.Version != 1 {
 		if err := os.Rename(path, path+".unreadable"); err != nil {
 			log.Warnf("%s is unreadable and couldn't be set aside: %v", filepath.Base(path), err)
+		} else {
+			log.Warnf("%s is unreadable; set aside as %s.unreadable", filepath.Base(path), filepath.Base(path))
 		}
 		return q
 	}

@@ -87,7 +87,7 @@ func (f *fakePlayer) SetAudioOutput(_ context.Context, device string, env []stri
 
 func (f *fakePlayer) Builtin() bool { return f.builtin }
 
-func (f *fakePlayer) Pause(context.Context) error {
+func (f *fakePlayer) PauseDisconnected(context.Context) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.pauses++
@@ -154,6 +154,43 @@ func TestBuiltinPlayerSkipsInternalSinks(t *testing.T) {
 	assert.Equal(t, "auto", p.last())
 	require.Eventually(t, func() bool { return s.State().Equalizer == "needsMpv" }, time.Second, 5*time.Millisecond)
 	assert.ErrorIs(t, s.Select(ctx, []string{"speaker", "headset"}), errNeedsMPV)
+}
+
+func TestDefaultOutputGoingAwayPauses(t *testing.T) {
+	const both = `[{"name":"pipewire/speaker","description":"Speaker"},{"name":"pipewire/headset","description":"Headset"}]`
+	for _, tc := range []struct {
+		name    string
+		on      string
+		pause   bool
+		enabled bool
+		pauses  int
+	}{
+		{name: "the default left", on: "headset", enabled: true, pauses: 1},
+		{name: "another output left", on: "speaker", enabled: true},
+		{name: "turned off", on: "headset"},
+	} {
+		s, p := run(t, t.TempDir())
+		require.NoError(t, s.SetPauseOnDisconnect(context.Background(), tc.enabled))
+		s.defaults.set(tc.on)
+		s.OnDeviceList(json.RawMessage(both))
+		require.Eventually(t, func() bool { return len(s.State().Devices) >= 3 }, time.Second, 5*time.Millisecond, tc.name)
+		s.OnDeviceList(json.RawMessage(speakerList))
+		time.Sleep(50 * time.Millisecond)
+		p.mu.Lock()
+		assert.Equal(t, tc.pauses, p.pauses, tc.name)
+		p.mu.Unlock()
+	}
+}
+
+func TestDefaultSinkLine(t *testing.T) {
+	for line, want := range map[string]string{
+		`update: id:0 key:'default.audio.sink' value:'{"name":"alsa_output.usb"}' type:'Spa:String:JSON'`:               "alsa_output.usb",
+		`update: id:0 key:'default.configured.audio.sink' value:'{ "name": "alsa_output.usb" }' type:'Spa:String:JSON'`: "",
+		`update: id:0 key:'default.audio.source' value:'{"name":"alsa_input"}' type:'Spa:String:JSON'`:                  "",
+		`Found "default" metadata 39`: "",
+	} {
+		assert.Equal(t, want, defaultSinkIn(line), line)
+	}
 }
 
 func TestMissingChoiceStaysListed(t *testing.T) {

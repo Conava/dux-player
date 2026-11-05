@@ -99,7 +99,7 @@ func (l *Launcher) Start(dir string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	cmd := exec.Command("qs", "-p", dir)
+	cmd := exec.Command("qs", "--log-times", "--no-color", "--log-rules", "qt.qpa.wayland.textinput=false", "-p", dir)
 	cmd.Env = uiEnv(os.Environ(), l.cfg.Socket, embedded)
 	cmd.Stdout, cmd.Stderr = logFile, logFile
 	cmd.WaitDelay = waitDelay

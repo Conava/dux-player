@@ -15,8 +15,8 @@ import (
 // decode.
 const NeedsMPV = "format requires mpv"
 
-// OutputError is the event sent when the output won't open; file_error says
-// why. It stays paused: the next track would fail the same way.
+// OutputError is the event sent when the output won't open or fails; file_error
+// says why. It stays paused: the next track would fail the same way.
 const OutputError = "output-error"
 
 // Containers are the file types the engine decodes, as file extensions and

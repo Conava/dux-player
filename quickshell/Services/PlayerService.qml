@@ -73,12 +73,19 @@ Singleton {
 
     // Playback
 
+    function _command(method, params) {
+        DaemonBridge.request(method, params, null, null, error => {
+            if (error !== "end of queue" && error !== "nothing is playing")
+                notice(I18n.tr("Couldn't change playback", "snackbar when play, pause, skip or seek fails"));
+        });
+    }
+
     function play() {
         DaemonBridge.request(_state === "stopped" ? "player.resume" : "player.toggle", null, I18n.tr("Couldn't start playback", "toast when the daemon refuses to play"));
     }
 
     function pause() {
-        DaemonBridge.request("player.pause");
+        _command("player.pause");
     }
 
     function toggle() {
@@ -88,11 +95,11 @@ Singleton {
     }
 
     function next() {
-        DaemonBridge.request("player.next");
+        _command("player.next");
     }
 
     function previous() {
-        DaemonBridge.request("player.previous");
+        _command("player.previous");
     }
 
     function seek(seconds) {
@@ -100,7 +107,7 @@ Singleton {
             "position": Math.max(0, Math.min(duration, seconds))
         }, true);
         seeked(position);
-        DaemonBridge.request("player.seek", {
+        _command("player.seek", {
             "position": position
         });
     }
@@ -294,7 +301,7 @@ Singleton {
     }
 
     function queueJump(index) {
-        DaemonBridge.request("queue.jump", {
+        _command("queue.jump", {
             "index": index
         });
     }
@@ -574,7 +581,11 @@ Singleton {
             return;
         }
         if (e.code === "noOutput") {
-            notice(I18n.tr("Couldn't open the audio output", "snackbar when playback stops because the sound output won't open"));
+            notice(I18n.tr("Couldn't use the audio output", "snackbar when playback pauses because the sound output failed"));
+            return;
+        }
+        if (e.code === "outputGone") {
+            notice(I18n.tr("Paused because the output disconnected", "snackbar when the playing output goes away"));
             return;
         }
         if (e.code === "needsMpv") {
@@ -582,10 +593,14 @@ Singleton {
             return;
         }
         // the daemon sends one per library until that library plays again
+        if (e.code === "trackFailed") {
+            notice(I18n.tr("Skipped a track that couldn't play", "toast when one track fails to play and the queue moves on"));
+            return;
+        }
         if (e.library)
             notice(I18n.tr("Skipped tracks from %1 because it's unavailable", "snackbar when the queue passes over a library's tracks, %1 is the library").arg(CatalogService.libraryName(e.library)));
         else
-            notice(I18n.tr("Skipped a track that couldn't play", "toast when one track fails to play and the queue moves on"));
+            notice(I18n.tr("Playback stopped because of an error", "toast when the player itself fails"));
     }
 
     // "" when the daemon can't shuffle this context as a whole

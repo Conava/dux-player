@@ -73,6 +73,24 @@ func TestScanOfAnEmptiedFolderKeepsItsTracks(t *testing.T) {
 	assert.NotEmpty(t, s.Unavailable(), "a library whose only folder is gone is unavailable")
 }
 
+func TestScanKeepsTheTracksOfAnUnreadableSubfolder(t *testing.T) {
+	ctx := context.Background()
+	root := t.TempDir()
+	writeWAV(t, filepath.Join(root, "A/a.wav"), tags("A1", "Ann", "Ex", "1"))
+	writeWAV(t, filepath.Join(root, "B/b.wav"), tags("B1", "Bea", "Ex", "1"))
+	s, _ := newLibrary(t, root, nil)
+	_, err := s.Scan(ctx, nil)
+	require.NoError(t, err)
+
+	folder := filepath.Join(root, "A")
+	require.NoError(t, os.Chmod(folder, 0))
+	t.Cleanup(func() { _ = os.Chmod(folder, 0o755) })
+	stats, err := s.Scan(ctx, nil)
+	require.NoError(t, err)
+	assert.Zero(t, stats.Removed)
+	assert.Equal(t, map[string]string{"A1": library.TrackMissing.Message, "B1": ""}, state(t, s))
+}
+
 // A watched change reports which tracks it added, changed and removed.
 func TestWatcherReportsWhatChanged(t *testing.T) {
 	ctx := context.Background()

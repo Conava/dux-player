@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -54,6 +55,89 @@ func TestBuiltinReportsOutputThatWontOpen(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Fatal("no error reached the UI")
 	}
+}
+
+// An output that fails mid-track pauses and says so too.
+func TestBuiltinReportsOutputLostMidTrack(t *testing.T) {
+	out := useNull(t)
+	dir := t.TempDir()
+	res := pathResolver{"a": filepath.Join(dir, "a.wav")}
+	writeWAV(t, res["a"], 5)
+
+	errs := make(chan map[string]string, 8)
+	p := New(Config{
+		Binary:   filepath.Join(dir, "no-mpv"),
+		Socket:   filepath.Join(dir, "mpv.sock"),
+		Resolver: res,
+		Options:  DefaultOptions(),
+		Publish: func(topic string, data any) {
+			if topic == TopicError {
+				errs <- data.(map[string]string)
+			}
+		},
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go p.Run(ctx)
+
+	require.NoError(t, p.Play(ctx, []source.Track{{Library: "l", ID: "a", Title: "a"}}, 0, Origin{Kind: "adhoc"}))
+	require.Eventually(t, func() bool {
+		st, _ := p.Status(ctx)
+		return st.State == StatePlaying && st.Position > 0.2
+	}, 10*time.Second, 20*time.Millisecond)
+
+	out().FailWrites(errors.New("sink removed"))
+	select {
+	case e := <-errs:
+		assert.Equal(t, CodeNoOutput, e["code"])
+		assert.Contains(t, e["message"], "sink removed")
+	case <-time.After(10 * time.Second):
+		t.Fatal("no error reached the UI")
+	}
+	require.Eventually(t, func() bool {
+		st, _ := p.Status(ctx)
+		return st.State == StatePaused
+	}, 5*time.Second, 20*time.Millisecond, "it should pause")
+}
+
+type flakyResolver struct {
+	pathResolver
+	failed atomic.Bool
+}
+
+// Stream fails once for track b, the way a server hiccup fails a prefetch.
+func (r *flakyResolver) Stream(ctx context.Context, ref source.Ref) (Stream, error) {
+	if ref.ID == "b" && r.failed.CompareAndSwap(false, true) {
+		return Stream{}, errors.New("server hiccup")
+	}
+	return r.pathResolver.Stream(ctx, ref)
+}
+
+// A next track that never lined up doesn't end the queue at the end of the
+// current one.
+func TestQueueGoesOnWhenTheNextTrackDidNotLineUp(t *testing.T) {
+	useNull(t)
+	dir := t.TempDir()
+	res := pathResolver{"a": filepath.Join(dir, "a.wav"), "b": filepath.Join(dir, "b.wav")}
+	writeWAV(t, res["a"], 0.5)
+	writeWAV(t, res["b"], 5)
+	p := New(Config{
+		Binary:   filepath.Join(dir, "no-mpv"),
+		Socket:   filepath.Join(dir, "mpv.sock"),
+		Resolver: &flakyResolver{pathResolver: res},
+		Options:  DefaultOptions(),
+		Publish:  func(string, any) {},
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go p.Run(ctx)
+
+	queue := []source.Track{{Library: "l", ID: "a", Title: "a"}, {Library: "l", ID: "b", Title: "b"}}
+	require.NoError(t, p.Play(ctx, queue, 0, Origin{Kind: "adhoc"}))
+	require.Eventually(t, func() bool {
+		st, _ := p.Status(ctx)
+		return st.Index == 1 && st.State == StatePlaying
+	}, 10*time.Second, 20*time.Millisecond, "the queue stopped after the first track")
 }
 
 // Without mpv the built-in player plays. The status says what it can't do,

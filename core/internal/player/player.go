@@ -20,6 +20,7 @@ import (
 
 	"github.com/duxlabs-dev/dux-go/log"
 
+	"github.com/Conava/dux-player/core/internal/logtext"
 	"github.com/Conava/dux-player/core/internal/loudness"
 	"github.com/Conava/dux-player/core/internal/player/engine"
 	"github.com/Conava/dux-player/core/internal/source"
@@ -40,8 +41,13 @@ const (
 	// CodeNeedsMPV is the code of a TopicError for a track in a format only
 	// mpv plays, while the built-in player plays.
 	CodeNeedsMPV = "needsMpv"
-	// CodeNoOutput is the code of a TopicError when the output won't open.
+	// CodeNoOutput is the code of a TopicError when the output fails.
 	CodeNoOutput = "noOutput"
+	// CodeOutputGone is the code of a TopicError for a pause on disconnect.
+	CodeOutputGone = "outputGone"
+	// CodeTrackFailed is the code of a TopicError for a track that failed
+	// while the queue moves on.
+	CodeTrackFailed = "trackFailed"
 
 	maxRestarts   = 3
 	restartWindow = time.Minute
@@ -69,6 +75,9 @@ type Stream struct {
 	GainDB  *float64
 	Silence loudness.Silence
 }
+
+// errNoSound is a start that found neither mpv nor a sound server.
+var errNoSound = errors.New("playback needs mpv or a sound server")
 
 // Resolver turns a track into what mpv should open.
 type Resolver interface {
@@ -352,7 +361,9 @@ type load struct {
 	// waited is set when a caller waits on done for the result; otherwise
 	// a failure is published as a player error.
 	waited bool
-	done   chan error
+	// left is set when that caller stopped waiting.
+	left atomic.Bool
+	done chan error
 }
 
 // finish reports the result to the waiter; only the first one counts.
@@ -486,6 +497,8 @@ func (p *Player) doPlay(ctx context.Context, fn func(ctx context.Context) error)
 	case err := <-l.done:
 		return err
 	case <-ctx.Done():
+		// Nobody hears the result now, so a failure has to be published.
+		l.left.Store(true)
 		return ctx.Err()
 	case <-p.done:
 		return errors.New("player stopped")
@@ -694,13 +707,13 @@ func (p *Player) onCrash(ctx context.Context) {
 		p.procErr = fmt.Errorf("%s keeps crashing; giving up until the next command", p.backendName())
 		p.restarts = nil
 		p.active = false
-		p.publishError(p.procErr.Error())
+		p.publishFailure(p.procErr)
 		p.publishStatus()
 		return
 	}
 
 	if err := p.restart(ctx); err != nil {
-		p.publishError(err.Error())
+		p.publishFailure(err)
 		p.publishStatus()
 		return
 	}
@@ -716,7 +729,7 @@ func (p *Player) handle(m message) {
 	case "end-file":
 		p.onEndFile(m)
 	case engine.OutputError:
-		msg := "couldn't open the audio output: " + m.FileError
+		msg := "audio output failed: " + m.FileError
 		log.Warnf("playback: %s", msg)
 		p.cfg.Publish(TopicError, map[string]string{"message": msg, "code": CodeNoOutput})
 	case "file-loaded":
@@ -732,7 +745,7 @@ func (p *Player) handle(m message) {
 	case "seek":
 		p.publishStatus()
 	case "log-message":
-		log.Warnf("mpv %s: %s", m.Prefix, logText(m.Text))
+		log.Warnf("mpv %s: %s", m.Prefix, logtext.Clean(m.Text))
 	}
 }
 
@@ -829,13 +842,15 @@ func (p *Player) onEndFile(m message) {
 			// The queue passes over it even when the next track isn't lined up yet.
 			if p.nextEntry == 0 && p.queue.Advance() {
 				if err := p.loadCurrent(context.Background(), 0, false); err != nil && !errors.Is(err, errLoading) {
-					p.publishError(err.Error())
+					p.publishFailure(err)
 				}
 				return
 			}
 			break
 		}
-		p.publishError(fmt.Sprintf("couldn't play %q: %s", p.currentTitle(), m.FileError))
+		msg := fmt.Sprintf("couldn't play %q: %s", p.currentTitle(), m.FileError)
+		log.Warnf("playback: %s", msg)
+		p.cfg.Publish(TopicError, map[string]string{"message": msg, "code": CodeTrackFailed})
 		if a, ok := p.cfg.Resolver.(Availability); ok {
 			if it, ok := p.queue.Current(); ok {
 				a.Failed(it.Track.Ref(), func() { _ = p.do(p.runCtx, p.recheck) })
@@ -862,6 +877,12 @@ func (p *Player) onEndFile(m message) {
 		p.queue.Advance()
 		p.setSleep(Sleep{Mode: SleepOff})
 		p.publishQueue()
+	} else if more && p.queue.Advance() {
+		// The next track never lined up: it was still resolving, or failed.
+		if err := p.loadCurrent(context.Background(), 0, true); err != nil && !errors.Is(err, errLoading) {
+			p.publishFailure(err)
+		}
+		p.publishQueue()
 	}
 	p.publishStatus()
 }
@@ -875,7 +896,7 @@ func (p *Player) recheck(ctx context.Context) error {
 	if it, ok := p.queue.Current(); ok && p.queue.skip != nil && p.queue.skip(it) {
 		if err := p.loadCurrent(ctx, 0, false); err != nil && !errors.Is(err, errLoading) {
 			p.stop(ctx)
-			p.publishError(err.Error())
+			p.publishFailure(err)
 			p.publishStatus()
 		}
 		return nil
@@ -900,14 +921,20 @@ func (p *Player) cmd(ctx context.Context, args ...any) (json.RawMessage, error) 
 }
 
 func (p *Player) setProp(ctx context.Context, name string, value any) {
+	if err := p.trySetProp(ctx, name, value); err != nil {
+		log.Warnf("%s set %s: %v", p.backendName(), name, err)
+	}
+}
+
+// trySetProp is setProp for a command whose caller reports the failure.
+func (p *Player) trySetProp(ctx context.Context, name string, value any) error {
 	if v, ok := value.(bool); ok && name == "pause" && p.remote != nil {
 		p.remote.SetPaused(v)
 		p.paused = v
-		return
+		return nil
 	}
 	if _, err := p.cmd(ctx, "set_property", name, value); err != nil {
-		log.Warnf("mpv set %s: %v", name, err)
-		return
+		return err
 	}
 	p.mirror(ctx, name, value)
 	// The reply goes out before the property-change event; set it now so
@@ -918,6 +945,7 @@ func (p *Player) setProp(ctx context.Context, name string, value any) {
 			p.publishPosition()
 		}
 	}
+	return nil
 }
 
 // loadfile loads it on proc, or on the main mpv when proc is nil; opts are
@@ -1105,8 +1133,10 @@ func (p *Player) finishLoad(ctx context.Context, l *load, it Item, st Stream, er
 	}
 	if err != nil {
 		p.publishStatus()
-		if !l.waited {
-			p.publishError(err.Error())
+		if !l.waited || l.left.Load() {
+			p.publishFailure(err)
+		} else {
+			log.Warnf("playback: %v", err)
 		}
 	}
 	l.finish(err)
@@ -1459,8 +1489,7 @@ func (p *Player) resume(ctx context.Context) error {
 	if !p.active {
 		return p.loadCurrent(ctx, p.pos, true)
 	}
-	p.setProp(ctx, "pause", false)
-	return nil
+	return p.trySetProp(ctx, "pause", false)
 }
 
 func (p *Player) Pause(ctx context.Context) error {
@@ -1469,9 +1498,22 @@ func (p *Player) Pause(ctx context.Context) error {
 			l.play = false
 		}
 		if p.active || p.loading != nil {
-			p.setProp(ctx, "pause", true)
+			return p.trySetProp(ctx, "pause", true)
 		}
 		return nil
+	})
+}
+
+// PauseDisconnected pauses because the output went away, and says so when it
+// stopped anything.
+func (p *Player) PauseDisconnected(ctx context.Context) error {
+	return p.do(ctx, func(ctx context.Context) error {
+		if !p.active || p.paused {
+			return nil
+		}
+		log.Infof("paused: the output disconnected")
+		p.cfg.Publish(TopicError, map[string]string{"message": "paused: the output disconnected", "code": CodeOutputGone})
+		return p.trySetProp(ctx, "pause", true)
 	})
 }
 
@@ -1483,8 +1525,7 @@ func (p *Player) Toggle(ctx context.Context) error {
 		if l := p.loading; l != nil {
 			l.play = false
 		}
-		p.setProp(ctx, "pause", true)
-		return nil
+		return p.trySetProp(ctx, "pause", true)
 	})
 }
 
@@ -1906,6 +1947,17 @@ func (p *Player) publishPosition() {
 		Speed: p.speed(), At: time.Now().UnixMilli()})
 }
 
+// publishFailure is publishError that keeps the code of a failure the UI
+// words itself.
+func (p *Player) publishFailure(err error) {
+	if !errors.Is(err, errNoSound) {
+		p.publishError(err.Error())
+		return
+	}
+	log.Warnf("playback: %v", err)
+	p.cfg.Publish(TopicError, map[string]string{"message": err.Error(), "code": CodeNoOutput})
+}
+
 func (p *Player) publishError(msg string) {
 	log.Warnf("playback: %s", msg)
 	p.cfg.Publish(TopicError, map[string]string{"message": msg})
@@ -2083,8 +2135,11 @@ func (p *Player) maybeContinue() {
 // current one then starts. done, when set, gets the result.
 func (p *Player) startContinue(play bool, done chan<- error) {
 	finish := func(err error) {
-		if done != nil {
+		switch {
+		case done != nil:
 			done <- err
+		case play && err != nil && !errors.Is(err, errLoading):
+			p.publishFailure(err)
 		}
 	}
 	items := p.queue.Items()

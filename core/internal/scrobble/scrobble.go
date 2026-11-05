@@ -326,6 +326,9 @@ func (s *Service) Flush() {
 		if err != nil && !permanent(err) {
 			break
 		}
+		if err != nil {
+			log.Warnf("queued scrobble to %s refused, dropped: %v", p.Target, err)
+		}
 		// Saved as it goes, so a kill mid-flush resends at most a few.
 		if done = append(done, p); len(done) >= 20 {
 			s.queue.remove(done)

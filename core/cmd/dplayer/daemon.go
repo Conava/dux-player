@@ -48,6 +48,7 @@ player even when mpv is installed.`,
 // may prompt), so a CLI waiting for it never gives up and starts a second
 // daemon; requests wait until startup is done.
 func runDaemon() error {
+	log.GetLogger().SetReportTimestamp(true)
 	if err := requireRuntimeDir(); err != nil {
 		return err
 	}

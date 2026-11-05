@@ -204,7 +204,7 @@ func (s *Server) serveConn(ctx context.Context, c net.Conn) {
 const maxRequestLine = 1 << 20
 
 func (s *Server) dispatch(ctx context.Context, q *queuedConn, w *ConnWriter, req Request, sub *Subscriber) {
-	rc := &replyConn{Conn: q}
+	rc := &replyConn{Conn: q, method: req.Method}
 	s.handle(ctx, duxipc.NewConnWriter(rc), req, sub)
 	if !rc.wrote.Load() {
 		w.RespondError(req.ID, req.Method+": the reply couldn't be encoded")

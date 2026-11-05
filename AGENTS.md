@@ -46,10 +46,11 @@ The developer's desktop session, often Dux Shell, keeps running while you work. 
 
 For GUI work, use `make headless` before handing anything over. It runs the real daemon, window and mpv (the built-in player when mpv is missing) in a nested Hyprland that is invisible on the desktop, with private `HOME`, `XDG_*` dirs and session bus, null audio and a generated library, then writes screenshots and `ui.log` to a temp folder and prints the path. It fails on QML errors. Read the screenshots yourself: a clean run says nothing about how it looks. Unlike `QT_QPA_PLATFORM=offscreen`, it draws shaders, masks and art.
 
+- `DPLAYER_BACKEND=builtin make headless SCENARIO=scripts/headless/builtin.sh` plays through the built-in player on a private PipeWire with null sinks and no access to real devices: output switching, a removed sink, a killed server and the snackbars. Read `facts.txt` and the screenshots.
 - `make headless SCENARIO=file.sh` runs your own steps; `scripts/headless/lib.sh` lists the helpers (`go`, `expand`, `shot`, `dp`, `rpc`, `click`, `pointer`). Add a helper to the `headless` IPC target in `run.sh` when a scenario needs more than navigation.
 - Anything about pointer feel (drag, scroll, hover) goes through `pointer`/`click`. QtTest mouse events are throttled to about 60 a second and hide lag that a real pointer shows.
 - `make headless SCENARIO=scripts/headless/readme.sh` regenerates `docs/screenshots/` from a made-up library. Run it when the look changes.
-- Don't use `make run` or `make quit` for tests: `quit` can stop the developer's real player. Real audio output and PipeWire devices can't be tested here.
+- Don't use `make run` or `make quit` for tests: `quit` can stop the developer's real player. Real speakers and devices can't be tested here.
 
 ## Architecture rules
 

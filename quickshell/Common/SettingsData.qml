@@ -82,6 +82,12 @@ Singleton {
         try {
             raw = JSON.parse(settingsFile.text());
         } catch (e) {
+            // the next write replaces it with the defaults, so keep what was there
+            if (settingsFile.text() !== "") {
+                console.warn("settings file is unreadable, keeping a copy with the suffix .bad:", e);
+                brokenCopy.path = root.settingsPath + ".bad";
+                brokenCopy.setText(settingsFile.text());
+            }
             return;
         }
         if (Layouts.needsMigration(raw))
@@ -118,7 +124,13 @@ Singleton {
             _loaded = true;
             root.migrate();
         }
-        onLoadFailed: _loaded = true
+        // an existing file that won't load stays untouched: writing would replace it with the defaults
+        onLoadFailed: error => {
+            _loaded = error === FileViewError.FileNotFound;
+            if (!_loaded)
+                console.warn("settings file won't load, not saving over it:", FileViewError.toString(error));
+        }
+        onSaveFailed: error => console.warn("settings file couldn't be saved:", FileViewError.toString(error))
         onFileChanged: {
             if (_selfWrite) {
                 _selfWrite = false;
@@ -191,6 +203,11 @@ Singleton {
     }
 
     FileView {
+        id: brokenCopy
+        atomicWrites: true
+    }
+
+    FileView {
         id: stateFile
         path: root.statePath
         blockLoading: true
@@ -201,6 +218,7 @@ Singleton {
 
         onLoaded: _loaded = true
         onLoadFailed: _loaded = true
+        onSaveFailed: error => console.warn("window state couldn't be saved:", FileViewError.toString(error))
         onAdapterUpdated: {
             if (_loaded)
                 stateDebounce.restart();
