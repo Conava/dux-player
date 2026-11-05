@@ -453,39 +453,43 @@ Item {
         Repeater {
             model: root.cachePage === "" ? root.servers : []
 
-            SettingsGroup {
+            Column {
                 id: libraryGroup
                 required property var modelData
                 readonly property var usage: (SettingsService.cache.libraries ?? []).find(c => c.library === modelData.id) ?? {}
                 readonly property var rules: SettingsService.cacheRules(modelData.id)
                 readonly property var addKinds: root.addableKinds(modelData.id)
                 width: parent.width
+                spacing: Theme.spacingS
 
-                SettingsRow {
-                    title: libraryGroup.modelData.name
-                    iconName: "cloud"
-                    trailingBadge: (libraryGroup.usage.count ?? 0) > 0 ? Phrases.join(Phrases.tracks(libraryGroup.usage.count), root.size(libraryGroup.usage.used ?? 0)) : libraryGroup.rules.length === 0 ? I18n.tr("No rules", "a server library without offline rules") : ""
-                    showChevron: true
-                    clickable: true
-                    onClicked: root.openCachePage(libraryGroup.modelData.id)
-                }
+                SettingsGroup {
+                    SettingsRow {
+                        title: libraryGroup.modelData.name
+                        iconName: "cloud"
+                        trailingBadge: (libraryGroup.usage.count ?? 0) > 0 ? Phrases.join(Phrases.tracks(libraryGroup.usage.count), root.size(libraryGroup.usage.used ?? 0)) : libraryGroup.rules.length === 0 ? I18n.tr("No rules", "a server library without offline rules") : ""
+                        showChevron: true
+                        clickable: true
+                        onClicked: root.openCachePage(libraryGroup.modelData.id)
+                    }
 
-                Repeater {
-                    model: libraryGroup.rules
+                    Repeater {
+                        model: libraryGroup.rules
 
-                    RuleRow {
-                        libraryId: libraryGroup.modelData.id
+                        RuleRow {
+                            libraryId: libraryGroup.modelData.id
+                        }
                     }
                 }
 
-                SettingsRow {
-                    title: I18n.tr("Add rule", "offline action that keeps more of a library on this device")
-                    subtitle: libraryGroup.addKinds.map(k => root.kindLabel(k)).join(" · ")
-                    iconName: "add"
-                    paddingH: root.ruleIndent
-                    clickable: libraryGroup.addKinds.length > 0
-                    enabled: clickable
-                    onClicked: root.openAddSheet(libraryGroup.modelData.id)
+                SettingsGroup {
+                    SettingsRow {
+                        title: I18n.tr("Add rule", "offline action that keeps more of a library on this device")
+                        subtitle: libraryGroup.addKinds.map(k => root.kindLabel(k)).join(" · ")
+                        iconName: "add"
+                        clickable: libraryGroup.addKinds.length > 0
+                        enabled: clickable
+                        onClicked: root.openAddSheet(libraryGroup.modelData.id)
+                    }
                 }
             }
         }
