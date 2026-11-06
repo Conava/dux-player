@@ -118,8 +118,9 @@ Item {
             "note": followed ? I18n.tr("Follows the bottom bar", "side panel editor: a zone taken from the bar") : fixed ? I18n.tr("This style places these itself; you can show or hide them.", "layout editor note on the seekbar row") : "",
             "disabled": followed,
             "addable": !followed && !fixed,
-            "rows": (surface.zones[zone.id] ?? []).map(inst => Object.assign(rowOf(zone, types, inst), fixed && ["seekbar", "elapsed", "duration"].indexOf(inst.type) >= 0 ? {
-                    "removable": false
+            "rows": (surface.zones[zone.id] ?? []).map(inst => Object.assign(rowOf(zone, types, inst), fixed ? {
+                    "removable": false,
+                    "movable": false
                 } : {}))
         };
     }

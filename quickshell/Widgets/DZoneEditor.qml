@@ -8,7 +8,7 @@ import qs.DCommon.Widgets
 // moves up, down or to another zone. Emits edits only: the consumer changes the model, and decides undo and
 // confirmation for removals.
 // zones: [{id, label, note?, disabled?, addable?, rows: [{title, icon?, subtitle?, warning?, hidden?,
-//          hideable?, hideEnabled?, removable?, hasOptions?, dimmed?}]}]
+//          hideable?, hideEnabled?, removable?, movable?, hasOptions?, dimmed?}]}]
 Column {
     id: root
 
@@ -38,39 +38,44 @@ Column {
         if (!row || zone.disabled)
             return;
         const forward = I18n.isRtl ? "arrow_back" : "arrow_forward";
-        const entries = [
-            {
+        const entries = [];
+        if (row.movable !== false) {
+            entries.push({
                 "id": "up",
                 "text": I18n.tr("Move up", "editor row menu"),
                 "icon": "arrow_upward",
                 "enabled": index > 0
-            },
-            {
+            }, {
                 "id": "down",
                 "text": I18n.tr("Move down", "editor row menu"),
                 "icon": "arrow_downward",
                 "enabled": index < zone.rows.length - 1
-            }
-        ];
-        const targets = zones.filter(z => z.id !== zoneId && !z.disabled);
-        if (targets.length > 0)
-            entries.push({
-                "divider": true
             });
-        for (const z of targets)
+            const targets = zones.filter(z => z.id !== zoneId && !z.disabled);
+            if (targets.length > 0)
+                entries.push({
+                    "divider": true
+                });
+            for (const z of targets)
+                entries.push({
+                    "id": "zone:" + z.id,
+                    "text": I18n.tr("Move to %1", "editor row menu, %1 is a zone").arg(z.label),
+                    "icon": forward
+                });
+        }
+        if (row.removable !== false) {
+            if (entries.length > 0)
+                entries.push({
+                    "divider": true
+                });
             entries.push({
-                "id": "zone:" + z.id,
-                "text": I18n.tr("Move to %1", "editor row menu, %1 is a zone").arg(z.label),
-                "icon": forward
-            });
-        if (row.removable !== false)
-            entries.push({
-                "divider": true
-            }, {
                 "id": "remove",
                 "text": I18n.tr("Remove", "button that removes an item"),
                 "icon": "close"
             });
+        }
+        if (entries.length === 0)
+            return;
         menuZone = zoneId;
         menuIndex = index;
         rowMenu.model = entries;
@@ -202,6 +207,7 @@ Column {
                     hideable: modelData.hideable ?? true
                     hideEnabled: modelData.hideEnabled ?? true
                     removable: modelData.removable ?? true
+                    movable: modelData.movable ?? true
                     hasOptions: modelData.hasOptions ?? false
                     onOptionsRequested: root.optionsRequested(zone.zoneId, index)
                     onHiddenToggled: hidden => root.hiddenToggled(zone.zoneId, index, hidden)

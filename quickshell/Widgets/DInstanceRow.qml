@@ -22,6 +22,8 @@ DListItem {
     // false keeps the eye but disables it; say why in subtitle
     property bool hideEnabled: true
     property bool removable: true
+    // false for elements with a fixed place; the handle's space is kept so columns line up
+    property bool movable: true
     property bool hasOptions: false
     // extra controls before the chevron (buttons that act on the element)
     property alias actions: extra.data
@@ -69,7 +71,8 @@ DListItem {
         case Qt.Key_Down:
             if (!ctrl)
                 return;
-            root.view.move(root.index, event.key === Qt.Key_Up ? -1 : 1);
+            if (root.movable)
+                root.view.move(root.index, event.key === Qt.Key_Up ? -1 : 1);
             event.accepted = true;
             return;
         case Qt.Key_Menu:
@@ -98,6 +101,7 @@ DListItem {
         anchors.left: parent.left
         anchors.leftMargin: Style.spacingS
         anchors.verticalCenter: parent.verticalCenter
+        visible: root.movable
         focusPolicy: Qt.NoFocus
         coordinateItem: root.view
         label: root.title
