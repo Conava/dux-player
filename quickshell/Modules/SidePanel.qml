@@ -11,7 +11,7 @@ Item {
 
     // in the side panel's pane order, which by default follows the bar's buttons; both always offered here, as
     // the bar's buttons open either
-    readonly property var views: UiConfig.sidePanes.filter(p => p !== "cover").concat(["lyrics", "queue"]).filter((p, i, all) => all.indexOf(p) === i)
+    readonly property var views: UiConfig.sidePanes.filter(p => p !== "cover").concat(["lyrics", "queue"]).filter((p, i, all) => all.indexOf(p) === i && (UiConfig.lyricsOn || p !== "lyrics"))
     readonly property var labels: ({
             "queue": {
                 "text": I18n.tr("Queue", "the play queue: panel, toggle"),

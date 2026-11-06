@@ -261,6 +261,29 @@ type QueueSnapshot struct {
 	Repeat  string `json:"repeat"`
 }
 
+// Upcoming lists the n tracks that play after the one at index, in play
+// order.
+func (q QueueSnapshot) Upcoming(index, n int) []source.Track {
+	if index < 0 || index >= len(q.Items) || q.Repeat == RepeatOne {
+		return nil
+	}
+	var out []source.Track
+	for i := 1; i <= n; i++ {
+		j := index + i
+		if j >= len(q.Items) {
+			if q.Repeat != RepeatAll {
+				break
+			}
+			j %= len(q.Items)
+		}
+		if j == index {
+			break
+		}
+		out = append(out, q.Items[j].Track)
+	}
+	return out
+}
+
 type Player struct {
 	cfg  Config
 	ops  chan func()

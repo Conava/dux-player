@@ -182,3 +182,151 @@ func TestServerLyricsCanBeTurnedOff(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, res.Found)
 }
+
+func timed(start float64, lines ...string) []duxlyrics.Line {
+	out := make([]duxlyrics.Line, len(lines))
+	for i, text := range lines {
+		at := duxlyrics.Seconds(start + float64(i)*4)
+		out[i] = duxlyrics.Line{Start: at, End: at + 3, Text: text, Words: []duxlyrics.Word{{Start: at, End: at + 3, Text: text}}}
+	}
+	return out
+}
+
+func TestAlignMovesAnOutlierOntoWhatTheOthersAgreeOn(t *testing.T) {
+	song := []string{"one", "two", "three", "four", "five", "six"}
+	result := func(src duxlyrics.Provider, start float64) *duxlyrics.Result {
+		return &duxlyrics.Result{Found: true, Source: src, Lyrics: duxlyrics.Lyrics{Synced: timed(start, song...)}}
+	}
+	lines := func(src duxlyrics.Provider, start float64) *duxlyrics.Result {
+		r := result(src, start)
+		for i := range r.Synced {
+			r.Synced[i].Words = nil
+		}
+		return r
+	}
+	order := []duxlyrics.Provider{duxlyrics.KuGou, duxlyrics.LRCLIB, duxlyrics.LyricsPlus, duxlyrics.YouTubeMusic, duxlyrics.BetterLyrics}
+	tests := []struct {
+		name    string
+		results []*duxlyrics.Result
+		want    float64
+	}{
+		{"three agree", []*duxlyrics.Result{result(duxlyrics.KuGou, 33), lines(duxlyrics.LRCLIB, 32), lines(duxlyrics.LyricsPlus, 32.1), lines(duxlyrics.YouTubeMusic, 31.9)}, 32},
+		{"good sources spread half a second", []*duxlyrics.Result{result(duxlyrics.KuGou, 33), lines(duxlyrics.LRCLIB, 32.2), lines(duxlyrics.LyricsPlus, 32.3), lines(duxlyrics.YouTubeMusic, 31.8)}, 32.2},
+		{"two voters are enough", []*duxlyrics.Result{result(duxlyrics.KuGou, 33), lines(duxlyrics.LRCLIB, 32), lines(duxlyrics.LyricsPlus, 32)}, 32},
+		{"one voter is too few", []*duxlyrics.Result{result(duxlyrics.KuGou, 33), lines(duxlyrics.LRCLIB, 32)}, 33},
+		{"a majority is enough", []*duxlyrics.Result{result(duxlyrics.KuGou, 33), lines(duxlyrics.LRCLIB, 32), lines(duxlyrics.LyricsPlus, 32), lines(duxlyrics.YouTubeMusic, 36)}, 32},
+		{"exactly half is no majority", []*duxlyrics.Result{result(duxlyrics.KuGou, 33), lines(duxlyrics.LRCLIB, 32), lines(duxlyrics.LyricsPlus, 32), lines(duxlyrics.YouTubeMusic, 36), lines(duxlyrics.BetterLyrics, 30)}, 33},
+		{"close enough stays", []*duxlyrics.Result{result(duxlyrics.KuGou, 32.2), lines(duxlyrics.LRCLIB, 32), lines(duxlyrics.LyricsPlus, 32), lines(duxlyrics.YouTubeMusic, 32)}, 32.2},
+		{"the voters disagree", []*duxlyrics.Result{result(duxlyrics.KuGou, 33), lines(duxlyrics.LRCLIB, 30), lines(duxlyrics.LyricsPlus, 31.5), lines(duxlyrics.YouTubeMusic, 36)}, 33},
+		{"a sidecar is never moved", []*duxlyrics.Result{result(duxlyrics.Sidecar, 33), lines(duxlyrics.LRCLIB, 32), lines(duxlyrics.LyricsPlus, 32), lines(duxlyrics.YouTubeMusic, 32)}, 33},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			before, wordBefore := float64(tt.results[0].Synced[0].Start), float64(tt.results[0].Synced[0].Words[0].Start)
+			got := align(order, tt.results)
+			assert.Equal(t, tt.results[0].Source, got.Source, "word timing wins")
+			assert.InDelta(t, tt.want, float64(got.Synced[0].Start), 0.001)
+			assert.InDelta(t, tt.want, float64(got.Synced[0].Words[0].Start), 0.001)
+			assert.InDelta(t, before, float64(tt.results[0].Synced[0].Start), 0.001, "the input stays as it was")
+			assert.InDelta(t, wordBefore, float64(tt.results[0].Synced[0].Words[0].Start), 0.001, "the input's words too")
+		})
+	}
+}
+
+func quietService(t *testing.T, dir string, publish func(string, any), on *bool) *Service {
+	t.Helper()
+	s := &Service{baseCtx: context.Background(), providers: openProviders(filepath.Join(dir, providersFile)), cfg: Config{
+		CacheDir: dir, DataDir: dir, Libraries: libs{"srv": serverLib{}}, Publish: publish,
+		HasSubscriber: func(string) bool { return true },
+		Enabled:       func() bool { return on == nil || *on }}}
+	s.client = s.newClient(s.cacheDir())
+	s.wasOn = s.enabled()
+	var off []Provider
+	for _, p := range defaultProviders() {
+		off = append(off, Provider{ID: p.ID, Enabled: p.ID == ServerSource})
+	}
+	_, err := s.providers.set(off)
+	require.NoError(t, err)
+	return s
+}
+
+// A prefetched result shows at once, and its entries reach the cache only
+// when the track plays; one that never plays leaves nothing.
+func TestPrefetchedLyrics(t *testing.T) {
+	dir := t.TempDir()
+	var states []string
+	s := quietService(t, dir, func(_ string, data any) {
+		if ev, ok := data.(Event); ok {
+			states = append(states, ev.State)
+		}
+	}, nil)
+	stage := func(name string) string {
+		d := filepath.Join(s.aheadDir(), name)
+		require.NoError(t, os.MkdirAll(filepath.Join(d, "ab"), 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(d, "ab", name+".json"), []byte("{}"), 0o644))
+		return d
+	}
+	next := &source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"}
+	played := stage("played")
+	s.remember(warmed{key: key(next), res: &duxlyrics.Result{Found: true, Source: ServerSource}, dir: played})
+	s.TrackChanged(next)
+	assert.Equal(t, []string{"ready"}, states)
+	assert.FileExists(t, filepath.Join(s.cacheDir(), "ab", "played.json"))
+	assert.NoDirExists(t, played)
+
+	skipped := stage("skipped")
+	s.remember(warmed{key: "skipped", res: &duxlyrics.Result{}, dir: skipped})
+	for i := range maxWarmed {
+		s.remember(warmed{key: string(rune('a' + i)), res: &duxlyrics.Result{}})
+	}
+	assert.NoDirExists(t, skipped)
+	assert.NoFileExists(t, filepath.Join(s.cacheDir(), "ab", "skipped.json"))
+}
+
+// A picked source stays with its track across restarts, without asking
+// anyone, until the user goes back to automatic.
+func TestChosenLyricsStayWithTheTrack(t *testing.T) {
+	dir := t.TempDir()
+	var last Event
+	s := quietService(t, dir, func(_ string, data any) {
+		if ev, ok := data.(Event); ok {
+			last = ev
+		}
+	}, nil)
+	ref := source.Ref{Library: "srv", ID: "song"}
+	choices, err := s.Choices(context.Background(), ref)
+	require.NoError(t, err)
+	require.Len(t, choices, 1)
+	assert.Equal(t, "line", choices[0].Timing)
+	require.Error(t, s.Choose(context.Background(), ref, "kugou"), "a source without lyrics can't be picked")
+	require.NoError(t, s.Choose(context.Background(), ref, choices[0].Source))
+
+	again := quietService(t, dir, func(_ string, data any) {
+		if ev, ok := data.(Event); ok {
+			last = ev
+		}
+	}, nil)
+	again.TrackChanged(&source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"})
+	require.True(t, last.Chosen)
+	assert.Equal(t, "from the server", last.Result.Synced[0].Text)
+
+	require.NoError(t, again.Choose(context.Background(), ref, ""))
+	assert.Nil(t, again.chosen(key(&source.Track{Library: "srv", ID: "song"})))
+}
+
+func TestLyricsOffAsksNobody(t *testing.T) {
+	on := false
+	var last Event
+	s := quietService(t, t.TempDir(), func(_ string, data any) {
+		if ev, ok := data.(Event); ok {
+			last = ev
+		}
+	}, &on)
+	s.TrackChanged(&source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"})
+	assert.Equal(t, "idle", last.State)
+	_, err := s.Get(context.Background(), source.Ref{Library: "srv", ID: "song"})
+	require.ErrorIs(t, err, errOff)
+	on = true
+	s.SettingsChanged()
+	assert.Equal(t, "loading", last.State, "turning lyrics on shows the current track's")
+}

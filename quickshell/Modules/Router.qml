@@ -178,6 +178,16 @@ Singleton {
             openEntry(navEntries[0]);
     }
 
+    readonly property bool lyricsOn: UiConfig.lyricsOn
+    onLyricsOnChanged: {
+        if (lyricsOn)
+            return;
+        if (panel === "lyrics")
+            panel = "";
+        if (viewPane === "lyrics")
+            viewPane = "";
+    }
+
     // pane: "lyrics" | "queue" | "" for the one Settings → Now playing opens with
     function openNowPlaying(pane) {
         viewPane = pane || UiConfig.startPane;

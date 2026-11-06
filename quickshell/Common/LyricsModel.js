@@ -176,13 +176,17 @@ function rowHeight(item, layouts, breakSize, padding, gap) {
 // How far into the row the fill reaches, in pixels from the row's reading start: each started cue
 // sweeps across its own span over its own time, and without the sweep it fills at once.
 function fillEdge(segments, at, sweep, lead) {
+    // the soft lead reaches past the edge, so the edge runs behind the sung position by its length; only the
+    // row's last cue catches up, to light the row's end
+    const end = segments.reduce((far, segment) => Math.max(far, segment.x1), 0);
     let edge = -lead;
     for (const segment of segments) {
         if (segment.t > at)
             continue;
         const progress = sweep && segment.e > segment.t ? Math.min(1, (at - segment.t) / (segment.e - segment.t)) : 1;
-        const from = segment.x0 > 0 ? segment.x0 : -lead;
-        edge = Math.max(edge, from + (segment.x1 - from) * progress);
+        const from = segment.x0 - lead;
+        const to = segment.x1 < end ? segment.x1 - lead : segment.x1;
+        edge = Math.max(edge, from + (to - from) * progress);
     }
     return edge;
 }

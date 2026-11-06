@@ -95,6 +95,8 @@ RowLayout {
         switch (type) {
         case "castTarget":
             return PlayerService.casting;
+        case "lyrics":
+            return UiConfig.lyricsOn;
         case "playingFrom":
         case "title":
             return track !== null;

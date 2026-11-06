@@ -666,10 +666,11 @@ Singleton {
     // the pane the full view opens with: "lyrics" | "queue" | "" (the cover alone)
     readonly property string startPane: {
         const pane = nowPlaying.openPane === "last" ? SettingsData.lastPane : nowPlaying.openPane;
-        return pane === "lyrics" || pane === "queue" ? pane : "";
+        return pane === "lyrics" && lyricsOn || pane === "queue" ? pane : "";
     }
+    readonly property bool lyricsOn: SettingsService.settings.lyrics !== false
     // the side panel's tabs: "cover" | "lyrics" | "queue", in order
-    readonly property var sidePanes: effective.sidePanes
+    readonly property var sidePanes: effective.sidePanes.filter(p => lyricsOn || p !== "lyrics")
     // the side panel's zones taken from the bar while it follows the bar
     readonly property var sideFollowedZones: Layouts.sideFollowedZones()
 

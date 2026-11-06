@@ -57,6 +57,8 @@ Singleton {
     readonly property string lyricsState: _lyricsKey === "" || _lyricsKey === currentKey || _lyricsState === "idle" ? _lyricsState : "loading"
     // dux-go lyrics Result JSON for the current track, or null
     readonly property var lyrics: _lyricsKey === "" || _lyricsKey === currentKey ? _lyrics : null
+    // the user picked these lyrics for this track
+    readonly property bool lyricsChosen: _lyricsChosen && lyrics !== null
 
     // "off" | "minutes" | "endOfTrack"
     property string sleepMode: "off"
@@ -410,6 +412,7 @@ Singleton {
     property var _queueSums: [0]
     property var _lyrics: null
     property string _lyricsState: "idle"
+    property bool _lyricsChosen: false
     // the track the lyrics belong to ("" when the daemon didn't say)
     property string _lyricsKey: ""
     property bool _volumeBusy: false
@@ -551,6 +554,7 @@ Singleton {
     function _applyLyrics(e) {
         const r = e.result ?? null;
         _lyricsKey = e.library && e.id ? e.library + ":" + e.id : "";
+        _lyricsChosen = e.chosen === true;
         switch (e.state) {
         case "loading":
             _lyrics = null;
@@ -567,6 +571,24 @@ Singleton {
         }
         _lyrics = null;
         _lyricsState = "idle";
+    }
+
+    function lyricsChoices(then) {
+        if (current)
+            DaemonBridge.request("lyrics.choices", {
+                "library": current.library,
+                "id": current.id
+            }, I18n.tr("Couldn't list the lyrics sources", "toast when the lyrics sources can't be read"), then);
+    }
+
+    // an empty source goes back to automatic
+    function chooseLyrics(source) {
+        if (current)
+            DaemonBridge.request("lyrics.choose", {
+                "library": current.library,
+                "id": current.id,
+                "source": source
+            }, I18n.tr("Couldn't change the lyrics", "toast when a lyrics source can't be kept for a track"));
     }
 
     // the seekbar was used on a track that can't seek

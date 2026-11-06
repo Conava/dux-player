@@ -158,7 +158,7 @@ Rectangle {
         id: lyricsPane
         LyricsView {
             radius: root.paneRadius
-            backgroundColor: root.paneColor
+            cardColor: root.paneColor
             artScheme: ArtColors.nowPlaying
         }
     }

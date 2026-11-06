@@ -16,6 +16,25 @@ SettingsPage {
     }
 
     SettingsCard {
+        SettingsToggleRow {
+            text: I18n.tr("Show lyrics", "lyrics master setting")
+            description: I18n.tr("Finds lyrics online. Track title, artist, album and duration are sent to the providers below.", "lyrics master setting description")
+            checked: SettingsService.settings.lyrics
+            onToggled: value => SettingsService.setSetting("lyrics", value)
+        }
+
+        SettingsToggleRow {
+            text: I18n.tr("Lyrics for downloaded tracks", "lyrics setting")
+            keywords: "offline cache"
+            description: I18n.tr("Finds lyrics when a track is downloaded. When off, only lyrics of tracks you play are kept.", "lyrics setting description")
+            enabled: SettingsService.settings.lyrics
+            checked: SettingsService.settings.lyricsForDownloads
+            onToggled: value => SettingsService.setSetting("lyricsForDownloads", value)
+        }
+    }
+
+    SettingsCard {
+        enabled: SettingsService.settings.lyrics
         title: I18n.tr("Display", "lyrics settings section label")
 
         SettingsButtonGroupRow {
@@ -70,6 +89,7 @@ SettingsPage {
 
     DReorderList {
         id: list
+        enabled: SettingsService.settings.lyrics
         width: parent.width
         model: root.providers
         flickable: root

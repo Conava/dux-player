@@ -29,6 +29,20 @@ func Register(r *ipc.Registry, svc func() *Service) {
 				return
 			}
 			w.Respond(req.ID, res)
+		case "lyrics.choices":
+			list, err := s.Choices(ctx, source.Ref{Library: ipc.Str(req.Params, "library"), ID: ipc.Str(req.Params, "id")})
+			if err != nil {
+				w.RespondError(req.ID, err.Error())
+				return
+			}
+			w.Respond(req.ID, list)
+		case "lyrics.choose":
+			ref := source.Ref{Library: ipc.Str(req.Params, "library"), ID: ipc.Str(req.Params, "id")}
+			if err := s.Choose(ctx, ref, ipc.Str(req.Params, "source")); err != nil {
+				w.RespondError(req.ID, err.Error())
+				return
+			}
+			w.Respond(req.ID, true)
 		case "lyrics.providers":
 			w.Respond(req.ID, s.providers.get())
 		case "lyrics.setProviders":
@@ -40,11 +54,14 @@ func Register(r *ipc.Registry, svc func() *Service) {
 				w.RespondError(req.ID, err.Error())
 				return
 			}
+			s.forget()
 			s.cfg.Publish(TopicProviders, list)
 			w.Respond(req.ID, list)
 		}
 	},
 		ipc.MethodSpec{Name: "lyrics.get", Desc: "Lyrics of a track (dux-go lyrics Result)", Params: []ipc.ParamSpec{ipc.Req("library", ""), ipc.Req("id", "")}, Read: true},
+		ipc.MethodSpec{Name: "lyrics.choices", Desc: "What each enabled source has for a track", Params: []ipc.ParamSpec{ipc.Req("library", ""), ipc.Req("id", "")}, Read: true},
+		ipc.MethodSpec{Name: "lyrics.choose", Desc: "Keep one source's lyrics for a track; no source goes back to automatic", Params: []ipc.ParamSpec{ipc.Req("library", ""), ipc.Req("id", ""), ipc.Opt("source", "")}},
 		ipc.MethodSpec{Name: "lyrics.providers", Desc: "Lyrics providers in priority order", Read: true},
 		ipc.MethodSpec{Name: "lyrics.setProviders", Desc: "Set the provider order and which are on", Params: []ipc.ParamSpec{ipc.Req("providers", "[{id,enabled}] in priority order; from the CLI, the ids to turn on, in order")}},
 	)

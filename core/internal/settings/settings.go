@@ -47,6 +47,10 @@ type Settings struct {
 	// trailing silence; measuring it needs ffmpeg.
 	SkipSilenceStart bool `json:"skipSilenceStart"`
 	SkipSilenceEnd   bool `json:"skipSilenceEnd"`
+	// Lyrics turns lookups on; off, no lyrics provider is contacted.
+	Lyrics bool `json:"lyrics"`
+	// LyricsForDownloads also finds lyrics for tracks kept on this device.
+	LyricsForDownloads bool `json:"lyricsForDownloads"`
 	// PrefetchTracks is how many upcoming server tracks are downloaded
 	// ahead, 0-3; PrefetchOnMetered keeps doing it on a metered connection.
 	PrefetchTracks    int  `json:"prefetchTracks"`
@@ -108,6 +112,8 @@ func Defaults() Settings {
 		ShowTrayIcon:       true,
 		VolumeTarget:       player.VolumeApp,
 		PrefetchTracks:     1,
+		Lyrics:             true,
+		LyricsForDownloads: true,
 	}
 }
 
@@ -303,6 +309,10 @@ func apply(s Settings, key string, v any) (Settings, error) {
 		s.PrefetchTracks = int(f)
 	case "prefetchOnMetered":
 		s.PrefetchOnMetered, err = toBool(key, v)
+	case "lyrics":
+		s.Lyrics, err = toBool(key, v)
+	case "lyricsForDownloads":
+		s.LyricsForDownloads, err = toBool(key, v)
 	case "volumeTarget":
 		s.VolumeTarget, err = oneOf(key, v, player.VolumeApp, player.VolumeSystem)
 	case "equalizer":

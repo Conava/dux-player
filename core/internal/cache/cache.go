@@ -33,6 +33,8 @@ import (
 
 const (
 	Topic = "cache"
+	// TopicStored carries each source.Track that was just kept on this device.
+	TopicStored = "cacheStored"
 
 	// configKey holds a library's offline rules in its library config.
 	configKey = "cache"
@@ -664,6 +666,9 @@ func (c *Cache) fetch(ctx context.Context, j job) error {
 		return err
 	}
 	c.refresh(ctx, ref.Library, false)
+	if c.cfg.Publish != nil {
+		c.cfg.Publish(TopicStored, t)
+	}
 	return nil
 }
 

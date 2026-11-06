@@ -60,29 +60,6 @@ type buffered struct {
 	done   chan struct{}
 }
 
-// upcoming lists the n tracks that play after the one at index, in play
-// order.
-func upcoming(q player.QueueSnapshot, index, n int) []source.Track {
-	if index < 0 || index >= len(q.Items) || q.Repeat == player.RepeatOne {
-		return nil
-	}
-	var out []source.Track
-	for i := 1; i <= n; i++ {
-		j := index + i
-		if j >= len(q.Items) {
-			if q.Repeat != player.RepeatAll {
-				break
-			}
-			j %= len(q.Items)
-		}
-		if j == index {
-			break
-		}
-		out = append(out, q.Items[j].Track)
-	}
-	return out
-}
-
 // prefetchCount is how many tracks to prefetch: the setting, or none on a
 // metered connection unless the user allowed it there.
 func prefetchCount(tracks int, onMetered, metered bool) int {
@@ -136,7 +113,7 @@ func (c *Cache) replan(ctx context.Context) {
 		if c.cfg.Libraries.Server(st.Track.Library) {
 			cur = st.Track
 		}
-		for _, t := range upcoming(*q, st.Index, min(n, maxPrefetch)) {
+		for _, t := range q.Upcoming(st.Index, min(n, maxPrefetch)) {
 			if c.cfg.Libraries.Server(t.Library) {
 				next = append(next, t)
 			}

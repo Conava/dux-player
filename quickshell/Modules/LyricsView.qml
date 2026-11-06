@@ -5,13 +5,16 @@ import qs.Common
 import qs.Services
 import qs.DCommon.Common as DC
 import qs.DCommon.Widgets
+import qs.Widgets
 import "../Common/LyricsModel.js" as LyricsModel
 
 // Synced lyrics with a progressive word fill, modelled on the shell's LyricsOverlay.
 FocusScope {
     id: root
 
-    property color backgroundColor: "transparent"
+    property color cardColor: "transparent"
+    // the list's edge fade paints this; without a card of its own it looks further up for the surface
+    readonly property var surfaceColor: cardColor.a > 0 ? cardColor : undefined
     property var artScheme: null
     property real radius: 0
     property bool following: true
@@ -275,7 +278,7 @@ FocusScope {
     Rectangle {
         anchors.fill: parent
         radius: root.radius
-        color: root.backgroundColor
+        color: root.cardColor
     }
 
     LineMeasure {
@@ -414,6 +417,40 @@ FocusScope {
                     root.controller.seekToLine(line.item.line);
             }
         }
+    }
+
+    DIconButton {
+        id: sourceButton
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.margins: Theme.spacingS
+        visible: root.ready
+        iconName: "more_vert"
+        tooltipText: I18n.tr("Lyrics source", "button choosing which provider's lyrics a track uses")
+        Accessible.name: tooltipText
+        onClicked: PlayerService.lyricsChoices(list => {
+            const shown = PlayerService.lyrics?.source ?? "";
+            const auto = !PlayerService.lyricsChosen;
+            sourceMenu.model = [
+                {
+                    "id": "",
+                    "text": I18n.tr("Automatic", "Automatic"),
+                    "icon": auto ? "check" : "",
+                    "active": auto
+                }
+            ].concat(list.map(c => ({
+                        "id": c.source,
+                        "text": I18n.tr("%1 · %2", "lyrics source and its timing").arg(c.source === "sidecar" ? I18n.tr("Lyrics file", "lyrics source: a file next to the track") : c.name).arg(c.timing === "word" ? I18n.tr("Word by word", "Word by word") : c.timing === "line" ? I18n.tr("Line by line", "lyrics timing of a source") : I18n.tr("Not synced", "lyrics timing of a source")),
+                        "icon": !auto && c.source === shown ? "check" : "",
+                        "active": !auto && c.source === shown
+                    })));
+            sourceMenu.open(sourceButton);
+        })
+    }
+
+    DMenu {
+        id: sourceMenu
+        onTriggered: id => PlayerService.chooseLyrics(id)
     }
 
     DButton {

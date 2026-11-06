@@ -33,8 +33,9 @@ assert.strictEqual(L.centreItem(items, 7.75, 0), 1, "not before the controller m
 const segments = [{ x0: 0, x1: 100, t: 10, e: 12 }, { x0: 100, x1: 200, t: 12, e: 13 }];
 assert.strictEqual(L.fillEdge(segments, 9, true, 20), -20, "the lead waits behind the row before the first cue");
 assert.strictEqual(L.fillEdge(segments, 11, true, 0), 50, "linear inside a cue");
-assert.strictEqual(L.fillEdge(segments, 11, true, 20), 40, "the first cue starts behind the row by the lead");
-assert.strictEqual(L.fillEdge(segments, 12.5, true, 20), 150, "the second cue starts where the first ended");
+assert.strictEqual(L.fillEdge(segments, 11, true, 20) + 20, 50, "the soft lead ends at the sung position, not past it");
+assert.strictEqual(L.fillEdge(segments, 12, true, 20) + 20, 100, "the second cue starts where the first ended");
+assert.strictEqual(L.fillEdge(segments, 13, true, 20), 200, "the row's last cue lights the row's end");
 assert.strictEqual(L.fillEdge(segments, 20, true, 0), 200, "full after the last cue");
 assert.strictEqual(L.fillEdge(segments, Infinity, true, 0), 200, "a line behind the centre is full");
 assert.strictEqual(L.fillEdge(segments, 10.1, false, 0), 100, "without the sweep a started cue fills at once");

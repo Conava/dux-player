@@ -338,7 +338,7 @@
   {
     "term": "%1 · %2",
     "translation": "",
-    "context": "two facts joined by a dot",
+    "context": "lyrics source and its timing | two facts joined by a dot",
     "reference": "",
     "comment": ""
   },
@@ -1003,7 +1003,7 @@
   {
     "term": "Automatic",
     "translation": "",
-    "context": "option picked automatically",
+    "context": "Automatic | option picked automatically",
     "reference": "",
     "comment": ""
   },
@@ -1596,6 +1596,13 @@
     "comment": ""
   },
   {
+    "term": "Couldn't change the lyrics",
+    "translation": "",
+    "context": "toast when a lyrics source can't be kept for a track",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Couldn't change the playlist",
     "translation": "",
     "context": "toast when renaming, adding to, removing from or reordering a playlist fails",
@@ -1697,6 +1704,13 @@
     "term": "Couldn't keep it on this device",
     "translation": "",
     "context": "toast when adding an offline rule fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't list the lyrics sources",
+    "translation": "",
+    "context": "toast when the lyrics sources can't be read",
     "reference": "",
     "comment": ""
   },
@@ -2653,6 +2667,20 @@
     "comment": ""
   },
   {
+    "term": "Finds lyrics online. Track title, artist, album and duration are sent to the providers below.",
+    "translation": "",
+    "context": "lyrics master setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Finds lyrics when a track is downloaded. When off, only lyrics of tracks you play are kept.",
+    "translation": "",
+    "context": "lyrics setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Finish sign-in",
     "translation": "",
     "context": "Last.fm sign-in action",
@@ -3381,6 +3409,13 @@
     "comment": ""
   },
   {
+    "term": "Line by line",
+    "translation": "",
+    "context": "lyrics timing of a source",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "List",
     "translation": "",
     "context": "view layout option",
@@ -3479,9 +3514,30 @@
     "comment": ""
   },
   {
+    "term": "Lyrics file",
+    "translation": "",
+    "context": "lyrics source: a file next to the track",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Lyrics files next to your music are used first, then the providers below in order. Drag to reorder.",
     "translation": "",
     "context": "lyrics settings intro",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Lyrics for downloaded tracks",
+    "translation": "",
+    "context": "lyrics setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Lyrics source",
+    "translation": "",
+    "context": "button choosing which provider's lyrics a track uses",
     "reference": "",
     "comment": ""
   },
@@ -4004,6 +4060,13 @@
     "comment": ""
   },
   {
+    "term": "Not synced",
+    "translation": "",
+    "context": "lyrics timing of a source",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Nothing matches \"%1\".",
     "translation": "",
     "context": "search page empty result",
@@ -4041,7 +4104,7 @@
   {
     "term": "Now playing",
     "translation": "",
-    "context": "settings sidebar tab label",
+    "context": "Now playing | settings sidebar tab label",
     "reference": "",
     "comment": ""
   },
@@ -5733,6 +5796,13 @@
     "comment": ""
   },
   {
+    "term": "Show lyrics",
+    "translation": "",
+    "context": "lyrics master setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Show more",
     "translation": "",
     "context": "expands an artist's biography",
@@ -6862,7 +6932,7 @@
   {
     "term": "Word by word",
     "translation": "",
-    "context": "lyrics setting",
+    "context": "Word by word | lyrics setting",
     "reference": "",
     "comment": ""
   },

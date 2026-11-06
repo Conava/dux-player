@@ -42,7 +42,9 @@ Singleton {
             "skipSilenceEnd": false,
             // upcoming server tracks downloaded ahead, 0-3
             "prefetchTracks": 1,
-            "prefetchOnMetered": false
+            "prefetchOnMetered": false,
+            "lyrics": true,
+            "lyricsForDownloads": true
         })
     property var eqBands: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
     property var eqPresets: ({})
@@ -139,6 +141,8 @@ Singleton {
         case "skipSilenceEnd":
         case "prefetchTracks":
         case "prefetchOnMetered":
+        case "lyrics":
+        case "lyricsForDownloads":
             params[name] = value;
             break;
         default:
@@ -454,7 +458,9 @@ Singleton {
             "skipSilenceStart": s.skipSilenceStart === true,
             "skipSilenceEnd": s.skipSilenceEnd === true,
             "prefetchTracks": s.prefetchTracks ?? 1,
-            "prefetchOnMetered": s.prefetchOnMetered === true
+            "prefetchOnMetered": s.prefetchOnMetered === true,
+            "lyrics": s.lyrics !== false,
+            "lyricsForDownloads": s.lyricsForDownloads !== false
         });
         artistInfoKnown = s.artistInfoOnline !== undefined;
         trayKnown = s.showTrayIcon !== undefined;

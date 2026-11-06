@@ -34,7 +34,7 @@ Dux Player plays local libraries and streams from Navidrome, Subsonic and Jellyf
 - Local playlists that mix tracks from any library, plus server native playlists; add a track to several at once and see which ones hold it
 - Offline rules per server library, caching and preloading the next songs for a seamless experience; favorites and ratings set while a server is unreachable are sent once it is back
 - Gapless playback, crossfade, volume normalization, skipping leading and trailing silence, equalizer several outputs at once
-- Synced lyrics with word-by-word fill, scrobbling (through the server, or to ListenBrainz and Last.fm), casting through [dux-cast](https://github.com/Conava/dux-cast)
+- Optional synced lyrics with word-by-word fill, on by default, scrobbling (through the server, or to ListenBrainz and Last.fm), casting through [dux-cast](https://github.com/Conava/dux-cast)
 - Keeps playing with the window closed; MPRIS, a tray icon and a CLI (`dplayer play`, `dplayer next`, …) for keybinds
 - Fully customizable now-playing bar, side panel and full view in Bento or Material design as well as customizable home page, lists and menus, with searchable settings
 
@@ -78,7 +78,7 @@ The daemon logs to `~/.local/state/dplayer/daemon.log` and the window to `ui.log
 Dux Player only contacts the servers you add, except for these features, each of which can be turned off in Settings:
 
 - **Artist information:** artist names are sent to MusicBrainz, Wikidata and Wikipedia, and to fanart.tv and Last.fm once you add your own API key. Biographies from Wikipedia are available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
-- **Lyrics:** track title, artist, album and duration are sent to the enabled lyrics providers.
+- **Lyrics:** on by default. Title, artist, album and duration of the playing track, of the next track while lyrics are open, and of downloaded tracks are sent to the enabled lyrics providers. Turn lyrics off in Settings → Lyrics and no provider is contacted; turn off Lyrics for downloaded tracks to send only tracks you play.
 - **Scrobbling:** played tracks are sent to ListenBrainz or Last.fm when you connect an account. Last.fm needs your own [API account](https://www.last.fm/api/account/create).
 
 ## Contributing

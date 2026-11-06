@@ -55,7 +55,7 @@ func TestUpcoming(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, ids(upcoming(queueOf("L", tt.repeat, tt.queue...), tt.index, tt.n)))
+			assert.Equal(t, tt.want, ids(queueOf("L", tt.repeat, tt.queue...).Upcoming(tt.index, tt.n)))
 		})
 	}
 }
