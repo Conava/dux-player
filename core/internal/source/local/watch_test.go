@@ -74,6 +74,9 @@ func TestScanOfAnEmptiedFolderKeepsItsTracks(t *testing.T) {
 }
 
 func TestScanKeepsTheTracksOfAnUnreadableSubfolder(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root reads unreadable folders (CI runs in a root container)")
+	}
 	ctx := context.Background()
 	root := t.TempDir()
 	writeWAV(t, filepath.Join(root, "A/a.wav"), tags("A1", "Ann", "Ex", "1"))
