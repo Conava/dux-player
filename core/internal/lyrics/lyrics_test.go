@@ -235,8 +235,12 @@ func TestAlignMovesAnOutlierOntoWhatTheOthersAgreeOn(t *testing.T) {
 
 func quietService(t *testing.T, dir string, publish func(string, any), on *bool) *Service {
 	t.Helper()
+	// lookups outlive a test, so their cache can't sit in a t.TempDir that must end up empty
+	cache, err := os.MkdirTemp("", "lyrics-test")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = os.RemoveAll(cache) })
 	s := &Service{baseCtx: context.Background(), providers: openProviders(filepath.Join(dir, providersFile)), cfg: Config{
-		CacheDir: dir, DataDir: dir, Libraries: libs{"srv": serverLib{}}, Publish: publish,
+		CacheDir: cache, DataDir: dir, Libraries: libs{"srv": serverLib{}}, Publish: publish,
 		HasSubscriber: func(string) bool { return true },
 		Enabled:       func() bool { return on == nil || *on }}}
 	s.client = s.newClient(s.cacheDir())
@@ -245,7 +249,7 @@ func quietService(t *testing.T, dir string, publish func(string, any), on *bool)
 	for _, p := range defaultProviders() {
 		off = append(off, Provider{ID: p.ID, Enabled: p.ID == ServerSource})
 	}
-	_, err := s.providers.set(off)
+	_, err = s.providers.set(off)
 	require.NoError(t, err)
 	return s
 }
