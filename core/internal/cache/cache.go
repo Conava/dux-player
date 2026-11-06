@@ -37,7 +37,7 @@ const (
 	// configKey holds a library's offline rules in its library config.
 	configKey = "cache"
 
-	DefaultLimit = 10 << 30
+	DefaultLimit = 10e9
 	minLimit     = 100e6
 
 	maxFileBytes    = 2 << 30
