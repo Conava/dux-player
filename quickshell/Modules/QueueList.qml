@@ -19,6 +19,9 @@ Item {
     property var shown: []
     property int dragFrom: -1
     property int dragAt: -1
+    // where the pointer holds the dragged row, in the list's content
+    property real dragY: 0
+    property real dragGrab: 0
     property bool editing: false
     // by qid, so the selection survives reorders
     property var selectedQids: []
@@ -308,6 +311,8 @@ Item {
         anchors.top: editor.bottom
         anchors.bottom: parent.bottom
         anchors.topMargin: Theme.spacingM
+        // rows are square, so they stop above the card's rounded corners
+        anchors.bottomMargin: PlayerMetrics.paneRadius
         anchors.leftMargin: Theme.spacingM
         anchors.rightMargin: Theme.spacingM
         bottomMargin: Theme.spacingL
@@ -365,6 +370,10 @@ Item {
             firstInGroup: index === 0
             lastInGroup: index === queueList.count - 1
             z: handle.dragging ? 1 : 0
+            // the model only moves a row between slots; this keeps it under the pointer on the way
+            transform: Translate {
+                y: handle.dragging ? root.dragY - root.dragGrab - entry.y : 0
+            }
             Accessible.name: Phrases.named(track?.title ?? "", track?.artist ?? "")
             Accessible.description: added ? I18n.tr("Added by you", "queue row: a track put in with play next or add to queue") : ""
             onClicked: {
@@ -402,11 +411,14 @@ Item {
                 dragging: root.dragFrom >= 0 && root.dragAt === entry.index
                 canMoveUp: entry.index > 0
                 canMoveDown: entry.index < queueList.count - 1
-                onStarted: {
+                onStarted: position => {
+                    root.dragY = position.y;
+                    root.dragGrab = position.y - entry.y;
                     root.dragFrom = entry.index;
                     root.dragAt = entry.index;
                 }
                 onMoved: position => {
+                    root.dragY = position.y;
                     // near an edge the list scrolls along
                     const edge = PlayerMetrics.listRowTwoLineHeight;
                     if (position.y - queueList.contentY < edge)
@@ -517,6 +529,28 @@ Item {
                 event.accepted = true;
             }
         }
+    }
+
+    DButton {
+        readonly property int current: PlayerService.queueIndex
+        // contentHeight also moves when rows are created, which itemAtIndex can't report
+        readonly property bool onScreen: {
+            const top = queueList.contentY;
+            const bottom = top + Math.min(queueList.height, queueList.contentHeight);
+            const row = current >= 0 ? queueList.itemAtIndex(current) : null;
+            return row !== null && row.y + row.height > top && row.y < bottom;
+        }
+
+        anchors.horizontalCenter: queueList.horizontalCenter
+        anchors.bottom: queueList.bottom
+        anchors.bottomMargin: Theme.spacingL
+        buttonHeight: Theme.buttonHeightXS
+        visible: current >= 0 && current < queueList.count && !onScreen && root.dragFrom < 0
+        text: I18n.tr("Now playing", "Now playing")
+        iconName: "my_location"
+        backgroundColor: ArtColors.accentContainer
+        textColor: ArtColors.onAccentContainer
+        onClicked: root.showCurrent()
     }
 
     TrackDropArea {
