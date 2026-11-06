@@ -23,10 +23,12 @@ QtObject {
     property string attributionName: ""
     property string attributionUrl: ""
     property int activeIndex: -1
-    property int wordRevision: 0
+    // moves to the next line a little before it starts, so the line is centred when it is sung
+    property int followIndex: -1
+    // set while a seek or a clock correction moves the clock, so views can tell a jump from playback
+    property bool jumping: false
     property real sampleTime: 0
     property var cueTimes: []
-    property var focusedGroups: []
     readonly property string state: serviceState === "ready" && !synced && plainLines.length === 0 ? "none" : serviceState
     readonly property bool pending: serviceState === "loading"
     readonly property string shownResult: result ? JSON.stringify([trackKey, result.source ?? ""]) : ""
@@ -61,12 +63,12 @@ QtObject {
     property Connections seekWatch: Connections {
         target: PlayerService
         function onSeeked() {
-            root.resync();
+            root.jump();
         }
         // the line was scheduled from a clock sample a later report corrected (a track still starting or
         // loading when the lyrics arrived); without this the line stays late until the next cue
         function onClockCorrected() {
-            root.resync();
+            root.jump();
         }
     }
 
@@ -79,8 +81,7 @@ QtObject {
         attributionName = r?.attribution?.name ?? "";
         attributionUrl = r?.attribution?.url ?? "";
         activeIndex = -1;
-        focusedGroups = [];
-        wordRevision++;
+        followIndex = -1;
         resync();
     }
 
@@ -116,7 +117,6 @@ QtObject {
                 t: part.t,
                 next
             });
-            part.cues = cues;
             const voice = voices[part.voice];
             const singerIndex = singers.indexOf(part.voice);
             part.voiceIndex = Math.max(0, singerIndex);
@@ -147,9 +147,13 @@ QtObject {
             group.parts.push(part);
         }
         const prepared = [...groups.values()].sort((a, b) => a.t - b.t);
-        for (const group of prepared) {
+        for (let i = 0; i < prepared.length; i++) {
+            const group = prepared[i];
             group.parts.sort((a, b) => Number(a.background) - Number(b.background) || a.t - b.t);
             group.x = group.parts.map(part => part.x).join("\n");
+            // the view paces itself to the song instead of a global animation speed
+            const since = i > 0 ? group.t - prepared[i - 1].t : Infinity;
+            group.move = Math.min(PlayerMetrics.lyricsMoveMax, Math.max(PlayerMetrics.lyricsMoveMin, since * PlayerMetrics.lyricsMoveShare));
         }
         cueTimes = [...events].sort((a, b) => a - b).map(t => ({
                     t
@@ -169,15 +173,24 @@ QtObject {
                 }));
     }
 
-    function seekToLine(index) {
-        const line = lines[index];
-        if (!canSeekLines || !line)
+    function seekToTime(time) {
+        if (!canSeekLines || !Number.isFinite(time))
             return;
-        PlayerService.seek(line.t);
+        PlayerService.seek(time);
+    }
+
+    function seekToLine(index) {
+        seekToTime(lines[index]?.t);
     }
 
     function currentTime() {
         return PlayerService.exactPosition();
+    }
+
+    function jump() {
+        jumping = true;
+        resync();
+        jumping = false;
     }
 
     function resync() {
@@ -187,35 +200,15 @@ QtObject {
         const at = currentTime();
         sampleTime = at;
         const nextIndex = indexFor(at, lines);
-        const focused = [];
-        for (let i = 0; i <= nextIndex; i++) {
-            if (i === nextIndex || lines[i].parts.some(part => part.t <= at && at < part.e))
-                focused.push(i);
-        }
-        if (focused.join() !== focusedGroups.join())
-            focusedGroups = focused;
         activeIndex = nextIndex;
-        wordRevision++;
-        const next = cueTimes[indexFor(at, cueTimes) + 1]?.t ?? Infinity;
-        if (!playing || !Number.isFinite(next))
+        const upcoming = lines[nextIndex + 1];
+        const leadIn = upcoming ? upcoming.t - upcoming.move * PlayerMetrics.lyricsLineLeadIn : Infinity;
+        followIndex = at >= leadIn ? nextIndex + 1 : nextIndex;
+        const next = Math.min(cueTimes[indexFor(at, cueTimes) + 1]?.t ?? Infinity, leadIn > at ? leadIn : Infinity);
+        if (!playing || rate <= 0 || !Number.isFinite(next))
             return;
         tick.interval = Math.max(1, Math.min(2147483647, (next - at) * 1000 / rate));
         tick.start();
-    }
-
-    function wordTiming(part, at) {
-        const cues = part?.cues ?? [];
-        const index = indexFor(at, cues);
-        const word = cues[index];
-        if (!word)
-            return {
-                t: -1,
-                e: -1
-            };
-        return {
-            t: word.t,
-            e: Math.min(part.e, cues[index + 1]?.t ?? Infinity, word.e)
-        };
     }
 
     function indexFor(at, timeline) {

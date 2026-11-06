@@ -83,6 +83,14 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function element(type: string, context: string): void {
             Router.runElement(type, context);
         }
+        function reduceMotion(on: bool): void {
+            SettingsData.reduceMotion = on;
+        }
+        function lyricsDisplay(key: string, value: string): void {
+            UiConfig.setLyricsDisplay({
+                [key]: value === "true" || (value !== "false" && value)
+            });
+        }
     }
 }
 Q

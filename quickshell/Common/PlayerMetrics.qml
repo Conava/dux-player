@@ -112,11 +112,41 @@ Singleton {
     readonly property real lyricsScaleS: 0.8
     readonly property real lyricsScaleL: 1.25
     readonly property real expandedArtMaxLarge: 640
-    readonly property real lyricsNearOpacity: 0.55
-    readonly property real lyricsFarOpacity: 0.3
-    readonly property real lyricsLineHeight: 1.25
     readonly property real lyricsLeadHeightDivisor: 12
     readonly property real lyricsLeadWidthDivisor: 11
+    readonly property real lyricsLineInactiveScale: 0.8
+    readonly property real lyricsLineInactiveAlpha: 0.4
+    readonly property real lyricsRestAlpha: 0.35
+    // seconds of cue time the fill is averaged over, so a word sung in a few frames still glides
+    readonly property real lyricsSweepWindow: 0.24
+    // width of the soft edge ahead of the fill, in row heights
+    readonly property real lyricsSweepLead: 0.9
+    readonly property int lyricsLineLinger: 500
+    // a line moves into the centre over this share of the seconds since the line before it, within the bounds
+    readonly property real lyricsMoveShare: 0.3
+    readonly property real lyricsMoveMin: 0.4
+    readonly property real lyricsMoveMax: 1
+    // share of its move a line is on its way before it starts, so it is sung in place
+    readonly property real lyricsLineLeadIn: 0.4
+    // a clock that steps back less than this (s) right after the centre advanced keeps the new row
+    readonly property real lyricsFollowBackstepSlack: 1.5
+    // a far seek scrolls on a critically damped spring that settles in about ten time constants
+    readonly property int lyricsSeekScrollDuration: 650
+    readonly property real lyricsScrollRate: 10000 / lyricsSeekScrollDuration
+    readonly property real lyricsScrollStiffness: lyricsScrollRate * lyricsScrollRate
+    readonly property real lyricsScrollDamping: 2 * lyricsScrollRate
+    // below half a pixel the rounded position no longer moves, so the spring stops there
+    readonly property real lyricsScrollSettleDistance: 0.5
+    readonly property real lyricsScrollSettleSpeed: 10
+    // rows catch up one after another, each a share of the move behind its neighbour
+    readonly property real lyricsTrackPushShare: 0.06
+    readonly property int lyricsTrackMaxPush: 5
+    // a gentle start, so a row that follows its neighbour a step later never closes onto it, and a long settle
+    readonly property var lyricsTrackCurve: [0.25, 0.3, 0.13, 1, 1, 1]
+    readonly property real lyricsBreakGap: 5
+    readonly property real lyricsBreakIndicatorScale: 1.2
+    // below this view width the follow button shows only its icon
+    readonly property real lyricsFollowLabelMinWidth: 240
     readonly property int positionTick: 250
     // a small position correction fades out over about this long (ms) instead of jumping
     readonly property int positionEase: 600
