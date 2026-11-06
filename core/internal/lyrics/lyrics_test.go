@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	duxlyrics "github.com/duxlabs-dev/dux-go/lyrics"
 	"github.com/stretchr/testify/assert"
@@ -50,7 +51,7 @@ func TestLookupUsesSidecarsAndTheServer(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "song.flac"), nil, 0o644))
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "song.lrc"), []byte("[00:01.00]from the sidecar\n"), 0o644))
-	s := New(context.Background(), Config{CacheDir: dir, ConfigDir: dir, Libraries: libs{"loc": localLib{dir}, "srv": serverLib{}},
+	s := New(context.Background(), Config{CacheDir: looseDir(t), ConfigDir: dir, Libraries: libs{"loc": localLib{dir}, "srv": serverLib{}},
 		Publish: func(string, any) {}, HasSubscriber: func(string) bool { return false }})
 	var off []Provider
 	for _, p := range defaultProviders() {
@@ -109,7 +110,7 @@ func TestCurrentTrackLyricsAreLazy(t *testing.T) {
 	dir := t.TempDir()
 	events := make(chan Event, 10)
 	watching := false
-	s := New(context.Background(), Config{CacheDir: dir, ConfigDir: dir, Libraries: libs{"srv": serverLib{}},
+	s := New(context.Background(), Config{CacheDir: looseDir(t), ConfigDir: dir, Libraries: libs{"srv": serverLib{}},
 		Publish: func(_ string, d any) { events <- d.(Event) }, HasSubscriber: func(string) bool { return watching }})
 	_, err := s.providers.set([]Provider{{ID: "lrclib"}, {ID: "betterlyrics"}, {ID: "unison"}, {ID: "lyricsplus"}, {ID: "kugou"}, {ID: "youtubemusic"}})
 	require.NoError(t, err)
@@ -170,7 +171,7 @@ func TestPickPrefersSyncOverOrder(t *testing.T) {
 // The server row turns off like any provider.
 func TestServerLyricsCanBeTurnedOff(t *testing.T) {
 	dir := t.TempDir()
-	s := New(context.Background(), Config{CacheDir: dir, ConfigDir: dir, Libraries: libs{"srv": serverLib{}},
+	s := New(context.Background(), Config{CacheDir: looseDir(t), ConfigDir: dir, Libraries: libs{"srv": serverLib{}},
 		Publish: func(string, any) {}, HasSubscriber: func(string) bool { return false }})
 	var off []Provider
 	for _, p := range defaultProviders() {
@@ -233,14 +234,23 @@ func TestAlignMovesAnOutlierOntoWhatTheOthersAgreeOn(t *testing.T) {
 	}
 }
 
+// looseDir is for a cache: pruning and lookups outlive a test, so it can't be a
+// t.TempDir, which fails when anything writes during its removal.
+func looseDir(t *testing.T) string {
+	t.Helper()
+	dir, err := os.MkdirTemp("", "lyrics-test")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		time.Sleep(100 * time.Millisecond)
+		_ = os.RemoveAll(dir)
+	})
+	return dir
+}
+
 func quietService(t *testing.T, dir string, publish func(string, any), on *bool) *Service {
 	t.Helper()
-	// lookups outlive a test, so their cache can't sit in a t.TempDir that must end up empty
-	cache, err := os.MkdirTemp("", "lyrics-test")
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = os.RemoveAll(cache) })
 	s := &Service{baseCtx: context.Background(), providers: openProviders(filepath.Join(dir, providersFile)), cfg: Config{
-		CacheDir: cache, DataDir: dir, Libraries: libs{"srv": serverLib{}}, Publish: publish,
+		CacheDir: looseDir(t), DataDir: dir, Libraries: libs{"srv": serverLib{}}, Publish: publish,
 		HasSubscriber: func(string) bool { return true },
 		Enabled:       func() bool { return on == nil || *on }}}
 	s.client = s.newClient(s.cacheDir())
@@ -249,7 +259,7 @@ func quietService(t *testing.T, dir string, publish func(string, any), on *bool)
 	for _, p := range defaultProviders() {
 		off = append(off, Provider{ID: p.ID, Enabled: p.ID == ServerSource})
 	}
-	_, err = s.providers.set(off)
+	_, err := s.providers.set(off)
 	require.NoError(t, err)
 	return s
 }
