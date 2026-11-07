@@ -85,6 +85,20 @@ cat >>"$W/tree/shell.qml" <<'Q'
             walk(settingsLoader.item?.contentItem);
             return faults.join("\n");
         }
+        // the time, then the middle of every lyrics line as drawn on screen, top to bottom
+        function lyricsRows(): string {
+            const rows = [];
+            const walk = item => {
+                if (!item || !item.visible)
+                    return;
+                if (item.layout?.part)
+                    rows.push(item.mapToItem(null, 0, item.height / 2).y);
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(windowLoader.item?.contentItem);
+            return Date.now() + " " + rows.sort((a, b) => a - b).join(" ");
+        }
         function customize(surface: string): void {
             Router.customize(surface);
         }
