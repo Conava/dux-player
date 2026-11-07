@@ -41,6 +41,53 @@ cat >>"$W/tree/shell.qml" <<'Q'
             else
                 Router.nowPlayingOpen = false;
         }
+        function focusSearch(): void {
+            Router.pageSearch.forceActiveFocus();
+        }
+        function searchText(): string {
+            return Router.pageSearch?.text ?? "";
+        }
+        function elementOptions(id: string): void {
+            const find = item => {
+                if (!item)
+                    return null;
+                if (item.optionsId !== undefined)
+                    return item;
+                for (const child of item.children) {
+                    const found = find(child);
+                    if (found)
+                        return found;
+                }
+                return null;
+            };
+            find(settingsLoader.item?.contentItem).optionsId = id;
+        }
+        // every row that shows: in a group, and rounded by where it sits on screen. One line per fault.
+        function cornerFaults(): string {
+            const faults = [];
+            const walk = item => {
+                if (!item || !item.visible)
+                    return;
+                if (item.isSettingsRow === true && item.parent?.isSettingsGroup !== true)
+                    faults.push("outside a group: " + item.title);
+                if (item.isSettingsGroup === true) {
+                    const rows = Array.from(item.children).filter(c => c.visible && c.isSettingsRow === true).sort((a, b) => a.y - b.y);
+                    rows.forEach((row, i) => {
+                        const top = i === 0 ? Theme.groupedListOuterRadius : Theme.groupedListInnerRadius;
+                        const bottom = i === rows.length - 1 ? Theme.groupedListOuterRadius : Theme.groupedListInnerRadius;
+                        if (row.topRadius !== top || row.bottomRadius !== bottom)
+                            faults.push("corners of " + row.title + ": " + row.topRadius + "/" + row.bottomRadius + ", wanted " + top + "/" + bottom);
+                    });
+                }
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(settingsLoader.item?.contentItem);
+            return faults.join("\n");
+        }
+        function customize(surface: string): void {
+            Router.customize(surface);
+        }
         function settings(page: string): void {
             Router.openSettings(page);
         }

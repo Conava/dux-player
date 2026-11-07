@@ -138,7 +138,7 @@ expand false
 # 5. Customized: a tracks page with custom columns and its editor, and a full view with other elements
 look dark bento
 go tracks
-ui pageOptions tracks '{"lines":["artist","album","rating","custom:c1"],"lineOptions":{"title":{"size":0.4},"artist":{"size":3},"album":{"size":3},"custom:c1":{"size":2,"title":"Style","template":"%genre%"}}}'
+ui pageOptions tracks '{"lines":["artist","album","rating","custom:c1"],"lineOptions":{"artist":{"size":1.5},"album":{"size":1.5},"custom:c1":{"size":2,"title":"Style","template":"%genre%"}}}'
 sleep 1
 cap tracks
 ui edit tracks
@@ -157,26 +157,32 @@ cap now-playing-custom
 
 # 6. The sources and outputs it works with, as plain text on generic icons (no third-party logos)
 cat >"$W/out/sources.svg" <<'S'
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="560" viewBox="0 0 1600 560" font-family="Adwaita Sans, Noto Sans, sans-serif">
-<rect width="1600" height="560" rx="44" fill="#1d1b24"/>
-<g fill="#b8b2c4" font-size="26" font-weight="600" letter-spacing="3"><text x="60" y="84">LIBRARIES</text><text x="1200" y="84">OUTPUT</text></g>
-<line x1="1170" y1="120" x2="1170" y2="500" stroke="#3a3645" stroke-width="3"/>
-<g fill="#2b2833"><rect x="60" y="116" width="340" height="384" rx="36"/><rect x="430" y="116" width="340" height="384" rx="36"/><rect x="800" y="116" width="340" height="384" rx="36"/><rect x="1200" y="116" width="340" height="384" rx="36"/></g>
-<g><circle cx="230" cy="226" r="62" fill="#f97316"/><circle cx="600" cy="226" r="62" fill="#6366f1"/><circle cx="970" cy="226" r="62" fill="#10b981"/><circle cx="1370" cy="226" r="62" fill="#ec4899"/></g>
+<svg xmlns="http://www.w3.org/2000/svg" width="2520" height="560" viewBox="0 0 2520 560" font-family="Adwaita Sans, Noto Sans, sans-serif">
+<rect width="2520" height="560" rx="44" fill="#1d1b24"/>
+<g fill="#b8b2c4" font-size="26" font-weight="600" letter-spacing="3"><text x="60" y="84">LIBRARIES</text><text x="1130" y="84">OUTPUT</text></g>
+<line x1="1090" y1="120" x2="1090" y2="500" stroke="#3a3645" stroke-width="3"/>
+<g fill="#2b2833"><rect x="60" y="116" width="310" height="384" rx="36"/><rect x="400" y="116" width="310" height="384" rx="36"/><rect x="740" y="116" width="310" height="384" rx="36"/><rect x="1130" y="116" width="310" height="384" rx="36"/><rect x="1470" y="116" width="310" height="384" rx="36"/><rect x="1810" y="116" width="310" height="384" rx="36"/><rect x="2150" y="116" width="310" height="384" rx="36"/></g>
+<g><circle cx="215" cy="226" r="62" fill="#f97316"/><circle cx="555" cy="226" r="62" fill="#6366f1"/><circle cx="895" cy="226" r="62" fill="#10b981"/><circle cx="1285" cy="226" r="62" fill="#0ea5e9"/><circle cx="1625" cy="226" r="62" fill="#8b5cf6"/><circle cx="1965" cy="226" r="62" fill="#14b8a6"/><circle cx="2305" cy="226" r="62" fill="#ec4899"/></g>
 <g fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
-<path transform="translate(230 226)" d="M-32,-22 h22 l10,12 h34 v40 h-66 z"/>
-<g transform="translate(600 226)"><rect x="-32" y="-32" width="64" height="28" rx="8"/><rect x="-32" y="4" width="64" height="28" rx="8"/></g>
-<g transform="translate(970 226)"><rect x="-34" y="-28" width="68" height="56" rx="10"/><path d="M-8,-12 L14,0 L-8,12 Z"/></g>
-<g transform="translate(1370 226)"><path d="M-34,-4 v-20 a6,6 0 0 1 6,-6 h56 a6,6 0 0 1 6,6 v48 a6,6 0 0 1 -6,6 h-18"/><path d="M-34,12 a18,18 0 0 1 18,18 M-34,-2 a32,32 0 0 1 32,32"/></g>
+<path transform="translate(215 226)" d="M-32,-22 h22 l10,12 h34 v40 h-66 z"/>
+<g transform="translate(555 226)"><rect x="-32" y="-32" width="64" height="28" rx="8"/><rect x="-32" y="4" width="64" height="28" rx="8"/></g>
+<g transform="translate(895 226)"><rect x="-34" y="-28" width="68" height="56" rx="10"/><path d="M-8,-12 L14,0 L-8,12 Z"/></g>
+<g transform="translate(1285 226)"><rect x="-24" y="-32" width="48" height="64" rx="10"/><circle cx="0" cy="12" r="10"/><circle cx="0" cy="-14" r="3"/></g>
+<g transform="translate(1625 226)"><path d="M-30,10 v-10 a30,30 0 0 1 60,0 v10"/><rect x="-38" y="2" width="14" height="30" rx="6"/><rect x="24" y="2" width="14" height="30" rx="6"/></g>
+<g transform="translate(1965 226)"><rect x="-38" y="-28" width="32" height="56" rx="8"/><rect x="6" y="-28" width="32" height="56" rx="8"/><circle cx="-22" cy="12" r="6"/><circle cx="22" cy="12" r="6"/></g>
+<g transform="translate(2305 226)"><path d="M-34,-4 v-20 a6,6 0 0 1 6,-6 h56 a6,6 0 0 1 6,6 v48 a6,6 0 0 1 -6,6 h-18"/><path d="M-34,12 a18,18 0 0 1 18,18 M-34,-2 a32,32 0 0 1 32,32"/></g>
 </g>
-<g fill="#fff" stroke="none"><circle cx="587" cy="238" r="4"/><circle cx="587" cy="210" r="4"/></g>
-<g fill="#e6e1ec" font-size="36" font-weight="700" text-anchor="middle">
-<text x="230" y="352">Local folders</text><text x="600" y="352">(Open)Subsonic</text><text x="970" y="352">Jellyfin</text><text x="1370" y="352">Chromecast</text></g>
-<g fill="#b8b2c4" font-size="25" text-anchor="middle">
-<text x="230" y="402">Music on disk with</text><text x="230" y="436">tags, art and lyric files</text>
-<text x="600" y="402">Servers such as</text><text x="600" y="436">Navidrome</text>
-<text x="970" y="402">Music libraries,</text><text x="970" y="436">with Quick Connect</text>
-<text x="1370" y="402">Play on Cast devices</text><text x="1370" y="436">on the network</text></g>
+<g fill="#fff" stroke="none"><circle cx="542" cy="238" r="4"/><circle cx="542" cy="210" r="4"/></g>
+<g fill="#e6e1ec" font-size="32" font-weight="700" text-anchor="middle">
+<text x="215" y="352">Local folders</text><text x="555" y="352">(Open)Subsonic</text><text x="895" y="352">Jellyfin</text><text x="1285" y="352">System default</text><text x="1625" y="352">Chosen device</text><text x="1965" y="352">Several at once</text><text x="2305" y="352">Chromecast</text></g>
+<g fill="#b8b2c4" font-size="24" text-anchor="middle">
+<text x="215" y="402">Music on disk with</text><text x="215" y="436">tags, art and lyric files</text>
+<text x="555" y="402">Servers such as</text><text x="555" y="436">Navidrome</text>
+<text x="895" y="402">Music libraries,</text><text x="895" y="436">with Quick Connect</text>
+<text x="1285" y="402">Follows the output</text><text x="1285" y="436">chosen by the system</text>
+<text x="1625" y="402">Pick one speaker,</text><text x="1625" y="436">headset or DAC</text>
+<text x="1965" y="402">Local outputs in</text><text x="1965" y="436">parallel, with PipeWire</text>
+<text x="2305" y="402">Play on Cast devices</text><text x="2305" y="436">on the network</text></g>
 </svg>
 S
 rsvg-convert "$W/out/sources.svg" -o "$docs/sources.png"
