@@ -26,6 +26,9 @@ Singleton {
     // kinds the daemon can add: local, subsonic, jellyfin
     property var libraryKinds: []
     property var albums: []
+    // counts every replacement of `albums`, so a reload that keeps the length is still noticed
+    property int albumsRevision: 0
+    onAlbumsChanged: albumsRevision++
     property var artists: []
     // tracks seen so far: album pages, playlists, and every page once a full track list is shown
     property var tracks: []

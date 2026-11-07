@@ -176,11 +176,15 @@ Column {
     spacing: Theme.spacingS
     readonly property bool hasContent: source.type === "continue" ? PlayerService.current !== null : items.length > 0
     visible: hasContent
-    // albums arrive after the window opens; the order is drawn once they're in
-    readonly property int albumCount: source.type === "randomAlbums" ? PlayerService.albums.length : 0
-    onAlbumCountChanged: {
-        if (randomOrder.length === 0)
-            randomOrder = PlayerService.shuffled(PlayerService.albums.map(a => a.id));
+    // albums arrive after the window opens and with every scan; new ones go in at random places, the rest keep theirs
+    readonly property int albumsRevision: source.type === "randomAlbums" ? CatalogService.albumsRevision : 0
+    onAlbumsRevisionChanged: {
+        const known = new Set(randomOrder);
+        const order = randomOrder.filter(id => CatalogService.album(id));
+        for (const a of CatalogService.albums)
+            if (!known.has(a.id))
+                order.splice(Math.floor(Math.random() * (order.length + 1)), 0, a.id);
+        randomOrder = order;
     }
 
     // the header and tiles bleed into the page padding so their labels and art line up with the page title

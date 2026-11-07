@@ -133,6 +133,26 @@ cat >>"$W/tree/shell.qml" <<'Q'
             walk(settingsLoader.item?.contentItem);
             return faults.join("\n");
         }
+        // one line per home shelf: type, shown or hidden, item count and the item ids
+        function shelves(): string {
+            const out = [];
+            const walk = item => {
+                if (!item)
+                    return;
+                if (item.modelData?.type !== undefined && item.sourceComponent !== undefined) {
+                    const items = item.item?.items ?? [];
+                    out.push([item.modelData.type, item.visible ? "shown" : "hidden", items.length, items.map(i => i.id).join(",")].join(" "));
+                    return;
+                }
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(Router.pageScroll?.view.contentItem);
+            return out.join("\n");
+        }
+        function headerSearch(mode: string): void {
+            SettingsData.headerSearch = mode;
+        }
         function customize(surface: string): void {
             Router.customize(surface);
         }

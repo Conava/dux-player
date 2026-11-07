@@ -864,9 +864,6 @@ Singleton {
     function refsOf(list) {
         return Catalog.refsOf(list);
     }
-    function shuffled(list) {
-        return Catalog.shuffled(list);
-    }
     function track(ref) {
         return CatalogService.track(ref);
     }
