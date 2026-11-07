@@ -34,7 +34,7 @@ run: deps settings-index dev quit
 	$(BUILD_DIR)/$(DEV_BINARY) show -c $(CURDIR)/$(SHELL_DIR)
 
 # Like run, with the built-in player playing even though mpv is installed.
-run-builtin: dev quit
+run-builtin: deps dev quit
 	DPLAYER_BACKEND=builtin $(BUILD_DIR)/$(DEV_BINARY) show -c $(CURDIR)/$(SHELL_DIR)
 
 # The real app in a nested Hyprland, invisible on the desktop: scripts/headless/run.sh explains it. SCENARIO= picks one.
@@ -45,6 +45,7 @@ headless: deps dev
 RUNTIME_DEPS = qs
 deps:
 	@for c in go $(RUNTIME_DEPS); do command -v $$c >/dev/null || { echo "$$c not found; see Requirements in the README"; exit 1; }; done
+	@test -f $(SHELL_DIR)/DCommon/Widgets/DIcon.qml || { echo "dux-qml-common is missing: run git submodule update --init"; exit 1; }
 
 # Stops the running player: daemon, window, mpv and its PipeWire children.
 quit:

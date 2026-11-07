@@ -66,6 +66,10 @@ func (l *Launcher) ResolveDir(dir string) (string, bool, error) {
 		if info, err := os.Stat(filepath.Join(abs, "shell.qml")); err != nil || info.IsDir() {
 			return "", false, fmt.Errorf("%s has no shell.qml", abs)
 		}
+		// Without it qs only exits with status 255.
+		if _, err := os.Stat(filepath.Join(abs, "DCommon", "Widgets", "DIcon.qml")); err != nil {
+			return "", false, fmt.Errorf("%s has no dux-qml-common: run git submodule update --init", abs)
+		}
 		return abs, false, nil
 	}
 	if !shellembed.Available() {
@@ -119,7 +123,12 @@ func (l *Launcher) Start(dir string) (bool, error) {
 		l.mu.Lock()
 		l.proc = nil
 		l.mu.Unlock()
-		log.Infof("UI exited (%v)", err)
+		var failed *exec.ExitError
+		if errors.As(err, &failed) && failed.ExitCode() > 0 {
+			log.Errorf("the UI failed (%v); the reason is in %s", err, l.cfg.LogPath)
+		} else {
+			log.Infof("UI exited (%v)", err)
+		}
 		if l.cfg.OnExit != nil {
 			l.cfg.OnExit()
 		}
