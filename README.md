@@ -96,6 +96,19 @@ make install
 
 `make help` to list every target.
 
+## Keyboard
+
+These keys are fixed. Space, the arrows and F leave a text field or a control reached with Tab to that control.
+
+| | |
+|---|---|
+| Space | Play or pause. |
+| Left, Right | Seek back or forward 5 seconds. |
+| Ctrl+Left, Ctrl+Right | Previous or next track. |
+| F | Open or close the full now playing view. |
+| Alt+Left, Alt+Right | Back or forward through the pages. |
+| Mouse side buttons | Back or forward through the pages. |
+
 ## Text templates
 
 The Text element of the now-playing surfaces, the Custom text line of track lists and `dplayer status --format` share one syntax:

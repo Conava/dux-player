@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Templates as T
 import Quickshell
 import qs.Common
 import qs.Services
@@ -76,6 +77,57 @@ DFloatingWindow {
 
         // a dialog or sheet is open in this window: it owns the keys and the mouse buttons
         readonly property bool dialogOpen: Escape.top(Router.escapeLayers, l => l.handlesKey && l.owner.visible && l.owner.Window.window === focusScope.Window.window) !== null
+
+        // Player keys: a Shortcut fires before the focused item, so `enabled` is what leaves a key to a field or to a control reached by Tab
+        readonly property Item keyItem: Window.activeFocusItem
+        readonly property bool typing: (keyItem as TextInput) !== null || (keyItem as TextEdit) !== null
+        readonly property bool onSlider: keyItem?.Accessible.role === Accessible.Slider
+        // Tab gives a control visualFocus and a click doesn't; items that aren't Controls only take focus from Tab
+        readonly property bool keyboardHeld: (keyItem as T.Control)?.visualFocus ?? keyItem?.activeFocusOnTab ?? false
+        readonly property bool playerKeys: !dialogOpen && !typing
+        readonly property bool plainKeys: playerKeys && (onSlider || !keyboardHeld)
+        readonly property bool arrowKeys: plainKeys && !onSlider
+        readonly property bool canSeek: PlayerService.current !== null && PlayerService.seekable && PlayerService.duration > 0
+
+        Shortcut {
+            sequence: "Space"
+            enabled: focusScope.plainKeys
+            autoRepeat: false
+            onActivated: PlayerService.toggle()
+        }
+
+        // left is back in right-to-left layouts too, as on the seekbar
+        Shortcut {
+            sequence: "Left"
+            enabled: focusScope.arrowKeys && focusScope.canSeek
+            onActivated: PlayerService.seek(PlayerService.livePosition() - 5)
+        }
+
+        Shortcut {
+            sequence: "Right"
+            enabled: focusScope.arrowKeys && focusScope.canSeek
+            onActivated: PlayerService.seek(PlayerService.livePosition() + 5)
+        }
+
+        Shortcut {
+            sequence: "Ctrl+Left"
+            enabled: focusScope.playerKeys
+            onActivated: PlayerService.previous()
+        }
+
+        Shortcut {
+            sequence: "Ctrl+Right"
+            enabled: focusScope.playerKeys
+            onActivated: PlayerService.next()
+        }
+
+        // with no track the view would hide the page over nothing
+        Shortcut {
+            sequence: "F"
+            enabled: focusScope.plainKeys && (Router.nowPlayingOpen || PlayerService.current !== null)
+            autoRepeat: false
+            onActivated: Router.nowPlayingOpen ? Router.nowPlayingOpen = false : Router.openNowPlaying("")
+        }
 
         // the only Escape shortcut: it closes whatever was opened or focused last (EscapeLayer)
         Shortcut {
