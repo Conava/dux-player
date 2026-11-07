@@ -92,6 +92,8 @@ Column {
     readonly property string size: shelf.options.size ?? "m"
     readonly property real tileWidth: size === "s" ? PlayerMetrics.tileSizeS : size === "l" ? PlayerMetrics.tileSizeL : PlayerMetrics.shelfArtSize
     readonly property int listLimit: size === "s" ? 3 : size === "l" ? 10 : 5
+    // a carousel holds enough tiles to fill its width; grid and list shuffle the shelfLimit they always did
+    readonly property int shownLimit: layout === "carousel" ? Math.max(PlayerMetrics.shelfLimit, Math.ceil(carousel.width / (tileWidth + Theme.spacingS * 2 + Theme.spacingXS))) : PlayerMetrics.shelfLimit
     readonly property int gridRows: size === "s" ? 1 : size === "l" ? 3 : 2
     readonly property var seeAll: {
         switch (source.type) {
@@ -147,7 +149,7 @@ Column {
             PlayerService.playTracks(PlayerService.refsOf(items), index, playContext);
     }
 
-    // An album shelf shuffles the tracks of the albums it shows (up to shelfLimit), one
+    // An album shelf shuffles the tracks of the albums it shows (up to shownLimit), one
     // browse.album per album not loaded yet
     function shuffleAll() {
         // favorites and playlists shuffle in the daemon over all they hold; rankings shuffle what they show
@@ -159,7 +161,7 @@ Column {
             PlayerService.shuffleTracks([], playContext, false);
             return;
         }
-        const albums = items.slice(0, PlayerMetrics.shelfLimit);
+        const albums = items.slice(0, shownLimit);
         let left = albums.length;
         let all = [];
         for (const a of albums)
@@ -265,7 +267,7 @@ Column {
         visible: root.layout === "carousel" && root.source.type !== "continue"
         height: visible ? root.tileWidth + Theme.spacingS * 2 + PlayerMetrics.gridCaptionHeight : 0
         spacing: Theme.spacingXS
-        model: visible ? root.items.slice(0, PlayerMetrics.shelfLimit) : []
+        model: visible ? root.items.slice(0, root.shownLimit) : []
 
         // ends the row where the user is looking
         footer: StyledButton {
