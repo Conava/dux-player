@@ -122,7 +122,11 @@ func (l listenBrainz) submit(ctx context.Context, token string, li Listen, nowPl
 	if li.Duration > 0 {
 		info["duration_ms"] = int(li.Duration * 1000)
 	}
-	meta := map[string]any{"artist_name": li.Artist, "track_name": li.Title, "additional_info": info}
+	credit := strings.ReplaceAll(li.Artist, " • ", ", ")
+	if li.Credit != "" {
+		credit = li.Credit
+	}
+	meta := map[string]any{"artist_name": credit, "track_name": li.Title, "additional_info": info}
 	if li.Album != "" {
 		meta["release_name"] = li.Album
 	}

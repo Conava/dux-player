@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"github.com/duxlabs-dev/dux-go/log"
 
 	"github.com/Conava/dux-player/core/internal/atomicfile"
+	"github.com/Conava/dux-player/core/internal/lastfm"
 	"github.com/Conava/dux-player/core/internal/player"
 	"github.com/Conava/dux-player/core/internal/source"
 )
@@ -62,11 +64,15 @@ type Settings struct {
 	ListenBrainz      Account  `json:"listenbrainz"`
 	LastFM            Account  `json:"lastfm"`
 	DisabledLibraries []string `json:"disabledLibraries"`
+	// ServerOnlyLibraries report to their server and not to the accounts, for a server that forwards plays itself.
+	ServerOnlyLibraries []string `json:"serverOnlyLibraries"`
 }
 
 type Status struct {
 	Settings
 	Queued int `json:"queued"`
+	// LastFMBuiltIn: the app carries its own Last.fm API account, so signing in needs no key.
+	LastFMBuiltIn bool `json:"lastfmBuiltIn"`
 }
 
 type Service struct {
@@ -78,6 +84,8 @@ type Service struct {
 	mu       sync.Mutex
 	settings Settings
 	fmToken  string // a Last.fm token waiting for the user's approval
+	// fmBuiltIn: fmToken came from the built-in account, not a key in the keyring.
+	fmBuiltIn bool
 
 	// now is the track last announced as playing; nowPos its position.
 	now      *source.Track
@@ -148,12 +156,16 @@ func (s *Service) Position(pos float64) {
 
 func (s *Service) Status() Status {
 	s.mu.Lock()
-	st := Status{Settings: s.settings}
+	st := Status{Settings: s.settings, LastFMBuiltIn: lastfm.APIKey != "" && lastfm.APISecret != ""}
 	st.DisabledLibraries = slices.Clone(s.settings.DisabledLibraries)
+	st.ServerOnlyLibraries = slices.Clone(s.settings.ServerOnlyLibraries)
 	st.LastFM.AwaitingApproval = s.fmToken != ""
 	s.mu.Unlock()
 	if st.DisabledLibraries == nil {
 		st.DisabledLibraries = []string{}
+	}
+	if st.ServerOnlyLibraries == nil {
+		st.ServerOnlyLibraries = []string{}
 	}
 	st.Queued = s.queue.len()
 	return st
@@ -166,6 +178,7 @@ func (s *Service) update(fn func(*Settings)) error {
 	s.mu.Lock()
 	next := s.settings
 	next.DisabledLibraries = slices.Clone(s.settings.DisabledLibraries)
+	next.ServerOnlyLibraries = slices.Clone(s.settings.ServerOnlyLibraries)
 	fn(&next)
 	data, err := json.MarshalIndent(next, "", "  ")
 	if err == nil {
@@ -183,21 +196,31 @@ func (s *Service) update(fn func(*Settings)) error {
 }
 
 func listenOf(t source.Track, at time.Time) Listen {
-	return Listen{Library: t.Library, ID: t.ID, Artist: t.Artist, Title: t.Title, Album: t.Album, Duration: t.Duration, PlayedAt: at.UTC()}
+	l := Listen{Library: t.Library, ID: t.ID, Artist: t.Artist, Title: t.Title, Album: t.Album, Duration: t.Duration, PlayedAt: at.UTC()}
+	var names []string
+	for _, a := range t.Artists {
+		if a.Name != "" {
+			names = append(names, a.Name)
+		}
+	}
+	if len(names) > 0 {
+		l.Artist, l.Credit = names[0], strings.Join(names, ", ")
+	}
+	return l
 }
 
-// targets says where a track's plays go: its server when it scrobbles,
-// nowhere for a server that doesn't, else the enabled accounts.
-func (s *Service) targets(src source.Source) []string {
+// targets says where a track's plays go: its server when it scrobbles, and
+// the enabled accounts unless the library keeps its plays on the server.
+func (s *Service) targets(src source.Source, library string) []string {
+	var out []string
 	if slices.Contains(source.Capabilities(src), source.CapScrobble) {
-		return []string{targetLibrary}
-	}
-	if _, server := src.(source.Pinger); server {
-		return nil
+		out = append(out, targetLibrary)
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	var out []string
+	if slices.Contains(s.settings.ServerOnlyLibraries, library) {
+		return out
+	}
 	if a := s.settings.ListenBrainz; a.Connected && a.Enabled {
 		out = append(out, ListenBrainz)
 	}
@@ -222,7 +245,7 @@ func (s *Service) report(t source.Track, nowPlaying bool, at time.Time) {
 	if err != nil {
 		// The library is down (server, unmounted drive): decide later.
 		if !nowPlaying {
-			s.queue.add(pending{Target: targetLibrary, Listen: li})
+			s.queue.add(pending{Target: targetUnknown, Listen: li})
 			s.publish()
 		}
 		return
@@ -234,11 +257,14 @@ func (s *Service) report(t source.Track, nowPlaying bool, at time.Time) {
 // failed for a reason that may pass.
 func (s *Service) deliver(src source.Source, li Listen, nowPlaying bool) {
 	sent, queued := false, false
-	for _, target := range s.targets(src) {
+	for _, target := range s.targets(src, li.Library) {
 		err := s.send(s.ctx, src, target, li, nowPlaying)
 		switch {
 		case err == nil:
 			sent = true
+			if !nowPlaying {
+				log.Infof("scrobbled %q to %s", li.Title, target)
+			}
 		case nowPlaying:
 			log.Debugf("now playing to %s: %v", target, err)
 		case permanent(err):
@@ -297,12 +323,15 @@ func (s *Service) fmKeys() (lastFMKeys, error) {
 	return k, err
 }
 
-// apiKeys is the user's Last.fm API account from the keyring.
+// apiKeys is the user's own Last.fm API account from the keyring, else the built-in one.
 func (s *Service) apiKeys() (lastFMKeys, error) {
 	key, kerr := s.cfg.Secrets.Get(secretsFM, "apiKey")
 	secret, serr := s.cfg.Secrets.Get(secretsFM, "apiSecret")
 	if kerr == nil && serr == nil && key != "" && secret != "" {
 		return lastFMKeys{key: key, secret: secret}, nil
+	}
+	if lastfm.APIKey != "" && lastfm.APISecret != "" {
+		return lastFMKeys{key: lastfm.APIKey, secret: lastfm.APISecret}, nil
 	}
 	return lastFMKeys{}, errors.Join(kerr, serr, errors.New("no Last.fm API key"))
 }
@@ -321,9 +350,8 @@ func (s *Service) Flush() {
 		if err != nil {
 			continue
 		}
-		if p.Target == targetLibrary && !slices.Contains(source.Capabilities(src), source.CapScrobble) {
-			// Queued while its library was down; it turned out not to be a
-			// scrobbling server.
+		if p.Target == targetUnknown || p.Target == targetLibrary && !slices.Contains(source.Capabilities(src), source.CapScrobble) {
+			// Queued while its library was down, so where it goes is decided now.
 			done = append(done, p)
 			s.deliver(src, p.Listen, false)
 			continue

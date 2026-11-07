@@ -17,9 +17,13 @@ const maxQueued = 1000
 
 // Listen is one play, with what the services need to identify it.
 type Listen struct {
-	Library  string    `json:"library"`
-	ID       string    `json:"id"`
-	Artist   string    `json:"artist"`
+	Library string `json:"library"`
+	ID      string `json:"id"`
+	Artist  string `json:"artist"`
+	// Credit is every artist joined for ListenBrainz; Artist is the primary
+	// one, which is all Last.fm takes. Plays queued before this field have
+	// only Artist.
+	Credit   string    `json:"credit,omitempty"`
 	Title    string    `json:"title"`
 	Album    string    `json:"album,omitempty"`
 	Duration float64   `json:"duration,omitempty"`
@@ -34,6 +38,10 @@ type pending struct {
 }
 
 const targetLibrary = "library"
+
+// targetUnknown is a play whose library was down: it goes wherever that
+// library's plays go once it is back.
+const targetUnknown = "unknown"
 
 // queue is the persisted list of plays waiting to be sent.
 type queue struct {

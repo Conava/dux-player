@@ -5,6 +5,8 @@ import (
 	"errors"
 	"slices"
 	"strings"
+
+	"github.com/Conava/dux-player/core/internal/lastfm"
 )
 
 var errService = errors.New("service must be listenbrainz or lastfm")
@@ -26,10 +28,14 @@ func (s *Service) ConnectListenBrainz(ctx context.Context, token string) error {
 }
 
 // StartLastFM starts the desktop auth flow with the user's own API account,
-// stored in the keyring. The user approves at the returned page, then
+// stored in the keyring, or with the built-in one when both are empty. The user approves at the returned page, then
 // FinishLastFM gets the session.
 func (s *Service) StartLastFM(ctx context.Context, apiKey, apiSecret string) (string, error) {
 	k := lastFMKeys{key: strings.TrimSpace(apiKey), secret: strings.TrimSpace(apiSecret)}
+	builtIn := k.key == "" && k.secret == "" && lastfm.APIKey != "" && lastfm.APISecret != ""
+	if builtIn {
+		k = lastFMKeys{key: lastfm.APIKey, secret: lastfm.APISecret}
+	}
 	if k.key == "" || k.secret == "" {
 		return "", errors.New("a Last.fm API key and shared secret are required")
 	}
@@ -37,14 +43,17 @@ func (s *Service) StartLastFM(ctx context.Context, apiKey, apiSecret string) (st
 	if err != nil {
 		return "", err
 	}
-	if err := s.cfg.Secrets.Set(secretsFM, "apiKey", k.key); err != nil {
-		return "", err
-	}
-	if err := s.cfg.Secrets.Set(secretsFM, "apiSecret", k.secret); err != nil {
-		return "", err
+	if !builtIn {
+		if err := s.cfg.Secrets.Set(secretsFM, "apiKey", k.key); err != nil {
+			return "", err
+		}
+		if err := s.cfg.Secrets.Set(secretsFM, "apiSecret", k.secret); err != nil {
+			return "", err
+		}
 	}
 	s.mu.Lock()
 	s.fmToken = token
+	s.fmBuiltIn = builtIn
 	s.mu.Unlock()
 	s.publish()
 	return page, nil
@@ -52,20 +61,30 @@ func (s *Service) StartLastFM(ctx context.Context, apiKey, apiSecret string) (st
 
 func (s *Service) FinishLastFM(ctx context.Context) error {
 	s.mu.Lock()
-	token := s.fmToken
+	token, builtIn := s.fmToken, s.fmBuiltIn
 	s.mu.Unlock()
 	if token == "" {
 		return errors.New("start the Last.fm sign-in first")
 	}
-	k, err := s.apiKeys()
-	if err != nil {
-		return err
+	k := lastFMKeys{key: lastfm.APIKey, secret: lastfm.APISecret}
+	if !builtIn {
+		var err error
+		if k, err = s.apiKeys(); err != nil {
+			return err
+		}
 	}
 	user, session, err := s.fm.session(ctx, k, token)
 	if err != nil {
 		// Not approved yet keeps the token for another try; Last.fm says
 		// code 14 then.
 		return err
+	}
+	if builtIn {
+		// A stored key of the user's would win over the built-in one, and only
+		// goes now that the sign-in it gives way to has been approved.
+		if err := s.cfg.Secrets.Delete(secretsFM); err != nil {
+			return err
+		}
 	}
 	if err := s.cfg.Secrets.Set(secretsFM, "session", session); err != nil {
 		return err
@@ -130,6 +149,19 @@ func (s *Service) SetEnabled(service string, on bool) error {
 			a = &st.LastFM
 		}
 		a.Enabled = on && a.Connected
+	})
+}
+
+// SetLibraryAccounts says whether a server library's plays also go to the accounts.
+func (s *Service) SetLibraryAccounts(id string, on bool) error {
+	if id == "" {
+		return errors.New("library is required")
+	}
+	return s.update(func(st *Settings) {
+		st.ServerOnlyLibraries = slices.DeleteFunc(st.ServerOnlyLibraries, func(x string) bool { return x == id })
+		if !on {
+			st.ServerOnlyLibraries = append(st.ServerOnlyLibraries, id)
+		}
 	})
 }
 

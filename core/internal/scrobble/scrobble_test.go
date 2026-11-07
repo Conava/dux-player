@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sort"
@@ -16,6 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/Conava/dux-player/core/internal/lastfm"
 	"github.com/Conava/dux-player/core/internal/player"
 	"github.com/Conava/dux-player/core/internal/source"
 )
@@ -81,6 +83,7 @@ func (l libs) Get(id string) (source.Source, error) {
 type fakeServices struct {
 	mu      sync.Mutex
 	lb, fm  []string
+	artists []string
 	offline bool
 }
 
@@ -95,7 +98,8 @@ func (f *fakeServices) handler(t *testing.T) http.Handler {
 			ListenType string `json:"listen_type"`
 			Payload    []struct {
 				Meta struct {
-					Track string `json:"track_name"`
+					Track  string `json:"track_name"`
+					Artist string `json:"artist_name"`
 				} `json:"track_metadata"`
 			} `json:"payload"`
 		}
@@ -107,6 +111,8 @@ func (f *fakeServices) handler(t *testing.T) http.Handler {
 			return
 		}
 		f.lb = append(f.lb, body.ListenType+" "+body.Payload[0].Meta.Track)
+		m := body.Payload[0].Meta
+		f.artists = append(f.artists, fmt.Sprintf("lb %s %q", body.ListenType, m.Artist))
 	})
 	mux.HandleFunc("/2.0/", func(w http.ResponseWriter, r *http.Request) {
 		require.NoError(t, r.ParseForm())
@@ -140,6 +146,7 @@ func (f *fakeServices) handler(t *testing.T) http.Handler {
 			}
 			f.mu.Lock()
 			f.fm = append(f.fm, p.Get("method")+" "+p.Get("track"))
+			f.artists = append(f.artists, "fm "+p.Get("method")+" "+p.Get("artist"))
 			f.mu.Unlock()
 			_ = json.NewEncoder(w).Encode(map[string]any{})
 		}
@@ -202,9 +209,17 @@ func TestPlaysGoToTheRightPlace(t *testing.T) {
 	s.report(track("srv", "server song"), false, time.Now())
 	s.report(track("mute", "unscrobbled server song"), false, time.Now())
 	lb, fm := f.take()
-	assert.Equal(t, []string{"single local song"}, lb)
-	assert.Equal(t, []string{"track.scrobble local song"}, fm)
-	assert.Equal(t, []string{"server song"}, server.plays, "server tracks go to their server only")
+	assert.Equal(t, []string{"single local song", "single server song", "single unscrobbled server song"}, lb)
+	assert.Equal(t, []string{"track.scrobble local song", "track.scrobble server song", "track.scrobble unscrobbled server song"}, fm)
+	assert.Equal(t, []string{"server song"}, server.plays, "the server hears of its plays as well")
+
+	require.NoError(t, s.SetLibraryAccounts("srv", false))
+	s.report(track("srv", "kept on the server"), false, time.Now())
+	lb, fm = f.take()
+	assert.Empty(t, lb)
+	assert.Empty(t, fm)
+	assert.Equal(t, []string{"server song", "kept on the server"}, server.plays)
+	require.NoError(t, s.SetLibraryAccounts("srv", true))
 
 	require.NoError(t, s.SetLibrary("loc", false))
 	s.report(track("loc", "muted library"), false, time.Now())
@@ -272,19 +287,6 @@ func TestNowPlaying(t *testing.T) {
 	assert.Equal(t, []string{"playing_now a", "playing_now a", "playing_now b", "single b"}, got)
 }
 
-func TestLastFMKeysAreTheUsers(t *testing.T) {
-	sec := memSecrets{}
-	s := &Service{cfg: Config{Secrets: sec}}
-
-	_, err := s.apiKeys()
-	assert.Error(t, err, "no key stored")
-
-	sec[secretsFM+"/apiKey"], sec[secretsFM+"/apiSecret"] = "mine", "minesecret"
-	k, err := s.apiKeys()
-	require.NoError(t, err)
-	assert.Equal(t, lastFMKeys{key: "mine", secret: "minesecret"}, k)
-}
-
 // A play the server took shows in its index at once; a play that only went
 // to the online services isn't the index's business.
 func TestServerPlayIsCounted(t *testing.T) {
@@ -296,4 +298,125 @@ func TestServerPlayIsCounted(t *testing.T) {
 	s.report(track("srv", "song"), false, time.Now())
 	s.report(track("loc", "other"), false, time.Now())
 	assert.Equal(t, []string{"srv/song"}, counted)
+}
+
+func TestLastFMBuiltInAccount(t *testing.T) {
+	old, oldSecret := lastfm.APIKey, lastfm.APISecret
+	t.Cleanup(func() { lastfm.APIKey, lastfm.APISecret = old, oldSecret })
+	ctx := context.Background()
+	start := func(t *testing.T, builtIn bool, key, secret string, stored map[string]string) (*Service, string, error) {
+		lastfm.APIKey, lastfm.APISecret = "", ""
+		if builtIn {
+			lastfm.APIKey, lastfm.APISecret = "builtin", "shh"
+		}
+		dir := t.TempDir()
+		for k, v := range stored {
+			secrets(t, dir)[secretsFM+"/"+k] = v
+		}
+		s := newTestService(t, libs{}, &fakeServices{}, dir)
+		page, err := s.StartLastFM(ctx, key, secret)
+		return s, page, err
+	}
+
+	t.Run("built-in", func(t *testing.T) {
+		s, page, err := start(t, true, "", "", nil)
+		require.NoError(t, err)
+		assert.Equal(t, "https://auth.example/?api_key=builtin&token=tok", page)
+		assert.True(t, s.Status().LastFMBuiltIn)
+		require.NoError(t, s.FinishLastFM(ctx))
+		assert.True(t, s.Status().LastFM.Connected)
+	})
+	t.Run("own key wins", func(t *testing.T) {
+		s, page, err := start(t, true, "mine", "shh", nil)
+		require.NoError(t, err)
+		assert.Equal(t, "https://auth.example/?api_key=mine&token=tok", page)
+		require.NoError(t, s.FinishLastFM(ctx))
+		k, err := s.apiKeys()
+		require.NoError(t, err)
+		assert.Equal(t, "mine", k.key)
+	})
+	stale := map[string]string{"apiKey": "old", "apiSecret": "old2"}
+	t.Run("an abandoned built-in sign-in keeps the own key", func(t *testing.T) {
+		s, _, err := start(t, true, "", "", stale)
+		require.NoError(t, err)
+		k, err := s.apiKeys()
+		require.NoError(t, err)
+		assert.Equal(t, "old", k.key)
+	})
+	t.Run("a finished built-in sign-in replaces the own key", func(t *testing.T) {
+		s, _, err := start(t, true, "", "", stale)
+		require.NoError(t, err)
+		require.NoError(t, s.FinishLastFM(ctx))
+		k, err := s.fmKeys()
+		require.NoError(t, err)
+		assert.Equal(t, "builtin", k.key)
+		assert.Equal(t, "sess", k.session)
+	})
+	t.Run("none", func(t *testing.T) {
+		s, _, err := start(t, false, "", "", nil)
+		require.Error(t, err)
+		assert.False(t, s.Status().LastFMBuiltIn)
+	})
+}
+
+// A play from a library that was down goes wherever that library's plays go once it is back.
+func TestPlayFromADownLibraryReachesEveryTarget(t *testing.T) {
+	ctx := context.Background()
+	f := &fakeServices{}
+	server := &serverSource{localSource: localSource{"srv"}}
+	l := libs{}
+	s := newTestService(t, l, f, t.TempDir())
+	require.NoError(t, s.ConnectListenBrainz(ctx, "good"))
+
+	s.report(track("srv", "offline song"), false, time.Now())
+	require.Equal(t, 1, s.Status().Queued)
+
+	l["srv"] = server
+	s.Flush()
+	lb, _ := f.take()
+	assert.Equal(t, []string{"single offline song"}, lb)
+	assert.Equal(t, []string{"offline song"}, server.plays)
+	assert.Zero(t, s.Status().Queued)
+}
+
+func TestServicesGetTheRightArtist(t *testing.T) {
+	ctx := context.Background()
+	two := track("loc", "duo")
+	two.Artist = "Galactixx • Zany"
+	two.Artists = []source.ArtistRef{{Name: "Galactixx"}, {Name: "Zany"}}
+	bare := track("loc", "bare")
+	bare.Artist = "Galactixx • Zany"
+	solo := track("loc", "solo")
+	solo.Artist = "Solo"
+
+	cases := []struct {
+		name string
+		tr   source.Track
+		want []string
+	}{
+		{"two artists", two, []string{
+			`lb single "Galactixx, Zany"`, "fm track.scrobble Galactixx",
+			`lb playing_now "Galactixx, Zany"`, "fm track.updateNowPlaying Galactixx"}},
+		{"no artist list", bare, []string{
+			`lb single "Galactixx, Zany"`, "fm track.scrobble Galactixx • Zany",
+			`lb playing_now "Galactixx, Zany"`, "fm track.updateNowPlaying Galactixx • Zany"}},
+		{"one artist", solo, []string{
+			`lb single "Solo"`, "fm track.scrobble Solo",
+			`lb playing_now "Solo"`, "fm track.updateNowPlaying Solo"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			f := &fakeServices{}
+			s := newTestService(t, libs{"loc": localSource{"loc"}}, f, t.TempDir())
+			require.NoError(t, s.ConnectListenBrainz(ctx, "good"))
+			_, err := s.StartLastFM(ctx, "key", "shh")
+			require.NoError(t, err)
+			require.NoError(t, s.FinishLastFM(ctx))
+			s.report(c.tr, false, time.Now())
+			s.report(c.tr, true, time.Now())
+			f.mu.Lock()
+			defer f.mu.Unlock()
+			assert.ElementsMatch(t, c.want, f.artists)
+		})
+	}
 }

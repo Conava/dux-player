@@ -45,6 +45,8 @@ func Register(r *ipc.Registry, svc func() *Service) {
 			err = s.SetEnabled(service, params.BoolLoose(p, "enabled"))
 		case "scrobble.setLibrary":
 			err = s.SetLibrary(ipc.Str(p, "library"), params.BoolLoose(p, "enabled"))
+		case "scrobble.setLibraryAccounts":
+			err = s.SetLibraryAccounts(ipc.Str(p, "library"), params.BoolLoose(p, "enabled"))
 		}
 		if err != nil {
 			w.RespondError(req.ID, err.Error())
@@ -56,11 +58,12 @@ func Register(r *ipc.Registry, svc func() *Service) {
 		w.Respond(req.ID, result)
 	},
 		ipc.MethodSpec{Name: "scrobble.status", Desc: "Scrobbling accounts, per-library switches and queued plays", Read: true},
-		ipc.MethodSpec{Name: "scrobble.connect", Desc: "Set up an account; Last.fm returns the page to approve it on", Params: []ipc.ParamSpec{ipc.Req("service", "listenbrainz|lastfm"), ipc.Opt("token", "ListenBrainz user token"), ipc.Opt("apiKey", "Last.fm API key, required for lastfm"), ipc.Opt("apiSecret", "Last.fm shared secret, required for lastfm")}},
+		ipc.MethodSpec{Name: "scrobble.connect", Desc: "Set up an account; Last.fm returns the page to approve it on", Params: []ipc.ParamSpec{ipc.Req("service", "listenbrainz|lastfm"), ipc.Opt("token", "ListenBrainz user token"), ipc.Opt("apiKey", "Last.fm API key; with the apiSecret, replaces the built-in account"), ipc.Opt("apiSecret", "Last.fm shared secret; needed with apiKey")}},
 		ipc.MethodSpec{Name: "scrobble.finishAuth", Desc: "Finish the Last.fm sign-in after approving it in the browser"},
 		ipc.MethodSpec{Name: "scrobble.disconnect", Desc: "Forget an account", Params: []ipc.ParamSpec{ipc.Req("service", "listenbrainz|lastfm")}},
 		ipc.MethodSpec{Name: "scrobble.test", Desc: "Check an account's credentials", Params: []ipc.ParamSpec{ipc.Req("service", "listenbrainz|lastfm")}},
 		ipc.MethodSpec{Name: "scrobble.setEnabled", Desc: "Turn scrobbling to an account on or off", Params: []ipc.ParamSpec{ipc.Req("service", "listenbrainz|lastfm"), ipc.Req("enabled", "true|false")}},
 		ipc.MethodSpec{Name: "scrobble.setLibrary", Desc: "Scrobble plays from a library or not", Params: []ipc.ParamSpec{ipc.Req("library", ""), ipc.Req("enabled", "true|false")}},
+		ipc.MethodSpec{Name: "scrobble.setLibraryAccounts", Desc: "Send a server library's plays to the accounts too or not", Params: []ipc.ParamSpec{ipc.Req("library", ""), ipc.Req("enabled", "true|false")}},
 	)
 }
