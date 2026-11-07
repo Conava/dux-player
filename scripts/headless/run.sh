@@ -95,6 +95,14 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function searchText(): string {
             return Router.pageSearch?.text ?? "";
         }
+        // the dialog holding the keyboard focus while closed, "" for none
+        function closedDialogFocus(): string {
+            for (let item = Router.pageScroll?.view.Window.activeFocusItem ?? null; item; item = item.parent) {
+                if (item.embedded === false && item.opened === false)
+                    return String(item);
+            }
+            return "";
+        }
         function elementOptions(id: string): void {
             const find = item => {
                 if (!item)

@@ -13,6 +13,9 @@ DDialog {
     z: Theme.zDialog
     embedded: false
     opened: false
+    // DDialog's root stays visible while closed, so with its focus: true a new page's dialog would take the window's
+    // focus and every key with it
+    focus: opened
 
     // Out of the window before the page's context goes: a Loader deletes the page later, and until then the
     // dialog's focus handlers would still run in the dead context ("invalid context" warnings).
