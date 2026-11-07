@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"math/rand/v2"
@@ -388,7 +389,7 @@ func TestFitFindsTheVocals(t *testing.T) {
 	}
 	found, err := attacks(bytes.NewReader(stereo(sung, guitar, 44)))
 	require.NoError(t, err)
-	shift, confidence := fit(words, found)
+	shift, confidence := fit(words, found, fitReach)
 	assert.InDelta(t, 0.9, shift, 0.025)
 	assert.GreaterOrEqual(t, confidence, float64(fitConfidence))
 
@@ -396,7 +397,7 @@ func TestFitFindsTheVocals(t *testing.T) {
 	for i := range quiet {
 		quiet[i] = random.Float64()
 	}
-	_, confidence = fit(words, quiet)
+	_, confidence = fit(words, quiet, fitReach)
 	assert.Less(t, confidence, float64(fitConfidence), "noise fits nothing")
 }
 
@@ -445,6 +446,86 @@ func TestAudioFitMovesWordTiming(t *testing.T) {
 	res.Source = duxlyrics.LRCLIB
 	_, ok = s.fitted(context.Background(), track, res)
 	assert.False(t, ok, "off in settings")
+}
+
+// Lines every few seconds, as sung.
+func lineTimes(random *rand.Rand, count int) []float64 {
+	var out []float64
+	at := 6.0
+	for range count {
+		out = append(out, at)
+		at += 3 + random.Float64()*2
+	}
+	return out
+}
+
+func TestLineFit(t *testing.T) {
+	random := rand.New(rand.NewPCG(5, 6))
+	lines := lineTimes(random, 48)
+	moved := func(by func(i int) float64) []float64 {
+		out := make([]float64, len(lines))
+		for i, at := range lines {
+			out[i] = at + by(i)
+		}
+		return out
+	}
+	noise := make([]float64, 12000)
+	for i := range noise {
+		noise[i] = random.Float64()
+	}
+	onset := func(sung []float64) []float64 {
+		found, err := attacks(bytes.NewReader(stereo(sung, nil, 240)))
+		require.NoError(t, err)
+		return found
+	}
+	shift, ok := fitLines(lines, onset(moved(func(int) float64 { return 3 })))
+	assert.True(t, ok, "past the reach of the word fit")
+	assert.InDelta(t, 3, shift, 0.05)
+
+	_, ok = fitLines(lines, onset(moved(func(i int) float64 {
+		if i < len(lines)/2 {
+			return 3
+		}
+		return -2
+	})))
+	assert.False(t, ok, "a song that doesn't hold one shift moves nothing")
+
+	_, ok = fitLines(lines, noise)
+	assert.False(t, ok, "noise fits nothing")
+}
+
+func TestLineFitCarriesItsShiftToTheShownSource(t *testing.T) {
+	s := quietService(t, t.TempDir(), func(string, any) {}, nil)
+	random := rand.New(rand.NewPCG(7, 8))
+	starts := lineTimes(random, 48)
+	sung := make([]float64, len(starts))
+	reference := make([]duxlyrics.Line, len(starts))
+	var shown []duxlyrics.Line
+	for i, at := range starts {
+		sung[i] = at + 3
+		text := fmt.Sprintf("line %d", i)
+		reference[i] = duxlyrics.Line{Start: duxlyrics.Seconds(at), Text: text}
+		if i < 10 {
+			shown = append(shown, duxlyrics.Line{Start: duxlyrics.Seconds(at - 0.7), Text: text})
+		}
+	}
+	audio := stereo(sung, nil, 240)
+	s.cfg.AudioTiming = func() bool { return true }
+	s.cfg.AudioFile = func(context.Context, source.Ref) (string, bool) { return "/x", true }
+	s.cfg.Decode = func(_ context.Context, _ string, read func(io.Reader) error) error {
+		return read(bytes.NewReader(audio))
+	}
+	track := source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"}
+	top := &duxlyrics.Result{Found: true, Source: duxlyrics.KuGou, Lyrics: duxlyrics.Lyrics{Synced: shown}}
+	line := &duxlyrics.Result{Found: true, Source: duxlyrics.LRCLIB, Lyrics: duxlyrics.Lyrics{Synced: reference}}
+
+	shift, ok := s.linesFitted(context.Background(), track, top, []*duxlyrics.Result{top, line})
+	require.True(t, ok, "the source that can be measured speaks for the one shown")
+	assert.InDelta(t, 3.7, shift, 0.05)
+
+	own := &duxlyrics.Result{Found: true, Source: duxlyrics.Sidecar, Lyrics: duxlyrics.Lyrics{Synced: shown}}
+	_, ok = s.linesFitted(context.Background(), track, own, []*duxlyrics.Result{own, line})
+	assert.False(t, ok, "a lyrics file of the user's own is never moved")
 }
 
 type countingLib struct {

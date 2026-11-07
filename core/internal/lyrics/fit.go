@@ -41,6 +41,17 @@ const (
 	fitConfidence = 4.0
 	// fitMinWords: too few words fit anywhere.
 	fitMinWords = 30
+	// fitLineReach in frames: lines are tried further out, 6 s, as a file can
+	// start with silence its lyrics don't know of.
+	fitLineReach = 300
+	// fitLineConfidence and fitLineQuarters guard the line fit, which has fewer
+	// starts to go on: the whole song must stand out and at least this many of
+	// its quarters must land within fitLineAgree seconds of that on their own.
+	fitLineConfidence = 5.0
+	fitLineQuarters   = 3
+	fitLineAgree      = 0.1
+	// fitMinLines: a quarter of fewer lines fits anywhere.
+	fitMinLines = 20
 	// fitMaxFrames caps a decoded track at an hour.
 	fitMaxFrames = 3600 * FitRate / fitHop
 )
@@ -139,9 +150,9 @@ func onsets(energy []float64) []float64 {
 	return out
 }
 
-// fit is the shift in seconds that lays the word starts on the attacks, and
-// how far it stands above all other shifts.
-func fit(starts, attacks []float64) (float64, float64) {
+// fit is the shift in seconds, up to reach frames, that lays the starts on the
+// attacks, and how far it stands above all other shifts.
+func fit(starts, attacks []float64, reach int) (float64, float64) {
 	seconds := float64(fitHop) / FitRate
 	var pulses []int
 	for _, at := range starts {
@@ -152,10 +163,10 @@ func fit(starts, attacks []float64) (float64, float64) {
 	}
 	slices.Sort(pulses)
 	pulses = slices.Compact(pulses)
-	scores := make([]float64, 2*fitReach+1)
+	scores := make([]float64, 2*reach+1)
 	for s := range scores {
 		for _, p := range pulses {
-			if i := p + s - fitReach; i >= 0 && i < len(attacks) {
+			if i := p + s - reach; i >= 0 && i < len(attacks) {
 				scores[s] += attacks[i]
 			}
 		}
@@ -174,7 +185,35 @@ func fit(starts, attacks []float64) (float64, float64) {
 	sorted := slices.Clone(scores)
 	sort.Float64s(sorted)
 	spread := math.Sqrt(deviation) + 1e-9
-	return float64(best-fitReach)*seconds + fitEarly, (scores[best] - sorted[len(sorted)/2]) / spread
+	return float64(best-reach)*seconds + fitEarly, (scores[best] - sorted[len(sorted)/2]) / spread
+}
+
+// fitLines fits line starts, for songs whose words glide into each other and
+// show no attacks of their own. A line starting is a bigger event.
+func fitLines(starts, attacks []float64) (float64, bool) {
+	shift, confidence := fit(starts, attacks, fitLineReach)
+	if confidence < fitLineConfidence {
+		return shift, false
+	}
+	agree := 0
+	for q := range 4 {
+		part, _ := fit(starts[q*len(starts)/4:(q+1)*len(starts)/4], attacks, fitLineReach)
+		if math.Abs(part-shift) <= fitLineAgree {
+			agree++
+		}
+	}
+	return shift, agree >= fitLineQuarters
+}
+
+func lineStarts(r *duxlyrics.Result) []float64 {
+	var out []float64
+	for _, line := range r.Synced {
+		// a line of only ♪ isn't sung
+		if line.Start > 0 && folded(line.Text) != "" {
+			out = append(out, float64(line.Start))
+		}
+	}
+	return out
 }
 
 func wordStarts(r *duxlyrics.Result) []float64 {

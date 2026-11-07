@@ -661,6 +661,9 @@ func (s *Service) best(ctx context.Context, client *duxlyrics.Client, t source.T
 	if shift, ok := s.fitted(ctx, t, top); ok {
 		return shifted(top, shift)
 	}
+	if shift, ok := s.linesFitted(ctx, t, top, results); ok {
+		return shifted(top, shift)
+	}
 	return align(order, results)
 }
 
@@ -672,7 +675,7 @@ type fitResult struct {
 
 // fitted is the shift the audio asks of a word-timed result, when it is sure.
 func (s *Service) fitted(ctx context.Context, t source.Track, r *duxlyrics.Result) (float64, bool) {
-	if !s.fitting() || s.cfg.AudioFile == nil || s.cfg.Decode == nil || r.Source == duxlyrics.Sidecar {
+	if !s.canFit(r) {
 		return 0, false
 	}
 	starts := wordStarts(r)
@@ -681,28 +684,77 @@ func (s *Service) fitted(ctx context.Context, t source.Track, r *duxlyrics.Resul
 	}
 	// the timing is part of the name: a source that changes it is fitted anew
 	name := fmt.Sprintf("%s/%s/%d/%.2f", key(&t), r.Source, len(starts), starts[0])
-	path := filepath.Join(s.cfg.CacheDir, "lyrics-fit", hashed(name)+".json")
-	var known fitResult
-	if data, err := os.ReadFile(path); err == nil && json.Unmarshal(data, &known) == nil {
+	if known, ok := s.knownFit(name); ok {
 		return known.Shift, known.Confident
 	}
-	file, ok := s.cfg.AudioFile(ctx, t.Ref())
+	found, ok := s.audioAttacks(ctx, t)
 	if !ok {
 		return 0, false
 	}
-	var found []float64
-	err := s.cfg.Decode(ctx, file, func(in io.Reader) error {
-		var err error
-		found, err = attacks(in)
-		return err
-	})
-	if err != nil {
-		log.Debugf("lyrics: fitting %q to its audio: %v", t.Title, err)
+	shift, confidence := fit(starts, found, fitReach)
+	known := fitResult{Shift: shift, Confident: confidence >= fitConfidence}
+	log.Debugf("lyrics: %q from %s fits the audio at %+.2f s, confidence %.1f", t.Title, r.Source, shift, confidence)
+	s.storeFit(name, known)
+	return known.Shift, known.Confident
+}
+
+// linesFitted is the shift top needs, from the first source whose line starts
+// sit on the audio for sure. All sources count: a line-timed one can show what
+// a word-timed top can't, and offset carries its shift over.
+func (s *Service) linesFitted(ctx context.Context, t source.Track, top *duxlyrics.Result, results []*duxlyrics.Result) (float64, bool) {
+	if !s.canFit(top) {
 		return 0, false
 	}
-	shift, confidence := fit(starts, found)
-	known = fitResult{Shift: shift, Confident: confidence >= fitConfidence}
-	log.Debugf("lyrics: %q from %s fits the audio at %+.2f s, confidence %.1f", t.Title, r.Source, shift, confidence)
+	var found []float64
+	for i, r := range append([]*duxlyrics.Result{top}, results...) {
+		starts := lineStarts(r)
+		if i > 0 && r == top || r.Source == duxlyrics.Sidecar || len(starts) < fitMinLines {
+			continue
+		}
+		name := fmt.Sprintf("lines/%s/%s/%d/%.2f", key(&t), r.Source, len(starts), starts[0])
+		known, ok := s.knownFit(name)
+		if !ok {
+			if found == nil {
+				if found, ok = s.audioAttacks(ctx, t); !ok {
+					return 0, false
+				}
+			}
+			known.Shift, known.Confident = fitLines(starts, found)
+			log.Debugf("lyrics: %q lines from %s fit the audio at %+.2f s: %v", t.Title, r.Source, known.Shift, known.Confident)
+			s.storeFit(name, known)
+		}
+		if !known.Confident {
+			continue
+		}
+		if r == top {
+			return known.Shift, true
+		}
+		if d, ok := offset(top.Synced, r.Synced); ok {
+			return d + known.Shift, true
+		}
+	}
+	return 0, false
+}
+
+func (s *Service) canFit(r *duxlyrics.Result) bool {
+	return s.fitting() && s.cfg.AudioFile != nil && s.cfg.Decode != nil && r.Source != duxlyrics.Sidecar
+}
+
+func (s *Service) fitPath(name string) string {
+	return filepath.Join(s.cfg.CacheDir, "lyrics-fit", hashed(name)+".json")
+}
+
+func (s *Service) knownFit(name string) (fitResult, bool) {
+	var known fitResult
+	data, err := os.ReadFile(s.fitPath(name))
+	if err != nil || json.Unmarshal(data, &known) != nil {
+		return fitResult{}, false
+	}
+	return known, true
+}
+
+func (s *Service) storeFit(name string, known fitResult) {
+	path := s.fitPath(name)
 	data, err := json.Marshal(known)
 	if err == nil {
 		err = os.MkdirAll(filepath.Dir(path), 0o700)
@@ -713,7 +765,25 @@ func (s *Service) fitted(ctx context.Context, t source.Track, r *duxlyrics.Resul
 	if err != nil {
 		log.Warnf("lyrics: %v", err)
 	}
-	return known.Shift, known.Confident
+}
+
+// audioAttacks decodes the track's local copy, when there is one.
+func (s *Service) audioAttacks(ctx context.Context, t source.Track) ([]float64, bool) {
+	file, ok := s.cfg.AudioFile(ctx, t.Ref())
+	if !ok {
+		return nil, false
+	}
+	var found []float64
+	err := s.cfg.Decode(ctx, file, func(in io.Reader) error {
+		var err error
+		found, err = attacks(in)
+		return err
+	})
+	if err != nil {
+		log.Debugf("lyrics: fitting %q to its audio: %v", t.Title, err)
+		return nil, false
+	}
+	return found, true
 }
 
 // keep links the cache entries written since start into the track's folder
