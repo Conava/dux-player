@@ -29,6 +29,13 @@ Item {
 
     signal triggered(string id)
 
+    onOpenedChanged: {
+        if (opened)
+            MenuState.open = root;
+        else if (MenuState.open === root)
+            MenuState.open = null;
+    }
+
     // x, y: a point in anchor's coordinates (the pointer for right-click); omitted, the menu opens below anchor
     function open(anchor, x, y) {
         const window = root.QsWindow.window;
@@ -62,6 +69,8 @@ Item {
         popup.anchor.rect.y = 0;
         popup.anchor.edges = Edges.Top | Edges.Left;
         popup.anchor.gravity = Edges.Bottom | Edges.Right;
+        // a fullscreen window is larger than the work area: a slide would move the popup and the menu in it
+        popup.anchor.adjustment = PopupAdjustment.None;
         popup.implicitWidth = window.width;
         popup.implicitHeight = window.height;
         popup.anchor.updateAnchor();
@@ -144,7 +153,8 @@ Item {
             FocusScope {
                 anchors.fill: parent
                 focus: true
-                Component.onCompleted: forceActiveFocus()
+                // the popup's window doesn't exist yet at this point, and without one the focus goes nowhere
+                Component.onCompleted: Qt.callLater(forceActiveFocus)
 
                 Keys.onPressed: event => {
                     switch (event.key) {

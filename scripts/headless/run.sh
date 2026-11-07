@@ -337,7 +337,7 @@ env -i LANG=C.UTF-8 USER="$USER" HOME="$W/home" PATH="$W/bin:$repo/core/bin:/usr
 status=$?
 
 log="$W/out/ui.log"
-errors=$(grep -hE 'TypeError|ReferenceError|Cannot assign|is not a function|\.qml:[0-9]+.*(rror|nable)' "$log" 2>/dev/null | sort -u)
+errors=$(grep -hE 'TypeError|ReferenceError|Cannot assign|is not a function|Cannot specify anchors for items inside|\.qml:[0-9]+.*(rror|nable)' "$log" 2>/dev/null | sort -u)
 [ -n "$errors" ] && { echo "QML errors:"; echo "$errors" | cut -c1-200 | head -20; status=1; }
 echo "output: $W/out"
 ls "$W/out"
