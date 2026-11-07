@@ -37,6 +37,30 @@ cat >>"$W/tree/shell.qml" <<'Q'
         }
         function swapped() {
             times.push(Date.now());
+            if (tracked)
+                samples.push(tracked());
+        }
+        property var tracked: null
+        property var samples: []
+        function showing(item) {
+            return item.visible ? [item].concat(...Array.from(item.children).map(showing)) : [];
+        }
+        // the moving parts of the main window, found by a property only they have
+        function parts() {
+            const all = [];
+            const walk = item => {
+                all.push(item);
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(window().contentItem);
+            return {
+                bar: all.find(i => i.barReveal !== undefined),
+                host: all.find(i => i.fullWidth !== undefined),
+                page: all.find(i => i.route !== undefined),
+                card: all.find(i => i.sourcePos !== undefined),
+                view: all.find(i => i.entry !== undefined)
+            };
         }
     }
 
@@ -50,6 +74,68 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function framesStop(): string {
             frameProbe.target.frameSwapped.disconnect(frameProbe, frameProbe.swapped);
             return frameProbe.times.slice(1).map((t, i) => t - frameProbe.times[i]).join(" ");
+        }
+        // one JSON line per presented frame with where the moving parts are
+        function trackStart(): void {
+            const p = frameProbe.parts();
+            const panel = Array.from(p.host.children).find(c => c.sourceComponent !== undefined);
+            frameProbe.samples = [];
+            frameProbe.tracked = () => {
+                const host = p.host.mapToItem(p.card.parent, 0, 0);
+                const bar = p.bar.mapToItem(p.card.parent, 0, 0);
+                return JSON.stringify({
+                    t: Date.now(),
+                    bar: p.bar.y,
+                    barShows: p.bar.visible,
+                    barX: bar.x,
+                    barY: bar.y,
+                    barW: p.bar.width,
+                    barH: p.bar.height,
+                    host: p.host.width,
+                    hostX: host.x,
+                    hostY: host.y,
+                    hostH: p.host.height,
+                    kind: String(panel.item).split("_")[0],
+                    panelFade: panel.opacity,
+                    page: p.page.height,
+                    pages: p.bar.parent.opacity,
+                    card: p.card.visible,
+                    cardX: p.card.x,
+                    cardY: p.card.y,
+                    cardW: p.card.width,
+                    cardH: p.card.height,
+                    view: p.view.opacity
+                });
+            };
+            frameProbe.target = frameProbe.window();
+            frameProbe.target.frameSwapped.connect(frameProbe, frameProbe.swapped);
+        }
+        function trackStop(): string {
+            frameProbe.target.frameSwapped.disconnect(frameProbe, frameProbe.swapped);
+            frameProbe.tracked = null;
+            return frameProbe.samples.join("\n");
+        }
+        // the bar in window coordinates: x y width height
+        function barRect(): string {
+            const bar = frameProbe.parts().bar;
+            const at = bar.mapToItem(null, 0, 0);
+            return [at.x, at.y, bar.width, bar.height].map(Math.round).join(" ");
+        }
+        // the now-playing track info in window coordinates: x y width height, then the drawn text's width
+        function stackRect(): string {
+            const stack = frameProbe.showing(frameProbe.window().contentItem).find(i => i.textExtent !== undefined && i.items.some(t => t.type === "title"));
+            const at = stack.mapToItem(null, 0, 0);
+            return [at.x, at.y, stack.width, stack.height, stack.textExtent].map(Math.round).join(" ");
+        }
+        // the side panel's cover in window coordinates, then the panel's left edge: x y width height left
+        function coverRect(): string {
+            const host = frameProbe.parts().host;
+            const cover = frameProbe.showing(host).find(i => i.morphSpring !== undefined);
+            const at = cover.mapToItem(null, 0, 0);
+            return [at.x, at.y, cover.width, cover.height, host.mapToItem(null, 0, 0).x].map(Math.round).join(" ");
+        }
+        function viewOpen(): bool {
+            return Router.nowPlayingOpen;
         }
         function go(page: string): void {
             Router.go(page);
@@ -247,7 +333,7 @@ env -i LANG=C.UTF-8 USER="$USER" HOME="$W/home" PATH="$W/bin:$repo/core/bin:/usr
     XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/share}" QT_QPA_PLATFORMTHEME=qtengine DPLAYER_WINRULES=off DPLAYER_CAST=off DPLAYER_BACKEND="${DPLAYER_BACKEND:-}" \
     DPLAYER_DISABLE_HOT_RELOAD=1 HYPRLAND_NO_SD_NOTIFY=1 HYPRLAND_NO_SD_VARS=1 HYPRLAND_NO_CRASHREPORTER=1 \
     W="$W" LIB="$here/lib.sh" SCENARIO="$scenario" \
-    timeout -k 30 "${HEADLESS_TIMEOUT:-300}" dbus-run-session -- bash "$here/session.sh"
+    timeout -k 30 "${HEADLESS_TIMEOUT:-420}" dbus-run-session -- bash "$here/session.sh"
 status=$?
 
 log="$W/out/ui.log"
