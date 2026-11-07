@@ -35,7 +35,7 @@ DFloatingWindow {
     minimumSize: Qt.size(PlayerMetrics.windowMinWidth, PlayerMetrics.windowMinHeight)
     implicitWidth: PlayerMetrics.windowWidth
     implicitHeight: screen ? Math.min(PlayerMetrics.windowHeight, screen.height - PlayerMetrics.screenMargin) : PlayerMetrics.windowHeight
-    surfaceColor: Theme.withAlpha(Router.nowPlayingOpen ? ArtColors.surface : Theme.surface, Theme.floatingWindowTransparency)
+    surfaceColor: Theme.withAlpha(Theme.blend(Theme.surface, ArtColors.surface, body.fullReveal), Theme.floatingWindowTransparency)
     visible: true
     onClosed: window.closeRequested()
 
@@ -191,211 +191,265 @@ DFloatingWindow {
                 height: parent.height - header.height
                 visible: DaemonBridge.connected
 
-                DExpandedRail {
-                    id: labelRail
-                    visible: window.navMode === "railLabels" && !Router.nowPlayingOpen
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.bottom: bottomBar.visible ? bottomBar.top : parent.bottom
-                    width: visible ? implicitWidth : 0
-                    model: window.navModel
-                    currentIndex: Router.navIndex
-                    onActivated: index => Router.openEntry(Router.navEntries[index])
+                readonly property bool fullWanted: Router.nowPlayingOpen && PlayerService.current !== null
+                // follows the flag and outlives it, so the view is still there to slide away
+                property real fullReveal: fullWanted && viewLoader.status === Loader.Ready ? 1 : 0
+                // the view's top edge; rounded, or the two sides of the seam land on different pixels
+                readonly property int seam: Math.round(height * (1 - fullReveal))
+
+                // in the flag's turn, so a field Router.searchEverything focuses right after keeps the focus
+                onFullWantedChanged: {
+                    if (fullWanted)
+                        (viewLoader.item as NowPlayingView)?.forceActiveFocus();
+                    else if (sideHost.covering)
+                        (panelLoader.item as SidePanel)?.takeFocus();
                 }
 
-                DNavigationBar {
-                    id: rail
-                    visible: window.navMode === "rail" && !Router.nowPlayingOpen
-                    orientation: Qt.Vertical
-                    evenlySpaced: false
-                    // DNavigationBar turns mirroring off on itself, so a left anchor would stay left in RTL
-                    x: I18n.isRtl ? parent.width - width : 0
-                    anchors.top: parent.top
-                    anchors.bottom: bottomBar.visible ? bottomBar.top : parent.bottom
-                    model: window.navModel
-                    currentIndex: Router.navIndex
-                    onActivated: index => Router.openEntry(Router.navEntries[index])
+                Behavior on fullReveal {
+                    enabled: Theme.animationsEnabled
+                    NumberAnimation {
+                        duration: Theme.expressiveDurations.normal
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+                    }
                 }
 
-                DNavigationBar {
-                    id: topBar
-                    visible: !window.railNav && !Router.nowPlayingOpen
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.leftMargin: Theme.windowInset
-                    anchors.rightMargin: Theme.windowInset
-                    height: visible ? implicitHeight : 0
-                    model: window.navModel
-                    currentIndex: Router.navIndex
-                    onActivated: index => Router.openEntry(Router.navEntries[index])
-                }
-
-                // hidden under now playing so the window's own transparency shows the same way everywhere
+                // cut at the seam and hidden under the view, so the window's own transparency shows the same way everywhere
                 Item {
-                    id: main
-                    visible: !Router.nowPlayingOpen
-                    anchors.left: window.navMode === "railLabels" ? labelRail.right : window.navMode === "rail" ? rail.right : parent.left
-                    anchors.right: parent.right
-                    anchors.top: topBar.bottom
-                    anchors.bottom: bottomBar.visible ? bottomBar.top : parent.bottom
-                    anchors.leftMargin: window.railNav ? 0 : Theme.windowInset
-                    anchors.rightMargin: Theme.windowInset
-                    anchors.bottomMargin: Theme.windowInset
+                    width: parent.width
+                    height: body.seam
+                    clip: body.fullReveal > 0
+                    // back the moment the flag drops: Router.searchEverything focuses a page field in the same turn
+                    visible: body.fullReveal < 1 || !body.fullWanted
 
-                    Rectangle {
-                        id: contentPane
-                        anchors.left: parent.left
-                        anchors.right: sideHost.overlay ? parent.right : sideHost.left
-                        // grows with the side panel, so the gap doesn't jump as it slides in
-                        anchors.rightMargin: sideHost.overlay ? 0 : Theme.windowInset * sideHost.reveal
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        radius: PlayerMetrics.paneRadius
-                        color: SettingsMetrics.paneColor
-                        clip: true
+                    // the pages keep their size while the seam moves, so nothing lays out again
+                    Item {
+                        width: body.width
+                        height: body.height
 
-                        Loader {
-                            id: pageLoader
-                            readonly property string route: Router.page + "/" + Router.itemId
-
-                            anchors.fill: parent
-                            onRouteChanged: {
-                                if (Theme.animationsEnabled)
-                                    pageEnter.restart();
-                            }
-                            source: {
-                                switch (Router.page) {
-                                case "album":
-                                    return "AlbumPage.qml";
-                                case "artist":
-                                    return "ArtistPage.qml";
-                                case "playlist":
-                                    return "PlaylistPage.qml";
-                                case "libraries":
-                                    return "LibrariesPage.qml";
-                                case "search":
-                                    return "SearchPage.qml";
-                                case "history":
-                                    return "HistoryPage.qml";
-                                case "home":
-                                    return "HomePage.qml";
-                                }
-                                return "BrowsePage.qml";
-                            }
-
-                            ParallelAnimation {
-                                id: pageEnter
-                                NumberAnimation {
-                                    target: pageLoader
-                                    property: "opacity"
-                                    from: 0
-                                    to: 1
-                                    duration: Theme.expressiveDurations.normal
-                                    easing.type: Easing.BezierSpline
-                                    easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
-                                }
-                                NumberAnimation {
-                                    target: pageLoader
-                                    property: "scale"
-                                    from: PlayerMetrics.pageEnterScale
-                                    to: 1
-                                    duration: Theme.expressiveDurations.normal
-                                    easing.type: Easing.BezierSpline
-                                    easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
-                                }
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        anchors.fill: parent
-                        visible: sideHost.overlay && sideHost.reveal > 0
-                        radius: PlayerMetrics.paneRadius
-                        color: Theme.scrimColor
-                        opacity: Theme.scrimAlpha * sideHost.reveal
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: Router.panel = ""
-                        }
-                    }
-
-                    Rectangle {
-                        id: sideHost
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        // a compact window has no room beside the page, so the panel covers it
-                        readonly property bool overlay: window.compact
-                        readonly property bool covering: overlay && Router.panel !== ""
-                        readonly property real fullWidth: overlay ? parent.width - PlayerMetrics.compactPanelPeek : window.sidePanel ? PlayerMetrics.sidePanelWidth : PlayerMetrics.queueWidth
-                        readonly property bool shown: window.sidePanel || Router.panel !== ""
-                        // animated instead of the width, so resizing the window doesn't make the panel trail behind
-                        property real reveal: shown ? 1 : 0
-                        property Item returnFocus: null
-
-                        width: fullWidth * reveal
-                        visible: reveal > 0
-                        radius: UiConfig.attachedPanes ? 0 : PlayerMetrics.paneRadius
-                        color: UiConfig.attachedPanes && !overlay ? "transparent" : SettingsMetrics.paneColor
-                        clip: true
-
-                        onCoveringChanged: {
-                            if (covering) {
-                                returnFocus = Window.activeFocusItem;
-                                (panelLoader.item as SidePanel)?.takeFocus();
-                            } else if (returnFocus) {
-                                returnFocus.forceActiveFocus();
-                                returnFocus = null;
-                            }
-                        }
-
-                        readonly property EscapeLayer _escapeLayer: EscapeLayer {
-                            owner: sideHost
-                            active: sideHost.covering
-                            onEscaped: Router.panel = ""
-                        }
-
-                        Behavior on reveal {
-                            enabled: Theme.animationsEnabled
-                            NumberAnimation {
-                                duration: Theme.expressiveDurations.normal
-                                easing.type: Easing.BezierSpline
-                                easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
-                            }
-                        }
-
-                        // full width from the start: the panel slides in instead of reflowing as it grows
-                        Loader {
-                            id: panelLoader
+                        DExpandedRail {
+                            id: labelRail
+                            visible: window.navMode === "railLabels"
                             anchors.left: parent.left
                             anchors.top: parent.top
+                            anchors.bottom: bottomBar.shown ? bottomBar.top : parent.bottom
+                            width: window.navMode === "railLabels" ? implicitWidth : 0
+                            model: window.navModel
+                            currentIndex: Router.navIndex
+                            onActivated: index => Router.openEntry(Router.navEntries[index])
+                        }
+
+                        DNavigationBar {
+                            id: rail
+                            visible: window.navMode === "rail"
+                            orientation: Qt.Vertical
+                            evenlySpaced: false
+                            // DNavigationBar turns mirroring off on itself, so a left anchor would stay left in RTL
+                            x: I18n.isRtl ? parent.width - width : 0
+                            anchors.top: parent.top
+                            anchors.bottom: bottomBar.shown ? bottomBar.top : parent.bottom
+                            model: window.navModel
+                            currentIndex: Router.navIndex
+                            onActivated: index => Router.openEntry(Router.navEntries[index])
+                        }
+
+                        DNavigationBar {
+                            id: topBar
+                            visible: !window.railNav
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.leftMargin: Theme.windowInset
+                            anchors.rightMargin: Theme.windowInset
+                            height: !window.railNav ? implicitHeight : 0
+                            model: window.navModel
+                            currentIndex: Router.navIndex
+                            onActivated: index => Router.openEntry(Router.navEntries[index])
+                        }
+
+                        Item {
+                            id: main
+                            anchors.left: window.navMode === "railLabels" ? labelRail.right : window.navMode === "rail" ? rail.right : parent.left
+                            anchors.right: parent.right
+                            anchors.top: topBar.bottom
+                            anchors.bottom: bottomBar.shown ? bottomBar.top : parent.bottom
+                            anchors.leftMargin: window.railNav ? 0 : Theme.windowInset
+                            anchors.rightMargin: Theme.windowInset
+                            anchors.bottomMargin: Theme.windowInset
+
+                            Rectangle {
+                                id: contentPane
+                                anchors.left: parent.left
+                                anchors.right: sideHost.overlay ? parent.right : sideHost.left
+                                // grows with the side panel, so the gap doesn't jump as it slides in
+                                anchors.rightMargin: sideHost.overlay ? 0 : Theme.windowInset * sideHost.reveal
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                radius: PlayerMetrics.paneRadius
+                                color: SettingsMetrics.paneColor
+                                clip: true
+
+                                Loader {
+                                    id: pageLoader
+                                    readonly property string route: Router.page + "/" + Router.itemId
+
+                                    // the final width, so the page lays out once while the panel slides
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
+                                    width: Math.max(0, main.width - (sideHost.overlay || !sideHost.shown ? 0 : sideHost.fullWidth + Theme.windowInset))
+                                    onRouteChanged: {
+                                        if (Theme.animationsEnabled)
+                                            pageEnter.restart();
+                                    }
+                                    source: {
+                                        switch (Router.page) {
+                                        case "album":
+                                            return "AlbumPage.qml";
+                                        case "artist":
+                                            return "ArtistPage.qml";
+                                        case "playlist":
+                                            return "PlaylistPage.qml";
+                                        case "libraries":
+                                            return "LibrariesPage.qml";
+                                        case "search":
+                                            return "SearchPage.qml";
+                                        case "history":
+                                            return "HistoryPage.qml";
+                                        case "home":
+                                            return "HomePage.qml";
+                                        }
+                                        return "BrowsePage.qml";
+                                    }
+
+                                    ParallelAnimation {
+                                        id: pageEnter
+                                        NumberAnimation {
+                                            target: pageLoader
+                                            property: "opacity"
+                                            from: 0
+                                            to: 1
+                                            duration: Theme.expressiveDurations.normal
+                                            easing.type: Easing.BezierSpline
+                                            easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+                                        }
+                                        NumberAnimation {
+                                            target: pageLoader
+                                            property: "scale"
+                                            from: PlayerMetrics.pageEnterScale
+                                            to: 1
+                                            duration: Theme.expressiveDurations.normal
+                                            easing.type: Easing.BezierSpline
+                                            easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+                                        }
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                anchors.fill: parent
+                                visible: sideHost.overlay && sideHost.reveal > 0
+                                radius: PlayerMetrics.paneRadius
+                                color: Theme.scrimColor
+                                opacity: Theme.scrimAlpha * sideHost.reveal
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: Router.panel = ""
+                                }
+                            }
+
+                            Rectangle {
+                                id: sideHost
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                // a compact window has no room beside the page, so the panel covers it
+                                readonly property bool overlay: window.compact
+                                readonly property bool covering: overlay && Router.panel !== ""
+                                readonly property real fullWidth: overlay ? parent.width - PlayerMetrics.compactPanelPeek : window.sidePanel ? PlayerMetrics.sidePanelWidth : PlayerMetrics.queueWidth
+                                readonly property bool shown: window.sidePanel || Router.panel !== ""
+                                // animated instead of the width, so resizing the window doesn't make the panel trail behind
+                                property real reveal: shown && panelLoader.status === Loader.Ready ? 1 : 0
+                                property Item returnFocus: null
+
+                                width: fullWidth * reveal
+                                visible: shown || reveal > 0
+                                radius: UiConfig.attachedPanes ? 0 : PlayerMetrics.paneRadius
+                                color: UiConfig.attachedPanes && !overlay ? "transparent" : SettingsMetrics.paneColor
+                                clip: true
+
+                                onCoveringChanged: {
+                                    if (covering) {
+                                        returnFocus = Window.activeFocusItem;
+                                        (panelLoader.item as SidePanel)?.takeFocus();
+                                    } else if (returnFocus) {
+                                        returnFocus.forceActiveFocus();
+                                        returnFocus = null;
+                                    }
+                                }
+
+                                readonly property EscapeLayer _escapeLayer: EscapeLayer {
+                                    owner: sideHost
+                                    active: sideHost.covering
+                                    onEscaped: Router.panel = ""
+                                }
+
+                                Behavior on reveal {
+                                    enabled: Theme.animationsEnabled
+                                    NumberAnimation {
+                                        duration: Theme.expressiveDurations.normal
+                                        easing.type: Easing.BezierSpline
+                                        easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+                                    }
+                                }
+
+                                // full width from the start: the panel slides in instead of reflowing as it grows
+                                Loader {
+                                    id: panelLoader
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
+                                    width: sideHost.fullWidth
+                                    active: sideHost.shown || sideHost.reveal > 0
+                                    sourceComponent: window.sidePanel ? sidePanelComponent : panelComponent
+                                    onLoaded: {
+                                        if (sideHost.covering)
+                                            (item as SidePanel)?.takeFocus();
+                                    }
+                                }
+                            }
+                        }
+
+                        NowPlayingBar {
+                            id: bottomBar
+                            // the page's anchors read this: visible also follows the hidden parent
+                            readonly property bool shown: !window.sidePanel && PlayerService.current !== null
+                            visible: shown
+                            opacity: shown ? 1 : 0
+                            anchors.left: parent.left
+                            anchors.right: parent.right
                             anchors.bottom: parent.bottom
-                            width: sideHost.fullWidth
-                            active: parent.visible
-                            sourceComponent: window.sidePanel ? sidePanelComponent : panelComponent
-                            onLoaded: {
-                                if (sideHost.covering)
-                                    (item as SidePanel)?.takeFocus();
+                            anchors.margins: Theme.windowInset
+                            compact: window.compact
+
+                            Behavior on opacity {
+                                enabled: Theme.animationsEnabled
+                                NumberAnimation {
+                                    duration: Theme.shortDuration
+                                    easing.type: Theme.standardEasing
+                                }
                             }
                         }
                     }
-                }
-
-                NowPlayingBar {
-                    id: bottomBar
-                    visible: !window.sidePanel && PlayerService.current !== null && !Router.nowPlayingOpen
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    anchors.margins: Theme.windowInset
-                    compact: window.compact
                 }
 
                 Loader {
-                    anchors.fill: parent
-                    active: Router.nowPlayingOpen && PlayerService.current !== null
+                    id: viewLoader
+                    y: body.seam
+                    width: parent.width
+                    height: parent.height
+                    active: body.fullWanted || body.fullReveal > 0
                     z: Theme.zSheet
                     sourceComponent: NowPlayingView {}
                     // only here is the view in the scene, so Tab starts in it and not at the window's controls
@@ -449,7 +503,7 @@ DFloatingWindow {
 
         Snackbar {
             z: Theme.zToast
-            bottomInset: bottomBar.visible ? bottomBar.height + Theme.windowInset : 0
+            bottomInset: DaemonBridge.connected && bottomBar.shown && !Router.nowPlayingOpen ? bottomBar.height + Theme.windowInset : 0
         }
 
         TextPromptDialog {

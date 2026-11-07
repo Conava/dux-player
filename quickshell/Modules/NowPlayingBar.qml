@@ -92,7 +92,7 @@ Rectangle {
         NowPlayingZone {
             id: leftZone
             Layout.fillWidth: true
-            Layout.maximumWidth: Math.min(implicitWidth, Math.max(Layout.minimumWidth, (root.width - (rightZone.visible ? rightZone.implicitWidth : 0)) * PlayerMetrics.barLeftShare))
+            Layout.maximumWidth: Math.min(implicitWidth, Math.max(Layout.minimumWidth, (root.width - (!root.compact && rightZone.populated ? rightZone.implicitWidth : 0)) * PlayerMetrics.barLeftShare))
             Layout.minimumWidth: implicitWidth - shrinkable
             instances: root.zones.left
             opensView: true

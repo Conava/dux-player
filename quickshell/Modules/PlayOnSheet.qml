@@ -73,6 +73,9 @@ FocusScope {
         lastInside = null;
         const from = Router.playOnFrom;
         Qt.callLater(() => {
+            // the view closed with it, and what closed it placed the focus
+            if (!Router.nowPlayingOpen)
+                return;
             if (root.closedByKey)
                 FocusNavigation.focusItem(from, false);
             else

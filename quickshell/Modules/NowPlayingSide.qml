@@ -15,9 +15,10 @@ Item {
     readonly property var track: PlayerService.current
     readonly property var cover: zones.cover.find(i => i.type === "cover" && !i.hidden) ?? null
     readonly property var views: UiConfig.sidePanes
+    readonly property bool hasSwitcher: views.length > 1
     readonly property bool m3e: UiConfig.styleOf("side") === "m3e"
     // what the lines above and below the seekbar may take; the panes keep the art's least height
-    readonly property real lineSpare: height - (switcher.visible ? switcher.height + Theme.spacingL : 0) - Theme.spacingM - content.anchors.bottomMargin - controls.anchors.margins - PlayerMetrics.mediaArtMinSize - [titleZone, seekZone, controlsZone, buttonsZone].reduce((sum, block) => sum + (block.populated && block.visible ? block.height + controls.spacing : 0), -controls.spacing)
+    readonly property real lineSpare: height - (root.hasSwitcher ? switcher.height + Theme.spacingL : 0) - Theme.spacingM - content.anchors.bottomMargin - controls.anchors.margins - PlayerMetrics.mediaArtMinSize - [titleZone, seekZone, controlsZone, buttonsZone].reduce((sum, block) => sum + (block.populated ? block.height + controls.spacing : 0), -controls.spacing)
     readonly property var labels: ({
             "cover": {
                 "text": I18n.tr("Playing", "side panel view: cover art"),
@@ -76,7 +77,7 @@ Item {
         anchors.top: parent.top
         anchors.topMargin: Theme.spacingL
         anchors.horizontalCenter: parent.horizontalCenter
-        visible: root.views.length > 1
+        visible: root.hasSwitcher
         size: "small"
         checkEnabled: false
         model: root.views.map(v => root.labels[v])
@@ -91,10 +92,30 @@ Item {
         id: content
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: switcher.visible ? switcher.bottom : parent.top
+        anchors.top: root.hasSwitcher ? switcher.bottom : parent.top
         anchors.bottom: controls.top
         anchors.topMargin: Theme.spacingM
         anchors.bottomMargin: Theme.spacingL
+
+        readonly property string tab: Router.sideTab
+        // the first tab is no switch: the panel has to be whole when it slides in
+        property bool settled: false
+        onTabChanged: {
+            if (settled && Theme.animationsEnabled)
+                tabEnter.restart();
+        }
+        Component.onCompleted: settled = true
+
+        NumberAnimation {
+            id: tabEnter
+            target: content
+            property: "opacity"
+            from: 0
+            to: 1
+            duration: Theme.expressiveDurations.expressiveEffects
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+        }
 
         PlayerArt {
             visible: Router.sideTab === "cover" && root.track !== null && root.cover !== null
