@@ -38,17 +38,12 @@ Rectangle {
         }
     }
 
-    // an empty stretch of the bar opens the full view; right-click offers the bar's own settings
+    // right-click anywhere the bar's own controls don't take it
     MouseArea {
         id: background
         anchors.fill: parent
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
-        onClicked: mouse => {
-            if (mouse.button === Qt.RightButton)
-                barMenu.open(background, mouse.x, mouse.y);
-            else
-                Router.openNowPlaying("");
-        }
+        acceptedButtons: Qt.RightButton
+        onClicked: mouse => barMenu.open(background, mouse.x, mouse.y)
     }
 
     // the same menu from the keyboard while a control in here has focus (rows take the Menu key first)

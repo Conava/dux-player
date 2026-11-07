@@ -338,13 +338,17 @@ RowLayout {
         readonly property real preferredWidth: bar ? root.infoWidth : -1
         readonly property real minimumWidth: bar ? root.infoWidth - root.infoCut / Math.max(1, root.stackCount) : -1
         readonly property real padding: root.opensView ? Theme.spacingS : 0
+        // the widest line as drawn, as the lines themselves fill the block
+        readonly property real textExtent: Math.min(lines.width, Math.max(0, ...Array.from(lines.children).filter(c => c.visible).map(c => c.item?.drawnWidth ?? c.implicitWidth ?? 0)))
 
         implicitWidth: bar ? root.infoWidth : lines.implicitWidth
         implicitHeight: lines.implicitHeight + padding * 2
 
         StyledButton {
             id: opener
-            anchors.fill: parent
+            x: root.centered ? Math.round((stack.width - width) / 2) : 0
+            width: stack.textExtent + stack.padding * 2
+            height: parent.height
             visible: root.opensView
             radius: Theme.cornerRadiusM
             color: "transparent"

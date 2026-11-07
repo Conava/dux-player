@@ -125,6 +125,18 @@ Item {
             item: root.track
             shape: root.cover?.options?.shape ?? "rounded"
             rotate: root.cover?.options?.rotate ?? true
+
+            StyledButton {
+                id: coverButton
+                anchors.fill: parent
+                Accessible.name: I18n.tr("Open now playing", "now playing bar button")
+                onClicked: Router.openNowPlaying("")
+
+                StateLayer {
+                    control: coverButton
+                    stateColor: ArtColors.text
+                }
+            }
         }
 
         Loader {
