@@ -1,4 +1,4 @@
-# Player keys: Space, Left, Right, Ctrl+Left, Ctrl+Right and F, with focus on a clicked button, a Tab-focused button, a text field and a dialog.
+# Player keys: Space, Left, Right, Ctrl+Left, Ctrl+Right and F, with focus on a clicked button, a Tab-focused button, a text field, a dialog, a menu and a dropdown.
 # Real keys through wtype. Fails when a key goes to the wrong place.
 failed=0
 expect() {
@@ -111,5 +111,62 @@ expect "space on the seekbar" "$(state)" "playing"
 for s in Ctrl+Left Ctrl+Right Ctrl+Space Alt+Left Alt+Right; do
     expect "$s can't be a search shortcut" "$(ask shortcutFree "$s" | tr -d '\n')" "false"
 done
+
+# one key at a time, or a pair like Space and Ctrl+Space would cancel out
+covered() {
+    expand false
+    s=$(state)
+    key -k space
+    expect "space under $1" "$(state)" "$s"
+    key -k f
+    expect "f under $1" "$(view)" "false"
+    p=$(pos)
+    key -k Right
+    expect "right under $1" "$(pos)" "$p"
+    p=$(pos)
+    key -k Left
+    expect "left under $1" "$(pos)" "$p"
+    t=$(track)
+    key -M ctrl -k Right -m ctrl
+    expect "ctrl+right under $1" "$(track)" "$t"
+    t=$(track)
+    key -M ctrl -k Left -m ctrl
+    expect "ctrl+left under $1" "$(track)" "$t"
+    s=$(state)
+    key -M ctrl -k space -m ctrl
+    expect "ctrl+space under $1" "$(state)" "$s"
+}
+
+dp pause >/dev/null
+go tracks
+ui edit tracks
+sleep 2
+# Sort by, at 2264,333; a click anywhere closes it
+click 2264 333
+sleep 1
+shot keys-dropdown
+covered "a dropdown"
+key -k Down
+key -k Return
+sleep 1
+shot keys-dropdown-picked
+go tracks
+
+# the window's overflow menu, at 2417,49: Settings, Quit
+click 2417 49
+sleep 1
+shot keys-menu
+covered "a menu"
+key -k Escape
+key -k f
+expect "escape closes the menu and f works again" "$(view)" "true"
+key -k f
+
+click 2417 49
+sleep 1
+key -k Down
+key -k space
+sleep 2
+expect "space picks the highlighted entry" "$(hyprctl clients -j | python3 -I -c 'import json, sys; print(len(json.load(sys.stdin)))')" "2"
 
 [ "$failed" = 0 ]

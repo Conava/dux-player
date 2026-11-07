@@ -87,6 +87,9 @@ DFloatingWindow {
         readonly property bool playerKeys: !dialogOpen && !typing
         readonly property bool plainKeys: playerKeys && (onSlider || !keyboardHeld)
         readonly property bool arrowKeys: plainKeys && !onSlider
+        // Hyprland leaves the keyboard here under an open dropdown, so every Shortcut would beat its popup. Its trigger holds the focus.
+        readonly property bool dropdownOpen: (keyItem?.parent as DDropdown)?.menuOpen ?? false
+        Keys.onShortcutOverride: event => event.accepted = dropdownOpen
         readonly property bool canSeek: PlayerService.current !== null && PlayerService.seekable && PlayerService.duration > 0
 
         Shortcut {
