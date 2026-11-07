@@ -8,6 +8,9 @@ import qs.DCommon.Widgets
 DFlickable {
     id: root
 
+    readonly property PageScroll _scroll: PageScroll {
+        view: root
+    }
     contentHeight: column.height + PlayerMetrics.pagePadding
     contentWidth: width
     clip: true

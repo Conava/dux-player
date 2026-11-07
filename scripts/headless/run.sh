@@ -38,6 +38,9 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function route(): string {
             return Router.route;
         }
+        function offset(): real {
+            return Router.pageOffset();
+        }
         function nowPlaying(): bool {
             return Router.nowPlayingOpen;
         }

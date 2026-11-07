@@ -54,6 +54,9 @@ Item {
 
     DFlickable {
         id: flick
+        readonly property PageScroll _scroll: PageScroll {
+            view: flick
+        }
         anchors.fill: parent
         contentHeight: column.height + PlayerMetrics.pagePadding
         contentWidth: width

@@ -31,6 +31,11 @@ Singleton {
     property bool speedPickerOpen: false
     // the shown page's own search field, which Ctrl+F focuses before the global search
     property Item pageSearch: null
+    // the shown page's scrolling view
+    property Flickable pageView: null
+    // the offset the route being shown goes back to, -1 for a new visit; only set while the page changes, so a view
+    // built later starts at the top
+    property real restoreOffset: -1
     // set by the main window while its header shows the search field, so the search page drops its own
     property bool headerSearchField: false
     // the list picked in last (a track list, search results or the queue): Ctrl+A acts on its selection
@@ -110,20 +115,29 @@ Singleton {
     function go(target, id) {
         if (target === page && (id ?? "") === itemId)
             return;
-        history = history.concat([
-            {
-                "page": page,
-                "itemId": itemId
-            }
-        ]);
+        history = history.concat([_here()]);
         forwardHistory = [];
-        _show(target, id ?? "");
+        _show(target, id ?? "", -1);
         nowPlayingOpen = false;
     }
 
-    function _show(target, id) {
+    function pageOffset() {
+        return pageView ? Math.max(0, pageView.contentY - pageView.originY) : 0;
+    }
+
+    function _here() {
+        return {
+            "page": page,
+            "itemId": itemId,
+            "offset": pageOffset()
+        };
+    }
+
+    function _show(target, id, offset) {
+        restoreOffset = offset;
         page = target;
         itemId = id;
+        restoreOffset = -1;
         editing = false;
         editScope = 0;
     }
@@ -155,7 +169,7 @@ Singleton {
         const route = UiConfig.entryRoute(entry);
         history = [];
         forwardHistory = [];
-        _show(route.page, route.itemId);
+        _show(route.page, route.itemId, -1);
         nowPlayingOpen = false;
     }
 
@@ -177,13 +191,8 @@ Singleton {
             return;
         const last = history[history.length - 1];
         history = history.slice(0, -1);
-        forwardHistory = forwardHistory.concat([
-            {
-                "page": page,
-                "itemId": itemId
-            }
-        ]);
-        _show(last.page, last.itemId);
+        forwardHistory = forwardHistory.concat([_here()]);
+        _show(last.page, last.itemId, last.offset);
     }
 
     function forward() {
@@ -191,13 +200,8 @@ Singleton {
             return;
         const next = forwardHistory[forwardHistory.length - 1];
         forwardHistory = forwardHistory.slice(0, -1);
-        history = history.concat([
-            {
-                "page": page,
-                "itemId": itemId
-            }
-        ]);
-        _show(next.page, next.itemId);
+        history = history.concat([_here()]);
+        _show(next.page, next.itemId, next.offset);
         nowPlayingOpen = false;
     }
 

@@ -47,8 +47,6 @@ Item {
     property bool ranked: false
     // a click plays that track alone, not the list from there
     property bool playsOne: false
-    // a page sharing this list with others; a new one starts at the top
-    property string route: ""
     property real bottomInset: 0
 
     property var selectedIndexes: []
@@ -251,8 +249,9 @@ Item {
         }
         // unset, the view makes the first row current as rows arrive, and that row takes the focus
         currentIndex: -1
-        readonly property string route: root.route
-        onRouteChanged: contentY = originY
+        readonly property PageScroll _scroll: PageScroll {
+            view: list
+        }
         onAtYEndChanged: {
             if (atYEnd && count > 0)
                 root.endReached();
