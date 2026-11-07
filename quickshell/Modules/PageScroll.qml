@@ -1,8 +1,10 @@
 import QtQuick
+import QtQuick.Controls
+import qs.Services
 
 // Sits next to a page's scrolling view: makes it the one Router saves offsets from, starts a new route at the top
-// and puts back the offset on back and forward.
-QtObject {
+// and puts back the offset on back and forward. An Item because a pointer handler under a QtObject crashes on setting its parent.
+Item {
     id: scroll
 
     required property Flickable view
@@ -16,6 +18,17 @@ QtObject {
     readonly property real viewOrigin: view?.originY ?? 0
     readonly property real viewContent: view?.contentHeight ?? 0
     readonly property real viewHeight: view?.height ?? 0
+    readonly property bool userMoving: (view?.moving ?? false) || (view?.ScrollBar.vertical?.pressed ?? false)
+    // the header's field only sets the query
+    readonly property string filter: PlayerService.searchQuery + "\n" + ((Router.pageSearch as ScopedSearch)?.text ?? "")
+
+    // the wheel never sets `moving`
+    readonly property WheelHandler _wheel: WheelHandler {
+        parent: scroll.view
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        blocking: false
+        onWheel: scroll.pending = -1
+    }
 
     function room() {
         return view.contentHeight + view.bottomMargin - view.height;
@@ -39,7 +52,16 @@ QtObject {
         else
             Qt.callLater(apply);
     }
-    // the wheel never sets `moving`, and a layout clamp lands on a bound, so only a move between the bounds is the user's
+    onUserMovingChanged: {
+        if (userMoving)
+            pending = -1;
+    }
+    // a route change resets the field too, and that isn't the user's
+    onFilterChanged: {
+        if (ready && Router.restoreOffset < 0)
+            pending = -1;
+    }
+    // a layout clamp lands on a bound, so only a move between the bounds counts here
     onViewYChanged: {
         if (!ready || placing)
             return;

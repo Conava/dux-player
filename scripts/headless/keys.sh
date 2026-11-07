@@ -53,6 +53,11 @@ sleep 1
 [ "$(track)" != "$t" ] && n=changed || n=same
 expect "ctrl+right changes the track" "$n" "changed"
 
+# held Right stops short of the end, so the track stays. A track is 20 s long
+t=$(track)
+for _ in 1 2 3 4 5; do key -k Right; done
+expect "right stops short of the end" "$(track)" "$t"
+
 key -k f
 expect "f opens the view" "$(view)" "true"
 key -k f
@@ -85,5 +90,26 @@ expect "space under a dialog" "$(state)" "$s"
 expect "f under a dialog" "$(view)" "false"
 key -k Escape
 shot keys
+
+# the seekbar reached by Tab: Space stays the player's, the arrows are the bar's
+dp pause >/dev/null
+sleep 0.5
+for _ in $(seq 1 40); do
+    [ "$(ask focusRole | tr -d '\n')" = 51 ] && break
+    wtype -M shift -k Tab -m shift
+    sleep 0.1
+done
+expect "Tab reaches the seekbar" "$(ask focusRole | tr -d '\n')" "51"
+key -k Right
+p=$(pos)
+key -k Left
+[ "$(pos)" -lt "$p" ] && n=back || n=same
+expect "left on the seekbar" "$n" "back"
+key -k space
+expect "space on the seekbar" "$(state)" "playing"
+
+for s in Ctrl+Left Ctrl+Right Ctrl+Space Alt+Left Alt+Right; do
+    expect "$s can't be a search shortcut" "$(ask shortcutFree "$s" | tr -d '\n')" "false"
+done
 
 [ "$failed" = 0 ]

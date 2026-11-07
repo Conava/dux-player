@@ -106,7 +106,8 @@ DFloatingWindow {
         Shortcut {
             sequence: "Right"
             enabled: focusScope.arrowKeys && focusScope.canSeek
-            onActivated: PlayerService.seek(PlayerService.livePosition() + 5)
+            // the end itself would skip the track, as on the seekbar
+            onActivated: PlayerService.seek(Math.min(PlayerService.livePosition() + 5, PlayerService.duration * 0.99))
         }
 
         Shortcut {

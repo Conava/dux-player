@@ -56,6 +56,15 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function focusSearch(): void {
             Router.pageSearch.forceActiveFocus();
         }
+        function focusRole(): int {
+            return Router.pageView?.Window.activeFocusItem?.Accessible.role ?? 0;
+        }
+        function deletePlaylist(id: string): void {
+            Router.deletePlaylist(id);
+        }
+        function shortcutFree(sequence: string): bool {
+            return UiConfig.shortcutProblem(sequence) === "";
+        }
         function searchText(): string {
             return Router.pageSearch?.text ?? "";
         }
@@ -201,7 +210,7 @@ env -i LANG=C.UTF-8 USER="$USER" HOME="$W/home" PATH="$W/bin:$repo/core/bin:/usr
 status=$?
 
 log="$W/out/ui.log"
-errors=$(grep -hE 'TypeError|ReferenceError|Cannot assign|is not a function|\.qml:[0-9]+.*(rror|nable)' "$log" 2>/dev/null | sort -u)
+errors=$(grep -hE 'TypeError|ReferenceError|Cannot assign|is not a function|\.qml[:[][0-9]+.*(rror|nable)' "$log" 2>/dev/null | sort -u)
 [ -n "$errors" ] && { echo "QML errors:"; echo "$errors" | cut -c1-200 | head -20; status=1; }
 echo "output: $W/out"
 ls "$W/out"

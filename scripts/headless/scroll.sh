@@ -77,6 +77,76 @@ sleep 1
 go tracks
 near "after a nav entry" "$(offset)" 0
 
+# one notch from a restored offset lands on the top bound without a stop between the bounds: the held offset has to go
+header() {
+    ui pageOptions tracks '{"shuffleButton":false}'
+    sleep 1
+    ui pageOptions tracks '{"shuffleButton":true}'
+    sleep 1
+}
+wheel 1
+n=$(offset)
+below "one notch" 0 "$n"
+go libraries
+alt Left
+near "one notch, back" "$(offset)" "$n"
+wheel -1
+near "wheel to the top" "$(offset)" 0
+header
+near "wheel to the top stays" "$(offset)" 0
+
+# the same with the scrollbar, in the gutter right of the rows
+wheel 1
+go libraries
+alt Left
+near "scrollbar, back" "$(offset)" "$n"
+pointer m 2511 120
+sleep 0.5
+pointer d
+sleep 0.1
+pointer m 2511 20
+sleep 0.2
+pointer u
+sleep 1
+near "scrollbar to the top" "$(offset)" 0
+header
+near "scrollbar to the top stays" "$(offset)" 0
+pointer m 1280 720
+sleep 0.5
+
+# typing in the page's filter starts over from where the view is
+go tracks
+go albums
+wheel 10
+f=$(offset)
+go libraries
+alt Left
+near "before the filter" "$(offset)" "$f"
+ui focusSearch
+sleep 1
+wtype "Album 01"
+sleep 1
+wtype -k BackSpace -k BackSpace -k BackSpace -k BackSpace -k BackSpace -k BackSpace -k BackSpace -k BackSpace
+sleep 1
+below "a filter drops the held offset" "$(offset)" "$f"
+wtype -k Escape
+sleep 0.3
+wtype -k Escape
+sleep 0.5
+
+# search scrolls a plain Flickable, as home does
+go search
+wtype "Song"
+sleep 2
+wheel 3
+s=$(offset)
+below "search scrolled" 0 "$s"
+go libraries
+alt Left
+near "search, back" "$(offset)" "$s"
+wtype -k Escape
+sleep 0.3
+
 go albums
 wheel 200
 end=$(offset)

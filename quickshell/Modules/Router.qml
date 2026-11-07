@@ -215,6 +215,13 @@ Singleton {
         nowPlayingOpen = false;
     }
 
+    // a deleted playlist or custom page: back and forward must not open it again
+    function forget(target, id) {
+        const kept = e => e.page !== target || e.itemId !== id;
+        history = history.filter(kept);
+        forwardHistory = forwardHistory.filter(kept);
+    }
+
     readonly property bool lyricsOn: UiConfig.lyricsOn
     onLyricsOnChanged: {
         if (lyricsOn)
@@ -411,6 +418,7 @@ Singleton {
             return;
         const run = () => {
             PlaylistService.setHidden(id, true);
+            forget("playlist", id);
             if (page === "playlist" && itemId === id)
                 leave();
             offerUndo(I18n.tr("Deleted \"%1\"", "toast after deleting a playlist").arg(p.name), () => PlaylistService.setHidden(id, false), done => {

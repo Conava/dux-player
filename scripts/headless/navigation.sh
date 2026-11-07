@@ -68,6 +68,30 @@ alt Right
 expect "forward closes the view" "$(view)" "false"
 expect "forward from the view moves" "$(route)" "tracks/"
 
+# a playlist deleted from another page leaves both stacks
+playlist() { rpc localPlaylists.create "{\"name\":\"$1\"}" | python3 -I -c 'import json, sys; print(":" + json.load(sys.stdin)["result"]["id"])'; }
+behind=$(playlist Behind)
+ahead=$(playlist Ahead)
+sleep 1
+go libraries
+ui open playlist "$behind"
+sleep 1
+go albums
+ui deletePlaylist "$behind"
+sleep 1
+alt Left
+expect "back skips a deleted playlist" "$(route)" "libraries/"
+
+ui open playlist "$ahead"
+sleep 1
+go albums
+alt Left
+alt Left
+ui deletePlaylist "$ahead"
+sleep 1
+alt Right
+expect "forward skips a deleted playlist" "$(route)" "albums/"
+
 go albums
 element sleep bar
 sleep 1
