@@ -256,8 +256,9 @@ func TestSeekAndLoop(t *testing.T) {
 	})
 	require.Equal(t, "success", c.cmd("set_property", "loop-file", "inf"))
 	require.Equal(t, "success", c.cmd("set_property", "pause", false))
-	time.Sleep(1 * time.Second)
-	frames, _ := c.out.Frames()
-	assert.Greater(t, len(frames), 4000, "played past the end of the file")
+	require.Eventually(t, func() bool {
+		frames, _ := c.out.Frames()
+		return len(frames) > 4000
+	}, 5*time.Second, 10*time.Millisecond, "played past the end of the file")
 	assert.Equal(t, []string{"start 1"}, c.files(), "a looped file doesn't end")
 }

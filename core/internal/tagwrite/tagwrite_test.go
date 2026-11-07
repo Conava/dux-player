@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.senan.xyz/taglib"
 	"golang.org/x/sys/unix"
+
+	"github.com/Conava/dux-player/core/internal/testenv"
 )
 
 // fixture copies a test file into a temp dir with an extra tag and a cover.
@@ -91,9 +93,7 @@ func TestWriteSkips(t *testing.T) {
 			return path
 		}},
 		{name: "read-only folder", setup: func(t *testing.T, path string) string {
-			if os.Geteuid() == 0 {
-				t.Skip("root writes into read-only folders (CI runs in a root container)")
-			}
+			testenv.NeedsPermissions(t)
 			dir := filepath.Dir(path)
 			require.NoError(t, os.Chmod(dir, 0o555))
 			t.Cleanup(func() { _ = os.Chmod(dir, 0o755) })

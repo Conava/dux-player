@@ -37,6 +37,7 @@ func (s *Source) watch() {
 	if err != nil {
 		log.Warnf("watch %s: %v", s.lib.Name, err)
 		s.watchNotice.Store(source.Notice{Code: source.NoticeWatchFailed, Message: "Changes on disk show only after a rescan"})
+		close(s.watching)
 		return
 	}
 	defer w.Close()
@@ -44,6 +45,7 @@ func (s *Source) watch() {
 	for _, root := range Folders(s.lib) {
 		s.addWatches(w, dirs, root)
 	}
+	close(s.watching)
 	mounts := mountChanges(s.ctx)
 
 	pending := map[string]bool{}

@@ -39,6 +39,9 @@ type Source struct {
 	// gone holds the library folders that are missing right now.
 	gone        atomic.Pointer[map[string]bool]
 	watchNotice atomic.Value
+	// watching closes once the folders are watched, or that failed. Only tests
+	// wait for it: a change before then isn't seen until the next rescan.
+	watching chan struct{}
 }
 
 var (
@@ -64,7 +67,7 @@ func Factory(store *library.Store) source.Factory {
 		}
 		ctx, cancel := context.WithCancel(context.Background())
 		s := &Source{lib: lib, store: store, coverDir: filepath.Join(env.CacheDir, "covers", lib.ID),
-			meter: env.Meter, ctx: ctx, cancel: cancel}
+			meter: env.Meter, ctx: ctx, cancel: cancel, watching: make(chan struct{})}
 		s.measure = &loudness.Loop{Meter: env.Meter, Pending: s.pendingMeasure, Save: s.saveMeasure}
 		s.checkRoots(ctx)
 		go s.watch()

@@ -16,22 +16,28 @@ import (
 // castPlayer runs a player without mpv, playing on a fake remote.
 func castPlayer(t *testing.T, cfg Config) (*Player, context.Context) {
 	t.Helper()
-	ctx, cancel := context.WithCancel(context.Background())
 	cfg.Binary = filepath.Join(t.TempDir(), "no-mpv")
 	p := New(cfg)
+	ctx := run(t, context.Background(), p)
+	require.NoError(t, p.SetRemote(ctx, &fakeRemote{}, false))
+	return p, ctx
+}
+
+// run runs the player's loop until the test ends. The player saves its state
+// and stops mpv as it stops; that finishes before the test's temp dirs go and
+// before a test restores the variables it changed.
+func run(t *testing.T, ctx context.Context, p *Player) context.Context {
+	ctx, cancel := context.WithCancel(ctx)
 	done := make(chan struct{})
 	go func() {
 		p.Run(ctx)
 		close(done)
 	}()
-	// The player saves its state as it stops; let it finish before the
-	// test's temp dirs go.
 	t.Cleanup(func() {
 		cancel()
 		<-done
 	})
-	require.NoError(t, p.SetRemote(ctx, &fakeRemote{}, false))
-	return p, ctx
+	return ctx
 }
 
 func TestPlayAtAnIndexOutOfRangeChangesNothing(t *testing.T) {
@@ -90,9 +96,13 @@ func TestReloadingTheTrackDoesNotCountItTwice(t *testing.T) {
 	assert.Equal(t, 1, played)
 }
 
-type slowResolver struct{ release chan struct{} }
+type slowResolver struct{ asked, release chan struct{} }
 
 func (r slowResolver) Stream(ctx context.Context, _ source.Ref) (Stream, error) {
+	select {
+	case r.asked <- struct{}{}:
+	default:
+	}
 	select {
 	case <-r.release:
 	case <-ctx.Done():
@@ -104,15 +114,15 @@ func (r slowResolver) Stream(ctx context.Context, _ source.Ref) (Stream, error) 
 func TestSlowResolveDoesNotBlockTheLoop(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	res := slowResolver{release: make(chan struct{})}
+	res := slowResolver{asked: make(chan struct{}, 1), release: make(chan struct{})}
 	t.Cleanup(func() { close(res.release) })
 	p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv"), Resolver: res})
-	go p.Run(ctx)
+	run(t, ctx, p)
 	go func() { _ = p.Play(ctx, tracks("a"), 0, Origin{}) }()
 
 	answered := make(chan Status, 1)
 	go func() {
-		time.Sleep(50 * time.Millisecond)
+		<-res.asked
 		st, _ := p.Status(ctx)
 		answered <- st
 	}()
@@ -136,7 +146,7 @@ func TestMuteDuringACastHoldsAfterIt(t *testing.T) {
 	p := New(Config{Binary: bin, Socket: filepath.Join(dir, "mpv.sock"), ExtraArgs: []string{"--ao=null"}, Resolver: res})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 
 	require.NoError(t, p.Play(ctx, tracks("long"), 0, Origin{}))
 	require.NoError(t, p.SetRemote(ctx, &fakeRemote{}, false))
@@ -166,7 +176,7 @@ func TestIdleMPVStopsAndComesBack(t *testing.T) {
 	p := New(Config{Binary: bin, Socket: filepath.Join(dir, "mpv.sock"), ExtraArgs: []string{"--ao=null"}, Resolver: res, Options: opts})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 
 	running := func() bool {
 		var up bool
@@ -265,7 +275,7 @@ func TestRepeatOneLoopsAgainAfterAStopRule(t *testing.T) {
 	p := New(Config{Binary: bin, Socket: filepath.Join(dir, "mpv.sock"), ExtraArgs: []string{"--ao=null"}, Resolver: res})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 
 	require.NoError(t, p.SetRepeat(ctx, RepeatOne))
 	require.NoError(t, p.Play(ctx, tracks("a", "b"), 0, Origin{Kind: "adhoc"}))
@@ -300,7 +310,7 @@ func TestRepeatOneLoopsAfterTheStopRuleLeavesWithTheQueue(t *testing.T) {
 	p := New(Config{Binary: bin, Socket: filepath.Join(dir, "mpv.sock"), ExtraArgs: []string{"--ao=null"}, Resolver: res})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 
 	require.NoError(t, p.SetRepeat(ctx, RepeatOne))
 	require.NoError(t, p.Play(ctx, tracks("a", "b"), 0, Origin{Kind: "adhoc"}))

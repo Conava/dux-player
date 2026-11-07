@@ -128,7 +128,7 @@ func followTheBackend(t *testing.T, cfg Config, crash func(*process)) {
 	p := New(cfg)
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 
 	require.NoError(t, p.Play(ctx, queue, 0, Origin{Kind: "adhoc"}))
 	require.Eventually(t, func() bool {
@@ -297,7 +297,7 @@ func TestSleepAtEndOfTrackAndClearKeepingCurrent(t *testing.T) {
 	p := New(Config{Binary: bin, Socket: filepath.Join(dir, "mpv.sock"), ExtraArgs: []string{"--ao=null"}, Resolver: res})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 
 	require.NoError(t, p.Play(ctx, tracks("a", "b", "c"), 0, Origin{Kind: "adhoc"}))
 	require.NoError(t, p.SetSleep(ctx, SleepEndOfTrack, 0))
@@ -353,7 +353,7 @@ func TestSleepAfterEntry(t *testing.T) {
 				p := New(Config{Binary: bin, Socket: filepath.Join(dir, "mpv.sock"), ExtraArgs: []string{"--ao=null"}, Resolver: res, Options: DefaultOptions()})
 				ctx, cancel := context.WithCancel(context.Background())
 				t.Cleanup(cancel)
-				go p.Run(ctx)
+				run(t, ctx, p)
 
 				require.NoError(t, p.Play(ctx, tracks("a", "b", "c", "d", "e", "f"), 0, Origin{Kind: "adhoc"}))
 				require.NoError(t, p.SetSleepAfter(ctx, 2))
@@ -400,7 +400,7 @@ func TestAutoContinueExtendsTheQueue(t *testing.T) {
 		}})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 
 	require.NoError(t, p.Play(ctx, tracks("a"), 0, Origin{Kind: "track"}))
 	require.Eventually(t, func() bool {
@@ -448,7 +448,7 @@ func TestGainForATrack(t *testing.T) {
 			p := New(Config{Resolver: res, Options: opts})
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			go p.Run(ctx)
+			run(t, ctx, p)
 			var it Item
 			require.NoError(t, p.do(ctx, func(context.Context) error {
 				p.queue.Replace([]source.Track{{Library: "l", ID: "a", ReplayGain: tt.rg}}, 0, Origin{Kind: "adhoc"})
@@ -487,7 +487,7 @@ func TestSleepAfterRefusals(t *testing.T) {
 	p := New(Config{Binary: filepath.Join(dir, "no-mpv"), Socket: filepath.Join(dir, "mpv.sock"), Resolver: res, Options: DefaultOptions()})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 	require.NoError(t, p.Play(ctx, tracks("a", "b", "c"), 1, Origin{Kind: "adhoc"}))
 
 	assert.ErrorContains(t, p.SetSleepAfter(ctx, 4), "queue entry 5 doesn't exist")

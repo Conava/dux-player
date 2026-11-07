@@ -63,7 +63,7 @@ func TestVolumeTarget(t *testing.T) {
 			p := New(cfg)
 			ctx, cancel := context.WithCancel(context.Background())
 			t.Cleanup(cancel)
-			go p.Run(ctx)
+			run(t, ctx, p)
 			require.NoError(t, p.Configure(ctx, opts))
 
 			require.NoError(t, p.SetVolume(ctx, 50, false))
