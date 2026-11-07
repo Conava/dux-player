@@ -152,6 +152,9 @@ Singleton {
     readonly property real lyricsScrollSettleSpeed: 10
     // a line's scale change: a gentle start and a long settle
     readonly property var lyricsTrackCurve: [0.25, 0.3, 0.13, 1, 1, 1]
+    // rows fade out over this share of the view's height towards its edges, up to the most below
+    readonly property real lyricsEdgeFadeRatio: 0.2
+    readonly property real lyricsEdgeFadeMax: Theme.spacingXL * 2
     readonly property real lyricsBreakGap: 5
     readonly property real lyricsBreakIndicatorScale: 1.2
     // below this view width the follow button shows only its icon

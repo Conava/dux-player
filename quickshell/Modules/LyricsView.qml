@@ -13,10 +13,6 @@ FocusScope {
     id: root
 
     property color cardColor: "transparent"
-    // what lies behind a view with no card of its own
-    property color backdropColor: "transparent"
-    // the list's edge fade paints this; with nothing behind it, it looks further up for the surface
-    readonly property var surfaceColor: cardColor.a > 0 ? cardColor : backdropColor.a > 0 ? backdropColor : undefined
     property var artScheme: null
     property real radius: 0
     property bool following: true
@@ -57,6 +53,7 @@ FocusScope {
     readonly property real breakSize: Math.round(leadFontSize * PlayerMetrics.lyricsBreakIndicatorScale)
     // the ends leave room for half a single row line, so scrolling stops with the first or last line centred
     readonly property real endPadding: controller.synced ? Math.max(0, transcript.height / 2 - (leadFontMetrics.lineHeight + Theme.spacingS * 2) / 2) : Theme.spacingS
+    readonly property real edgeFade: Math.min(transcript.height * PlayerMetrics.lyricsEdgeFadeRatio, PlayerMetrics.lyricsEdgeFadeMax)
     readonly property real leadFontSize: Math.round(textScale * Math.max(Theme.fontSizeXLarge, Math.min(Theme.fontSizeDisplay, transcript.height / PlayerMetrics.lyricsLeadHeightDivisor, transcript.width / PlayerMetrics.lyricsLeadWidthDivisor)))
     readonly property string message: PlayerService.lyricsMessage
 
@@ -293,7 +290,8 @@ FocusScope {
 
     DListView {
         id: transcript
-        fadeEdges: true
+        // a fade painted over the rows lets them show through a translucent window, cut off at the list's edge
+        fadeEdges: false
         showScrollBar: false
         anchors.left: parent.left
         anchors.right: parent.right
@@ -347,8 +345,11 @@ FocusScope {
 
             required property var modelData
             readonly property bool live: Math.abs(index - root.centreItem) <= 1
+            // from the row's outer edge, so it is gone before the list's clip can cut it
+            readonly property real edgeDistance: Math.min(y - transcript.contentY, transcript.contentY + transcript.height - y - height)
 
             width: transcript.width
+            opacity: root.edgeFade > 0 ? Math.max(0, Math.min(1, edgeDistance / root.edgeFade)) : 1
             item: modelData
             controller: root.controller
             accents: root.accents
