@@ -17,8 +17,6 @@ DSearchField {
     font.pixelSize: Theme.fontSizeMedium
     backgroundColor: Theme.chipSurface
     normalBorderColor: Theme.outlineVariant
-    // a filter that changes the row count gives a list a new model, and the list's first row then takes the focus
-    onTextEdited: Qt.callLater(keepFocus)
     onVisibleChanged: claim()
     Component.onCompleted: claim()
     Component.onDestruction: {
@@ -37,11 +35,6 @@ DSearchField {
         }
     }
 
-    function keepFocus() {
-        if (visible && !inputFocused && (!pageField || Router.pageSearch === root))
-            forceActiveFocus();
-    }
-
     function claim() {
         if (visible && pageField)
             Router.pageSearch = root;
@@ -50,11 +43,13 @@ DSearchField {
     }
 
     // over the whole window while the field has focus; a press outside it drops the focus and goes on to
-    // whatever is under it
+    // whatever is under it. A MouseArea sets an arrow cursor even while disabled, which here would cover every
+    // cursor in the window; undefined unsets it.
     MouseArea {
         parent: root.Window.window?.contentItem ?? root
         anchors.fill: parent
         z: Theme.zToast + 1
+        cursorShape: undefined
         enabled: root.inputFocused
         acceptedButtons: Qt.AllButtons
         onPressed: mouse => {
