@@ -35,6 +35,15 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function open(page: string, id: string): void {
             Router.go(page, id);
         }
+        function route(): string {
+            return Router.route;
+        }
+        function nowPlaying(): bool {
+            return Router.nowPlayingOpen;
+        }
+        function entry(index: int): void {
+            Router.openEntry(Router.navEntries[index]);
+        }
         function expand(on: bool): void {
             if (on)
                 Router.openNowPlaying();

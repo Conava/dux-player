@@ -16,6 +16,7 @@ Singleton {
     property string page: navEntries.length > 0 ? UiConfig.entryRoute(navEntries[0]).page : "home"
     property string itemId: ""
     property var history: []
+    property var forwardHistory: []
     // the main window's side panel beside the pages: "" | "queue" | "lyrics"
     property string panel: ""
     property bool nowPlayingOpen: false
@@ -77,6 +78,8 @@ Singleton {
     signal confirmRequested(string title, string text, string confirmText, var callback)
 
     readonly property bool canGoBack: history.length > 0
+    readonly property bool canGoForward: forwardHistory.length > 0
+    readonly property string route: page + "/" + itemId
     // detail pages light up the entry they were reached from
     readonly property int navIndex: {
         const exact = navEntries.findIndex(e => {
@@ -113,9 +116,14 @@ Singleton {
                 "itemId": itemId
             }
         ]);
-        page = target;
-        itemId = id ?? "";
+        forwardHistory = [];
+        _show(target, id ?? "");
         nowPlayingOpen = false;
+    }
+
+    function _show(target, id) {
+        page = target;
+        itemId = id;
         editing = false;
         editScope = 0;
     }
@@ -146,36 +154,61 @@ Singleton {
     function openEntry(entry) {
         const route = UiConfig.entryRoute(entry);
         history = [];
-        page = route.page;
-        itemId = route.itemId;
+        forwardHistory = [];
+        _show(route.page, route.itemId);
         nowPlayingOpen = false;
-        editing = false;
-        editScope = 0;
     }
 
     function openItem(kind, item) {
         go(kind, item.id);
     }
 
+    // closes the full view first, then steps back through the pages
     function back() {
+        if (nowPlayingOpen) {
+            nowPlayingOpen = false;
+            return;
+        }
+        _stepBack();
+    }
+
+    function _stepBack() {
         if (history.length === 0)
             return;
         const last = history[history.length - 1];
         history = history.slice(0, -1);
-        page = last.page;
-        itemId = last.itemId;
-        editing = false;
-        editScope = 0;
+        forwardHistory = forwardHistory.concat([
+            {
+                "page": page,
+                "itemId": itemId
+            }
+        ]);
+        _show(last.page, last.itemId);
     }
 
-    // back, or to the first navigation entry when there is no history (the page was opened from the nav)
-    function leave() {
-        if (canGoBack) {
-            back();
+    function forward() {
+        if (forwardHistory.length === 0)
             return;
-        }
-        if (navEntries.length > 0)
+        const next = forwardHistory[forwardHistory.length - 1];
+        forwardHistory = forwardHistory.slice(0, -1);
+        history = history.concat([
+            {
+                "page": page,
+                "itemId": itemId
+            }
+        ]);
+        _show(next.page, next.itemId);
+        nowPlayingOpen = false;
+    }
+
+    // this page is gone: back, or to the first navigation entry when there is no history; not forward-reachable
+    function leave() {
+        if (canGoBack)
+            _stepBack();
+        else if (navEntries.length > 0)
             openEntry(navEntries[0]);
+        forwardHistory = [];
+        nowPlayingOpen = false;
     }
 
     readonly property bool lyricsOn: UiConfig.lyricsOn

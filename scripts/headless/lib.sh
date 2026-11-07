@@ -10,6 +10,8 @@
 #   dp ARGS          the dplayer CLI against this sandbox: dp play "$W/music", dp pause
 #   rpc METHOD JSON  one daemon IPC call; prints the reply
 #   pointer m X Y | c | d | u | w NOTCHES   move, click, press, release, wheel, through a real virtual pointer
+#   pointer b | f    press and release the side button (back) or the extra button (forward)
+#   ask NAME ARGS    like ui, but prints the reply: ask route
 #   click X Y        move and click
 dp() { dplayer-dev "$@"; }
 
@@ -34,6 +36,7 @@ print(f.readline().decode().strip()[:2000])
 P
 }
 
+ask() { qs ipc -p "$W/tree" call headless "$@"; }
 ui() { qs ipc -p "$W/tree" call headless "$@" >/dev/null; }
 go() { ui go "$1"; sleep "${SETTLE:-1.5}"; }
 expand() { ui expand "$1"; sleep "${SETTLE:-1.5}"; }

@@ -74,6 +74,9 @@ DFloatingWindow {
             onActivated: PlayerService.toggle()
         }
 
+        // a dialog or sheet is open in this window: it owns the keys and the mouse buttons
+        readonly property bool dialogOpen: Escape.top(Router.escapeLayers, l => l.handlesKey && l.owner.visible && l.owner.Window.window === focusScope.Window.window) !== null
+
         // the only Escape shortcut: it closes whatever was opened or focused last (EscapeLayer)
         Shortcut {
             readonly property var layer: Escape.top(Router.escapeLayers, l => l.owner.visible && l.owner.Window.window === focusScope.Window.window)
@@ -89,9 +92,26 @@ DFloatingWindow {
         }
 
         Shortcut {
-            sequences: [StandardKey.Back, "Alt+Left"]
-            enabled: Router.canGoBack
+            sequences: [StandardKey.Back]
+            enabled: !focusScope.dialogOpen && (Router.canGoBack || Router.nowPlayingOpen)
             onActivated: Router.back()
+        }
+
+        Shortcut {
+            sequences: [StandardKey.Forward]
+            enabled: !focusScope.dialogOpen && Router.canGoForward
+            onActivated: Router.forward()
+        }
+
+        TapHandler {
+            acceptedButtons: Qt.BackButton | Qt.ForwardButton
+            enabled: !focusScope.dialogOpen
+            onTapped: (point, button) => {
+                if (button === Qt.BackButton)
+                    Router.back();
+                else
+                    Router.forward();
+            }
         }
 
         Column {
@@ -257,7 +277,7 @@ DFloatingWindow {
 
                         Loader {
                             id: pageLoader
-                            readonly property string route: Router.page + "/" + Router.itemId
+                            readonly property string route: Router.route
 
                             anchors.fill: parent
                             onRouteChanged: {
