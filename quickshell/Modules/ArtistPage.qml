@@ -237,6 +237,7 @@ Item {
                     }
 
                     PlayButtons {
+                        id: playButtons
                         topPadding: Theme.spacingS
                         enabled: root.artist !== null
                         onPlay: shuffle => {
@@ -249,10 +250,19 @@ Item {
                                 PlayerService.playArtist(root.artist, shuffle);
                         }
 
-                        FavoriteButton {
-                            anchors.verticalCenter: parent.verticalCenter
-                            kind: "artist"
-                            item: root.artist
+                        // centres the heart on the buttons; anchors inside a Flow stop it from laying out
+                        Item {
+                            implicitWidth: heart.width
+                            implicitHeight: playButtons.buttonHeight
+                            width: implicitWidth
+                            height: implicitHeight
+
+                            FavoriteButton {
+                                id: heart
+                                anchors.verticalCenter: parent.verticalCenter
+                                kind: "artist"
+                                item: root.artist
+                            }
                         }
                     }
 

@@ -205,7 +205,7 @@ Singleton {
             "format": track.format ?? "",
             "bitrate": count(track.bitrate),
             "added": template.indexOf("added") >= 0 ? infoText(track, ["added"]) : "",
-            "playingfrom": nowPlaying ? contextLabel(PlayerService.playContext) : ""
+            "playingfrom": nowPlaying && !PlayerService.ended ? contextLabel(PlayerService.playContext) : ""
         });
     }
 

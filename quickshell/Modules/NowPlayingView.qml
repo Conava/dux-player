@@ -173,7 +173,6 @@ Rectangle {
             PaneFade on opacity {}
             radius: root.paneRadius
             cardColor: root.paneColor
-            backdropColor: root.joined ? ArtColors.cardColor : "transparent"
             artScheme: ArtColors.nowPlaying
         }
     }
