@@ -148,13 +148,13 @@ DFloatingWindow {
         }
 
         Shortcut {
-            sequences: [StandardKey.Back]
+            sequences: ["Alt+Left", "Back"]
             enabled: !focusScope.dialogOpen && (Router.canGoBack || Router.nowPlayingOpen)
             onActivated: Router.back()
         }
 
         Shortcut {
-            sequences: [StandardKey.Forward]
+            sequences: ["Alt+Right", "Forward"]
             enabled: !focusScope.dialogOpen && Router.canGoForward
             onActivated: Router.forward()
         }
