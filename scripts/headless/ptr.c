@@ -24,6 +24,7 @@ int main(void) {
     else if (line[0] == 'd') { zwlr_virtual_pointer_v1_button(p, now(), 272, 1); zwlr_virtual_pointer_v1_frame(p); }
     else if (line[0] == 'u') { zwlr_virtual_pointer_v1_button(p, now(), 272, 0); zwlr_virtual_pointer_v1_frame(p); }
     else if (line[0] == 'c') { zwlr_virtual_pointer_v1_button(p, now(), 272, 1); zwlr_virtual_pointer_v1_frame(p); wl_display_roundtrip(d); nanosleep(&(struct timespec){0, 80000000}, NULL); zwlr_virtual_pointer_v1_button(p, now(), 272, 0); zwlr_virtual_pointer_v1_frame(p); }
+    else if (line[0] == 'r') { zwlr_virtual_pointer_v1_button(p, now(), 273, 1); zwlr_virtual_pointer_v1_frame(p); wl_display_roundtrip(d); nanosleep(&(struct timespec){0, 80000000}, NULL); zwlr_virtual_pointer_v1_button(p, now(), 273, 0); zwlr_virtual_pointer_v1_frame(p); }
     wl_display_roundtrip(d);
   }
   return 0;
