@@ -52,6 +52,8 @@ Singleton {
     // the queue refills itself with similar songs at its end; continueKnown: the daemon reports it at all
     property bool continuing: false
     property bool continueKnown: false
+    // the queue played out to its end and nothing plays; the queue keeps its origin
+    property bool ended: false
 
     // "idle" | "loading" | "ready" | "none" | "instrumental" | "error"
     readonly property string lyricsState: _lyricsKey === "" || _lyricsKey === currentKey || _lyricsState === "idle" ? _lyricsState : "loading"
@@ -497,6 +499,7 @@ Singleton {
         duration = s.duration || (s.track?.duration ?? 0);
         shuffle = _shuffleOn(s.shuffle);
         repeat = s.repeat ?? "off";
+        ended = s.ended === true;
         _applyContinuing(s);
         if (s.systemVolume !== undefined)
             SettingsService.systemVolume = s.systemVolume === true;

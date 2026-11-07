@@ -650,6 +650,7 @@ DFloatingWindow {
         }
 
         Snackbar {
+            inSettings: true
             z: Theme.zToast
         }
 

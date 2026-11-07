@@ -222,6 +222,8 @@ type Status struct {
 	// Continuing says the queue is extended endlessly when it runs out: by
 	// the autoContinue setting, or turned on for this queue (Continue).
 	Continuing bool `json:"continuing"`
+	// Ended says the queue played out to its end and nothing plays now.
+	Ended bool `json:"ended"`
 	// Casting says a remote (a cast device) plays the queue instead of mpv.
 	Casting bool `json:"casting"`
 	// VolumeTarget is what Volume and Muted are: VolumeApp or VolumeSystem.
@@ -1137,7 +1139,7 @@ func (p *Player) fallbackGain(t source.Track, measured *float64) *float64 {
 // loadCurrent returns errLoading: the old track stops and the new one
 // starts once its URL is in (doPlay waits for that).
 func (p *Player) loadCurrent(ctx context.Context, start float64, play bool) error {
-	p.ended = false
+	p.clearEnded()
 	it, ok := p.queue.Current()
 	if !ok {
 		return errors.New("queue is empty")
@@ -1418,7 +1420,17 @@ func (p *Player) stop(ctx context.Context) {
 func (p *Player) newQueue() {
 	p.queueGen++
 	p.feed, p.refeed = nil, false
-	p.contMode, p.ended = "", false
+	p.contMode = ""
+	p.clearEnded()
+}
+
+// clearEnded forgets that the queue played out and publishes the status.
+func (p *Player) clearEnded() {
+	if !p.ended {
+		return
+	}
+	p.ended = false
+	p.publishStatus()
 }
 
 // Play replaces the queue with tracks and starts at index start.
@@ -1969,6 +1981,7 @@ func (p *Player) status() Status {
 		Repeat:       p.queue.Repeat(),
 
 		Continuing: p.cfg.Continue != nil && p.continueMode() != "",
+		Ended:      p.ended,
 		Casting:    p.remote != nil,
 
 		Backend:        p.backend,
