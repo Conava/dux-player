@@ -34,6 +34,22 @@ func Register(r *ipc.Registry, c func() *Cache) {
 			ipc.ReplyOK(w, req.ID, c.UpdateRule(ctx, ipc.Str(p, "library"), ipc.Str(p, "kind"), *l))
 		case "cache.removeRule":
 			ipc.ReplyOK(w, req.ID, c.RemoveRule(ctx, ipc.Str(p, "library"), Rule{Kind: ipc.Str(p, "kind"), ID: ipc.Str(p, "id")}))
+		case "cache.keep", "cache.keepState":
+			refs, err := ipc.Refs(p, "tracks")
+			if err != nil {
+				w.RespondError(req.ID, err.Error())
+				return
+			}
+			if req.Method == "cache.keepState" {
+				ipc.Reply(w, req.ID)(c.KeepState(ctx, refs))
+				return
+			}
+			on, ok := ipc.Bool(p, "keep")
+			if !ok {
+				w.RespondError(req.ID, "keep must be true or false")
+				return
+			}
+			ipc.ReplyOK(w, req.ID, c.Keep(ctx, refs, on))
 		case "cache.setLimit":
 			mb, err := ipc.Int(p, "mb", 0)
 			if err != nil {
@@ -49,6 +65,8 @@ func Register(r *ipc.Registry, c func() *Cache) {
 	},
 		ipc.MethodSpec{Name: "cache.status", Desc: "Size limit, usage, downloads and each server library's offline rules", Read: true},
 		ipc.MethodSpec{Name: "cache.addRule", Desc: "Keep a library's tracks on this device by a rule", Params: []ipc.ParamSpec{ipc.Opt("library", "server library; empty for a local playlist"), ipc.Req("kind", strings.Join(kinds, "|")), ipc.Opt("id", "playlist, album or artist id"), ipc.Opt("limit", "played and mostPlayed: {songs:N} or {bytes:N}")}},
+		ipc.MethodSpec{Name: "cache.keep", Desc: "Keep single server tracks on this device, or let them go", Params: []ipc.ParamSpec{ipc.Req("tracks", "track refs: library:id strings or {library,id} objects"), ipc.Req("keep", "true|false")}},
+		ipc.MethodSpec{Name: "cache.keepState", Desc: "How many of these tracks are kept by hand and how many a pinning rule holds", Params: []ipc.ParamSpec{ipc.Req("tracks", "track refs: library:id strings or {library,id} objects")}, Read: true},
 		ipc.MethodSpec{Name: "cache.updateRule", Desc: "Change the limit of a played or mostPlayed rule", Params: []ipc.ParamSpec{ipc.Req("library", ""), ipc.Req("kind", "played|mostPlayed"), ipc.Req("limit", "{songs:N} or {bytes:N}")}},
 		ipc.MethodSpec{Name: "cache.removeRule", Desc: "Remove a rule; deletes the copies no other rule holds", Params: []ipc.ParamSpec{ipc.Opt("library", "server library; empty for a local playlist"), ipc.Req("kind", ""), ipc.Opt("id", "")}},
 		ipc.MethodSpec{Name: "cache.setLimit", Desc: "Set the size limit; evicts down to it", Params: []ipc.ParamSpec{ipc.Req("mb", "megabytes, at least 100")}},

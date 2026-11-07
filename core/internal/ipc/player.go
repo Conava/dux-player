@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/duxlabs-dev/dux-go/ipc/params"
+	"github.com/duxlabs-dev/dux-go/log"
 
 	"github.com/Conava/dux-player/core/internal/library"
 	"github.com/Conava/dux-player/core/internal/player"
@@ -34,17 +35,19 @@ func RegisterPlayer(r *Registry, d *Deps) {
 	// A new subscriber gets the current state right away instead of waiting
 	// for the next change.
 	r.Greet(func(send func(string, any)) {
-		_ = d.Player.Snapshot(d.Ctx, func(st player.Status, q player.QueueSnapshot) {
+		if err := d.Player.Snapshot(d.Ctx, func(st player.Status, q player.QueueSnapshot) {
 			send(player.TopicStatus, st)
 			send(player.TopicQueue, q)
-		})
+		}); err != nil {
+			log.Warnf("player: can't greet a new subscriber: %v", err)
+		}
 	})
 	r.Group("player", func(ctx context.Context, w *ConnWriter, req Request) { handlePlayer(ctx, w, req, *d) },
 		MethodSpec{Name: "player.status", Desc: "Playback state, position, volume, modes and current track", Read: true},
 		MethodSpec{Name: "player.play", Desc: "Replace the queue and play; with nothing given, resume", Params: []ParamSpec{Opt("tracks", tracksDesc), Opt("paths", pathsDesc), Opt("album", albumDesc), Opt("playlist", "library:playlistId, a server playlist"), Opt("library", listDesc), Opt("sort", "with library"), Opt("artist", "with library"), Opt("favorites", "true: every favorite track"), Opt("index", "queue index (with library or favorites: list row) to start at"), Opt("shuffle", "true: shuffle these tracks; otherwise they play in order with shuffle off"), Opt("origin", "{kind,library,id,name}: what the UI is playing (playlist, favorites, …)")}},
 		MethodSpec{Name: "player.resume", Desc: "Play the saved queue from the saved position"},
-		MethodSpec{Name: "player.shuffleFrom", Desc: "Replace the queue with shuffled tracks and play", Params: []ParamSpec{Req("from", "tracks|favorites|library|playlist"), Opt("name", "library or playlist name (or id)")}},
-		MethodSpec{Name: "player.shuffle", Desc: "Shuffle the queue, or restore its order", Params: []ParamSpec{Opt("on", "true|false"), Opt("mode", "old form of on: off|tracks|albums")}},
+		MethodSpec{Name: "player.shuffleFrom", Desc: "Replace the queue with shuffled tracks and play; a named library is shuffled even when the skip rules list it", Params: []ParamSpec{Req("from", "tracks|favorites|library|playlist"), Opt("name", "library or playlist name (or id)")}},
+		MethodSpec{Name: "player.shuffle", Desc: "Shuffle the queue, or restore its order", Params: []ParamSpec{Req("on", "true|false")}},
 		MethodSpec{Name: "player.repeat", Desc: "Set the repeat mode", Params: []ParamSpec{Req("mode", "off|all|one")}},
 		MethodSpec{Name: "player.pause", Desc: "Pause"},
 		MethodSpec{Name: "player.toggle", Desc: "Play or pause"},
@@ -53,7 +56,7 @@ func RegisterPlayer(r *Registry, d *Deps) {
 		MethodSpec{Name: "player.previous", Desc: "Restart the track, or go back if it just started"},
 		MethodSpec{Name: "player.seek", Desc: "Seek", Params: []ParamSpec{Req("position", "seconds"), Opt("relative", "true: seek by position instead of to it")}},
 		MethodSpec{Name: "player.mute", Desc: "Mute or unmute; kept across restarts", Params: []ParamSpec{Opt("muted", "true|false; default: toggle")}},
-		MethodSpec{Name: "player.sleep", Desc: "Sleep timer: pause after minutes, at the end of the track, or off", Params: []ParamSpec{Opt("minutes", "1-1440"), Opt("endOfTrack", "true: pause when the current track ends"), Opt("off", "true: cancel")}},
+		MethodSpec{Name: "player.sleep", Desc: "Sleep timer: stop after minutes, at the end of the track or a queue entry, or off; a cast receiver gets the queue only up to that entry, and an entry behind the current track clears the rule unless repeat all is on", Params: []ParamSpec{Opt("minutes", "1-1440"), Opt("mode", "afterEntry: stop when the queue entry at index ends"), Opt("index", "required with mode"), Opt("endOfTrack", "true: stop when the current track ends"), Opt("off", "true: cancel")}},
 		MethodSpec{Name: "player.volume", Desc: "Set the volume", Params: []ParamSpec{Req("level", "0-100, 130 with volume boost"), Opt("relative", "true: change by level")}},
 	)
 	r.Group("queue", func(ctx context.Context, w *ConnWriter, req Request) { handleQueue(ctx, w, req, *d) },
@@ -65,22 +68,6 @@ func RegisterPlayer(r *Registry, d *Deps) {
 		MethodSpec{Name: "queue.clear", Desc: "Stop and empty the queue", Params: []ParamSpec{Opt("keepCurrent", "true: keep the current track playing and drop the rest")}},
 		MethodSpec{Name: "queue.continue", Desc: "Extend this queue endlessly, whatever autoContinue says, starting now; status continuing turns true", Params: []ParamSpec{Opt("mode", "similar|random; default similar")}},
 	)
-}
-
-// shuffleParam reads on; mode is the form from before shuffle was only on or
-// off ("tracks" and "albums" both mean on).
-// Mode is kept for one release; drop it after 0.1.0.
-func shuffleParam(p map[string]any) (bool, error) {
-	if on, ok := Bool(p, "on"); ok {
-		return on, nil
-	}
-	switch Str(p, "mode") {
-	case "off":
-		return false, nil
-	case "tracks", "albums":
-		return true, nil
-	}
-	return false, errors.New("on must be true or false")
 }
 
 var originKinds = map[string]bool{"track": true, "album": true, "playlist": true, "library": true, "favorites": true,
@@ -275,7 +262,7 @@ func handlePlayer(ctx context.Context, w *ConnWriter, req Request, deps Deps) {
 	case "player.resume":
 		err = pl.Resume(ctx)
 	case "player.shuffleFrom":
-		sh, serr := deps.Libraries.ShuffleSource(ctx, Str(p, "from"), Str(p, "name"))
+		sh, serr := deps.Libraries.PickSource(ctx, Str(p, "from"), Str(p, "name"), deps.Settings.Get().Picks())
 		switch {
 		case serr != nil:
 			err = serr
@@ -285,10 +272,12 @@ func handlePlayer(ctx context.Context, w *ConnWriter, req Request, deps Deps) {
 			err = pl.PlayShuffled(ctx, sh.Tracks, sh.Origin)
 		}
 	case "player.shuffle":
-		on, serr := shuffleParam(p)
-		if err = serr; err == nil {
-			err = pl.SetShuffle(ctx, on)
+		on, ok := Bool(p, "on")
+		if !ok {
+			err = errors.New("on must be true or false")
+			break
 		}
+		err = pl.SetShuffle(ctx, on)
 	case "player.repeat":
 		err = pl.SetRepeat(ctx, Str(p, "mode"))
 	case "player.pause":
@@ -325,12 +314,17 @@ func handlePlayer(ctx context.Context, w *ConnWriter, req Request, deps Deps) {
 			err = perr
 		case params.BoolLoose(p, "off"):
 			err = pl.SetSleep(ctx, player.SleepOff, 0)
+		case Str(p, "mode") == player.SleepAfterEntry:
+			var i int
+			if i, err = Int(p, "index", -1); err == nil {
+				err = pl.SetSleepAfter(ctx, i)
+			}
 		case params.BoolLoose(p, "endOfTrack"):
 			err = pl.SetSleep(ctx, player.SleepEndOfTrack, 0)
 		case ok:
 			err = pl.SetSleep(ctx, player.SleepTimer, time.Duration(minutes*float64(time.Minute)))
 		default:
-			err = errors.New("give minutes, endOfTrack=true or off=true")
+			err = errors.New("give minutes, endOfTrack=true, mode=afterEntry with index, or off=true")
 		}
 	case "player.volume":
 		level, ok, perr := Num(p, "level")
@@ -437,16 +431,22 @@ func playRefs(ctx context.Context, p map[string]any, deps Deps, refs []source.Re
 // resolveEach resolves refs together, or one by one when some fail, leaving
 // those out.
 func resolveEach(ctx context.Context, deps Deps, refs []source.Ref) ([]source.Track, int) {
-	if tracks, err := deps.Libraries.Tracks(ctx, refs); err == nil {
+	tracks, err := deps.Libraries.Tracks(ctx, refs)
+	if err == nil {
 		return tracks, 0
 	}
 	out := make([]source.Track, 0, len(refs))
+	var first error
 	for _, r := range refs {
 		t, err := deps.Libraries.Tracks(ctx, []source.Ref{r})
 		if err != nil || len(t) == 0 {
+			if first == nil {
+				first = err
+			}
 			continue
 		}
 		out = append(out, t[0])
 	}
+	log.Warnf("player: %d of %d tracks couldn't be resolved: %v (first: %v)", len(refs)-len(out), len(refs), err, first)
 	return out, len(refs) - len(out)
 }

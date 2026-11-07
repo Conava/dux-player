@@ -67,6 +67,9 @@ func readTrack(path string) (library.IndexedTrack, error) {
 		Year:        leadingInt(first(tags, taglib.Date)),
 		Genre:       first(tags, taglib.Genre),
 		Duration:    props.Length.Seconds(),
+		Composer:    strings.Join(cleanAll(tags[taglib.Composer]), ", "),
+		Format:      formatOf(path),
+		Bitrate:     int(props.BitRate),
 	}
 	it.RGTrack = parseGain(first(tags, "REPLAYGAIN_TRACK_GAIN"))
 	it.RGAlbum = parseGain(first(tags, "REPLAYGAIN_ALBUM_GAIN"))

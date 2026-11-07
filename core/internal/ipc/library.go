@@ -11,13 +11,14 @@ import (
 	"github.com/duxlabs-dev/dux-go/log"
 
 	"github.com/Conava/dux-player/core/internal/library"
+	"github.com/Conava/dux-player/core/internal/logtext"
 	"github.com/Conava/dux-player/core/internal/source"
 )
 
 const defaultSearchLimit = 20
 
 func browser(deps Deps, lib string) (source.Browser, error) {
-	return Capability[source.Browser](deps.Libraries, lib, "browsing")
+	return deps.Libraries.Browser(deps.Ctx, lib)
 }
 
 func RegisterLibraries(r *Registry, d *Deps) {
@@ -25,13 +26,16 @@ func RegisterLibraries(r *Registry, d *Deps) {
 	r.Group("libraries", func(ctx context.Context, w *ConnWriter, req Request) { handleLibraries(ctx, w, req, *d) },
 		MethodSpec{Name: "libraries.list", Desc: "Configured libraries with capabilities and errors", Read: true},
 		MethodSpec{Name: "libraries.kinds", Desc: "Library kinds that can be added: local (folders), subsonic ((Open)Subsonic), jellyfin", Read: true},
+		MethodSpec{Name: "libraries.quickConnectKinds", Desc: "The kinds that sign in with Quick Connect", Read: true},
 		MethodSpec{Name: "libraries.add", Desc: "Add a library; a local one is scanned right away", Params: []ParamSpec{Req("kind", "one of libraries.kinds"), Req("name", ""), Opt("folders", "local: absolute folders"), Opt("url", "server address"), Opt("username", "server account"), Opt("password", "server password; stored in the keyring"), Opt("auth", "(Open)Subsonic: auto|token|password|apiKey")}},
-		MethodSpec{Name: "libraries.remove", Desc: "Remove a library and its index", Params: []ParamSpec{Req("library", "")}},
+		MethodSpec{Name: "libraries.remove", Desc: "Remove a library and its index; it also leaves the skip rules", Params: []ParamSpec{Req("library", "")}},
 		MethodSpec{Name: "libraries.scan", Desc: "Rescan a library; progress on the libraries topic", Params: []ParamSpec{Req("library", "")}},
 		MethodSpec{Name: "libraries.ping", Desc: "Check a remote library's server", Params: []ParamSpec{Req("library", "")}, Read: true},
 		MethodSpec{Name: "libraries.update", Desc: "Rename a library or change its folders, server or password", Params: []ParamSpec{Req("library", ""), Opt("name", ""), Opt("folders", "local: absolute folders, replacing the old ones"), Opt("url", ""), Opt("username", ""), Opt("password", "stored in the keyring"), Opt("auth", "(Open)Subsonic: auto|token|password|apiKey")}},
 		MethodSpec{Name: "libraries.setEnabled", Desc: "Turn a library on or off", Params: []ParamSpec{Req("library", ""), Req("enabled", "true|false")}},
 		MethodSpec{Name: "libraries.retry", Desc: "Check an unavailable library again now", Params: []ParamSpec{Req("library", "")}},
+		MethodSpec{Name: "libraries.quickConnect", Desc: "Request a Quick Connect code for a new library (kind, url, name) or to sign in again to one (library); the library is added or updated once the code is approved, reported by a quickConnect event", Params: []ParamSpec{Opt("library", "sign in again to this library"), Opt("kind", "a server kind from libraries.kinds"), Opt("url", ""), Opt("name", "")}},
+		MethodSpec{Name: "libraries.quickConnectCancel", Desc: "Stop waiting for a Quick Connect approval", Params: []ParamSpec{Req("session", "from libraries.quickConnect")}},
 		MethodSpec{Name: "libraries.test", Desc: "Ping a server without adding it", Params: []ParamSpec{Req("kind", "a server kind from libraries.kinds"), Req("url", ""), Opt("username", ""), Opt("password", ""), Opt("auth", "(Open)Subsonic: auto|token|password|apiKey")}, Read: true},
 	)
 	r.Group("browse", func(ctx context.Context, w *ConnWriter, req Request) { handleBrowse(ctx, w, req, *d) },
@@ -61,13 +65,15 @@ func handleLibraries(ctx context.Context, w *ConnWriter, req Request, deps Deps)
 		Reply(w, req.ID)(deps.Libraries.List(ctx))
 	case "libraries.kinds":
 		w.Respond(req.ID, deps.Libraries.Kinds())
+	case "libraries.quickConnectKinds":
+		w.Respond(req.ID, deps.Libraries.QuickConnectKinds())
 	case "libraries.add":
 		config, secrets := libraryParams(p, false)
 		added, err := deps.Libraries.Add(ctx, Str(p, "kind"), Str(p, "name"), config, secrets)
 		if err == nil {
 			deps.Bus.Publish(library.TopicLibraries, map[string]any{"type": "changed"})
 			if _, serr := Capability[source.Scanner](deps.Libraries, added.ID, "scanning"); serr == nil {
-				go scan(deps, added.ID)
+				go scan(deps, added.ID, false)
 			}
 		}
 		Reply(w, req.ID)(added, err)
@@ -75,14 +81,20 @@ func handleLibraries(ctx context.Context, w *ConnWriter, req Request, deps Deps)
 		err := deps.Libraries.Remove(ctx, lib)
 		if err == nil {
 			deps.Bus.Publish(library.TopicLibraries, map[string]any{"type": "changed"})
+			// The rule would otherwise name a library that no longer exists.
+			if dropped, derr := deps.Settings.DropLibrary(lib); derr != nil {
+				log.Warnf("skip rules of removed library %s: %v", lib, derr)
+			} else if dropped {
+				deps.Bus.Publish(TopicSettings, settingsReply(deps))
+			}
 		}
 		ReplyOK(w, req.ID, err)
 	case "libraries.scan":
-		if _, err := Capability[source.Scanner](deps.Libraries, lib, "scanning"); err != nil {
+		if err := deps.Libraries.CanScan(lib); err != nil {
 			w.RespondError(req.ID, err.Error())
 			return
 		}
-		go scan(deps, lib)
+		go scan(deps, lib, false)
 		w.Respond(req.ID, map[string]bool{"started": true})
 	case "libraries.ping":
 		pinger, err := Capability[source.Pinger](deps.Libraries, lib, "ping")
@@ -103,6 +115,13 @@ func handleLibraries(ctx context.Context, w *ConnWriter, req Request, deps Deps)
 		ReplyOK(w, req.ID, deps.Libraries.SetEnabled(ctx, lib, enabled))
 	case "libraries.retry":
 		Reply(w, req.ID)(deps.Libraries.Retry(ctx, lib))
+	case "libraries.quickConnect":
+		config, _ := libraryParams(p, false)
+		session, code, err := deps.Libraries.QuickConnectStart(ctx, lib, Str(p, "kind"), Str(p, "name"), config)
+		Reply(w, req.ID)(map[string]string{"session": session, "code": code}, err)
+	case "libraries.quickConnectCancel":
+		deps.Libraries.QuickConnectCancel(Str(p, "session"))
+		ReplyOK(w, req.ID, nil)
 	case "libraries.test":
 		config, secrets := libraryParams(p, true)
 		Reply(w, req.ID)(deps.Libraries.Test(ctx, Str(p, "kind"), config, secrets))
@@ -143,24 +162,32 @@ func RescanStale(deps Deps) {
 		return
 	}
 	for _, id := range ids {
-		if _, err := Capability[source.Scanner](deps.Libraries, id, "scanning"); err == nil {
-			scan(deps, id)
+		if deps.Libraries.CanScan(id) == nil {
+			scan(deps, id, false)
 		}
 	}
 }
 
-func scan(deps Deps, lib string) {
+// SyncCatalog reads a server's catalog by itself, so a failure shows no toast.
+func SyncCatalog(deps Deps, lib string) { scan(deps, lib, true) }
+
+func scan(deps Deps, lib string, background bool) {
 	progress := func(done, total int) {
 		deps.Bus.Publish(library.TopicLibraries, map[string]any{"type": "scanProgress", "library": lib, "done": done, "total": total})
 	}
-	stats, err := deps.Libraries.Scan(deps.Ctx, lib, progress)
+	run := deps.Libraries.Scan
+	if background {
+		run = deps.Libraries.Sync
+	}
+	stats, err := run(deps.Ctx, lib, progress)
 	if errors.Is(err, library.ErrScanning) {
 		return
 	}
 	if err != nil {
-		log.Warnf("scan %s: %v", lib, err)
+		log.Warnf("scan %s: %s", lib, logtext.Clean(err.Error()))
 		deps.Bus.Publish(library.TopicLibraries, map[string]any{"type": "scanFailed", "library": lib,
-			"code": library.CodeScanFailed, "error": "Couldn't scan the library"})
+			"code": library.CodeScanFailed, "error": "Couldn't scan the library",
+			"background": background || errors.Is(err, context.Canceled)})
 		return
 	}
 	log.Infof("scan %s: %+v", lib, stats)
@@ -258,7 +285,13 @@ func details(ctx context.Context, deps Deps, lib, kind, id string) (map[string]a
 	}
 	src, err := deps.Libraries.Get(lib)
 	if err != nil {
-		return nil, err
+		// A synced library answers with its item's fields without a source.
+		info, lerr := deps.Libraries.Library(ctx, lib)
+		if lerr != nil {
+			return nil, err
+		}
+		out["libraryName"] = info.Name
+		return out, nil
 	}
 	out["libraryName"] = src.Library().Name
 	var d source.Details

@@ -326,7 +326,7 @@ func (c *Cache) prefetchOne(ctx context.Context, b *buffered) {
 		return
 	}
 	if err := os.MkdirAll(filepath.Dir(b.file), 0o700); err != nil {
-		log.Warnf("prefetch: %v", err)
+		log.Warnf("prefetch %q: no folder for the copy: %v", b.track.Title, err)
 		return
 	}
 	size, err := c.download(ctx, src, ref.ID, b.file, 0)
@@ -346,7 +346,7 @@ func (c *Cache) prefetchOne(ctx context.Context, b *buffered) {
 	if m.gain != nil {
 		if _, err := c.db.ExecContext(ctx, "INSERT OR REPLACE INTO probes (library_id, id, gain) VALUES (?, ?, ?)",
 			ref.Library, ref.ID, *m.gain); err != nil {
-			log.Warnf("prefetch: %v", err)
+			log.Warnf("prefetch %q: can't store its gain: %v", b.track.Title, err)
 		}
 	}
 	c.mu.Lock()

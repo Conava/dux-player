@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"maps"
 	"net/http"
 	"net/url"
@@ -26,6 +27,7 @@ import (
 	"github.com/duxlabs-dev/dux-go/log"
 
 	"github.com/Conava/dux-player/core/internal/library"
+	"github.com/Conava/dux-player/core/internal/logtext"
 	"github.com/Conava/dux-player/core/internal/loudness"
 	"github.com/Conava/dux-player/core/internal/player"
 	"github.com/Conava/dux-player/core/internal/source"
@@ -200,14 +202,26 @@ func (c *Cache) sweep(ctx context.Context) {
 	}
 	rows.Close()
 	for _, ref := range gone {
-		_, _ = c.db.ExecContext(ctx, "DELETE FROM entries WHERE library_id = ? AND id = ?", ref.Library, ref.ID)
+		c.dropEntry(ctx, ref)
 	}
-	matches, _ := filepath.Glob(filepath.Join(c.cfg.Dir, "*", "*"))
+	matches, err := filepath.Glob(filepath.Join(c.cfg.Dir, "*", "*"))
+	if err != nil {
+		log.Warnf("cache: can't list the stored files: %v", err)
+	}
 	matches = append(matches, filepath.Join(c.cfg.Dir, "probe"), filepath.Join(c.cfg.Dir, "probe.part"))
 	for _, m := range matches {
 		if !files[m] {
-			_ = os.Remove(m)
+			if err := os.Remove(m); err != nil && !errors.Is(err, fs.ErrNotExist) {
+				log.Warnf("cache: can't remove the stray file %s: %v", m, err)
+			}
 		}
+	}
+}
+
+// dropEntry forgets an entry whose file is gone.
+func (c *Cache) dropEntry(ctx context.Context, ref source.Ref) {
+	if _, err := c.db.ExecContext(ctx, "DELETE FROM entries WHERE library_id = ? AND id = ?", ref.Library, ref.ID); err != nil {
+		log.Warnf("cache: can't forget the missing copy of %s/%s: %v", ref.Library, ref.ID, err)
 	}
 }
 
@@ -221,16 +235,34 @@ func (c *Cache) Cached(ctx context.Context, ref source.Ref) (player.Stream, bool
 		return player.Stream{}, false
 	}
 	if _, err := os.Stat(f); err != nil {
-		_, _ = c.db.ExecContext(ctx, "DELETE FROM entries WHERE library_id = ? AND id = ?", ref.Library, ref.ID)
+		c.dropEntry(ctx, ref)
 		return player.Stream{}, false
 	}
-	_, _ = c.db.ExecContext(ctx, "UPDATE entries SET used = unixepoch() WHERE library_id = ? AND id = ? AND used < unixepoch() - 60",
-		ref.Library, ref.ID)
+	if _, err := c.db.ExecContext(ctx, "UPDATE entries SET used = unixepoch() WHERE library_id = ? AND id = ? AND used < unixepoch() - 60",
+		ref.Library, ref.ID); err != nil {
+		log.Warnf("cache: can't note the use of %s/%s: %v", ref.Library, ref.ID, err)
+	}
 	st := player.Stream{URL: f, Silence: loudness.Silence{Start: start.Float64, End: end.Float64}}
 	if gain.Valid {
 		st.GainDB = &gain.Float64
 	}
 	return st, true
+}
+
+func (c *Cache) Has(ctx context.Context, ref source.Ref) (has, known bool) {
+	var f string
+	err := c.db.QueryRowContext(ctx, "SELECT file FROM entries WHERE library_id = ? AND id = ?", ref.Library, ref.ID).Scan(&f)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, true
+	}
+	if err != nil {
+		return false, false
+	}
+	_, err = os.Stat(f)
+	if err == nil {
+		return true, true
+	}
+	return false, errors.Is(err, fs.ErrNotExist)
 }
 
 func (c *Cache) Snapshot(ctx context.Context, ref source.Ref) (source.Track, bool) {
@@ -371,6 +403,9 @@ func (c *Cache) Played(ctx context.Context, t source.Track) {
 	if !ok || !hasKind(rules, KindPlayed) {
 		return
 	}
+	if err != nil {
+		log.Warnf("cache: can't note that %q played: %v", t.Title, err)
+	}
 	if err == nil {
 		if n, _ := res.RowsAffected(); n > 0 {
 			c.refresh(ctx, t.Library, false)
@@ -446,7 +481,7 @@ func (c *Cache) Sync(ctx context.Context, libID string, match func(key string) b
 		}
 		l, err := c.setCover(ctx, libID, key, ids, true)
 		if err != nil {
-			log.Warnf("cache: %v", err)
+			log.Warnf("cache: library %s, rule %s: %v", libID, key, err)
 		}
 		lost = append(lost, l...)
 	}
@@ -464,13 +499,13 @@ func (c *Cache) Sync(ctx context.Context, libID string, match func(key string) b
 	}
 	l, err := c.dropStale(ctx, libID)
 	if err != nil {
-		log.Warnf("cache: %v", err)
+		log.Warnf("cache: library %s: drop stale copies: %v", libID, err)
 	}
 	if err := c.prune(ctx, libID, append(lost, l...)); err != nil {
-		log.Warnf("cache: %v", err)
+		log.Warnf("cache: library %s: prune: %v", libID, err)
 	}
 	c.refresh(ctx, libID, true)
-	c.enqueue(fetch, true)
+	c.enqueue(append(fetch, c.missingKept(ctx, libID)...), true)
 }
 
 // refresh recomputes a library's dynamic rules (reading the play counts
@@ -497,10 +532,10 @@ func (c *Cache) refresh(ctx context.Context, libID string, top bool) {
 	}
 	lost, fetch, err := c.dynamic(ctx, libID, rules)
 	if err != nil {
-		log.Warnf("cache: %v", err)
+		log.Warnf("cache: library %s: dynamic rules: %v", libID, err)
 	}
 	if err := c.prune(ctx, libID, lost); err != nil {
-		log.Warnf("cache: %v", err)
+		log.Warnf("cache: library %s: prune: %v", libID, err)
 	}
 	c.setWanted(libID, c.wantedIDs(ctx, libID))
 	c.drop(libID, hasKind(rules, KindPlayed))
@@ -660,7 +695,9 @@ func (c *Cache) fetch(ctx context.Context, j job) error {
 		return err
 	}
 	if cov, ok := src.(source.CoverArt); ok && t.CoverID != "" {
-		_, _ = cov.Cover(ctx, t.CoverID, coverSize)
+		if _, err := cov.Cover(ctx, t.CoverID, coverSize); err != nil {
+			log.Warnf("cache: cover of %q: %v", t.Title, logtext.Clean(err.Error()))
+		}
 	}
 	if err := c.evict(ctx, ref, j.sync); err != nil {
 		return err

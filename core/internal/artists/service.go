@@ -15,6 +15,7 @@ import (
 
 	"github.com/duxlabs-dev/dux-go/log"
 
+	"github.com/Conava/dux-player/core/internal/keyring"
 	"github.com/Conava/dux-player/core/internal/playlists"
 	"github.com/Conava/dux-player/core/internal/source"
 )
@@ -72,7 +73,10 @@ func (s *Service) key(provider string) string {
 	if ok {
 		return k
 	}
-	k, _ = s.cfg.Secrets.Get(secretID(provider), "apiKey")
+	k, err := s.cfg.Secrets.Get(secretID(provider), "apiKey")
+	if errors.Is(err, keyring.ErrLocked) || errors.Is(err, keyring.ErrUnavailable) {
+		log.Warnf("artists: can't read the %s key: %v", provider, err)
+	}
 	s.mu.Lock()
 	s.keys[provider] = k
 	s.mu.Unlock()

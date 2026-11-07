@@ -1,9 +1,11 @@
 package player
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"math/rand/v2"
+	"slices"
 
 	"github.com/Conava/dux-player/core/internal/source"
 )
@@ -45,6 +47,9 @@ type Queue struct {
 	shuffle bool
 	repeat  string
 	orig    []uint64
+	// albums makes turning shuffle on, and feeds, keep whole albums in track
+	// order. Shuffling one list by its own button stays by track.
+	albums bool
 	// skip, when set, says which items can't play now; Peek passes them.
 	skip func(Item) bool
 }
@@ -79,7 +84,7 @@ func (q *Queue) Replace(tracks []source.Track, start int, origin Origin) {
 	q.origin = origin
 	q.orig = nil
 	if q.shuffle {
-		q.reshuffle()
+		q.reshuffle(false)
 	}
 }
 
@@ -284,6 +289,30 @@ func (q *Queue) Peek() (Item, bool) {
 	return Item{}, false
 }
 
+// PassesOver says whether Peek skips the item with uid on its way from the
+// current one.
+func (q *Queue) PassesOver(uid uint64) bool {
+	if q.cur < 0 || q.skip == nil {
+		return false
+	}
+	for i := 1; i <= len(q.items); i++ {
+		j := q.cur + i
+		if j >= len(q.items) {
+			if q.repeat != RepeatAll {
+				return false
+			}
+			j %= len(q.items)
+		}
+		if !q.skip(q.items[j]) {
+			return false
+		}
+		if q.items[j].UID == uid {
+			return true
+		}
+	}
+	return false
+}
+
 // Back moves to the closest earlier item that can play; false when there
 // is none.
 func (q *Queue) Back() bool {
@@ -327,6 +356,11 @@ func (q *Queue) Mark(ref source.Ref, favorite *bool, rating *int) bool {
 
 func (q *Queue) Index() int { return q.cur }
 
+// Has says whether the entry with this UID is still in the queue.
+func (q *Queue) Has(uid uint64) bool {
+	return slices.ContainsFunc(q.items, func(it Item) bool { return it.UID == uid })
+}
+
 func (q *Queue) Len() int { return len(q.items) }
 
 func (q *Queue) Items() []Item { return append([]Item{}, q.items...) }
@@ -354,7 +388,7 @@ func (q *Queue) SetShuffle(on bool) {
 	}
 	q.shuffle = on
 	if on {
-		q.reshuffle()
+		q.reshuffle(q.albums)
 	}
 }
 
@@ -376,12 +410,16 @@ func (q *Queue) unshuffle() {
 }
 
 // reshuffle shuffles everything but keeps the current item first.
-func (q *Queue) reshuffle() {
+func (q *Queue) reshuffle(byAlbum bool) {
 	q.orig = make([]uint64, len(q.items))
 	for i, it := range q.items {
 		q.orig[i] = it.UID
 	}
 	curUID := q.currentUID()
+	if byAlbum {
+		q.shuffleAlbums(curUID)
+		return
+	}
 	rand.Shuffle(len(q.items), func(i, j int) { q.items[i], q.items[j] = q.items[j], q.items[i] })
 	if curUID != 0 {
 		q.selectUID(curUID)
@@ -389,6 +427,42 @@ func (q *Queue) reshuffle() {
 		q.cur = 0
 	} else if len(q.items) > 0 {
 		q.cur = 0
+	}
+}
+
+// shuffleAlbums orders whole albums randomly, the current item's album
+// first, with the current item staying current where it is in its album.
+func (q *Queue) shuffleAlbums(curUID uint64) {
+	at := map[string]int{}
+	var albums [][]Item
+	for _, it := range q.items {
+		key := it.Track.Library + "\x00" + it.Track.AlbumID
+		if it.Track.AlbumID == "" || it.Track.Album == source.UnknownAlbum {
+			key = fmt.Sprint(it.UID)
+		}
+		i, ok := at[key]
+		if !ok {
+			i = len(albums)
+			at[key] = i
+			albums = append(albums, nil)
+		}
+		albums[i] = append(albums[i], it)
+	}
+	rand.Shuffle(len(albums), func(i, j int) { albums[i], albums[j] = albums[j], albums[i] })
+	q.items = q.items[:0]
+	for _, album := range albums {
+		slices.SortStableFunc(album, func(a, b Item) int {
+			return cmp.Or(cmp.Compare(a.Track.DiscNo, b.Track.DiscNo), cmp.Compare(a.Track.TrackNo, b.Track.TrackNo))
+		})
+		if slices.ContainsFunc(album, func(it Item) bool { return it.UID == curUID }) {
+			q.items = append(album, q.items...)
+		} else {
+			q.items = append(q.items, album...)
+		}
+	}
+	q.cur = min(0, len(q.items)-1)
+	if curUID != 0 {
+		q.selectUID(curUID)
 	}
 }
 

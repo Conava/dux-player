@@ -319,6 +319,66 @@ func TestSleepAtEndOfTrackAndClearKeepingCurrent(t *testing.T) {
 	assert.Equal(t, "long", st.Track.ID)
 }
 
+// Stopping after a queue entry follows the entry through edits, on mpv and
+// on the built-in player.
+func TestSleepAfterEntry(t *testing.T) {
+	mpv, mpvErr := exec.LookPath("mpv")
+	tests := []struct {
+		name string
+		edit func(ctx context.Context, p *Player) error
+		want string // the track stopped on; "" plays to the end of the queue
+	}{
+		{"untouched", nil, "c"},
+		{"moved later", func(ctx context.Context, p *Player) error { return p.Move(ctx, 2, 3) }, "c"},
+		{"moved earlier", func(ctx context.Context, p *Player) error { return p.Move(ctx, 2, 1) }, "c"},
+		{"removed", func(ctx context.Context, p *Player) error { return p.Remove(ctx, 2) }, ""},
+	}
+	for _, backend := range []string{"mpv", "builtin"} {
+		for _, tt := range tests {
+			t.Run(backend+"/"+tt.name, func(t *testing.T) {
+				bin := mpv
+				switch {
+				case backend == "builtin":
+					useNull(t)
+					bin = filepath.Join(t.TempDir(), "no-mpv")
+				case mpvErr != nil:
+					t.Skip("mpv not installed")
+				}
+				dir := t.TempDir()
+				res := pathResolver{}
+				for _, id := range []string{"a", "b", "c", "d", "e", "f"} {
+					res[id] = filepath.Join(dir, id+".wav")
+					writeWAV(t, res[id], 0.4)
+				}
+				p := New(Config{Binary: bin, Socket: filepath.Join(dir, "mpv.sock"), ExtraArgs: []string{"--ao=null"}, Resolver: res, Options: DefaultOptions()})
+				ctx, cancel := context.WithCancel(context.Background())
+				t.Cleanup(cancel)
+				go p.Run(ctx)
+
+				require.NoError(t, p.Play(ctx, tracks("a", "b", "c", "d", "e", "f"), 0, Origin{Kind: "adhoc"}))
+				require.NoError(t, p.SetSleepAfter(ctx, 2))
+				if tt.edit != nil {
+					require.NoError(t, tt.edit(ctx, p))
+				}
+				require.Eventually(t, func() bool {
+					st, _ := p.Status(ctx)
+					return st.State == StateStopped
+				}, 5*time.Second, 20*time.Millisecond, "playback did not stop")
+				st, err := p.Status(ctx)
+				require.NoError(t, err)
+				assert.Equal(t, SleepOff, st.Sleep.Mode)
+				if tt.want == "" {
+					assert.Equal(t, st.Length-1, st.Index, "nothing stopped it before the end")
+					return
+				}
+				q, err := p.Queue(ctx)
+				require.NoError(t, err)
+				assert.Equal(t, tt.want, q.Items[st.Index-1].Track.ID, "stopped right after the entry, with the next lined up")
+			})
+		}
+	}
+}
+
 // Real mpv: with auto-continue on, the last track of the queue gets more
 // tracks behind it and playback goes on.
 func TestAutoContinueExtendsTheQueue(t *testing.T) {
@@ -412,4 +472,28 @@ func TestGainForATrack(t *testing.T) {
 			assert.Equal(t, tt.wantProbe, res.asked > 0)
 		})
 	}
+}
+
+// A stop rule that can't fire is refused, and the message numbers the entry
+// as the user sees it.
+func TestSleepAfterRefusals(t *testing.T) {
+	useNull(t)
+	dir := t.TempDir()
+	res := pathResolver{}
+	for _, id := range []string{"a", "b", "c"} {
+		res[id] = filepath.Join(dir, id+".wav")
+		writeWAV(t, res[id], 0.4)
+	}
+	p := New(Config{Binary: filepath.Join(dir, "no-mpv"), Socket: filepath.Join(dir, "mpv.sock"), Resolver: res, Options: DefaultOptions()})
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go p.Run(ctx)
+	require.NoError(t, p.Play(ctx, tracks("a", "b", "c"), 1, Origin{Kind: "adhoc"}))
+
+	assert.ErrorContains(t, p.SetSleepAfter(ctx, 4), "queue entry 5 doesn't exist")
+	assert.ErrorContains(t, p.SetSleepAfter(ctx, 0), "queue entry 1 is behind the current track")
+	st, err := p.Status(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, SleepOff, st.Sleep.Mode)
+	assert.NoError(t, p.SetSleepAfter(ctx, 2))
 }

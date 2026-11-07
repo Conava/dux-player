@@ -195,6 +195,7 @@ func TestBrowseRecordedResponses(t *testing.T) {
 		AlbumArtist: "Back On Earth", TrackNo: 1, Year: 2013, Duration: 211,
 		CoverID: "mf-3kLPinv71YMdfwl8UVjRSs_b225bb6fbf9f2dd0", Favorite: true, Rating: 1,
 		PlayCount: 619, LastPlayed: 1792800507,
+		Composer: "Back On Earth", Format: "MP3", Bitrate: 194, Added: 1743027995,
 	}, album.Tracks[0])
 	assert.Equal(t, 1233, album.PlayCount, "the server's own play counts")
 }

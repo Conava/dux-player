@@ -23,6 +23,7 @@ import (
 	"github.com/Conava/dux-player/core/internal/player"
 	"github.com/Conava/dux-player/core/internal/player/engine"
 	"github.com/Conava/dux-player/core/internal/settings"
+	"github.com/Conava/dux-player/core/internal/shuffle"
 	"github.com/Conava/dux-player/core/internal/source"
 	"github.com/Conava/dux-player/core/internal/source/jellyfin"
 	"github.com/Conava/dux-player/core/internal/source/local"
@@ -85,6 +86,7 @@ func runDaemon() error {
 			log.Warnf("make %s private: %v", dir, err)
 		}
 	}
+	go watchDaemonLog(ctx, stateDir)
 	prefs, err := settings.Open(configDir)
 	if err != nil {
 		return err
@@ -135,9 +137,9 @@ func runDaemon() error {
 		},
 		Resolver: libs,
 		Publish:  bus.Publish,
-		Continue: continueQueue(libs),
+		Continue: continueQueue(libs, prefs),
 		Refeed: func(ctx context.Context, o player.Origin) (player.Feed, error) {
-			sh, err := libs.ShuffleSource(ctx, o.Kind, o.ID)
+			sh, err := libs.PickSource(ctx, o.Kind, o.ID, prefs.Get().Picks())
 			if err == nil && sh.Feed == nil {
 				err = fmt.Errorf("%s is no longer a shuffle over whole libraries", o.Kind)
 			}
@@ -170,7 +172,7 @@ func runDaemon() error {
 		Deps: ipc.Deps{Bus: bus, Player: pl, Libraries: libs, Settings: prefs, Window: ui, FFmpeg: meter.Available(),
 			Version: Version, Commit: Commit, Ctx: ctx, Quit: cancel, CacheDir: cacheDir,
 			Marks: pendingmarks.Open(filepath.Join(stateDir, pendingmarks.FileName))},
-		ConfigDir: configDir, DataDir: dataDir, StateDir: stateDir, Secrets: secrets, Mixer: mixer,
+		ConfigDir: configDir, DataDir: dataDir, StateDir: stateDir, Secrets: secrets, Mixer: mixer, Meter: meter,
 		PipeWire: devices.PipeWireAvailable(),
 	}
 	ready := make(chan struct{})
@@ -232,16 +234,18 @@ const continueBatch = 25
 
 // continueQueue picks what continues the queue when it runs out: tracks
 // like the last one, or a shuffle over all libraries, none already queued.
-func continueQueue(libs *library.Manager) func(context.Context, string, source.Track, map[source.Ref]bool) ([]source.Track, error) {
+func continueQueue(libs *library.Manager, prefs *settings.Store) func(context.Context, string, source.Track, map[source.Ref]bool) ([]source.Track, error) {
 	return func(ctx context.Context, mode string, last source.Track, queued map[source.Ref]bool) ([]source.Track, error) {
+		rules := prefs.Get().SkipRules
 		if mode == player.ContinueSimilar {
 			if src, err := libs.Get(last.Library); err == nil {
-				if ts := source.Similar(ctx, src, last, continueBatch, queued); len(ts) > 0 {
+				ts := source.Similar(ctx, src, last, continueBatch, queued)
+				if ts = slices.DeleteFunc(ts, rules.Skips); len(ts) > 0 {
 					return ts, nil
 				}
 			}
 		}
-		sh, err := libs.ShuffleSource(ctx, "tracks", "")
+		sh, err := libs.PickSource(ctx, "tracks", "", shuffle.Picks{Skip: rules})
 		if err != nil {
 			return nil, err
 		}

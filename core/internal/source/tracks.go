@@ -4,6 +4,8 @@ import (
 	"context"
 	"math/rand/v2"
 	"strings"
+
+	"github.com/duxlabs-dev/dux-go/log"
 )
 
 // Window returns ts[offset:offset+limit], clamped; limit <= 0 is the rest.
@@ -28,11 +30,18 @@ func Similar(ctx context.Context, src Source, last Track, n int, skip map[Ref]bo
 		}
 	}
 	if b, ok := src.(Browser); ok && last.ArtistID != "" {
-		albums, _ := b.Albums(ctx, last.ArtistID)
+		albums, err := b.Albums(ctx, last.ArtistID)
+		if err != nil {
+			log.Warnf("similar tracks: albums of the artist: %v", err)
+		}
+		failed := 0
 		rand.Shuffle(len(albums), func(i, j int) { albums[i], albums[j] = albums[j], albums[i] })
 		for _, a := range Window(albums, 0, 5) {
 			full, err := b.Album(ctx, a.ID)
 			if err != nil {
+				if failed++; failed == 1 {
+					log.Warnf("similar tracks: album %s: %v", a.ID, err)
+				}
 				continue
 			}
 			for _, t := range full.Tracks {
@@ -41,7 +50,10 @@ func Similar(ctx context.Context, src Source, last Track, n int, skip map[Ref]bo
 		}
 	}
 	if r, ok := src.(RandomTracks); ok && len(out) == 0 && last.Genre != "" {
-		batch, _ := r.RandomTracks(ctx, 200)
+		batch, err := r.RandomTracks(ctx, 200)
+		if err != nil {
+			log.Warnf("similar tracks: random tracks: %v", err)
+		}
 		for _, t := range batch {
 			if strings.EqualFold(t.Genre, last.Genre) {
 				keep(t)

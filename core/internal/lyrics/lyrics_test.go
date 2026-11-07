@@ -1,10 +1,16 @@
 package lyrics
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"errors"
+	"io"
+	"math"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -343,4 +349,231 @@ func TestLyricsOffAsksNobody(t *testing.T) {
 	on = true
 	s.SettingsChanged()
 	assert.Equal(t, "loading", last.State, "turning lyrics on shows the current track's")
+}
+
+// stereo is a song in raw floats: centre bursts where the vocals sing, and a
+// hard-panned guitar playing a pattern of its own.
+func stereo(sung, guitar []float64, seconds float64) []byte {
+	out := make([]byte, 0, int(seconds*FitRate)*8)
+	burst := func(at []float64, t float64) float64 {
+		for _, start := range at {
+			if t >= start && t < start+0.15 {
+				return 0.4 * math.Sin(2*math.Pi*800*t)
+			}
+		}
+		return 0
+	}
+	for i := range int(seconds * FitRate) {
+		t := float64(i) / FitRate
+		centre := burst(sung, t)
+		out = binary.LittleEndian.AppendUint32(out, math.Float32bits(float32(centre+8*burst(guitar, t))))
+		out = binary.LittleEndian.AppendUint32(out, math.Float32bits(float32(centre)))
+	}
+	return out
+}
+
+// Word starts that run early are found against vocals in the centre, past a
+// louder guitar on one side; words that match nothing stay below confidence.
+func TestFitFindsTheVocals(t *testing.T) {
+	random := rand.New(rand.NewPCG(1, 2))
+	var words []float64
+	for at := 1.0; at < 40; at += 0.25 + random.Float64()*0.5 {
+		words = append(words, at)
+	}
+	sung, guitar := make([]float64, len(words)), make([]float64, len(words))
+	for i, at := range words {
+		sung[i] = at + 0.9
+		// the same rhythm at another offset: only the centre tells them apart
+		guitar[i] = at - 0.5
+	}
+	found, err := attacks(bytes.NewReader(stereo(sung, guitar, 44)))
+	require.NoError(t, err)
+	shift, confidence := fit(words, found)
+	assert.InDelta(t, 0.9, shift, 0.025)
+	assert.GreaterOrEqual(t, confidence, float64(fitConfidence))
+
+	quiet := make([]float64, 2000)
+	for i := range quiet {
+		quiet[i] = random.Float64()
+	}
+	_, confidence = fit(words, quiet)
+	assert.Less(t, confidence, float64(fitConfidence), "noise fits nothing")
+}
+
+// A confident fit beats the other sources, is remembered, and leaves a lyrics
+// file of the user's own alone.
+func TestAudioFitMovesWordTiming(t *testing.T) {
+	dir := t.TempDir()
+	s := quietService(t, dir, func(string, any) {}, nil)
+	var words []float64
+	var lines []duxlyrics.Line
+	random := rand.New(rand.NewPCG(3, 4))
+	for at := 1.0; at < 40; at += 0.25 + random.Float64()*0.5 {
+		words = append(words, at+0.9)
+		lines = append(lines, duxlyrics.Line{Start: duxlyrics.Seconds(at), Text: "w", Words: []duxlyrics.Word{{Start: duxlyrics.Seconds(at), Text: "w"}}})
+	}
+	audio := stereo(words, nil, 44)
+	decodes := 0
+	s.cfg.AudioTiming = func() bool { return true }
+	s.cfg.AudioFile = func(context.Context, source.Ref) (string, bool) { return "/x", true }
+	s.cfg.Decode = func(_ context.Context, _ string, read func(io.Reader) error) error {
+		decodes++
+		return read(bytes.NewReader(audio))
+	}
+	track := source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"}
+	res := &duxlyrics.Result{Found: true, Source: duxlyrics.KuGou, Lyrics: duxlyrics.Lyrics{Synced: lines}}
+	shift, ok := s.fitted(context.Background(), track, res)
+	require.True(t, ok)
+	assert.InDelta(t, 0.9, shift, 0.025)
+	_, ok = s.fitted(context.Background(), track, res)
+	require.True(t, ok)
+	assert.Equal(t, 1, decodes, "a track is decoded once")
+
+	res.Source = duxlyrics.Sidecar
+	_, ok = s.fitted(context.Background(), track, res)
+	assert.False(t, ok)
+
+	res.Source = duxlyrics.BetterLyrics
+	var other []float64
+	for at := 0.5; at < 40; at += 1.5 + random.Float64() {
+		other = append(other, at)
+	}
+	audio = stereo(other, nil, 44)
+	_, ok = s.fitted(context.Background(), track, res)
+	assert.False(t, ok, "audio the words don't fit moves nothing")
+	s.cfg.AudioTiming = func() bool { return false }
+	res.Source = duxlyrics.LRCLIB
+	_, ok = s.fitted(context.Background(), track, res)
+	assert.False(t, ok, "off in settings")
+}
+
+type countingLib struct {
+	serverLib
+	asked *atomic.Int32
+}
+
+func (c countingLib) Lyrics(ctx context.Context, id string) (*duxlyrics.Lyrics, error) {
+	c.asked.Add(1)
+	return c.serverLib.Lyrics(ctx, id)
+}
+
+// The current track's lyrics are looked up after a download only when they
+// are kept or someone watches.
+func TestStoredLooksUpTheCurrentTrackOnlyWhenWanted(t *testing.T) {
+	var asked atomic.Int32
+	watching := false
+	s := quietService(t, t.TempDir(), func(string, any) {}, nil)
+	s.cfg.Libraries = libs{"srv": countingLib{asked: &asked}}
+	s.cfg.HasSubscriber = func(string) bool { return watching }
+	track := source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"}
+	s.track = &track
+
+	s.Stored(context.Background(), track, false)
+	assert.Zero(t, asked.Load(), "kept off and nobody watching")
+
+	s.Stored(context.Background(), track, true)
+	assert.NotZero(t, asked.Load(), "kept lyrics are looked up")
+}
+
+func TestOldMeasuredShiftsArePruned(t *testing.T) {
+	dir := t.TempDir()
+	old, fresh := filepath.Join(dir, "old"), filepath.Join(dir, "fresh")
+	require.NoError(t, os.WriteFile(old, []byte("{}"), 0o600))
+	require.NoError(t, os.WriteFile(fresh, []byte("{}"), 0o600))
+	longAgo := time.Now().Add(-fitMaxAge - time.Hour)
+	require.NoError(t, os.Chtimes(old, longAgo, longAgo))
+
+	pruneFits(dir)
+
+	assert.NoFileExists(t, old)
+	assert.FileExists(t, fresh)
+}
+
+// A kept track's cached lyrics are touched at startup, so the 90-day prune of
+// the lyrics cache spares them even when the entry file was replaced.
+func TestKeptLyricsSurviveTheAgePrune(t *testing.T) {
+	s := quietService(t, t.TempDir(), func(string, any) {}, nil)
+	entry := filepath.Join(s.cacheDir(), "ab", "abc.json")
+	require.NoError(t, os.MkdirAll(filepath.Dir(entry), 0o755))
+	start := time.Now().Add(-time.Minute)
+	require.NoError(t, os.WriteFile(entry, []byte("{}"), 0o600))
+	ref := source.Ref{Library: "srv", ID: "1"}
+	s.keep(ref, start)
+
+	// The prune left the old link behind and a refetch wrote a new, old-looking file.
+	longAgo := time.Now().Add(-100 * 24 * time.Hour)
+	require.NoError(t, os.Remove(entry))
+	require.NoError(t, os.WriteFile(entry, []byte("{}"), 0o600))
+	require.NoError(t, os.Chtimes(entry, longAgo, longAgo))
+	s.refreshKept()
+
+	info, err := os.Stat(entry)
+	require.NoError(t, err)
+	assert.WithinDuration(t, time.Now(), info.ModTime(), time.Minute)
+}
+
+// A track that stops being kept, or lyrics going off, leaves no kept folder.
+func TestKeptFoldersAreCleaned(t *testing.T) {
+	on, kept := true, true
+	s := quietService(t, t.TempDir(), func(string, any) {}, &on)
+	s.cfg.Keep = func() bool { return kept }
+	ref := source.Ref{Library: "srv", ID: "1"}
+	link := func() {
+		entry := filepath.Join(s.cacheDir(), "ab", "abc.json")
+		require.NoError(t, os.MkdirAll(filepath.Dir(entry), 0o755))
+		require.NoError(t, os.WriteFile(entry, []byte("{}"), 0o600))
+		s.keep(ref, time.Now().Add(-time.Minute))
+	}
+	folders := func() int { e, _ := os.ReadDir(s.keptDir()); return len(e) }
+
+	link()
+	s.refreshKept()
+	assert.Equal(t, 1, folders())
+	s.unkeep(ref)
+	assert.Equal(t, 0, folders())
+
+	link()
+	kept = false
+	s.refreshKept()
+	assert.Equal(t, 0, folders())
+
+	kept = true
+	link()
+	on = false
+	s.refreshKept()
+	assert.Equal(t, 0, folders())
+
+	on = true
+	link()
+	known := false
+	s.cfg.HasCopy = func(context.Context, source.Ref) (bool, bool) { return false, known }
+	s.refreshKept()
+	assert.Equal(t, 1, folders(), "a copy that can't be looked up keeps its folder")
+
+	known = true
+	s.refreshKept()
+	assert.Equal(t, 0, folders())
+}
+
+// Lyrics turned off and on while nothing watches still show when the view
+// opens again.
+func TestLyricsBackOnAfterNobodyWatched(t *testing.T) {
+	on := false
+	watching := true
+	var last Event
+	s := quietService(t, t.TempDir(), func(_ string, data any) {
+		if ev, ok := data.(Event); ok {
+			last = ev
+		}
+	}, &on)
+	s.cfg.HasSubscriber = func(string) bool { return watching }
+	s.TrackChanged(&source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"})
+	require.Equal(t, "idle", last.State)
+
+	watching = false
+	on = true
+	s.SettingsChanged()
+	watching = true
+	s.Subscribed()
+	assert.Equal(t, "loading", last.State)
 }

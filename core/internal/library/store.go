@@ -122,6 +122,26 @@ var migrations = []string{
 	// NULL is not measured yet, 0 no silence.
 	`ALTER TABLE tracks ADD COLUMN silence_start REAL;
 	ALTER TABLE tracks ADD COLUMN silence_end REAL;`,
+
+	// Fields for lists and templates. mtime 0 rereads every file for them.
+	`ALTER TABLE tracks ADD COLUMN composer TEXT NOT NULL DEFAULT '';
+	ALTER TABLE tracks ADD COLUMN format TEXT NOT NULL DEFAULT '';
+	ALTER TABLE tracks ADD COLUMN bitrate INTEGER NOT NULL DEFAULT 0;
+	UPDATE tracks SET mtime = 0;`,
+
+	// Server catalogs live in the same tables, as rows with an empty path.
+	// Servers have their own cover ids and play counts, and catalog_stamp
+	// is what CatalogChanged last returned; a library with a stamp and a
+	// last_scan has a complete sync.
+	`ALTER TABLE tracks ADD COLUMN cover_id TEXT NOT NULL DEFAULT '';
+	ALTER TABLE tracks ADD COLUMN play_count INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE tracks ADD COLUMN last_played INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE albums ADD COLUMN cover_id TEXT NOT NULL DEFAULT '';
+	ALTER TABLE albums ADD COLUMN play_count INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE albums ADD COLUMN last_played INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE artists ADD COLUMN cover_id TEXT NOT NULL DEFAULT '';
+	ALTER TABLE libraries ADD COLUMN catalog_stamp TEXT NOT NULL DEFAULT '';
+	CREATE INDEX tracks_order ON tracks (library_id, album_artist COLLATE NOCASE, album COLLATE NOCASE, disc_no, track_no, id);`,
 }
 
 // Loudness states of a measured track; "" is waiting for measuring.
@@ -145,10 +165,11 @@ type Store struct {
 // SetPlayable limits the file extensions that can play; nil allows all.
 func (s *Store) SetPlayable(exts []string) { s.playable.Store(&exts) }
 
-// canPlay says whether the player plays a file of this name.
+// canPlay says whether the player plays a file of this name. A server row
+// has no file: the server transcodes to what the player takes.
 func (s *Store) canPlay(path string) bool {
 	p := s.playable.Load()
-	return p == nil || *p == nil || slices.Contains(*p, strings.TrimPrefix(strings.ToLower(filepath.Ext(path)), "."))
+	return path == "" || p == nil || *p == nil || slices.Contains(*p, strings.TrimPrefix(strings.ToLower(filepath.Ext(path)), "."))
 }
 
 // Delta is which tracks an index change touched, by id.
@@ -428,6 +449,9 @@ func (s *Store) TrackReason(ctx context.Context, libID, id string) Reason {
 // (library_id, path) index instead of scanning every track.
 func (s *Store) TrackByPath(ctx context.Context, path string) (source.Ref, bool) {
 	var ref source.Ref
+	if path == "" {
+		return ref, false
+	}
 	err := s.db.QueryRowContext(ctx, `SELECT t.library_id, t.id FROM libraries l CROSS JOIN tracks t
 		ON t.library_id = l.id AND t.path = ? WHERE l.enabled = 1 LIMIT 1`, path).Scan(&ref.Library, &ref.ID)
 	return ref, err == nil
@@ -449,6 +473,8 @@ type Batch struct {
 	opened time.Time
 	libID  string
 	gen    int64
+	// since guards marks during a sync; see BeginCatalog.
+	since int64
 }
 
 const batchFor = 250 * time.Millisecond
@@ -475,6 +501,17 @@ func (b *Batch) exec(ctx context.Context, q string, args ...any) (sql.Result, er
 	return b.tx.ExecContext(ctx, q, args...)
 }
 
+// Commit ends the open transaction, so nothing holds the write lock while
+// the next page comes over the network.
+func (b *Batch) Commit() error {
+	if b.tx == nil {
+		return nil
+	}
+	err := b.tx.Commit()
+	b.tx = nil
+	return err
+}
+
 func (b *Batch) Touch(ctx context.Context, path string) error {
 	_, err := b.exec(ctx, "UPDATE tracks SET scan_gen = ? WHERE library_id = ? AND path = ?", b.gen, b.libID, path)
 	return err
@@ -496,20 +533,23 @@ const sameAudio = "tracks.duration = excluded.duration AND abs(tracks.size - exc
 
 func (b *Batch) PutTrack(ctx context.Context, t IndexedTrack, cover string) error {
 	_, err := b.exec(ctx, `INSERT INTO tracks (library_id, id, path, title, artist, artist_id, album, album_id,
-			album_artist, track_no, disc_no, year, genre, duration, size, mtime, scan_gen, rg_track_gain, rg_album_gain)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			album_artist, track_no, disc_no, year, genre, duration, size, mtime, scan_gen, rg_track_gain, rg_album_gain,
+			composer, format, bitrate)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (library_id, id) DO UPDATE SET path = excluded.path, title = excluded.title,
 			artist = excluded.artist, artist_id = excluded.artist_id, album = excluded.album,
 			album_id = excluded.album_id, album_artist = excluded.album_artist, track_no = excluded.track_no,
 			disc_no = excluded.disc_no, year = excluded.year, genre = excluded.genre,
 			duration = excluded.duration, size = excluded.size, mtime = excluded.mtime, scan_gen = excluded.scan_gen, missing = 0,
 			rg_track_gain = excluded.rg_track_gain, rg_album_gain = excluded.rg_album_gain,
+			composer = excluded.composer, format = excluded.format, bitrate = excluded.bitrate,
 			loudness_gain = CASE WHEN `+sameAudio+` THEN tracks.loudness_gain END,
 			loudness_state = CASE WHEN `+sameAudio+` THEN tracks.loudness_state ELSE '' END,
 			silence_start = CASE WHEN `+sameAudio+` THEN tracks.silence_start END,
 			silence_end = CASE WHEN `+sameAudio+` THEN tracks.silence_end END`,
 		b.libID, t.ID, t.Path, t.Title, t.Artist, t.ArtistID, t.Album, t.AlbumID, t.AlbumArtist,
-		t.TrackNo, t.DiscNo, t.Year, t.Genre, t.Duration, t.Size, t.MTime, b.gen, t.RGTrack, t.RGAlbum)
+		t.TrackNo, t.DiscNo, t.Year, t.Genre, t.Duration, t.Size, t.MTime, b.gen, t.RGTrack, t.RGAlbum,
+		t.Composer, t.Format, t.Bitrate)
 	if err != nil {
 		return fmt.Errorf("index %s: %w", t.Path, err)
 	}
@@ -550,9 +590,9 @@ func (b *Batch) putArtists(ctx context.Context, kind, id string, refs []source.A
 }
 
 // Stale lists the libraries with files the next scan must reread (after a
-// migration).
+// migration). A server row has no file, and may have no date either.
 func (s *Store) Stale(ctx context.Context) ([]string, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT DISTINCT library_id FROM tracks WHERE mtime = 0")
+	rows, err := s.db.QueryContext(ctx, "SELECT DISTINCT library_id FROM tracks WHERE mtime = 0 AND path <> ''")
 	if err != nil {
 		return nil, err
 	}
@@ -641,22 +681,30 @@ func artistRefs(data []byte, name, id string) []source.ArtistRef {
 
 var trackCols = `t.library_id, t.id, t.path, t.title, t.artist, t.artist_id, t.album, t.album_id, t.album_artist,
 	t.track_no, t.disc_no, t.year, t.genre, t.duration, a.cover, t.missing, ` + markCols(source.ItemTrack, "t") + `, ` +
-	artistsCol(source.ItemTrack, "t")
+	artistsCol(source.ItemTrack, "t") + `, t.composer, t.format, t.bitrate, t.mtime / 1000000000, t.cover_id,
+	t.play_count, t.last_played, t.rg_track_gain, t.rg_album_gain`
 
 func (s *Store) scanTrack(rows interface{ Scan(...any) error }) (IndexedTrack, error) {
 	var t IndexedTrack
 	var cover sql.NullString
 	var missing bool
 	var artists []byte
+	var coverID string
 	err := rows.Scan(&t.Library, &t.ID, &t.Path, &t.Title, &t.Artist, &t.ArtistID, &t.Album, &t.AlbumID,
-		&t.AlbumArtist, &t.TrackNo, &t.DiscNo, &t.Year, &t.Genre, &t.Duration, &cover, &missing, &t.Favorite, &t.Rating, &artists)
+		&t.AlbumArtist, &t.TrackNo, &t.DiscNo, &t.Year, &t.Genre, &t.Duration, &cover, &missing, &t.Favorite, &t.Rating, &artists,
+		&t.Composer, &t.Format, &t.Bitrate, &t.Added, &coverID, &t.PlayCount, &t.LastPlayed, &t.RGTrack, &t.RGAlbum)
 	mainID := ""
 	if t.Artist == t.AlbumArtist {
 		mainID = t.ArtistID
 	}
 	t.Artists = artistRefs(artists, t.Artist, mainID)
+	t.CoverID = coverID
 	if cover.String != "" {
 		t.CoverID = t.AlbumID
+	}
+	// A local file carries its gain; a server's is lost when it transcodes.
+	if t.Path == "" && (t.RGTrack != nil || t.RGAlbum != nil) {
+		t.ReplayGain = &source.ReplayGain{Track: t.RGTrack, Album: t.RGAlbum}
 	}
 	switch {
 	case missing:
@@ -707,7 +755,7 @@ const albumCount = `(SELECT count(*) FROM item_artists ia WHERE ia.library_id = 
 	AND ia.artist_id = ar.id)`
 
 func (s *Store) queryArtists(ctx context.Context, libID, having string, args ...any) ([]source.Artist, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT ar.id, ar.name, `+albumCount+`, `+markCols(source.ItemArtist, "ar")+` FROM artists ar
+	rows, err := s.db.QueryContext(ctx, `SELECT ar.id, ar.name, ar.cover_id, `+albumCount+`, `+markCols(source.ItemArtist, "ar")+` FROM artists ar
 		WHERE ar.library_id = ? `+having+` ORDER BY ar.name COLLATE NOCASE`, append([]any{libID}, args...)...)
 	if err != nil {
 		return nil, err
@@ -716,7 +764,7 @@ func (s *Store) queryArtists(ctx context.Context, libID, having string, args ...
 	out := []source.Artist{}
 	for rows.Next() {
 		a := source.Artist{Library: libID}
-		if err := rows.Scan(&a.ID, &a.Name, &a.AlbumCount, &a.Favorite, &a.Rating); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.CoverID, &a.AlbumCount, &a.Favorite, &a.Rating); err != nil {
 			return nil, err
 		}
 		out = append(out, a)
@@ -724,7 +772,7 @@ func (s *Store) queryArtists(ctx context.Context, libID, having string, args ...
 	return out, rows.Err()
 }
 
-var albumCols = `al.id, al.name, al.artist, al.artist_id, al.year, al.cover, al.added,
+var albumCols = `al.id, al.name, al.artist, al.artist_id, al.year, al.cover, al.cover_id, al.play_count, al.last_played, al.added,
 	(SELECT count(*) FROM tracks t WHERE t.library_id = al.library_id AND t.album_id = al.id),
 	(SELECT coalesce(sum(duration), 0) FROM tracks t WHERE t.library_id = al.library_id AND t.album_id = al.id),
 	coalesce((SELECT t.genre FROM tracks t WHERE t.library_id = al.library_id AND t.album_id = al.id AND t.genre != ''
@@ -747,7 +795,7 @@ func (s *Store) queryAlbums(ctx context.Context, libID, where string, limit int,
 		a := source.Album{Library: libID}
 		var cover string
 		var artists []byte
-		if err := rows.Scan(&a.ID, &a.Name, &a.Artist, &a.ArtistID, &a.Year, &cover, &a.Added, &a.TrackCount, &a.Duration, &a.Genre, &a.Favorite, &a.Rating, &artists); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Artist, &a.ArtistID, &a.Year, &cover, &a.CoverID, &a.PlayCount, &a.LastPlayed, &a.Added, &a.TrackCount, &a.Duration, &a.Genre, &a.Favorite, &a.Rating, &artists); err != nil {
 			return nil, err
 		}
 		a.Artists = artistRefs(artists, a.Artist, a.ArtistID)

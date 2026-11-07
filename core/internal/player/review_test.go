@@ -248,3 +248,70 @@ func TestPositionAtTrackStart(t *testing.T) {
 	assert.Equal(t, 1.0, got[0].Speed)
 	assert.InDelta(t, time.Now().UnixMilli(), got[0].At, 1000)
 }
+
+// Real mpv: repeat one goes back to looping the file once a stop rule has
+// ended its track.
+func TestRepeatOneLoopsAgainAfterAStopRule(t *testing.T) {
+	bin, err := exec.LookPath("mpv")
+	if err != nil {
+		t.Skip("mpv not installed")
+	}
+	dir := t.TempDir()
+	res := pathResolver{}
+	for _, id := range []string{"a", "b"} {
+		res[id] = filepath.Join(dir, id+".wav")
+		writeWAV(t, res[id], 0.6)
+	}
+	p := New(Config{Binary: bin, Socket: filepath.Join(dir, "mpv.sock"), ExtraArgs: []string{"--ao=null"}, Resolver: res})
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go p.Run(ctx)
+
+	require.NoError(t, p.SetRepeat(ctx, RepeatOne))
+	require.NoError(t, p.Play(ctx, tracks("a", "b"), 0, Origin{Kind: "adhoc"}))
+	require.NoError(t, p.SetSleep(ctx, SleepEndOfTrack, 0))
+	require.Eventually(t, func() bool {
+		st, _ := p.Status(ctx)
+		return st.State == StateStopped
+	}, 5*time.Second, 20*time.Millisecond, "playback did not stop at the end of the track")
+
+	var loop string
+	require.NoError(t, p.do(ctx, func(ctx context.Context) error {
+		data, err := p.cmd(ctx, "get_property_string", "loop-file")
+		loop = string(data)
+		return err
+	}))
+	assert.Equal(t, `"inf"`, loop)
+}
+
+// Real mpv: repeat one keeps looping after the queue drops the stop rule of
+// the current track.
+func TestRepeatOneLoopsAfterTheStopRuleLeavesWithTheQueue(t *testing.T) {
+	bin, err := exec.LookPath("mpv")
+	if err != nil {
+		t.Skip("mpv not installed")
+	}
+	dir := t.TempDir()
+	res := pathResolver{}
+	for _, id := range []string{"a", "b"} {
+		res[id] = filepath.Join(dir, id+".wav")
+		writeWAV(t, res[id], 5)
+	}
+	p := New(Config{Binary: bin, Socket: filepath.Join(dir, "mpv.sock"), ExtraArgs: []string{"--ao=null"}, Resolver: res})
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go p.Run(ctx)
+
+	require.NoError(t, p.SetRepeat(ctx, RepeatOne))
+	require.NoError(t, p.Play(ctx, tracks("a", "b"), 0, Origin{Kind: "adhoc"}))
+	require.NoError(t, p.SetSleepAfter(ctx, 0))
+	require.NoError(t, p.Clear(ctx, false))
+
+	var loop string
+	require.NoError(t, p.do(ctx, func(ctx context.Context) error {
+		data, err := p.cmd(ctx, "get_property_string", "loop-file")
+		loop = string(data)
+		return err
+	}))
+	assert.Equal(t, `"inf"`, loop)
+}

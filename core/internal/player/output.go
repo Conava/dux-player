@@ -93,9 +93,11 @@ func (p *Player) SetAudioOutput(ctx context.Context, device string, env []string
 // attached, mpv stays idle and every transport command goes to the remote.
 // Its methods are called on the player loop and must not block.
 type Remote interface {
-	// Load plays items[index] from start seconds; items is the whole queue.
-	// start < 0 is a queue edit while items[index] plays on.
-	Load(items []Item, index int, start float64)
+	// Load plays items[index] from start seconds; items is the queue, cut
+	// after the entry a stop rule ends at (final is then set: the remote
+	// ends there and doesn't loop). start < 0 is a queue edit while
+	// items[index] plays on.
+	Load(items []Item, index int, start float64, final bool)
 	SetPaused(paused bool)
 	Seek(pos float64)
 	SetVolume(level float64)
@@ -138,6 +140,25 @@ func (p *Player) SetRemote(ctx context.Context, r Remote, resume bool) error {
 	})
 }
 
+// RemoteRanOut is the remote reporting that it stopped after the entry uid.
+// It is honored only when a stop rule really ends the current entry: the cast
+// ends stopped, the next track is lined up and the rule cleared, as on mpv.
+// Otherwise the cast goes on.
+func (p *Player) RemoteRanOut(ctx context.Context, uid uint64) error {
+	return p.doPlay(ctx, func(ctx context.Context) error {
+		if p.remote == nil || uid != p.queue.currentUID() || !p.stopsAtEnd() {
+			return nil
+		}
+		_, more := p.queue.Peek()
+		p.ended = !more
+		p.pos, p.lastPos = 0, 0
+		p.stop(ctx)
+		p.finishAtStop()
+		p.publishStatus()
+		return nil
+	})
+}
+
 // RemoteUpdate is what the remote reports: the queue entry it plays (0 when
 // unknown), its position, whether it is paused and its volume (negative
 // when unknown).
@@ -169,6 +190,38 @@ func (p *Player) RemoteUpdate(ctx context.Context, uid uint64, pos float64, paus
 	})
 }
 
+// remoteQueue is the queue the remote gets and the index it starts at: up to
+// and including the entry a stop rule ends at, so the receiver ends there by
+// itself. final says the queue was cut. With repeat all a rule behind the
+// current track is reached again, so the queue wraps: current track to the
+// end, then the start up to the entry.
+func (p *Player) remoteQueue() (items []Item, index int, final bool) {
+	items, index = p.queue.Items(), p.queue.Index()
+	var stop uint64
+	switch p.sleep.Mode {
+	case SleepEndOfTrack:
+		stop = p.queue.currentUID()
+	case SleepAfterEntry:
+		stop = p.sleep.Entry
+	default:
+		return items, index, false
+	}
+	cur := max(index, 0)
+	for i := cur; i < len(items); i++ {
+		if items[i].UID == stop {
+			return items[:i+1], index, true
+		}
+	}
+	if p.queue.Repeat() == RepeatAll && index >= 0 {
+		for i := 0; i < cur; i++ {
+			if items[i].UID == stop {
+				return append(slices.Clone(items[cur:]), items[:i+1]...), 0, true
+			}
+		}
+	}
+	return items, index, false
+}
+
 func (p *Player) loadRemote(start float64) {
 	p.active = true
 	p.loaded, p.pendingSeek = true, -1
@@ -178,7 +231,8 @@ func (p *Player) loadRemote(start float64) {
 		p.dur = it.Track.Duration
 	}
 	p.remote.SetLoop(p.queue.Repeat() == RepeatAll)
-	p.remote.Load(p.queue.Items(), p.queue.Index(), start)
+	items, index, final := p.remoteQueue()
+	p.remote.Load(items, index, start, final)
 	p.publishQueue()
 	p.publishStatus()
 }
@@ -226,7 +280,7 @@ func (p *Player) fadeChans() (notify, exited <-chan struct{}) {
 // built-in player always plays it gapless.
 func (p *Player) crossfadeNext() bool {
 	if p.opts.Crossfade <= 0 || p.builtin() || p.remote != nil || !p.active || !p.loaded || p.dur <= 0 || p.proc == nil ||
-		p.queue.Repeat() == RepeatOne || p.sleep.Mode == SleepEndOfTrack {
+		p.queue.Repeat() == RepeatOne || p.stopsAtEnd() {
 		return false
 	}
 	cur, ok := p.queue.Current()

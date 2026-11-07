@@ -42,6 +42,8 @@ type Config struct {
 	Libraries                    Libraries
 	Secrets                      source.Secrets
 	Publish                      func(topic string, data any)
+	// Counted, when set, is told of each play a library's server took.
+	Counted func(ctx context.Context, library, id string, at time.Time)
 	// Endpoints, for tests; empty means the real services.
 	HTTP                                      *http.Client
 	ListenBrainzURL, LastFMURL, LastFMAuthURL string
@@ -265,7 +267,11 @@ func (s *Service) send(ctx context.Context, src source.Source, target string, li
 		if nowPlaying {
 			return sc.NowPlaying(ctx, li.ID)
 		}
-		return sc.Scrobble(ctx, li.ID, li.PlayedAt)
+		err := sc.Scrobble(ctx, li.ID, li.PlayedAt)
+		if err == nil && s.cfg.Counted != nil {
+			s.cfg.Counted(ctx, li.Library, li.ID, li.PlayedAt)
+		}
+		return err
 	case ListenBrainz:
 		token, err := s.cfg.Secrets.Get(secretsLB, "token")
 		if err != nil {

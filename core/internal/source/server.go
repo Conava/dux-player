@@ -50,6 +50,14 @@ var (
 	ErrRedirected           = errors.New("the server redirected to another address; use that address as the server")
 	ErrSignInRefused        = errors.New("the server refused the sign-in")
 	ErrPasswordNeedsHTTPS   = errors.New("signing in with the password itself needs an https server address")
+	// ErrSignInNeeded is a library with no password whose token was refused
+	// or never made: the user has to sign in again.
+	ErrSignInNeeded = fmt.Errorf("sign in again: %w", ErrSignInRefused)
+	// ErrQuickConnectOff is a server that doesn't offer Quick Connect, or
+	// turned it off.
+	ErrQuickConnectOff = errors.New("this server has Quick Connect turned off")
+	// ErrQuickConnectExpired is a Quick Connect code the server no longer knows.
+	ErrQuickConnectExpired = errors.New("the Quick Connect code expired")
 )
 
 // SameOrigin is the CheckRedirect of clients whose requests carry

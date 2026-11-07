@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"path/filepath"
 	"slices"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -19,7 +21,7 @@ const (
 
 	// Albums with no artist filter come from getAlbumList2, which pages at
 	// 500; this caps how far it pages.
-	maxAlbums = 5000
+	maxAlbums = 200_000
 )
 
 type Source struct {
@@ -47,6 +49,7 @@ var (
 	_ source.Notices           = (*Source)(nil)
 	_ source.RecentPlays       = (*Source)(nil)
 	_ source.ArtistDetailer    = (*Source)(nil)
+	_ source.CatalogSync       = (*Source)(nil)
 )
 
 func Factory(lib source.Library, env source.Env) (source.Source, error) {
@@ -134,6 +137,8 @@ func (s *Source) track(x Song) source.Track {
 		Genre: source.Clean(x.Genre), Duration: max(float64(x.Duration), 0), CoverID: string(x.CoverArt),
 		Favorite: x.Starred != "", Rating: clampRating(x.UserRating.int()), ReplayGain: x.ReplayGain.values(),
 		PlayCount: x.PlayCount.int(), LastPlayed: unixTime(x.Played), Artists: artistRefs(x.Artists, x.Artist, string(x.ArtistID)),
+		Composer: source.Clean(x.DisplayComposer), Format: strings.ToUpper(source.Clean(x.Suffix)), Bitrate: x.BitRate.int(),
+		Added: unixTime(x.Created),
 	}
 }
 
@@ -383,8 +388,12 @@ func (s *Source) TrackPage(ctx context.Context, q source.TrackQuery) (source.Tra
 			return source.TrackPage{}, err
 		}
 		if len(songs) > 0 || q.Offset > 0 {
-			total := s.songTotal(ctx)
-			return source.TrackPage{Total: max(total, q.Offset+len(songs)), Tracks: s.tracks(songs), Sort: source.SortNone}, nil
+			total := 0
+			// A walk keeps the highest total, so its first page is enough.
+			if !q.Details || q.Offset == 0 {
+				total = s.songTotal(ctx)
+			}
+			return source.TrackPage{Total: max(total, q.Offset+len(songs)), Tracks: s.tracks(songs), Sort: source.SortNone, Estimated: true}, nil
 		}
 		s.albumPaging.Store(true)
 	}
@@ -447,6 +456,30 @@ func (s *Source) pageByAlbums(ctx context.Context, q source.TrackQuery) (source.
 		tracks = append(tracks, s.tracks(a.Song)...)
 	}
 	return source.TrackPage{Total: total, Tracks: source.Window(tracks, firstSkip, limit), Sort: source.SortAlbum}, nil
+}
+
+// CatalogChanged compares the stamp with the server's own lastModified, so
+// no clock is involved. Navidrome moves it on any scan, even one that changed
+// nothing, which costs a walk and nothing else. No value counts as unchanged:
+// some servers answer an unchanged catalog without one, and one that never
+// sends it can't be gated, so only the daily walk finds its new music.
+func (s *Source) CatalogChanged(ctx context.Context, stamp string) (bool, string, error) {
+	last, err := s.client.IndexesModified(ctx, stamp)
+	if err != nil {
+		return false, "", err
+	}
+	if last == 0 && stamp != "" {
+		return false, stamp, nil
+	}
+	next := strconv.FormatInt(last, 10)
+	return next != stamp, next, nil
+}
+
+// CatalogBusy reads getScanStatus; a server without it isn't scanning as far
+// as anyone can tell.
+func (s *Source) CatalogBusy(ctx context.Context) bool {
+	scanning, _, err := s.client.ScanStatus(ctx)
+	return err == nil && scanning
 }
 
 // recentAlbums is how many of the last played albums RecentPlays reads.

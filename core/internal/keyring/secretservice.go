@@ -255,12 +255,12 @@ func (s *secretService) completePrompt(prompt dbus.ObjectPath) (dbus.Variant, er
 				continue
 			}
 			if dismissed, _ := sig.Body[0].(bool); dismissed {
-				return dbus.Variant{}, errors.New("the keyring prompt was dismissed")
+				return dbus.Variant{}, fmt.Errorf("the keyring prompt was dismissed: %w", ErrLocked)
 			}
 			result, _ := sig.Body[1].(dbus.Variant)
 			return result, nil
 		case <-timeout.C:
-			return dbus.Variant{}, fmt.Errorf("the keyring prompt got no answer within %s", promptTimeout)
+			return dbus.Variant{}, fmt.Errorf("the keyring prompt got no answer within %s: %w", promptTimeout, ErrLocked)
 		}
 	}
 }

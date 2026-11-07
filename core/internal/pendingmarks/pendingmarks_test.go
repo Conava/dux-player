@@ -103,3 +103,29 @@ func TestQueuedMarksMergeAndFlush(t *testing.T) {
 		})
 	}
 }
+
+// Marks belong to the account they were made with: after an account change
+// none reach the new one, not even from a flush that is already running.
+func TestDropLibrary(t *testing.T) {
+	path := filepath.Join(t.TempDir(), FileName)
+	q := Open(path)
+	for _, c := range []Change{
+		{Library: "old", Kind: "track", ID: "1", Favorite: fav(true)},
+		{Library: "old", Kind: "track", ID: "2", Favorite: fav(true)},
+		{Library: "other", Kind: "track", ID: "3", Favorite: fav(true)},
+	} {
+		require.NoError(t, q.Add(c))
+	}
+	var sent []string
+	q.Flush(context.Background(), map[string]bool{"old": true}, func(_ context.Context, c Change) error {
+		sent = append(sent, c.ID)
+		q.DropLibrary("old")
+		return nil
+	})
+	require.Len(t, sent, 1)
+
+	require.NoError(t, q.Add(Change{Library: "old", Kind: "track", ID: "4", Favorite: fav(true)}))
+	q.DropLibrary("old")
+	reopened := Open(path)
+	require.False(t, reopened.Has("old", "track", "4"))
+}

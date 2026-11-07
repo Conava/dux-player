@@ -3,7 +3,6 @@ package jellyfin
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -114,7 +113,7 @@ func (m memSecrets) Get(lib, key string) (string, error) {
 	defer memMu.Unlock()
 	v, ok := m[lib+"/"+key]
 	if !ok {
-		return "", errors.New("no " + key)
+		return "", fmt.Errorf("no %s: %w", key, source.ErrNoSecret)
 	}
 	return v, nil
 }
@@ -216,6 +215,7 @@ func TestBrowseRecordedResponses(t *testing.T) {
 		Artists: []source.ArtistRef{{ID: "78e6763b3d9b58c349a58ce5eb7877c1", Name: "Leap Fidei"}},
 		TrackNo: 10, Year: 2024, Genre: "Rap", Duration: 183.0508539, CoverID: "90b750a2cec4eb338c0dab3b40b8bb13",
 		ReplayGain: &source.ReplayGain{Track: &gain}, PlayCount: 8,
+		Format: "FLAC", Added: 1709287200,
 	}, album.Tracks[0])
 
 	artists, err := s.Artists(ctx)

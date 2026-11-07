@@ -13,11 +13,17 @@ import (
 	"syscall"
 
 	"github.com/duxlabs-dev/dux-go/log"
+
+	"github.com/Conava/dux-player/core/internal/logtext"
 )
 
 // FindHelper returns dux-cast's cast-helper: on PATH, else where the shell's
-// Cast plugin installs it. Empty when it isn't installed.
+// Cast plugin installs it. Empty when it isn't installed, or when
+// DPLAYER_CAST=off keeps a sandbox run off the real network's devices.
 func FindHelper() string {
+	if os.Getenv("DPLAYER_CAST") == "off" {
+		return ""
+	}
 	if p, err := exec.LookPath("cast-helper"); err == nil {
 		return p
 	}
@@ -72,6 +78,14 @@ type session struct {
 	Rate        float64 `json:"rate"`
 	Index       int     `json:"index"`
 	Paused      bool    `json:"paused"`
+	// Queue holds the helper's per-entry status and source. The source
+	// carries stream tokens: it stays out of SessionInfo and the logs.
+	Queue []queueEntry `json:"queue"`
+}
+
+type queueEntry struct {
+	Status string `json:"status"`
+	Source string `json:"source"`
 }
 
 // proc is one running `cast-helper attach`. Commands go through a buffered
@@ -96,9 +110,18 @@ func startHelper(ctx context.Context, bin string, onEvent func(*proc, event)) (*
 	if err != nil {
 		return nil, err
 	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, err
+	}
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
+	errDone := make(chan struct{})
+	go func() {
+		defer close(errDone)
+		logStderr(stderr)
+	}()
 	p := &proc{out: make(chan []byte, 64), done: make(chan struct{})}
 	go func() {
 		defer stdin.Close()
@@ -126,6 +149,7 @@ func startHelper(ctx context.Context, bin string, onEvent func(*proc, event)) (*
 			}
 		}
 		_, _ = io.Copy(io.Discard, stdout)
+		<-errDone
 		err := cmd.Wait()
 		close(p.done)
 		p.close()
@@ -135,6 +159,28 @@ func startHelper(ctx context.Context, bin string, onEvent func(*proc, event)) (*
 		onEvent(p, event{Event: "exit"})
 	}()
 	return p, nil
+}
+
+// maxStderrLines caps what one helper run may add to the log.
+const maxStderrLines = 20
+
+// logStderr logs the helper's own diagnostics, URLs stripped, and drains the pipe.
+func logStderr(r io.Reader) {
+	sc := bufio.NewScanner(r)
+	sc.Buffer(make([]byte, 0, 4<<10), 64<<10)
+	n := 0
+	for sc.Scan() {
+		if n++; n <= maxStderrLines {
+			log.Infof("cast-helper: %s", logtext.Clean(sc.Text()))
+		}
+	}
+	if err := sc.Err(); err != nil {
+		log.Warnf("cast-helper: stderr reading stopped: %v", err)
+	}
+	_, _ = io.Copy(io.Discard, r)
+	if n > maxStderrLines {
+		log.Infof("cast-helper: %d more lines not logged", n-maxStderrLines)
+	}
 }
 
 var errHelperBusy = errors.New("cast-helper isn't reading its commands")

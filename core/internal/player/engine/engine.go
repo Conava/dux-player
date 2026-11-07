@@ -12,10 +12,13 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/duxlabs-dev/dux-go/log"
 )
 
 // Version is what get_property mpv-version answers.
@@ -166,12 +169,14 @@ func streamProps(env []string) (map[string]string, bool) {
 func (e *engine) send(v any) {
 	line, err := json.Marshal(v)
 	if err != nil {
+		log.Warnf("built-in player: can't encode a message: %v", err)
 		return
 	}
 	e.wmu.Lock()
 	defer e.wmu.Unlock()
 	_ = e.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 	if _, err := e.conn.Write(append(line, '\n')); err != nil {
+		log.Warnf("built-in player: closing the connection, the player isn't reading: %v", err)
 		e.conn.Close()
 	}
 }
@@ -580,9 +585,12 @@ func (e *engine) watchSinks() {
 		case <-e.ctx.Done():
 			return
 		case <-e.out.Changed():
-			if list, err := e.deviceList(); err == nil {
-				e.property("audio-device-list", list)
+			list, err := e.deviceList()
+			if err != nil {
+				log.Warnf("built-in player: can't list the outputs after a change: %v", err)
+				continue
 			}
+			e.property("audio-device-list", list)
 		}
 	}
 }
@@ -669,6 +677,7 @@ func seekTo(d decoder, frame, from int64) error {
 func safely(f func() error) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			log.Errorf("built-in player: decoder panic: %v\n%s", r, debug.Stack())
 			err = fmt.Errorf("decoder failed: %v", r)
 		}
 	}()

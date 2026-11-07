@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -68,6 +69,22 @@ func fakeMPV(stallMS string) {
 			time.Sleep(time.Until(ready))
 			entry++
 			reply["data"] = map[string]int{"playlist_entry_id": entry}
+		case "set_property":
+			if len(req.Command) > 1 && req.Command[1] == "loop-file" {
+				if file := os.Getenv("FAKE_MPV_STALL_LOOP_FILE"); file != "" {
+					if _, err := os.Stat(file); err == nil {
+						time.Sleep(600 * time.Millisecond)
+					}
+					if f, err := os.OpenFile(file+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600); err == nil {
+						fmt.Fprintln(f, req.Command[2])
+						f.Close()
+					}
+				} else {
+					time.Sleep(time.Until(ready))
+				}
+			} else {
+				time.Sleep(time.Until(ready))
+			}
 		default:
 			time.Sleep(time.Until(ready))
 		}
@@ -97,4 +114,33 @@ func TestFirstPlayWaitsForSlowMPVStart(t *testing.T) {
 	st, err := p.Status(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, StatePlaying, st.State)
+}
+
+// A repeat change mpv answers too late is refused, and the old value is sent
+// behind it so mpv ends up as the status says.
+func TestSetRepeatTimeoutRevertsTheBackend(t *testing.T) {
+	old := commandTimeout
+	commandTimeout = 200 * time.Millisecond
+	t.Cleanup(func() { commandTimeout = old })
+	t.Setenv("FAKE_MPV_STALL_MS", "1")
+
+	dir := t.TempDir()
+	stall := filepath.Join(dir, "stall")
+	t.Setenv("FAKE_MPV_STALL_LOOP_FILE", stall)
+	p := New(Config{Binary: os.Args[0], Socket: filepath.Join(dir, "mpv.sock"), Resolver: pathResolver{"a": filepath.Join(dir, "a.wav")}})
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go p.Run(ctx)
+	require.NoError(t, p.Play(ctx, []source.Track{{Library: "l", ID: "a", Title: "a"}}, 0, Origin{Kind: "track"}))
+
+	require.NoError(t, os.WriteFile(stall, nil, 0o600))
+	require.Error(t, p.SetRepeat(ctx, RepeatOne))
+	st, err := p.Status(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, RepeatOff, st.Repeat)
+	require.Eventually(t, func() bool {
+		log, _ := os.ReadFile(stall + ".log")
+		lines := strings.Fields(string(log))
+		return strings.Join(lines, ",") == "no,inf,no"
+	}, 3*time.Second, 20*time.Millisecond, "mpv was not sent the old value last")
 }

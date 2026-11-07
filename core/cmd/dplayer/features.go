@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/Conava/dux-player/core/internal/ipc"
 	"github.com/Conava/dux-player/core/internal/keyring"
+	"github.com/Conava/dux-player/core/internal/loudness"
 	"github.com/Conava/dux-player/core/internal/sysvol"
 )
 
@@ -14,6 +15,8 @@ type daemon struct {
 	Secrets                      *keyring.Store
 	// Mixer drives the system volume; nil without wpctl.
 	Mixer *sysvol.Mixer
+	// Meter reads audio through ffmpeg; unavailable without it.
+	Meter *loudness.Meter
 	// PipeWire says whether the PipeWire tools were found at startup.
 	PipeWire bool
 	// onNetwork runs after the network changed; starts add to it.

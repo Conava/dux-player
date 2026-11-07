@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/Conava/dux-player/core/internal/source"
 )
 
 const (
@@ -95,7 +97,7 @@ func (s *Store) Get(libraryID, key string) (string, error) {
 	case err != nil:
 		return "", fmt.Errorf("keyring: %w", err)
 	case !ok:
-		return "", fmt.Errorf("no %s stored in the keyring", key)
+		return "", fmt.Errorf("no %s stored in the keyring: %w", key, source.ErrNoSecret)
 	}
 	return v, nil
 }
@@ -129,4 +131,16 @@ func (s *Store) Delete(libraryID string) error {
 		return err
 	}
 	return b.delete(attrs(libraryID, ""))
+}
+
+// DeleteKey removes one secret of a library.
+func (s *Store) DeleteKey(libraryID, key string) error {
+	b, err := s.backend()
+	if errors.Is(err, ErrUnavailable) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return b.delete(attrs(libraryID, key))
 }

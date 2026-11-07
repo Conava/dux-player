@@ -75,7 +75,7 @@ func (c *Cache) dropStale(ctx context.Context, lib string) ([]string, error) {
 		// The library went away mid-sync: its rules are unknown, not gone.
 		return nil, nil
 	}
-	keep := map[string]bool{}
+	keep := map[string]bool{keptKey: true}
 	for _, r := range rules {
 		keep[r.key()] = true
 	}

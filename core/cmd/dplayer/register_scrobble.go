@@ -14,7 +14,7 @@ func init() {
 		register: func(r *ipc.Registry, d *daemon) { scrobble.Register(r, func() *scrobble.Service { return svc }) },
 		start: func(d *daemon) error {
 			svc = scrobble.New(d.Ctx, scrobble.Config{ConfigDir: d.ConfigDir, StateDir: d.StateDir, Version: d.Version,
-				Libraries: d.Libraries, Secrets: d.Secrets, Publish: d.Bus.Publish})
+				Libraries: d.Libraries, Secrets: d.Secrets, Publish: d.Bus.Publish, Counted: d.Libraries.PlayCounted})
 			d.onNetwork = append(d.onNetwork, svc.Flush)
 			d.Bus.On(d.Ctx, func(_ string, data any) {
 				switch v := data.(type) {

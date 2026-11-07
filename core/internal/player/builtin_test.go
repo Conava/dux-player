@@ -3,6 +3,7 @@ package player
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -207,5 +208,70 @@ func TestBuiltinWithoutMPV(t *testing.T) {
 	require.NotEmpty(t, speeds)
 	for _, s := range speeds {
 		assert.Equal(t, 1.0, s)
+	}
+}
+
+// Stopping after an entry the built-in player can't play still stops there.
+func TestBuiltinStopsAfterAnEntryOnlyMPVPlays(t *testing.T) {
+	useNull(t)
+	dir := t.TempDir()
+	res := pathResolver{"a": filepath.Join(dir, "a.wav"), "m4a": filepath.Join(dir, "b.m4a"), "c": filepath.Join(dir, "c.wav")}
+	require.NoError(t, os.WriteFile(res["m4a"], []byte("\x00\x00\x00\x20ftypM4A \x00\x00\x00\x00"), 0o644))
+	writeWAV(t, res["a"], 0.3)
+	writeWAV(t, res["c"], 10)
+	p := New(Config{
+		Binary:   filepath.Join(dir, "no-mpv"),
+		Socket:   filepath.Join(dir, "mpv.sock"),
+		Resolver: res,
+		Options:  DefaultOptions(),
+		Publish:  func(string, any) {},
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go p.Run(ctx)
+
+	require.NoError(t, p.Play(ctx, tracks("a", "m4a", "c"), 0, Origin{Kind: "adhoc"}))
+	require.NoError(t, p.SetSleepAfter(ctx, 1))
+	require.Eventually(t, func() bool {
+		st, _ := p.Status(ctx)
+		return st.State == StateStopped
+	}, 3*time.Second, 20*time.Millisecond, "playback went on past the entry")
+}
+
+// A feed started with shuffle by album keeps each album together and in
+// track order.
+func TestPlayFeedShufflesByAlbum(t *testing.T) {
+	useNull(t)
+	dir := t.TempDir()
+	wav := filepath.Join(dir, "a.wav")
+	writeWAV(t, wav, 5)
+	var batch []source.Track
+	res := pathResolver{}
+	for _, no := range []int{1, 2, 3} {
+		for _, album := range []string{"x", "y", "z"} {
+			id := fmt.Sprintf("%s%d", album, no)
+			res[id] = wav
+			batch = append(batch, source.Track{Library: "l", ID: id, Title: id, AlbumID: album, Album: album, TrackNo: no})
+		}
+	}
+	opts := DefaultOptions()
+	opts.ShuffleAlbums = true
+	p := New(Config{Binary: filepath.Join(dir, "no-mpv"), Socket: filepath.Join(dir, "mpv.sock"), Resolver: res,
+		Options: opts, Publish: func(string, any) {}})
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go p.Run(ctx)
+
+	require.NoError(t, p.PlayFeed(ctx, &fakeFeed{batches: [][]source.Track{batch}}, Origin{Kind: "tracks"}))
+	q, err := p.Queue(ctx)
+	require.NoError(t, err)
+	require.Len(t, q.Items, 9)
+	for i := 0; i < 9; i += 3 {
+		album := q.Items[i].Track.AlbumID
+		for j := 0; j < 3; j++ {
+			tr := q.Items[i+j].Track
+			assert.Equal(t, album, tr.AlbumID, "album stays together")
+			assert.Equal(t, j+1, tr.TrackNo, "in track order")
+		}
 	}
 }

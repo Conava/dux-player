@@ -91,6 +91,32 @@ cat >>"$W/tree/shell.qml" <<'Q'
                 [key]: value === "true" || (value !== "false" && value)
             });
         }
+        function edit(page: string): void {
+            Router.editPage(page, "");
+        }
+        function pageOptions(kind: string, json: string): void {
+            UiConfig.setPageOptions(kind, "", Object.assign({}, UiConfig.pageOptions(kind, ""), JSON.parse(json)));
+        }
+        function navStyle(style: string): void {
+            SettingsData.navStyle = style;
+        }
+        function resetSurface(id: string): void {
+            UiConfig.resetSurface(id);
+        }
+        function surface(id: string, json: string): void {
+            UiConfig.setSurface(id, JSON.parse(json));
+        }
+        function addElement(surface: string, zone: string, json: string): void {
+            const zones = JSON.parse(JSON.stringify(UiConfig.surface(surface).zones));
+            zones[zone].push(Object.assign({
+                hidden: false,
+                placement: "auto",
+                options: {}
+            }, JSON.parse(json)));
+            UiConfig.setSurface(surface, {
+                zones: zones
+            });
+        }
     }
 }
 Q
@@ -109,10 +135,10 @@ done
 
 env -i LANG=C.UTF-8 USER="$USER" HOME="$W/home" PATH="$W/bin:$repo/core/bin:/usr/bin:/bin" XDG_RUNTIME_DIR="$W/rt" \
     XDG_CONFIG_HOME="$W/config" XDG_STATE_HOME="$W/state" XDG_CACHE_HOME="$W/cache" XDG_DATA_HOME="$W/data" \
-    XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/share}" QT_QPA_PLATFORMTHEME=qtengine DPLAYER_WINRULES=off DPLAYER_BACKEND="${DPLAYER_BACKEND:-}" \
+    XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/share}" QT_QPA_PLATFORMTHEME=qtengine DPLAYER_WINRULES=off DPLAYER_CAST=off DPLAYER_BACKEND="${DPLAYER_BACKEND:-}" \
     DPLAYER_DISABLE_HOT_RELOAD=1 HYPRLAND_NO_SD_NOTIFY=1 HYPRLAND_NO_SD_VARS=1 HYPRLAND_NO_CRASHREPORTER=1 \
     W="$W" LIB="$here/lib.sh" SCENARIO="$scenario" \
-    timeout -k 5 "${HEADLESS_TIMEOUT:-180}" dbus-run-session -- bash "$here/session.sh"
+    timeout -k 30 "${HEADLESS_TIMEOUT:-180}" dbus-run-session -- bash "$here/session.sh"
 status=$?
 
 log="$W/out/ui.log"

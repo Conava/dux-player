@@ -21,7 +21,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/duxlabs-dev/dux-go/log"
+
 	"github.com/Conava/dux-player/core/internal/atomicfile"
+	"github.com/Conava/dux-player/core/internal/logtext"
 	"github.com/Conava/dux-player/core/internal/source"
 )
 
@@ -178,9 +181,12 @@ func (c *Client) setState(st serverState, probed bool) {
 	}
 	data, err := json.Marshal(st)
 	if err != nil {
+		log.Warnf("subsonic: can't encode the server state: %v", err)
 		return
 	}
-	_ = atomicfile.WriteFile(c.statePath, data, 0o600)
+	if err := atomicfile.WriteFile(c.statePath, data, 0o600); err != nil {
+		log.Warnf("subsonic: can't save the server state: %s", logtext.Clean(err.Error()))
+	}
 }
 
 func (c *Client) supports(method string) bool {
@@ -401,7 +407,10 @@ func (c *Client) Probe(ctx context.Context) (serverState, error) {
 			st.Type, st.ServerVersion, st.OpenSubsonic = env.Type, env.ServerVersion, bool(env.OpenSubsonic)
 			st.Extensions = nil
 			if st.OpenSubsonic {
-				st.Extensions, _ = c.extensionNames(ctx, st)
+				var xerr error
+				if st.Extensions, xerr = c.extensionNames(ctx, st); xerr != nil {
+					log.Warnf("subsonic: can't read the server's extensions: %s", logtext.Clean(xerr.Error()))
+				}
 			}
 			c.setState(st, true)
 			return st, nil

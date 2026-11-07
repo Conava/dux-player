@@ -12,24 +12,36 @@ import (
 var _ source.Detailer = (*Source)(nil)
 
 type detailsItem struct {
-	Path         string            `json:"Path"`
-	Genres       []string          `json:"Genres"`
-	Overview     string            `json:"Overview"`
-	ProviderIDs  map[string]string `json:"ProviderIds"`
-	MediaSources []struct {
-		Container    string `json:"Container"`
-		Size         int64  `json:"Size"`
-		Bitrate      int    `json:"Bitrate"`
-		MediaStreams []struct {
-			Type       string `json:"Type"`
-			Codec      string `json:"Codec"`
-			BitRate    int    `json:"BitRate"`
-			SampleRate int    `json:"SampleRate"`
-			BitDepth   int    `json:"BitDepth"`
-			Channels   int    `json:"Channels"`
-		} `json:"MediaStreams"`
-	} `json:"MediaSources"`
-	NormalizationGain *float64 `json:"NormalizationGain"`
+	Path              string            `json:"Path"`
+	Genres            []string          `json:"Genres"`
+	Overview          string            `json:"Overview"`
+	ProviderIDs       map[string]string `json:"ProviderIds"`
+	MediaSources      []mediaSource     `json:"MediaSources"`
+	NormalizationGain *float64          `json:"NormalizationGain"`
+}
+
+type mediaSource struct {
+	Container    string `json:"Container"`
+	Size         int64  `json:"Size"`
+	Bitrate      int    `json:"Bitrate"`
+	MediaStreams []struct {
+		Type       string `json:"Type"`
+		Codec      string `json:"Codec"`
+		BitRate    int    `json:"BitRate"`
+		SampleRate int    `json:"SampleRate"`
+		BitDepth   int    `json:"BitDepth"`
+		Channels   int    `json:"Channels"`
+	} `json:"MediaStreams"`
+}
+
+// kbits is the audio stream's bitrate in kbit/s, else the file's.
+func (ms mediaSource) kbits() int {
+	for _, st := range ms.MediaStreams {
+		if st.Type == "Audio" && st.BitRate > 0 {
+			return st.BitRate / 1000
+		}
+	}
+	return ms.Bitrate / 1000
 }
 
 // Jellyfin's provider id names for the keys browse.details uses.
@@ -67,13 +79,10 @@ func (s *Source) Details(ctx context.Context, kind, id string) (source.Details, 
 	}
 	if len(it.MediaSources) > 0 {
 		ms := it.MediaSources[0]
-		d.Format, d.Size, d.Bitrate = strings.ToUpper(source.Clean(ms.Container)), ms.Size, ms.Bitrate/1000
+		d.Format, d.Size, d.Bitrate = strings.ToUpper(source.Clean(ms.Container)), ms.Size, ms.kbits()
 		for _, st := range ms.MediaStreams {
 			if st.Type == "Audio" {
 				d.Codec, d.SampleRate, d.BitDepth, d.Channels = source.Clean(st.Codec), st.SampleRate, st.BitDepth, st.Channels
-				if st.BitRate > 0 {
-					d.Bitrate = st.BitRate / 1000
-				}
 				break
 			}
 		}

@@ -44,6 +44,8 @@ type catalog struct {
 	hold map[string]chan struct{}
 	// broken answers this many downloads of a track with an error.
 	broken map[string]int
+	// gone lists tracks the server no longer knows.
+	gone map[string]bool
 }
 
 func (s *server) tracks(ids []string) []source.Track {
@@ -64,6 +66,12 @@ func (s *server) err() error {
 func (s *server) Library() source.Library { return s.lib }
 func (s *server) Close() error            { return nil }
 func (s *server) Track(_ context.Context, id string) (source.Track, error) {
+	s.mu.Lock()
+	gone := s.gone[id]
+	s.mu.Unlock()
+	if gone {
+		return source.Track{}, source.ErrNotFound
+	}
 	return source.Track{Library: s.lib.ID, ID: id, Title: id}, nil
 }
 func (s *server) StreamURL(_ context.Context, id string) (string, error) {
@@ -242,6 +250,62 @@ func album(id string) Rule    { return Rule{Kind: KindAlbum, ID: id} }
 func playlist(id string) Rule { return Rule{Kind: KindPlaylist, ID: id} }
 func played(l Limit) Rule     { return Rule{Kind: KindPlayed, Limit: &l} }
 
+func keep(e *env, on bool, id string) error {
+	return e.c.Keep(context.Background(), []source.Ref{{Library: e.lib, ID: id}}, on)
+}
+
+// Keeping a track works with the cache full; a track the server doesn't
+// know refuses the whole request and keeps nothing.
+func TestKeepNeedsNoRoomOrEveryTrack(t *testing.T) {
+	tests := []struct {
+		name  string
+		full  bool
+		gone  bool
+		saved []string
+	}{
+		{"cache full", true, false, []string{"a", "b"}},
+		{"one track gone", false, true, nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := setup(t, "", nil, nil)
+			e.c.full = tt.full
+			e.cat.gone = map[string]bool{"b": tt.gone}
+			refs := []source.Ref{{Library: e.lib, ID: "a"}, {Library: e.lib, ID: "b"}}
+			err := e.c.Keep(context.Background(), refs, true)
+			if tt.gone {
+				require.ErrorIs(t, err, source.ErrNotFound)
+			} else {
+				require.NoError(t, err)
+			}
+			e.drain(t)
+			assert.ElementsMatch(t, tt.saved, cached(t, e.c))
+			st, err := e.c.KeepState(context.Background(), refs)
+			require.NoError(t, err)
+			assert.Equal(t, len(tt.saved), st.Kept)
+		})
+	}
+}
+
+// A copy no download finished is fetched by the next sync; clearing ends it.
+func TestKeptTrackSurvivesASyncAndClear(t *testing.T) {
+	ctx := context.Background()
+	e := setup(t, "", nil, nil)
+	_, err := e.c.db.ExecContext(ctx, "INSERT INTO covers (library_id, id, rule, static) VALUES (?, 'a', ?, 1)", e.lib, keptKey)
+	require.NoError(t, err)
+	e.sync(t)
+	e.drain(t)
+	assert.Equal(t, []string{"a"}, cached(t, e.c))
+	st, err := e.c.KeepState(ctx, []source.Ref{{Library: e.lib, ID: "a"}, {Library: e.lib, ID: "b"}})
+	require.NoError(t, err)
+	assert.Equal(t, KeepState{Kept: 1}, st)
+
+	require.NoError(t, e.c.Clear(ctx, e.lib))
+	e.sync(t)
+	e.drain(t)
+	assert.Empty(t, cached(t, e.c))
+}
+
 // Removing a rule, or a track leaving a rule's scope, deletes only the
 // copies no other rule holds.
 func TestRuleCoverage(t *testing.T) {
@@ -282,6 +346,18 @@ func TestRuleCoverage(t *testing.T) {
 		{name: "an artist rule keeps its albums", rules: []Rule{{Kind: KindArtist, ID: "R"}, album("A1")},
 			change: func(t *testing.T, e *env) { require.NoError(t, e.c.RemoveRule(ctx, e.lib, album("A1"))) },
 			want:   []string{"c"}},
+		{name: "a track kept by hand outlives its rule", rules: []Rule{album("A1")},
+			before: func(e *env) { require.NoError(t, keep(e, true, "a")) },
+			change: func(t *testing.T, e *env) { require.NoError(t, e.c.RemoveRule(ctx, e.lib, album("A1"))) },
+			want:   []string{"a"}},
+		{name: "letting a track go deletes it",
+			before: func(e *env) { require.NoError(t, keep(e, true, "a")) },
+			change: func(t *testing.T, e *env) { require.NoError(t, keep(e, false, "a")) },
+			want:   []string{}},
+		{name: "letting go leaves what a rule holds", rules: []Rule{album("A1")},
+			before: func(e *env) { require.NoError(t, keep(e, true, "a")) },
+			change: func(t *testing.T, e *env) { require.NoError(t, keep(e, false, "a")) },
+			want:   []string{"a", "b"}},
 		{name: "a kept local playlist holds its server tracks", rules: []Rule{album("A1")},
 			before: func(e *env) {
 				e.c.cfg.LocalPlaylist = func(context.Context, string) ([]source.Track, error) {
@@ -629,4 +705,44 @@ func TestUnreadableSettingsAreKept(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, `{"localPlaylists": ["L"`, string(bad))
 	assert.Equal(t, int64(minLimit), loadLimit(e.c.cfg.ConfigDir))
+}
+
+// Removing a kept track makes room again: what didn't fit before is fetched.
+func TestRemovingAKeptTrackClearsFull(t *testing.T) {
+	ctx := context.Background()
+	e := setup(t, "", nil, nil)
+	_, err := e.c.db.ExecContext(ctx, "INSERT INTO covers (library_id, id, rule, static) VALUES (?, 'b', ?, 1)", e.lib, keptKey)
+	require.NoError(t, err)
+	e.c.full = true
+	require.NoError(t, keep(e, false, "a"))
+	require.Eventually(t, func() bool { e.drain(t); return len(cached(t, e.c)) == 1 }, 5*time.Second, 20*time.Millisecond)
+	assert.Equal(t, []string{"b"}, cached(t, e.c))
+}
+
+// Has answers "unknown" when it can't tell, so a lookup failure never reads as
+// "no copy" and loses data.
+func TestHasSaysWhenItDoesNotKnow(t *testing.T) {
+	ctx := context.Background()
+	e := setup(t, "", nil, nil)
+	ref := source.Ref{Library: e.lib, ID: "a"}
+	has, known := e.c.Has(ctx, ref)
+	assert.False(t, has)
+	assert.True(t, known, "no row is a known absence")
+
+	require.NoError(t, e.c.fetch(ctx, job{track: source.Track{Library: e.lib, ID: "a"}}))
+	has, known = e.c.Has(ctx, ref)
+	assert.True(t, has)
+	assert.True(t, known)
+
+	cancelled, cancel := context.WithCancel(ctx)
+	cancel()
+	has, known = e.c.Has(cancelled, ref)
+	assert.False(t, has)
+	assert.False(t, known, "a failed lookup is unknown")
+
+	st, _ := e.c.Cached(ctx, ref)
+	require.NoError(t, os.Remove(st.URL))
+	has, known = e.c.Has(ctx, ref)
+	assert.False(t, has)
+	assert.True(t, known, "a row whose file is gone is a known absence")
 }

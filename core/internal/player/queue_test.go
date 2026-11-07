@@ -2,6 +2,8 @@ package player
 
 import (
 	"encoding/json"
+	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -276,4 +278,69 @@ func TestShuffledQueueGrowsShuffled(t *testing.T) {
 			assert.Equal(t, cur, current(q))
 		})
 	}
+}
+
+// The Shuffle button of one album or playlist mixes its tracks whatever
+// Shuffle by says.
+func TestShuffleOfOneListIgnoresAlbums(t *testing.T) {
+	var ts []source.Track
+	for n := range 60 {
+		ts = append(ts, source.Track{Library: "l", ID: fmt.Sprint(n), AlbumID: "x", TrackNo: n})
+	}
+	q := NewQueue()
+	q.albums = true
+	q.SetShuffle(true)
+	q.Replace(ts, -1, Origin{})
+	got := q.Items()
+	assert.False(t, slices.IsSortedFunc(got, func(a, b Item) int { return a.Track.TrackNo - b.Track.TrackNo }))
+}
+
+// Untagged tracks share a made-up album, which is no reason to keep them together.
+func TestShuffleByAlbumSplitsUntaggedTracks(t *testing.T) {
+	var ts []source.Track
+	for n := range 60 {
+		ts = append(ts, source.Track{Library: "l", ID: fmt.Sprint(n), Album: source.UnknownAlbum, AlbumID: "x", TrackNo: n})
+	}
+	q := NewQueue()
+	q.albums = true
+	q.Replace(ts, -1, Origin{})
+	q.SetShuffle(true)
+	assert.False(t, slices.IsSortedFunc(q.Items(), func(a, b Item) int { return a.Track.TrackNo - b.Track.TrackNo }))
+}
+
+func TestShuffleByAlbum(t *testing.T) {
+	var ts []source.Track
+	for _, album := range []string{"x", "y", "z"} {
+		for n := 5; n >= 1; n-- {
+			ts = append(ts, source.Track{Library: "l", ID: fmt.Sprint(album, n), AlbumID: album, TrackNo: n})
+		}
+	}
+	ts = append(ts, source.Track{Library: "l", ID: "single"})
+	q := NewQueue()
+	q.albums = true
+	q.Replace(ts, 7, Origin{})
+	q.SetShuffle(true)
+
+	items := q.Items()
+	require.Len(t, items, len(ts))
+	cur, ok := q.Current()
+	require.True(t, ok)
+	assert.Equal(t, ts[7].ID, cur.Track.ID)
+	assert.Equal(t, ts[7].AlbumID, items[0].Track.AlbumID, "the current album comes first")
+	seen := map[string]bool{}
+	for i, it := range items {
+		assert.False(t, seen[it.Track.ID], "every track once")
+		seen[it.Track.ID] = true
+		if i == 0 {
+			continue
+		}
+		prev := items[i-1].Track
+		if prev.AlbumID == it.Track.AlbumID {
+			assert.Equal(t, prev.TrackNo+1, it.Track.TrackNo, "track order inside an album")
+		} else {
+			assert.True(t, it.Track.AlbumID == "" || it.Track.TrackNo == 1, "an album starts at its first track")
+		}
+	}
+	q.SetShuffle(false)
+	assert.Equal(t, ts[0].ID, q.Items()[0].Track.ID, "shuffle off restores the order")
 }

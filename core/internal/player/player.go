@@ -154,6 +154,8 @@ type Options struct {
 	AlbumGapless bool
 	// AutoContinue is what plays when the queue runs out.
 	AutoContinue string
+	// ShuffleAlbums shuffles the queue by album.
+	ShuffleAlbums bool
 	// IdleExit ends mpv after this long with nothing playing; 0 keeps it.
 	IdleExit time.Duration
 	// VolumeTarget is what volume and mute act on: VolumeApp (mpv) or
@@ -186,17 +188,20 @@ func DefaultOptions() Options {
 		VolumeTarget: VolumeApp}
 }
 
-// Sleep is the sleep timer: Mode off, timer (pause at At, unix seconds) or
-// endOfTrack (pause when the current track ends).
+// Sleep is the sleep timer: Mode off, timer (stop at At, unix seconds),
+// endOfTrack (stop when the current track ends) or afterEntry (stop when
+// the queue entry with UID Entry ends).
 type Sleep struct {
-	Mode string `json:"mode"`
-	At   int64  `json:"at,omitempty"`
+	Mode  string `json:"mode"`
+	At    int64  `json:"at,omitempty"`
+	Entry uint64 `json:"entry,omitempty"`
 }
 
 const (
 	SleepOff        = "off"
 	SleepTimer      = "timer"
 	SleepEndOfTrack = "endOfTrack"
+	SleepAfterEntry = "afterEntry"
 )
 
 type Status struct {
@@ -431,6 +436,7 @@ func New(cfg Config) *Player {
 func (p *Player) Run(ctx context.Context) {
 	defer close(p.done)
 	p.runCtx = ctx
+	p.queue.albums = p.opts.ShuffleAlbums
 	p.setBackend(p.preferred())
 	p.restore()
 	for {
@@ -707,15 +713,25 @@ func (p *Player) applyOptions(ctx context.Context) {
 
 // Repeat one loops inside mpv, so the track repeats without a gap.
 func (p *Player) applyRepeat(ctx context.Context) {
-	loop := "no"
-	if p.queue.Repeat() == RepeatOne && p.sleep.Mode != SleepEndOfTrack {
-		loop = "inf"
+	p.setProp(ctx, "loop-file", p.loopFile())
+}
+
+func (p *Player) loopFile() string {
+	if p.queue.Repeat() == RepeatOne && !p.stopsAtEnd() {
+		return "inf"
 	}
-	p.setProp(ctx, "loop-file", loop)
+	return "no"
 }
 
 func (p *Player) onCrash(ctx context.Context) {
-	log.Warnf("%s exited unexpectedly", p.backendName())
+	var exit, conn error
+	if p.proc != nil {
+		exit = p.proc.exitErr
+		if p.proc.conn != nil {
+			conn = p.proc.conn.cause()
+		}
+	}
+	log.Warnf("%s exited unexpectedly (exit: %v, connection: %v)", p.backendName(), exit, conn)
 
 	now := time.Now()
 	recent := p.restarts[:0]
@@ -852,6 +868,17 @@ func (p *Player) onStartFile(entry int64) {
 	p.publishStatus()
 }
 
+// finishAtStop ends a stop rule that fired: the next track is lined up, which
+// resume then plays, and the rule clears.
+func (p *Player) finishAtStop() {
+	p.queue.Advance()
+	p.setSleep(Sleep{Mode: SleepOff})
+	if p.proc != nil {
+		p.applyRepeat(context.Background())
+	}
+	p.publishQueue()
+}
+
 func (p *Player) onEndFile(m message) {
 	if m.EntryID != p.curEntry {
 		return
@@ -863,7 +890,7 @@ func (p *Player) onEndFile(m message) {
 			log.Warnf("playback: %s", msg)
 			p.cfg.Publish(TopicError, map[string]string{"message": msg, "code": CodeNeedsMPV})
 			// The queue passes over it even when the next track isn't lined up yet.
-			if p.nextEntry == 0 && p.queue.Advance() {
+			if !p.stopsAtEnd() && p.nextEntry == 0 && p.queue.Advance() {
 				if err := p.loadCurrent(context.Background(), 0, false); err != nil && !errors.Is(err, errLoading) {
 					p.publishFailure(err)
 				}
@@ -895,11 +922,8 @@ func (p *Player) onEndFile(m message) {
 	p.pos, p.lastPos = 0, 0
 	_, more := p.queue.Peek()
 	p.ended = !more
-	if p.sleep.Mode == SleepEndOfTrack {
-		// Stopped before the next track, which resume then plays.
-		p.queue.Advance()
-		p.setSleep(Sleep{Mode: SleepOff})
-		p.publishQueue()
+	if p.stopsAtEnd() {
+		p.finishAtStop()
 	} else if more && p.queue.Advance() {
 		// The next track never lined up: it was still resolving, or failed.
 		if err := p.loadCurrent(context.Background(), 0, true); err != nil && !errors.Is(err, errLoading) {
@@ -1207,7 +1231,8 @@ func (p *Player) open(ctx context.Context, it Item, st Stream, start float64, pl
 // syncNext makes mpv's playlist [current, next] for the queue as it is now.
 func (p *Player) syncNext(ctx context.Context) {
 	if p.remote != nil && p.active {
-		p.remote.Load(p.queue.Items(), p.queue.Index(), -1)
+		items, index, final := p.remoteQueue()
+		p.remote.Load(items, index, -1, final)
 		return
 	}
 	if !p.active {
@@ -1216,7 +1241,10 @@ func (p *Player) syncNext(ctx context.Context) {
 	defer p.applyEnd(ctx)
 	want, ok := p.queue.Peek()
 	// The sleep timer's end of track stops mpv there instead of moving on.
-	ok = ok && p.sleep.Mode != SleepEndOfTrack
+	ok = ok && !p.stopsAtEnd()
+	if p.sleep.Mode == SleepAfterEntry && p.proc != nil {
+		p.applyRepeat(ctx)
+	}
 	for uid := range p.streams {
 		if uid != p.queue.currentUID() && (!ok || uid != want.UID) {
 			delete(p.streams, uid)
@@ -1427,9 +1455,10 @@ func (p *Player) PlayFeed(ctx context.Context, feed Feed, origin Origin) error {
 		return errors.New("nothing to play")
 	}
 	return p.doPlay(ctx, func(ctx context.Context) error {
-		p.queue.SetShuffle(true)
+		p.queue.SetShuffle(false)
 		p.newQueue()
 		p.queue.Replace(first, -1, origin)
+		p.queue.SetShuffle(true)
 		p.feed = feed
 		return p.loadCurrent(ctx, 0, true)
 	})
@@ -1802,10 +1831,14 @@ func (p *Player) Configure(ctx context.Context, o Options) error {
 	var sysErr error
 	if o.VolumeTarget == VolumeSystem && p.cfg.System != nil {
 		vol, muted, sysErr = p.cfg.System.Get(ctx)
+		if sysErr != nil {
+			log.Warnf("player: can't read the system volume: %v", sysErr)
+		}
 	}
 	return p.do(ctx, func(ctx context.Context) error {
 		wasOff := p.continueMode() == ""
 		p.opts = o
+		p.queue.albums = o.ShuffleAlbums
 		p.idleTimer = nil
 		if sysErr == nil {
 			p.sysVolume, p.sysMuted = vol, muted
@@ -1838,11 +1871,21 @@ func (p *Player) SetShuffle(ctx context.Context, on bool) error {
 
 func (p *Player) SetRepeat(ctx context.Context, mode string) error {
 	return p.do(ctx, func(ctx context.Context) error {
+		prev := p.queue.Repeat()
 		if err := p.queue.SetRepeat(mode); err != nil {
 			return err
 		}
 		if p.proc != nil {
-			p.applyRepeat(ctx)
+			if err := p.trySetProp(ctx, "loop-file", p.loopFile()); err != nil && p.remote == nil {
+				// A timed-out command may still be applied later, so queue the old value behind it.
+				_ = p.queue.SetRepeat(prev)
+				rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+				_ = p.trySetProp(rctx, "loop-file", p.loopFile())
+				cancel()
+				p.published = Status{} // MPRIS may hold the refused value
+				p.publishStatus()
+				return fmt.Errorf("couldn't change repeat: %w", err)
+			}
 		}
 		if p.remote != nil {
 			p.remote.SetLoop(mode == RepeatAll)
@@ -1958,7 +2001,31 @@ func (p *Player) publishStatus() {
 	p.markDirty()
 }
 
+// ruleGone says the stop rule's entry left the queue, or lies behind the
+// current track where it can't fire any more (repeat all comes back to it).
+func (p *Player) ruleGone(uid uint64) bool {
+	if !p.queue.Has(uid) {
+		return true
+	}
+	if p.queue.Repeat() == RepeatAll {
+		return false
+	}
+	for i, it := range p.queue.items {
+		if it.UID == uid {
+			return i < p.queue.Index()
+		}
+	}
+	return false
+}
+
 func (p *Player) publishQueue() {
+	if p.sleep.Mode == SleepAfterEntry && p.ruleGone(p.sleep.Entry) {
+		p.setSleep(Sleep{Mode: SleepOff})
+		if p.proc != nil {
+			p.applyRepeat(context.Background())
+		}
+		p.publishStatus()
+	}
 	p.cfg.Publish(TopicQueue, p.queueSnapshot())
 	p.markDirty()
 	p.maybeFeed()
@@ -2033,7 +2100,7 @@ func (p *Player) SystemChanged(ctx context.Context, volume float64, muted bool) 
 // SystemVolumeAvailable says whether the system volume target can work.
 func (p *Player) SystemVolumeAvailable() bool { return p != nil && p.cfg.System != nil }
 
-// SetSleep sets the sleep timer: pause after d, at the end of the current
+// SetSleep sets the sleep timer: stop after d, at the end of the current
 // track (endOfTrack), or off. It runs in the daemon, window or not.
 func (p *Player) SetSleep(ctx context.Context, mode string, d time.Duration) error {
 	switch mode {
@@ -2058,6 +2125,34 @@ func (p *Player) SetSleep(ctx context.Context, mode string, d time.Duration) err
 		p.publishStatus()
 		return nil
 	})
+}
+
+// SetSleepAfter stops when the queue entry at index ends, wherever edits
+// move it; the rule goes with the entry.
+func (p *Player) SetSleepAfter(ctx context.Context, index int) error {
+	return p.do(ctx, func(ctx context.Context) error {
+		items := p.queue.Items()
+		if index < 0 || index >= len(items) {
+			return fmt.Errorf("queue entry %d doesn't exist", index+1)
+		}
+		if p.ruleGone(items[index].UID) {
+			return fmt.Errorf("queue entry %d is behind the current track", index+1)
+		}
+		p.setSleep(Sleep{Mode: SleepAfterEntry, Entry: items[index].UID})
+		p.syncNext(ctx)
+		if p.proc != nil {
+			p.applyRepeat(ctx)
+		}
+		p.publishStatus()
+		return nil
+	})
+}
+
+// stopsAtEnd says whether playback stops when the current track ends: for
+// the rule's entry, or when the queue would pass that entry over.
+func (p *Player) stopsAtEnd() bool {
+	return p.sleep.Mode == SleepEndOfTrack ||
+		p.sleep.Mode == SleepAfterEntry && (p.sleep.Entry == p.queue.currentUID() || p.queue.PassesOver(p.sleep.Entry))
 }
 
 func (p *Player) setSleep(sl Sleep) {

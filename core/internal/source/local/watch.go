@@ -98,6 +98,12 @@ func (s *Source) watch() {
 // addWatches watches dir and every folder below it that a scan would read.
 // Running out of inotify watches leaves a notice instead of failing.
 func (s *Source) addWatches(w *fsnotify.Watcher, dirs map[string]bool, dir string) {
+	failed := 0
+	defer func() {
+		if failed > 1 {
+			log.Warnf("library %s: %d folders can't be watched", s.lib.Name, failed)
+		}
+	}()
 	_ = filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
 		if err != nil || !d.IsDir() {
 			return nil
@@ -116,6 +122,9 @@ func (s *Source) addWatches(w *fsnotify.Watcher, dirs map[string]bool, dir strin
 				s.watchNotice.Store(source.Notice{Code: source.NoticeTooManyFolders,
 					Message: "Too many folders to watch (fs.inotify.max_user_watches); some changes show only after a rescan"})
 				return filepath.SkipAll
+			}
+			if failed++; failed == 1 {
+				log.Warnf("library %s: can't watch %s: %v", s.lib.Name, p, err)
 			}
 			return nil
 		}
@@ -175,6 +184,8 @@ func (s *Source) flush(w *fsnotify.Watcher, dirs map[string]bool, pending map[st
 			} else {
 				scope = append(scope, p)
 			}
+		case err != nil:
+			log.Warnf("library %s: can't read %s: %v", s.lib.Name, p, err)
 		}
 	}
 	// Folders that went or came back aren't in the delta: then listeners
@@ -192,7 +203,11 @@ func (s *Source) flush(w *fsnotify.Watcher, dirs map[string]bool, pending map[st
 	}
 	for dir := range missing {
 		forgetDirs(dirs, dir)
-		if ok, err := s.store.MarkMissing(ctx, s.lib.ID, dir); err == nil && ok {
+		ok, err := s.store.MarkMissing(ctx, s.lib.ID, dir)
+		if err != nil {
+			log.Warnf("library %s: mark %s missing: %v", s.lib.Name, dir, err)
+		}
+		if err == nil && ok {
 			changed, d = true, nil
 		}
 	}
@@ -213,7 +228,11 @@ func (s *Source) checkRoots(ctx context.Context) (changed bool, back []string) {
 			continue
 		}
 		gone[root] = true
-		if ok, _ := s.store.MarkMissing(ctx, s.lib.ID, root); ok {
+		ok, err := s.store.MarkMissing(ctx, s.lib.ID, root)
+		if err != nil {
+			log.Warnf("library %s: mark %s missing: %v", s.lib.Name, root, err)
+		}
+		if ok {
 			changed = true
 		}
 	}

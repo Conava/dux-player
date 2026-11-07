@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/duxlabs-dev/dux-go/log"
+
+	"github.com/Conava/dux-player/core/internal/logtext"
 )
 
 // pump decodes the current entry into the output stream. It alone touches
@@ -129,7 +131,9 @@ func (p *pump) wait(wctx context.Context, ch <-chan struct{}) bool {
 func (p *pump) begin(en *entry) {
 	if p.cur != nil && p.cur.err == nil && p.st != nil && !p.eof {
 		// Replaced while playing: cut it off.
-		_ = p.st.Flush()
+		if err := p.st.Flush(); err != nil {
+			log.Warnf("built-in player: flush on %s: %v", p.stSink, err)
+		}
 	}
 	p.cur, p.frame, p.pending, p.eof = en, -1, nil, false
 	if en != nil {
@@ -145,6 +149,7 @@ func (p *pump) loaded() {
 		if errors.Is(reason, errNeedsMPV) {
 			reason = errNeedsMPV
 		}
+		log.Warnf("built-in player: can't play %s: %s", logtext.Clean(cur.url), logtext.Clean(reason.Error()))
 		p.e.endFile(cur, "error", reason)
 		p.advance(cur)
 		return
@@ -199,6 +204,7 @@ func (p *pump) outputFailed(sink string, err error) {
 	if sink == "" {
 		sink = "default output"
 	}
+	log.Warnf("built-in player: output %s failed: %v", sink, err)
 	p.e.event(OutputError, map[string]any{"file_error": fmt.Sprintf("%s: %v", sink, err)})
 	p.e.pauseFor()
 }
@@ -282,7 +288,7 @@ func (p *pump) decode() bool {
 		p.eof = true
 		return false
 	}
-	log.Warnf("built-in player: decode: %v", err)
+	log.Warnf("built-in player: decode of %s: %v", logtext.Clean(cur.url), err)
 	p.e.endFile(cur, "error", err)
 	p.advance(cur)
 	return false
@@ -377,6 +383,7 @@ func (p *pump) flushed() {
 		return
 	}
 	if err := p.st.Flush(); err != nil {
+		log.Warnf("built-in player: flush on %s: %v", p.stSink, err)
 		p.closeStream()
 		return
 	}
@@ -393,6 +400,8 @@ func (p *pump) moveDevice() {
 	heard := p.heard()
 	if err := safely(func() error { return p.cur.dec.seek(heard) }); err == nil {
 		p.frame, p.pending, p.eof = heard, nil, false
+	} else {
+		log.Warnf("built-in player: seek while moving to %s: %v", p.e.sink(), err)
 	}
 	p.closeStream()
 }

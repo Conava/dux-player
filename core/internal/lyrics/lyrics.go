@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"net/url"
@@ -76,6 +77,17 @@ type Config struct {
 	HasSubscriber                         func(topic string) bool
 	// Enabled is the lyrics setting; nil is on.
 	Enabled func() bool
+	// AudioTiming says whether word timing is fitted to the audio; nil is off.
+	AudioTiming func() bool
+	// Keep is the setting to fetch lyrics for kept tracks; nil is on.
+	Keep func() bool
+	// HasCopy says whether a server track still has a copy on this device;
+	// known is false when that can't be told.
+	HasCopy func(ctx context.Context, ref source.Ref) (has, known bool)
+	// AudioFile finds a track's audio on this device.
+	AudioFile func(ctx context.Context, ref source.Ref) (string, bool)
+	// Decode reads a file as stereo floats at FitRate.
+	Decode func(ctx context.Context, path string, read func(io.Reader) error) error
 }
 
 type Service struct {
@@ -91,6 +103,8 @@ type Service struct {
 	baseCtx context.Context
 
 	wasOn      bool
+	wasKeep    bool
+	wasFitting bool
 	next       *source.Track
 	warm       []warmed // newest last
 	warming    string   // key of the track being prefetched
@@ -112,8 +126,9 @@ type warmed struct {
 func New(ctx context.Context, cfg Config) *Service {
 	s := &Service{cfg: cfg, baseCtx: ctx, providers: openProviders(filepath.Join(cfg.ConfigDir, providersFile))}
 	s.client = s.newClient(s.cacheDir())
-	s.wasOn = s.enabled()
-	go s.client.Prune()
+	s.wasOn, s.wasFitting, s.wasKeep = s.enabled(), s.fitting(), cfg.Keep == nil || cfg.Keep()
+	go func() { s.refreshKept(); s.client.Prune() }()
+	go pruneFits(filepath.Join(cfg.CacheDir, "lyrics-fit"))
 	if err := os.RemoveAll(s.aheadDir()); err != nil {
 		log.Warnf("lyrics: %v", err)
 	}
@@ -128,10 +143,34 @@ func (s *Service) newClient(dir string) *duxlyrics.Client {
 	})
 }
 
+// fitMaxAge is how long a measured shift is kept: about as long as the lyrics
+// cache keeps the lyrics it was measured for.
+const fitMaxAge = 90 * 24 * time.Hour
+
+func pruneFits(dir string) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			log.Warnf("lyrics: can't read the measured shifts: %v", err)
+		}
+		return
+	}
+	for _, e := range entries {
+		if info, err := e.Info(); err == nil && time.Since(info.ModTime()) > fitMaxAge {
+			if err := os.Remove(filepath.Join(dir, e.Name())); err != nil {
+				log.Warnf("lyrics: can't remove an old measured shift: %v", err)
+			}
+		}
+	}
+}
+
+func (s *Service) keptDir() string  { return filepath.Join(s.cfg.CacheDir, "lyrics-kept") }
 func (s *Service) cacheDir() string { return filepath.Join(s.cfg.CacheDir, "lyrics") }
 func (s *Service) aheadDir() string { return filepath.Join(s.cfg.CacheDir, "lyrics-next") }
 
 func (s *Service) enabled() bool { return s.cfg.Enabled == nil || s.cfg.Enabled() }
+
+func (s *Service) fitting() bool { return s.cfg.AudioTiming != nil && s.cfg.AudioTiming() }
 
 func hashed(k string) string {
 	sum := sha256.Sum256([]byte(k))
@@ -167,7 +206,9 @@ func (s *Service) Subscribed() {
 		return
 	}
 	s.mu.Lock()
-	stale := s.shown != key(s.track) || s.last.State == "error"
+	// An idle result for a track is what lyrics being off left behind.
+	// An idle result for a track is what lyrics being off left behind.
+	stale := s.shown != key(s.track) || s.last.State == "error" || (s.last.State == "idle" && s.track != nil)
 	last := s.last
 	s.mu.Unlock()
 	if stale {
@@ -387,11 +428,15 @@ func (s *Service) forget() {
 
 // SettingsChanged follows the lyrics setting.
 func (s *Service) SettingsChanged() {
-	on := s.enabled()
+	on, fitting, keep := s.enabled(), s.fitting(), s.cfg.Keep == nil || s.cfg.Keep()
 	s.mu.Lock()
-	changed := s.wasOn != on
-	s.wasOn = on
+	keptChanged := s.wasOn != on || s.wasKeep != keep
+	changed := s.wasOn != on || s.wasFitting != fitting
+	s.wasOn, s.wasFitting, s.wasKeep = on, fitting, keep
 	s.mu.Unlock()
+	if keptChanged {
+		s.refreshKept()
+	}
 	if !changed {
 		return
 	}
@@ -610,7 +655,175 @@ func (s *Service) best(ctx context.Context, client *duxlyrics.Client, t source.T
 	if len(results) == 0 {
 		return nil
 	}
-	return align(s.providers.enabled(), results)
+	order := s.providers.enabled()
+	// the recording itself beats what other sources say about it
+	top := choose(order, results)
+	if shift, ok := s.fitted(ctx, t, top); ok {
+		return shifted(top, shift)
+	}
+	return align(order, results)
+}
+
+// fitResult is a measured shift, kept so a track is decoded once per source.
+type fitResult struct {
+	Shift     float64 `json:"shift"`
+	Confident bool    `json:"confident"`
+}
+
+// fitted is the shift the audio asks of a word-timed result, when it is sure.
+func (s *Service) fitted(ctx context.Context, t source.Track, r *duxlyrics.Result) (float64, bool) {
+	if !s.fitting() || s.cfg.AudioFile == nil || s.cfg.Decode == nil || r.Source == duxlyrics.Sidecar {
+		return 0, false
+	}
+	starts := wordStarts(r)
+	if len(starts) < fitMinWords {
+		return 0, false
+	}
+	// the timing is part of the name: a source that changes it is fitted anew
+	name := fmt.Sprintf("%s/%s/%d/%.2f", key(&t), r.Source, len(starts), starts[0])
+	path := filepath.Join(s.cfg.CacheDir, "lyrics-fit", hashed(name)+".json")
+	var known fitResult
+	if data, err := os.ReadFile(path); err == nil && json.Unmarshal(data, &known) == nil {
+		return known.Shift, known.Confident
+	}
+	file, ok := s.cfg.AudioFile(ctx, t.Ref())
+	if !ok {
+		return 0, false
+	}
+	var found []float64
+	err := s.cfg.Decode(ctx, file, func(in io.Reader) error {
+		var err error
+		found, err = attacks(in)
+		return err
+	})
+	if err != nil {
+		log.Debugf("lyrics: fitting %q to its audio: %v", t.Title, err)
+		return 0, false
+	}
+	shift, confidence := fit(starts, found)
+	known = fitResult{Shift: shift, Confident: confidence >= fitConfidence}
+	log.Debugf("lyrics: %q from %s fits the audio at %+.2f s, confidence %.1f", t.Title, r.Source, shift, confidence)
+	data, err := json.Marshal(known)
+	if err == nil {
+		err = os.MkdirAll(filepath.Dir(path), 0o700)
+	}
+	if err == nil {
+		err = atomicfile.WriteFile(path, data, 0o600)
+	}
+	if err != nil {
+		log.Warnf("lyrics: %v", err)
+	}
+	return known.Shift, known.Confident
+}
+
+// keep links the cache entries written since start into the track's folder
+// in keptDir, so refreshKept can protect them from the 90-day prune of the
+// lyrics cache. Entries that were already cached before start are not captured.
+func (s *Service) keep(ref source.Ref, start time.Time) {
+	root := s.cacheDir()
+	dir := filepath.Join(s.keptDir(), hashed(ref.Library+":"+ref.ID))
+	_ = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || filepath.Ext(path) != ".json" {
+			return nil
+		}
+		if info, err := d.Info(); err != nil || info.ModTime().Before(start) {
+			return nil
+		}
+		rel, _ := filepath.Rel(root, path)
+		to := filepath.Join(dir, rel)
+		if err := os.MkdirAll(filepath.Dir(to), 0o755); err == nil {
+			_ = os.Remove(to)
+			_ = os.Link(path, to)
+		}
+		return nil
+	})
+	if _, err := os.Stat(dir); err == nil {
+		data, _ := json.Marshal(ref)
+		_ = os.WriteFile(filepath.Join(dir, keptRef), data, 0o600)
+	}
+}
+
+// keptRef names the file in a kept folder that says which track it belongs to.
+const keptRef = "track"
+
+// unkeep drops what keep linked for a track.
+func (s *Service) unkeep(ref source.Ref) {
+	_ = os.RemoveAll(filepath.Join(s.keptDir(), hashed(ref.Library+":"+ref.ID)))
+}
+
+// refreshKept touches the cache entry of every kept track (restoring it from
+// keptDir when missing) so the prune, which goes by modification time, spares it.
+// Folders of tracks no longer on this device, and all of them while lyrics or
+// keeping them is off, are removed.
+func (s *Service) refreshKept() {
+	now := time.Now()
+	folders, _ := os.ReadDir(s.keptDir())
+	for _, f := range folders {
+		dir := filepath.Join(s.keptDir(), f.Name())
+		var ref source.Ref
+		data, err := os.ReadFile(filepath.Join(dir, keptRef))
+		if err == nil {
+			err = json.Unmarshal(data, &ref)
+		}
+		if err != nil || !s.enabled() || s.cfg.Keep != nil && !s.cfg.Keep() {
+			_ = os.RemoveAll(dir)
+			continue
+		}
+		if s.cfg.HasCopy != nil {
+			if has, known := s.cfg.HasCopy(s.baseCtx, ref); known && !has {
+				_ = os.RemoveAll(dir)
+				continue
+			}
+		}
+		_ = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() || d.Name() == keptRef {
+				return nil
+			}
+			rel, _ := filepath.Rel(dir, path)
+			to := filepath.Join(s.cacheDir(), rel)
+			if _, err := os.Stat(to); err != nil {
+				if os.MkdirAll(filepath.Dir(to), 0o755) == nil {
+					_ = os.Link(path, to)
+				}
+			}
+			_ = os.Chtimes(to, now, now)
+			_ = os.Chtimes(path, now, now)
+			return nil
+		})
+	}
+}
+
+// Stored follows a track kept on this device: its lyrics are fetched to keep,
+// and the track on screen can now be fitted. Others are fitted when they play,
+// so a large download doesn't decode every track.
+func (s *Service) Stored(ctx context.Context, t source.Track, keepLyrics bool) {
+	if keepLyrics {
+		defer s.keep(t.Ref(), time.Now())
+	} else {
+		s.unkeep(t.Ref())
+	}
+	s.mu.Lock()
+	current := key(s.track) == key(&t)
+	shown := s.last.Result
+	s.mu.Unlock()
+	if !s.enabled() || !keepLyrics && !current || s.chosen(key(&t)) != nil {
+		return
+	}
+	if !current {
+		s.gather(ctx, s.client, t)
+		return
+	}
+	if !keepLyrics && !s.cfg.HasSubscriber(Topic) {
+		return
+	}
+	best := s.Best(ctx, t)
+	if best == nil || !s.cfg.HasSubscriber(Topic) {
+		return
+	}
+	s.remember(warmed{key: key(&t), res: best})
+	if shown == nil || retimed(shown, best) {
+		s.show(ctx, &t, Event{Library: t.Library, ID: t.ID, State: "ready", Result: best})
+	}
 }
 
 func (s *Service) gather(ctx context.Context, client *duxlyrics.Client, t source.Track) []*duxlyrics.Result {

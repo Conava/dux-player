@@ -6,13 +6,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/duxlabs-dev/dux-go/log"
 )
 
 const (
@@ -172,6 +176,47 @@ func (m *Meter) Measure(ctx context.Context, path string) (Result, error) {
 	return Result{Gain: gain, Silence: parseSilence(out.String())}, nil
 }
 
+// Decode hands read a local file's audio as raw stereo 32-bit floats.
+func (m *Meter) Decode(ctx context.Context, path string, rate int, read func(io.Reader) error) error {
+	if !m.Available() {
+		return errors.New("ffmpeg is not installed")
+	}
+	select {
+	case m.slot <- struct{}{}:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	defer func() { <-m.slot }()
+	ctx, cancel := context.WithTimeout(ctx, measureTimeout)
+	defer cancel()
+	argv := append(slices.Clone(m.prefix), m.ffmpeg, "-nostdin", "-hide_banner", "-nostats", "-threads", "1",
+		"-protocol_whitelist", "file", "-i", path, "-map", "0:a:0", "-ac", "2", "-ar", strconv.Itoa(rate), "-f", "f32le", "-")
+	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("ffmpeg: %w", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("ffmpeg: %w", err)
+	}
+	readErr := read(out)
+	// A killed ffmpeg also ends the pipe cleanly, so only Wait tells a whole
+	// file from a fragment. Output left over means read stopped by choice.
+	_, more := out.Read(make([]byte, 1))
+	if readErr != nil || !errors.Is(more, io.EOF) {
+		cancel()
+		_ = cmd.Wait()
+		return readErr
+	}
+	if err := cmd.Wait(); err != nil {
+		if ctx.Err() != nil {
+			return fmt.Errorf("ffmpeg: %w", ctx.Err())
+		}
+		return fmt.Errorf("ffmpeg: %w", err)
+	}
+	return nil
+}
+
 // Job is one file for a Loop; ID is the caller's key for it.
 type Job struct{ ID, Path string }
 
@@ -207,7 +252,11 @@ func (l *Loop) Start(ctx context.Context) {
 		for l.Meter.Enabled() {
 			gen = l.Meter.generation()
 			jobs, err := l.Pending(ctx, l.Meter.Silence())
-			if err != nil || len(jobs) == 0 {
+			if err != nil {
+				log.Warnf("loudness: can't list the next files: %v", err)
+				return
+			}
+			if len(jobs) == 0 {
 				return
 			}
 			for _, j := range jobs {
@@ -219,6 +268,7 @@ func (l *Loop) Start(ctx context.Context) {
 					return
 				}
 				if err := l.Save(ctx, j, r, err); err != nil {
+					log.Warnf("loudness: can't store the result for %s: %v", filepath.Base(j.Path), err)
 					return
 				}
 			}

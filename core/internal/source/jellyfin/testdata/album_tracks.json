@@ -23,7 +23,9 @@
      "Id": "78e6763b3d9b58c349a58ce5eb7877c1"
     }
    ],
-   "Album": "Nemesis",
+   "Container": "flac",
+      "DateCreated": "2024-03-01T10:00:00.0000000Z",
+      "Album": "Nemesis",
    "AlbumId": "f7e6d83954e06a0d46724a6068fa21ff",
    "AlbumPrimaryImageTag": "45ff5f4520bf2b3e9e7410e4c8766cb1",
    "AlbumArtist": "Leap Fidei",

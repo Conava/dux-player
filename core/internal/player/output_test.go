@@ -18,6 +18,10 @@ import (
 type fakeRemote struct {
 	mu  sync.Mutex
 	log []string
+	// loaded is the track ids of the last Load; final its flag.
+	loaded []string
+	final  bool
+	index  int
 }
 
 func (r *fakeRemote) add(s string) {
@@ -26,7 +30,13 @@ func (r *fakeRemote) add(s string) {
 	r.mu.Unlock()
 }
 
-func (r *fakeRemote) Load(items []Item, index int, start float64) {
+func (r *fakeRemote) Load(items []Item, index int, start float64, final bool) {
+	r.mu.Lock()
+	r.loaded, r.final, r.index = nil, final, index
+	for _, it := range items {
+		r.loaded = append(r.loaded, it.Track.ID)
+	}
+	r.mu.Unlock()
 	r.add(fmt.Sprintf("load %s at %.0f", items[index].Track.ID, start))
 }
 func (r *fakeRemote) SetPaused(p bool)    { r.add(fmt.Sprintf("paused %t", p)) }
@@ -194,6 +204,151 @@ func TestCrossfade(t *testing.T) {
 			assert.Equal(t, tc.wantEnd, st.Index)
 			in, out := fading(p)
 			assert.False(t, in || out, "no second mpv is left over")
+		})
+	}
+}
+
+func (r *fakeRemote) queue() (ids []string, final bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]string(nil), r.loaded...), r.final
+}
+
+// A stop rule ahead cuts the queue the receiver gets after its entry, so it
+// ends there by itself; clearing the rule gives the rest back.
+func TestCastQueueEndsAtTheStopRule(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv")})
+	go p.Run(ctx)
+	r := &fakeRemote{}
+	require.NoError(t, p.SetRemote(ctx, r, false))
+	require.NoError(t, p.Play(ctx, tracks("a", "b", "c", "d"), 0, Origin{}))
+
+	require.NoError(t, p.SetSleepAfter(ctx, 2))
+	got, final := r.queue()
+	assert.Equal(t, []string{"a", "b", "c"}, got)
+	assert.True(t, final)
+
+	require.NoError(t, p.SetSleep(ctx, SleepEndOfTrack, 0))
+	got, final = r.queue()
+	assert.Equal(t, []string{"a"}, got, "the end of the track cuts after the current one")
+	assert.True(t, final)
+
+	require.NoError(t, p.SetSleep(ctx, SleepOff, 0))
+	got, final = r.queue()
+	assert.Equal(t, []string{"a", "b", "c", "d"}, got)
+	assert.False(t, final)
+
+	require.NoError(t, p.SetSleepAfter(ctx, 1))
+	require.NoError(t, p.Remove(ctx, 1))
+	got, final = r.queue()
+	assert.Equal(t, []string{"a", "c", "d"}, got, "a rule whose entry left the queue lets the queue grow again")
+	assert.False(t, final)
+}
+
+// The receiver ran out at the stop rule: stopped with the next track lined
+// up, the rule cleared, the receiver told to stop. Anything else leaves the
+// cast alone.
+func TestCastRunsOutAtTheStopRule(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		// rule: "after 1" is set; clear: it is cleared before the run-out;
+		// wrongUID reports the entry before the current one.
+		rule, clear, wrongUID, elsewhere bool
+		wantCast                         bool
+		wantIndex                        int
+		wantRule                         string
+		wantStops                        int
+	}{
+		{"rule due", true, false, false, false, false, 2, SleepOff, 1},
+		{"no rule", false, false, false, false, true, 1, SleepOff, 0},
+		{"rule cleared first", true, true, false, false, true, 1, SleepOff, 0},
+		{"not the current entry", true, false, true, false, true, 1, SleepAfterEntry, 0},
+		{"ended elsewhere", true, false, false, true, false, 1, SleepAfterEntry, 0},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv")})
+			go p.Run(ctx)
+			r := &fakeRemote{}
+			require.NoError(t, p.SetRemote(ctx, r, false))
+			require.NoError(t, p.Play(ctx, tracks("a", "b", "c"), 0, Origin{}))
+			if tt.rule {
+				require.NoError(t, p.SetSleepAfter(ctx, 1))
+			}
+			q, err := p.Queue(ctx)
+			require.NoError(t, err)
+			require.NoError(t, p.RemoteUpdate(ctx, q.Items[1].UID, 0, false, -1))
+			if tt.clear {
+				require.NoError(t, p.SetSleep(ctx, SleepOff, 0))
+			}
+			r.take()
+
+			switch {
+			case tt.elsewhere:
+				require.NoError(t, p.SetRemote(ctx, nil, false))
+			case tt.wrongUID:
+				require.NoError(t, p.RemoteRanOut(ctx, q.Items[0].UID))
+			default:
+				require.NoError(t, p.RemoteRanOut(ctx, q.Items[1].UID))
+			}
+			st, err := p.Status(ctx)
+			require.NoError(t, err)
+			if tt.wantCast {
+				assert.Equal(t, StatePlaying, st.State)
+			} else {
+				assert.Equal(t, StateStopped, st.State)
+			}
+			assert.Equal(t, tt.wantIndex, st.Index)
+			assert.Equal(t, tt.wantRule, st.Sleep.Mode)
+			stops := 0
+			for _, l := range r.take() {
+				if l == "stop" {
+					stops++
+				}
+			}
+			assert.Equal(t, tt.wantStops, stops)
+		})
+	}
+}
+
+// With repeat all a rule behind the current track is reached again: the
+// receiver gets the queue from the current track on, wrapped round to the entry.
+func TestCastQueueWrapsToARuleBehindWithRepeatAll(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv")})
+	go p.Run(ctx)
+	r := &fakeRemote{}
+	require.NoError(t, p.SetRemote(ctx, r, false))
+	require.NoError(t, p.Play(ctx, tracks("a", "b", "c", "d"), 0, Origin{}))
+	require.NoError(t, p.SetRepeat(ctx, RepeatAll))
+	require.NoError(t, p.SetSleepAfter(ctx, 1))
+	require.NoError(t, p.Jump(ctx, 2))
+	got, final := r.queue()
+	assert.Equal(t, []string{"c", "d", "a", "b"}, got)
+	assert.True(t, final)
+	assert.Equal(t, 0, r.index)
+}
+
+// A rule whose entry lies behind the current track can't fire: it is
+// cleared, unless repeat all comes back to it.
+func TestStopRuleBehindTheCurrentTrack(t *testing.T) {
+	for _, tt := range []struct {
+		repeat string
+		want   string
+	}{{RepeatOff, SleepOff}, {RepeatAll, SleepAfterEntry}} {
+		t.Run(tt.repeat, func(t *testing.T) {
+			p, ctx := castPlayer(t, Config{})
+			require.NoError(t, p.Play(ctx, tracks("a", "b", "c", "d"), 0, Origin{}))
+			require.NoError(t, p.SetRepeat(ctx, tt.repeat))
+			require.NoError(t, p.SetSleepAfter(ctx, 1))
+			require.NoError(t, p.Jump(ctx, 3))
+			st, err := p.Status(ctx)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, st.Sleep.Mode)
 		})
 	}
 }

@@ -9,6 +9,8 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -38,6 +40,8 @@ type Info struct {
 	ErrorCode string `json:"errorCode,omitempty"`
 	// LastScan is the unix time of the last full scan of an indexed library.
 	LastScan int64 `json:"lastScan,omitempty"`
+	// Synced is a server with a complete sync: it lists while unreachable.
+	Synced bool `json:"synced,omitempty"`
 	// Server is what the last successful ping learned about the server.
 	Server *source.ServerInfo `json:"server,omitempty"`
 }
@@ -59,6 +63,8 @@ const (
 	CodeFoldersMissing     = "foldersMissing"
 	CodeTrackFolderMissing = "trackFolderMissing"
 	CodeLibraryOff         = "libraryOff"
+	// CodeSignInExpired is a server that refused the stored sign-in.
+	CodeSignInExpired = "signInExpired"
 	// CodeNeedsMPV is a track in a format the built-in player can't play.
 	CodeNeedsMPV = player.CodeNeedsMPV
 )
@@ -72,6 +78,7 @@ const (
 	CodeCredentialsInAddress = "credentialsInAddress"
 	CodeRedirected           = "redirected"
 	CodeTestFailed           = "testFailed"
+	CodeQuickConnectOff      = "quickConnectOff"
 	// CodeScanFailed is the code of a scanFailed event.
 	CodeScanFailed = "scanFailed"
 )
@@ -82,6 +89,10 @@ func testFailure(err error) Reason {
 	var op *net.OpError
 	var dns *net.DNSError
 	switch {
+	case errors.Is(err, source.ErrQuickConnectOff):
+		return Reason{CodeQuickConnectOff, "Quick Connect is turned off on this server"}
+	case errors.Is(err, source.ErrSignInNeeded):
+		return Reason{CodeSignInExpired, "The sign-in expired; sign in again"}
 	case errors.Is(err, source.ErrSignInRefused):
 		return Reason{CodeSignInRefused, "The server refused the username or password"}
 	case errors.Is(err, source.ErrPasswordNeedsHTTPS):
@@ -101,10 +112,11 @@ func testFailure(err error) Reason {
 }
 
 var (
-	TrackMissing = Reason{CodeTrackFolderMissing, "Folder not found. It was removed or its drive isn't mounted."}
-	NeedsMPV     = Reason{CodeNeedsMPV, "Requires mpv to play this format"}
-	libraryOff   = Reason{CodeLibraryOff, "Library turned off or removed"}
-	unreachable  = Reason{CodeServerUnreachable, "Server unreachable"}
+	TrackMissing  = Reason{CodeTrackFolderMissing, "Folder not found. It was removed or its drive isn't mounted."}
+	NeedsMPV      = Reason{CodeNeedsMPV, "Requires mpv to play this format"}
+	libraryOff    = Reason{CodeLibraryOff, "Library turned off or removed"}
+	unreachable   = Reason{CodeServerUnreachable, "Server unreachable"}
+	signInExpired = Reason{CodeSignInExpired, "The sign-in expired; sign in again"}
 )
 
 // buildReason words a library that failed to build; the error itself goes
@@ -133,6 +145,9 @@ type Offline interface {
 	// Cached returns the file of a cached track with its measured gain and
 	// silence.
 	Cached(ctx context.Context, ref source.Ref) (player.Stream, bool)
+	// Has says whether a track has a cached copy, without noting a use. known
+	// is false when the cache can't tell.
+	Has(ctx context.Context, ref source.Ref) (has, known bool)
 	// Buffered returns the prefetched copy of an upcoming track.
 	Buffered(ctx context.Context, ref source.Ref) (player.Stream, bool)
 	// ProbedGain is the gain Probe measured for a track that isn't cached.
@@ -167,6 +182,10 @@ type Manager struct {
 	offline  atomic.Pointer[Offline]
 	// playable is the containers the player plays; nil plays all.
 	playable atomic.Pointer[[]string]
+	// pending says whether an item has a mark waiting for its server.
+	pending atomic.Pointer[func(lib, kind, id string) bool]
+	catalog atomic.Pointer[catalogRun]
+	metered atomic.Bool
 
 	mu       sync.RWMutex
 	sources  map[string]source.Source
@@ -174,6 +193,9 @@ type Manager struct {
 	scanning map[string]bool
 	// down holds the libraries whose server didn't answer the last ping.
 	down map[string]bool
+	// refused holds the libraries whose server refused the sign-in at the
+	// last ping. Only startup, a network change and Retry ask again.
+	refused map[string]bool
 	// suspect holds servers being pinged after a track of theirs failed to
 	// load; the queue passes over their tracks until the ping answers.
 	suspect  map[string]bool
@@ -188,6 +210,17 @@ type Manager struct {
 	// starting holds the libraries whose first build still runs; it closes
 	// when the build is done.
 	starting map[string]chan struct{}
+	// walks holds the running sync of each server library.
+	walks map[string]walkRun
+	// nextWalk is when a library may walk by itself again.
+	nextWalk map[string]time.Time
+	// checks holds the libraries whose catalog check runs; checked is when
+	// each last ran.
+	checks  map[string]bool
+	checked map[string]time.Time
+
+	qcMu sync.Mutex
+	qc   *quickConnectSession
 }
 
 func NewManager(store *Store, registry source.Registry, env source.Env, builtin ...source.Source) *Manager {
@@ -200,6 +233,7 @@ func NewManager(store *Store, registry source.Registry, env source.Env, builtin 
 		errs:     make(map[string]error),
 		scanning: make(map[string]bool),
 		down:     make(map[string]bool),
+		refused:  make(map[string]bool),
 		suspect:  make(map[string]bool),
 		tried:    make(map[string]time.Time),
 		checking: make(map[string]bool),
@@ -207,6 +241,10 @@ func NewManager(store *Store, registry source.Registry, env source.Env, builtin 
 		noticed:  make(map[string]bool),
 		servers:  make(map[string]source.ServerInfo),
 		starting: make(map[string]chan struct{}),
+		walks:    make(map[string]walkRun),
+		nextWalk: make(map[string]time.Time),
+		checks:   make(map[string]bool),
+		checked:  make(map[string]time.Time),
 	}
 	for _, b := range builtin {
 		m.builtin[b.Library().ID] = b
@@ -287,6 +325,7 @@ func (m *Manager) build(lib source.Library) {
 	}
 	delete(m.errs, lib.ID)
 	delete(m.down, lib.ID)
+	delete(m.refused, lib.ID)
 	m.tried[lib.ID] = time.Now()
 	switch {
 	case !lib.Enabled:
@@ -307,6 +346,10 @@ func (m *Manager) List(ctx context.Context) ([]Info, error) {
 	if err != nil {
 		return nil, err
 	}
+	synced, err := m.store.SyncedLibraries(ctx)
+	if err != nil {
+		return nil, err
+	}
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	out := make([]Info, 0, len(libs))
@@ -320,7 +363,10 @@ func (m *Manager) List(ctx context.Context) ([]Info, error) {
 					info.NoticeCodes = append(info.NoticeCodes, x)
 				}
 			}
+		} else if synced[lib.ID] {
+			info.Capabilities = offlineCaps
 		}
+		info.Synced = synced[lib.ID]
 		r := m.reasonLocked(lib.ID)
 		info.Error, info.ErrorCode = r.Message, r.Code
 		info.Available = lib.Enabled && r.Code == ""
@@ -333,10 +379,17 @@ func (m *Manager) List(ctx context.Context) ([]Info, error) {
 	return out, nil
 }
 
+// offlineCaps is what a synced library can do without a source (a locked
+// keyring): its list comes from the index, its covers from disk.
+var offlineCaps = []string{source.CapBrowse, source.CapCover, source.CapPing}
+
 // reasonLocked says why a configured library can't play; zero when it can.
 func (m *Manager) reasonLocked(id string) Reason {
 	if err := m.errs[id]; err != nil {
 		return buildReason(err)
+	}
+	if m.refused[id] {
+		return signInExpired
 	}
 	if m.down[id] {
 		return unreachable
@@ -354,6 +407,12 @@ func (m *Manager) reasonLocked(id string) Reason {
 // Add stores a new library and builds it. Secrets go to the secret store,
 // never into the config.
 func (m *Manager) Add(ctx context.Context, kind, name string, config map[string]any, secrets map[string]string) (source.Library, error) {
+	return m.AddWithID(ctx, source.NewID(), kind, name, config, secrets)
+}
+
+// AddWithID is Add for a library whose id is already chosen: a Quick
+// Connect token belongs to the device id made from it.
+func (m *Manager) AddWithID(ctx context.Context, id, kind, name string, config map[string]any, secrets map[string]string) (source.Library, error) {
 	if _, ok := m.registry[kind]; !ok {
 		return source.Library{}, fmt.Errorf("unknown library kind %q (known: %s)", kind, strings.Join(m.Kinds(), ", "))
 	}
@@ -361,28 +420,41 @@ func (m *Manager) Add(ctx context.Context, kind, name string, config map[string]
 	if name == "" {
 		return source.Library{}, errors.New("a library needs a name")
 	}
-	lib := source.Library{ID: source.NewID(), Kind: kind, Name: name, Enabled: true, Config: config}
+	lib := source.Library{ID: id, Kind: kind, Name: name, Enabled: true, Config: config}
+	if config["auth"] == authQuickConnect && secrets["token"] == "" {
+		return source.Library{}, errNoQuickConnectSession
+	}
 	for k, v := range secrets {
 		if err := m.env.Secrets.Set(lib.ID, k, v); err != nil {
+			m.dropSecrets(lib.ID)
 			return source.Library{}, fmt.Errorf("store %s: %w", k, err)
 		}
 	}
 	probe, err := m.registry.Build(lib, m.env)
 	if err != nil {
-		_ = m.env.Secrets.Delete(lib.ID)
+		m.dropSecrets(lib.ID)
 		return source.Library{}, err
 	}
 	_ = probe.Close()
 	if err := m.store.AddLibrary(ctx, lib); err != nil {
-		_ = m.env.Secrets.Delete(lib.ID)
+		m.dropSecrets(lib.ID)
 		return source.Library{}, err
 	}
 	m.build(lib)
+	m.startCatalogCheck(lib)
 	return lib, nil
+}
+
+// dropSecrets undoes a half-added library's credentials; a failure leaves them in the keyring.
+func (m *Manager) dropSecrets(id string) {
+	if err := m.env.Secrets.Delete(id); err != nil {
+		log.Warnf("library %s: can't remove its stored credentials: %v", id, err)
+	}
 }
 
 func (m *Manager) Remove(ctx context.Context, id string) error {
 	m.await(ctx, id)
+	m.stopWalk(ctx, id)
 	if err := m.store.RemoveLibrary(ctx, id); err != nil {
 		return err
 	}
@@ -393,6 +465,7 @@ func (m *Manager) Remove(ctx context.Context, id string) error {
 	delete(m.sources, id)
 	delete(m.errs, id)
 	delete(m.down, id)
+	delete(m.refused, id)
 	m.mu.Unlock()
 	if off := m.offline.Load(); off != nil {
 		if err := (*off).Clear(ctx, id); err != nil {
@@ -414,7 +487,7 @@ func (m *Manager) Get(id string) (source.Source, error) {
 	m.mu.RLock()
 	src, ok := m.sources[id]
 	_, failed := m.errs[id]
-	due := (failed || m.down[id]) && !m.checking[id] && time.Since(m.tried[id]) >= retryEvery
+	due := (failed || m.down[id] || m.unseenRefusalLocked(id, src)) && !m.checking[id] && time.Since(m.tried[id]) >= retryEvery
 	m.mu.RUnlock()
 	switch {
 	case due && failed:
@@ -426,6 +499,13 @@ func (m *Manager) Get(id string) (source.Source, error) {
 		return src, nil
 	}
 	return m.get(id)
+}
+
+// unseenRefusalLocked is a refusal a call ran into, which is looked at once;
+// one the ping found is not.
+func (m *Manager) unseenRefusalLocked(id string, src source.Source) bool {
+	rep, _ := src.(source.SignInReporter)
+	return rep != nil && rep.SignInRefused() && !m.refused[id]
 }
 
 // get is Get without the retry, for the player's loop, which must not wait.
@@ -444,12 +524,17 @@ func (m *Manager) get(id string) (source.Source, error) {
 	return nil, fmt.Errorf("library %s: %w", id, source.ErrNotFound)
 }
 
-// Server says whether a library is a server (its source pings) without
-// waiting on anything.
+// Server says whether a library is a server without waiting on anything: its
+// source pings, or with no source, its config has a server's address.
 func (m *Manager) Server(id string) bool {
 	src, err := m.get(id)
+	if err != nil {
+		lib, err := m.library(context.Background(), id)
+		address, _ := lib.Config["url"].(string)
+		return err == nil && address != ""
+	}
 	_, ok := src.(source.Pinger)
-	return err == nil && ok
+	return ok
 }
 
 // trackLookups bounds the lookups Tracks runs at once; a server answers
@@ -457,8 +542,8 @@ func (m *Manager) Server(id string) bool {
 const trackLookups = 8
 
 // Tracks resolves refs to tracks, in order; the first failing ref's error
-// wins. A cached remote track resolves from its cached copy when its
-// library can't answer.
+// wins. A remote track resolves from its cached copy, else its synced row,
+// when its library can't answer.
 func (m *Manager) Tracks(ctx context.Context, refs []source.Ref) ([]source.Track, error) {
 	out := make([]source.Track, len(refs))
 	errs := make([]error, len(refs))
@@ -484,17 +569,42 @@ func (m *Manager) Tracks(ctx context.Context, refs []source.Ref) ([]source.Track
 func (m *Manager) track(ctx context.Context, ref source.Ref) (source.Track, error) {
 	src, err := m.Get(ref.Library)
 	if err == nil {
+		m.mu.RLock()
+		down := m.reasonLocked(ref.Library).Code == CodeServerUnreachable
+		m.mu.RUnlock()
+		// A server that swallows packets costs a whole timeout per lookup.
+		if down && m.store.Synced(ctx, ref.Library) {
+			if t, ok := m.storedTrack(ctx, ref); ok {
+				return t, nil
+			}
+		}
 		var t source.Track
 		if t, err = src.Track(ctx, ref.ID); err == nil {
 			return t, nil
 		}
 	}
-	if off := m.offline.Load(); off != nil && !errors.Is(err, source.ErrNotFound) {
-		if snap, ok := (*off).Snapshot(ctx, ref); ok {
-			return snap, nil
+	if !errors.Is(err, source.ErrNotFound) {
+		if t, ok := m.storedTrack(ctx, ref); ok {
+			return t, nil
 		}
 	}
 	return source.Track{}, err
+}
+
+// storedTrack is a track as this device knows it: its cached copy, else its
+// synced row.
+func (m *Manager) storedTrack(ctx context.Context, ref source.Ref) (source.Track, bool) {
+	if off := m.offline.Load(); off != nil {
+		if snap, ok := (*off).Snapshot(ctx, ref); ok {
+			return snap, true
+		}
+	}
+	if m.store.Synced(ctx, ref.Library) {
+		if t, err := m.store.Track(ctx, ref.Library, ref.ID); err == nil {
+			return t.Track, true
+		}
+	}
+	return source.Track{}, false
 }
 
 // Stream implements player.Resolver. A cached or prefetched copy wins over
@@ -700,6 +810,38 @@ func (m *Manager) playableList() []string {
 // SetOffline makes cached copies of remote tracks playable.
 func (m *Manager) SetOffline(o Offline) { m.offline.Store(&o) }
 
+// AudioFile is a track's audio on this device, if it has any: a local
+// library's file, or a server track's cached or prefetched copy.
+func (m *Manager) AudioFile(ctx context.Context, ref source.Ref) (string, bool) {
+	src, err := m.Get(ref.Library)
+	if err != nil {
+		return "", false
+	}
+	if _, remote := src.(source.Pinger); !remote {
+		path, err := src.StreamURL(ctx, ref.ID)
+		return path, err == nil && filepath.IsAbs(path)
+	}
+	off := m.offline.Load()
+	if off == nil {
+		return "", false
+	}
+	st, ok := (*off).Cached(ctx, ref)
+	if !ok {
+		st, ok = (*off).Buffered(ctx, ref)
+	}
+	return st.URL, ok && filepath.IsAbs(st.URL)
+}
+
+// HasCopy says whether a server track has a cached copy. known is false when
+// the cache is not open or can't answer, and the library is never asked.
+func (m *Manager) HasCopy(ctx context.Context, ref source.Ref) (has, known bool) {
+	off := m.offline.Load()
+	if off == nil {
+		return false, false
+	}
+	return (*off).Has(ctx, ref)
+}
+
 const TopicLibraries = "libraries"
 
 func (m *Manager) emit(topic string, data any) {
@@ -713,11 +855,12 @@ func (m *Manager) emit(topic string, data any) {
 func (m *Manager) PublishChanges(ctx context.Context) {
 	infos, err := m.List(ctx)
 	if err != nil {
+		log.Warnf("libraries: can't list them to publish changes: %v", err)
 		return
 	}
 	now := make(map[string]string, len(infos))
 	for _, info := range infos {
-		now[info.ID] = fmt.Sprint(info.Enabled, info.Available, info.Error, info.Capabilities, info.Notices)
+		now[info.ID] = fmt.Sprint(info.Enabled, info.Available, info.Error, info.Capabilities, info.Notices, info.Synced)
 	}
 	m.mu.Lock()
 	changed := len(now) != len(m.reported)
@@ -752,14 +895,25 @@ func (m *Manager) watchCaps() {
 // Recheck retries every enabled library that failed to build and pings
 // every server, then publishes what changed. It runs at startup and when
 // the network changes.
-func (m *Manager) Recheck(ctx context.Context) {
+func (m *Manager) Recheck(ctx context.Context) { m.recheck(ctx, false) }
+
+// RecheckNetwork is Recheck after a network change: a library whose server
+// refused its password stays as it is, since asking again would be one more
+// failed sign-in per change. Startup and Retry ask again.
+func (m *Manager) RecheckNetwork(ctx context.Context) { m.recheck(ctx, true) }
+
+func (m *Manager) recheck(ctx context.Context, network bool) {
 	libs, err := m.store.Libraries(ctx)
 	if err != nil {
+		log.Warnf("libraries: can't read them to recheck: %v", err)
 		return
 	}
 	var wg sync.WaitGroup
 	for _, lib := range libs {
-		if lib.Enabled {
+		m.mu.RLock()
+		skip := network && m.refused[lib.ID] && lib.Config["auth"] != authQuickConnect
+		m.mu.RUnlock()
+		if lib.Enabled && !skip {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -788,7 +942,11 @@ func (m *Manager) Retry(ctx context.Context, id string) (Info, error) {
 
 func (m *Manager) retry(ctx context.Context, id string) {
 	lib, err := m.library(ctx, id)
-	if err != nil || !lib.Enabled {
+	if err != nil {
+		log.Warnf("library %s: can't retry: %v", id, err)
+		return
+	}
+	if !lib.Enabled {
 		return
 	}
 	m.check(ctx, lib)
@@ -831,19 +989,29 @@ func (m *Manager) check(ctx context.Context, lib source.Library) {
 	if m.sources[lib.ID] != src {
 		return
 	}
+	back := m.down[lib.ID]
+	delete(m.down, lib.ID)
+	delete(m.refused, lib.ID)
 	if err != nil {
 		log.Infof("library %s is unavailable: %v", lib.Name, err)
+		if errors.Is(err, source.ErrSignInRefused) {
+			m.refused[lib.ID] = true
+			return
+		}
 		m.down[lib.ID] = true
 		return
 	}
-	delete(m.down, lib.ID)
 	m.servers[lib.ID] = srv
+	go m.catalogCheck(lib.ID, src, back)
 }
 
 // SetEnabled turns a library on or off. A library that is off has no
 // source: no watcher, no requests, nothing cached for it.
 func (m *Manager) SetEnabled(ctx context.Context, id string, enabled bool) error {
 	m.await(ctx, id)
+	if !enabled {
+		m.stopWalk(ctx, id)
+	}
 	if err := m.store.SetEnabled(ctx, id, enabled); err != nil {
 		return err
 	}
@@ -874,6 +1042,8 @@ func (m *Manager) Update(ctx context.Context, id, name string, config map[string
 		lib.Config = map[string]any{}
 	}
 	oldURL, _ := lib.Config["url"].(string)
+	oldAuth, _ := lib.Config["auth"].(string)
+	oldUser, _ := lib.Config["username"].(string)
 	for k, v := range config {
 		if v == nil {
 			delete(lib.Config, k)
@@ -881,8 +1051,17 @@ func (m *Manager) Update(ctx context.Context, id, name string, config map[string
 		}
 		lib.Config[k] = v
 	}
-	// The stored password must not follow the library to another server.
-	if newURL, _ := lib.Config["url"].(string); otherHost(oldURL, newURL) && secrets["password"] == "" {
+	// The stored password must not follow the library to another server. One
+	// given empty counts: an account may have none.
+	_, given := secrets["password"]
+	_, newToken := secrets["token"]
+	if newAuth, _ := lib.Config["auth"].(string); !newToken && oldAuth != authQuickConnect && newAuth == authQuickConnect {
+		return lib, errNoQuickConnectSession
+	}
+	if newURL, _ := lib.Config["url"].(string); otherHost(oldURL, newURL) && !given && !newToken {
+		if auth, _ := lib.Config["auth"].(string); auth == authQuickConnect {
+			return lib, errors.New("a new server address needs a new Quick Connect sign-in")
+		}
 		return lib, errors.New("a new server address needs the password again")
 	}
 	// Built with the new values first, so a bad edit changes nothing.
@@ -892,6 +1071,9 @@ func (m *Manager) Update(ctx context.Context, id, name string, config map[string
 		return lib, err
 	}
 	_ = probe.Close()
+	_, catalog := probe.(source.CatalogSync)
+	newURL, _ := lib.Config["url"].(string)
+	newUser, _ := lib.Config["username"].(string)
 	for k, v := range secrets {
 		if err := m.env.Secrets.Set(id, k, v); err != nil {
 			return lib, fmt.Errorf("store %s: %w", k, err)
@@ -899,6 +1081,34 @@ func (m *Manager) Update(ctx context.Context, id, name string, config map[string
 	}
 	if err := m.store.UpdateLibrary(ctx, lib); err != nil {
 		return lib, err
+	}
+	// Cached copies are named by the old server's ids; a new account on the
+	// same server keeps them.
+	if off := m.offline.Load(); off != nil && otherServer(oldURL, newURL) {
+		if err := (*off).Clear(ctx, id); err != nil {
+			log.Warnf("library %s: can't forget the old server's downloads: %v", lib.Name, err)
+		}
+	}
+	if catalog && (otherServer(oldURL, newURL) || !strings.EqualFold(oldUser, newUser)) {
+		m.stopWalk(ctx, id)
+		if err := m.store.ClearCatalog(ctx, id); err != nil {
+			log.Warnf("library %s: can't forget the old server's catalog: %v", lib.Name, err)
+		}
+		if run := m.catalog.Load(); run != nil && run.hooks.DropPending != nil {
+			run.hooks.DropPending(id)
+		}
+		m.mu.Lock()
+		delete(m.checked, id)
+		delete(m.nextWalk, id)
+		m.mu.Unlock()
+	}
+	// A library that signs in with a code keeps no password.
+	if auth, _ := lib.Config["auth"].(string); auth == authQuickConnect {
+		if kd, ok := m.env.Secrets.(source.KeyDeleter); ok {
+			if err := kd.DeleteKey(id, "password"); err != nil {
+				log.Warnf("library %s: can't remove its old password: %v", lib.Name, err)
+			}
+		}
 	}
 	m.build(lib)
 	m.check(ctx, lib)
@@ -912,7 +1122,33 @@ func otherHost(a, b string) bool {
 	if erra != nil || errb != nil {
 		return a != b
 	}
-	return !strings.EqualFold(ua.Hostname(), ub.Hostname()) || ua.Port() != ub.Port()
+	return !strings.EqualFold(ua.Hostname(), ub.Hostname()) || explicitPort(ua) != explicitPort(ub)
+}
+
+// explicitPort is the URL's port, empty when it only spells out the scheme's
+// default: http://h and http://h:80 are one server, and so are http://h and
+// https://h.
+func explicitPort(u *url.URL) string {
+	port := u.Port()
+	if strings.EqualFold(u.Scheme, "http") && port == "80" || strings.EqualFold(u.Scheme, "https") && port == "443" {
+		return ""
+	}
+	return port
+}
+
+// otherServer is otherHost for what a server holds: two servers can share a
+// host under different paths. The scheme isn't compared, so moving to https
+// keeps a catalog.
+func otherServer(a, b string) bool {
+	return otherHost(a, b) || serverPath(a) != serverPath(b)
+}
+
+func serverPath(address string) string {
+	u, err := url.Parse(address)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimRight(u.Path, "/")
 }
 
 // Test builds a library that isn't stored and pings its server, for
@@ -959,7 +1195,7 @@ func (o overlay) Get(lib, key string) (string, error) {
 		return v, nil
 	}
 	if o.base == nil {
-		return "", fmt.Errorf("no %s given", key)
+		return "", fmt.Errorf("no %s given: %w", key, source.ErrNoSecret)
 	}
 	return o.base.Get(lib, key)
 }
@@ -1050,19 +1286,31 @@ func (m *Manager) Find(ctx context.Context, key string) (source.Source, error) {
 // Favorites gathers favorites from every library that has them. A library
 // that fails is skipped, so one offline server doesn't empty the list.
 func (m *Manager) Favorites(ctx context.Context) (source.SearchResult, error) {
-	srcs, err := m.Working(ctx)
+	libs, err := m.store.Libraries(ctx)
+	if err != nil {
+		return source.SearchResult{}, err
+	}
+	synced, err := m.store.SyncedLibraries(ctx)
 	if err != nil {
 		return source.SearchResult{}, err
 	}
 	res := source.SearchResult{Artists: []source.Artist{}, Albums: []source.Album{}, Tracks: []source.Track{}}
-	for _, src := range srcs {
-		f, ok := src.(source.Favorites)
-		if !ok {
-			continue
+	for _, lib := range libs {
+		var r source.SearchResult
+		if synced[lib.ID] {
+			r, err = m.store.Favorites(ctx, lib.ID)
+		} else {
+			m.await(ctx, lib.ID)
+			m.mu.RLock()
+			f, ok := m.sources[lib.ID].(source.Favorites)
+			m.mu.RUnlock()
+			if !ok {
+				continue
+			}
+			r, err = f.Favorites(ctx)
 		}
-		r, err := f.Favorites(ctx)
 		if err != nil {
-			log.Warnf("favorites of %s: %v", src.Library().Name, err)
+			log.Warnf("favorites of %s: %v", lib.Name, err)
 			continue
 		}
 		res.Artists = append(res.Artists, r.Artists...)
@@ -1107,12 +1355,19 @@ func newShuffler(p []shuffle.Pool) *shuffle.Shuffler {
 // ShuffleSource resolves `dplayer shuffle`: every library's tracks, all
 // favorites, one library, or one server playlist by name.
 func (m *Manager) ShuffleSource(ctx context.Context, from, name string) (Shuffle, error) {
+	return m.shuffleSource(ctx, from, name, nil)
+}
+
+// shuffleSource leaves the skipped libraries out of "tracks" before sizing
+// the pools, so a skipped server is never asked for its count.
+func (m *Manager) shuffleSource(ctx context.Context, from, name string, skip []string) (Shuffle, error) {
 	switch from {
 	case "tracks":
 		srcs, err := m.Working(ctx)
 		if err != nil {
 			return Shuffle{}, err
 		}
+		srcs = slices.DeleteFunc(slices.Clone(srcs), func(s source.Source) bool { return slices.Contains(skip, s.Library().ID) })
 		return Shuffle{Feed: newShuffler(pools(ctx, srcs)), Origin: player.Origin{Kind: "tracks", Name: "All tracks"}}, nil
 	case "favorites":
 		// Favorites are listed in full, so shuffling their union is already
@@ -1156,18 +1411,67 @@ func (m *Manager) ShuffleSource(ctx context.Context, from, name string) (Shuffle
 	return Shuffle{}, fmt.Errorf("shuffle what? tracks, favorites, library NAME or playlist NAME")
 }
 
+// PickSource is ShuffleSource with picks applied to a shuffle over whole
+// libraries. A fixed list stays as the user chose it.
+func (m *Manager) PickSource(ctx context.Context, from, name string, picks shuffle.Picks) (Shuffle, error) {
+	sh, err := m.shuffleSource(ctx, from, name, picks.Skip.Libraries)
+	if err != nil || sh.Feed == nil {
+		return sh, err
+	}
+	// Naming a library asks for its tracks, whatever the rule says.
+	if from == "library" {
+		picks.Skip.Libraries = slices.DeleteFunc(slices.Clone(picks.Skip.Libraries), func(id string) bool { return id == sh.Origin.Library })
+	}
+	sh.Feed = picks.Apply(sh.Feed, func(ctx context.Context, t source.Track) ([]source.Track, error) {
+		b, err := m.Browser(ctx, t.Library)
+		if err != nil {
+			return nil, err
+		}
+		album, err := b.Album(ctx, t.AlbumID)
+		return album.Tracks, err
+	})
+	return sh, nil
+}
+
 // ErrScanning refuses a scan of a library that is already scanning.
 var ErrScanning = errors.New("already scanning")
 
-// Scan rescans a library; a second scan of the same library is refused
-// while one runs.
+// CanScan says why a library can't be scanned or synced; nil when it can.
+func (m *Manager) CanScan(id string) error {
+	src, err := m.Get(id)
+	if err != nil {
+		return err
+	}
+	if !scannable(src) {
+		return fmt.Errorf("library %s does not support scanning", id)
+	}
+	return nil
+}
+
+func scannable(src source.Source) bool {
+	_, scanner := src.(source.Scanner)
+	_, catalog := src.(source.CatalogSync)
+	return scanner || catalog
+}
+
+// Scan rescans a library or reads its server's catalog; a second scan of the
+// same library is refused while one runs.
 func (m *Manager) Scan(ctx context.Context, id string, progress func(done, total int)) (source.ScanStats, error) {
+	return m.scan(ctx, id, true, progress)
+}
+
+// Sync is Scan when nobody asked for it: a server that lists under half of
+// what is stored keeps its rows, since nobody is there to judge the list.
+func (m *Manager) Sync(ctx context.Context, id string, progress func(done, total int)) (source.ScanStats, error) {
+	return m.scan(ctx, id, false, progress)
+}
+
+func (m *Manager) scan(ctx context.Context, id string, manual bool, progress func(done, total int)) (source.ScanStats, error) {
 	src, err := m.Get(id)
 	if err != nil {
 		return source.ScanStats{}, err
 	}
-	sc, ok := src.(source.Scanner)
-	if !ok {
+	if !scannable(src) {
 		return source.ScanStats{}, fmt.Errorf("library %s can't be scanned", id)
 	}
 	m.mu.Lock()
@@ -1182,7 +1486,15 @@ func (m *Manager) Scan(ctx context.Context, id string, progress func(done, total
 		delete(m.scanning, id)
 		m.mu.Unlock()
 	}()
-	stats, err := sc.Scan(ctx, progress)
+	if cs, ok := src.(source.CatalogSync); ok {
+		stats, err := m.runWalk(ctx, id, src, cs, manual, progress)
+		// The ping makes it a refused library, which nothing asks again.
+		if errors.Is(err, source.ErrSignInRefused) {
+			m.retry(ctx, id)
+		}
+		return stats, err
+	}
+	stats, err := src.(source.Scanner).Scan(ctx, progress)
 	if err == nil {
 		err = m.store.SetScanned(ctx, id)
 	}

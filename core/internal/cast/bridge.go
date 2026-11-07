@@ -1,11 +1,12 @@
 // Package cast plays the queue on a Chromecast through dux-cast's shared
-// cast-helper (protocol 2). The helper runs as `cast-helper attach` only
+// cast-helper (protocol 3 or newer). The helper runs as `cast-helper attach` only
 // while something needs it: the device list on screen or a cast of ours.
 package cast
 
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/netip"
 	"net/url"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/duxlabs-dev/dux-go/log"
 
+	"github.com/Conava/dux-player/core/internal/logtext"
 	"github.com/Conava/dux-player/core/internal/player"
 	"github.com/Conava/dux-player/core/internal/source"
 )
@@ -27,11 +29,10 @@ const (
 	// subscribes to it, so the UI subscribes while its device list shows.
 	TopicDevices = "castDevices"
 
-	clientID    = "dplayer"
-	clientName  = "Dux Player"
-	minProtocol = 2
-	// editProtocol added edit: queue changes reach a playing cast at once.
-	editProtocol = 3
+	clientID   = "dplayer"
+	clientName = "Dux Player"
+	// minProtocol has edit: queue changes reach a playing cast at once.
+	minProtocol = 3
 
 	// The cast gets this many queue entries from the current one on, and
 	// the next window once it plays the last of them. Art is looked up for
@@ -39,6 +40,9 @@ const (
 	maxItems = 200
 	artItems = 5
 
+	// The receiver counts as having played the stop entry out when it was
+	// this close to the end of it.
+	runOutSlack  = 5.0
 	readyTimeout = 5 * time.Second
 	// While discovering, this often the daemon checks that someone still
 	// looks at the device list, and restarts a helper that went away.
@@ -58,6 +62,10 @@ const errInsecure = "insecureServer"
 type Player interface {
 	SetRemote(ctx context.Context, r player.Remote, resume bool) error
 	RemoteUpdate(ctx context.Context, uid uint64, pos float64, paused bool, volume float64) error
+	// RemoteRanOut: the receiver stopped after the stop entry uid. The player
+	// ends the cast through Remote.Stop when a stop rule really ends there,
+	// else it does nothing.
+	RemoteRanOut(ctx context.Context, uid uint64) error
 }
 
 type Libraries interface {
@@ -109,19 +117,21 @@ type ErrorInfo struct {
 type Bridge struct {
 	cfg Config
 
-	mu          sync.Mutex
-	proc        *proc
-	ready       chan struct{}
-	protocol    int
-	version     string
-	devices     []Device
-	sess        *session
-	discovering bool
-	lastErr     *ErrorInfo
+	mu       sync.Mutex
+	proc     *proc
+	ready    chan struct{}
+	protocol int
+	// final: the queue handed to Load ends at a stop rule. sentLoop is the
+	// loop flag of the last queue sent.
+	final, sentLoop bool
+	version         string
+	devices         []Device
+	sess            *session
+	discovering     bool
+	lastErr         *ErrorInfo
 	// Our cast. started is set once the helper shows a session on our device;
 	// sent is the queue uids in the cast's order, at the receiver's index in
-	// it; gen discards stale queue builds; stale means items changed and a
-	// receiver without edit gets them at its next track change.
+	// it; gen discards stale queue builds.
 	casting     bool
 	started     bool
 	device      string
@@ -129,7 +139,6 @@ type Bridge struct {
 	gen         int
 	pendingSeek float64
 	items       []player.Item
-	stale       bool
 	at          int
 	tickStop    chan struct{}
 	// loop is the player's repeat all: the receiver starts over after its
@@ -200,6 +209,8 @@ func (b *Bridge) onEvent(p *proc, ev event) {
 		return
 	}
 	detach := false
+	var ranOut uint64
+	ended, errLog := "", ""
 	var update func()
 	var devices []Device
 	publishDevices := false
@@ -211,15 +222,24 @@ func (b *Bridge) onEvent(p *proc, ev event) {
 			b.send(map[string]any{"cmd": "discover", "on": true})
 		}
 	case "state":
+		prev := b.sess
 		b.devices, b.sess = ev.Devices, ev.Session
 		if b.discovering {
 			devices, publishDevices = append([]Device{}, b.devices...), true
 		}
-		detach, update = b.followLocked()
+		detach, ranOut, update = b.followLocked(prev)
+		ended = "the session ended or another client took it over"
 	case "error":
-		b.lastErr = &ErrorInfo{Code: ev.Code, Detail: ev.Detail, Missing: ev.Missing}
-		if b.casting && !b.started {
+		detail := logtext.Clean(ev.Detail)
+		b.lastErr = &ErrorInfo{Code: ev.Code, Detail: detail, Missing: ev.Missing}
+		errLog = fmt.Sprintf("cast helper error %q: %s", ev.Code, detail)
+		switch {
+		case b.casting && !b.started:
 			b.casting, detach = false, true
+			ended = "the receiver refused with " + ev.Code
+		case ev.Code == "loadFailed":
+			// No state follows a stop entry that fails to load.
+			ranOut = b.stopEntryLocked(b.sess)
 		}
 	case "exit":
 		// discovering stays set: watchDiscovery restarts the helper while
@@ -232,6 +252,7 @@ func (b *Bridge) onEvent(p *proc, ev event) {
 		}
 		if b.casting {
 			b.casting, b.started, detach = false, false, true
+			ended = "cast-helper exited"
 		}
 	default:
 		b.mu.Unlock()
@@ -242,13 +263,24 @@ func (b *Bridge) onEvent(p *proc, ev event) {
 	}
 	b.retick()
 	b.mu.Unlock()
+	if errLog != "" {
+		log.Warn(errLog)
+	}
+	// The player follows the receiver first: it only accepts a run-out on
+	// its current entry.
+	if update != nil {
+		update()
+	}
+	if ranOut != 0 {
+		if err := b.cfg.Player.RemoteRanOut(b.cfg.Ctx, ranOut); err != nil {
+			log.Warnf("cast run-out: %v", err)
+		}
+	}
 	if detach {
+		log.Infof("cast ended: %s", ended)
 		if err := b.cfg.Player.SetRemote(b.cfg.Ctx, nil, false); err != nil {
 			log.Warnf("cast ended: %v", err)
 		}
-	}
-	if update != nil {
-		update()
 	}
 	if publishDevices {
 		b.cfg.Publish(TopicDevices, devices)
@@ -258,21 +290,28 @@ func (b *Bridge) onEvent(p *proc, ev event) {
 
 // followLocked matches our cast to the helper's session: it ends when the
 // session is gone or another client took it over, else the player follows
-// its track, position, pause and volume.
-func (b *Bridge) followLocked() (detach bool, update func()) {
+// its track, position, pause and volume. While a stop rule cuts the queue,
+// it also tells whether the receiver stopped after the stop entry (ranOut
+// is that entry's uid, else 0); prev is the session before this one.
+func (b *Bridge) followLocked(prev *session) (detach bool, ranOut uint64, update func()) {
 	if !b.casting {
-		return false, nil
+		return false, 0, nil
 	}
 	s := b.sess
 	if !b.started {
 		if s == nil || s.Device != b.device {
-			return false, nil
+			return false, 0, nil
 		}
 		b.started = true
 	}
+	if s == nil {
+		// Stopped on the TV and played out look the same; only the
+		// position tells them apart.
+		ranOut = b.judgeLocked(prev, "gone")
+	}
 	if s == nil || (s.Owner != nil && !s.mine()) {
 		b.casting, b.started = false, false
-		return true, nil
+		return true, ranOut, nil
 	}
 	b.device = s.Device
 	if b.pendingSeek > 1 && s.Phase == "casting" && s.PlayerState == "PLAYING" {
@@ -284,23 +323,54 @@ func (b *Bridge) followLocked() (detach bool, update func()) {
 		b.at = s.Index
 		b.refillLocked()
 	}
-	return false, update
+	if s.PlayerState == "IDLE" && prev != nil && prev.Index == s.Index {
+		ranOut = b.judgeLocked(prev, "idle")
+	}
+	if ranOut == 0 && s.Index >= 0 && s.Index < len(s.Queue) && s.Queue[s.Index].Status == "failed" {
+		// The stop entry can't be prepared: nothing will play it.
+		ranOut = b.stopEntryLocked(s)
+	}
+	return false, ranOut, update
 }
 
-// refillLocked runs when the receiver starts another item: a queue that
-// changed meanwhile, or the last item of the window, sends the queue again
-// from that item. Without edit that reloads the item the receiver just
-// started, which is the least disruptive point.
+// stopEntryLocked is the uid of the entry s is on when it is the stop entry
+// of the cut queue, else 0: the one entry the receiver has nothing after.
+func (b *Bridge) stopEntryLocked(s *session) uint64 {
+	if !b.casting || !b.final || s == nil || len(b.items) == 0 || s.Index < 0 || s.Index != len(b.sent)-1 ||
+		b.sent[s.Index] != b.items[len(b.items)-1].UID {
+		return 0
+	}
+	return b.sent[s.Index]
+}
+
+// judgeLocked decides from the session before (prev) whether the receiver
+// stopped after the stop entry because it ended: prev played it, within
+// runOutSlack of its end. It returns the entry's uid then, else 0, and logs
+// the numbers.
+func (b *Bridge) judgeLocked(prev *session, what string) uint64 {
+	uid := b.stopEntryLocked(prev)
+	if uid == 0 || prev.Phase != "casting" || (prev.PlayerState != "PLAYING" && prev.PlayerState != "BUFFERING") ||
+		prev.Index >= len(prev.Queue) || prev.Queue[prev.Index].Status != "ready" {
+		// An entry still preparing never played: its state is the old item's.
+		return 0
+	}
+	pos, lib := prev.position(time.Now()), b.items[len(b.items)-1].Track.Duration
+	near := (prev.Duration > 0 && pos >= prev.Duration-runOutSlack) || (lib > 0 && pos >= lib-runOutSlack)
+	log.Infof("cast: receiver %s at %.0f s of %.0f s (library %.0f s): stop entry played out: %t", what, pos, prev.Duration, lib, near)
+	if !near {
+		return 0
+	}
+	return uid
+}
+
+// refillLocked runs when the receiver starts the last item of the window:
+// the queue goes on from that item, which an edit doesn't interrupt.
 func (b *Bridge) refillLocked() {
-	if b.at < 0 || b.at >= len(b.sent) {
+	if b.at < 0 || b.at != len(b.sent)-1 {
 		return
 	}
 	i := slices.IndexFunc(b.items, func(it player.Item) bool { return it.UID == b.sent[b.at] })
-	if i < 0 {
-		return
-	}
-	last := b.at == len(b.sent)-1 && i+1 < len(b.items)
-	if !b.stale && !last {
+	if i < 0 || i+1 >= len(b.items) {
 		return
 	}
 	b.queueLocked(i, -1)
@@ -309,25 +379,45 @@ func (b *Bridge) refillLocked() {
 // queueLocked sends the window from items[i]: an edit of the running
 // queue where the helper has it, else a new queue starting at start.
 func (b *Bridge) queueLocked(i int, start float64) {
-	b.stale = false
 	b.gen++
 	cmd := "queue"
-	if b.protocol >= editProtocol && len(b.sent) > 0 {
+	if len(b.sent) > 0 {
 		cmd = "edit"
+		if b.sentLoop != b.loops() {
+			b.repeatLocked()
+		}
 	} else {
 		b.pendingSeek = start
+		b.sentLoop = b.loops()
 	}
-	go b.sendQueue(b.gen, cmd, b.device, slices.Clone(b.windowLocked(i)), b.items[i].UID, b.loop)
+	// An edit keeps the playing entry only when its source string is the same
+	// as the helper holds, and a server can make a new URL per lookup.
+	var keep string
+	if s := b.sess; cmd == "edit" && s != nil && s.Index >= 0 && s.Index < len(b.sent) && s.Index < len(s.Queue) &&
+		b.sent[s.Index] == b.items[i].UID {
+		keep = s.Queue[s.Index].Source
+	}
+	go b.sendQueue(b.gen, cmd, b.device, slices.Clone(b.windowLocked(i)), b.items[i].UID, keep, b.loops())
 }
 
 // windowLocked is what the receiver gets from items[i]: the next maxItems,
 // or with repeat all the whole queue when it fits, so looping it starts over
 // at the queue's first track.
 func (b *Bridge) windowLocked(i int) []player.Item {
-	if b.loop && len(b.items) <= maxItems {
+	if b.loops() && len(b.items) <= maxItems {
 		return b.items
 	}
 	return b.items[i:min(len(b.items), i+maxItems)]
+}
+
+// loops says whether the receiver starts over after its last item: repeat
+// all, unless the queue was cut at a stop rule.
+func (b *Bridge) loops() bool { return b.loop && !b.final }
+
+// repeatLocked tells a running cast whether to start over after its last item.
+func (b *Bridge) repeatLocked() {
+	b.sentLoop = b.loops()
+	b.send(map[string]any{"cmd": "repeat", "repeat": map[bool]string{true: "show", false: ""}[b.sentLoop]})
 }
 
 // SetLoop mirrors repeat all to the receiver.
@@ -341,12 +431,7 @@ func (b *Bridge) SetLoop(on bool) {
 	if !b.casting || len(b.sent) == 0 {
 		return
 	}
-	if b.protocol < editProtocol {
-		// A new queue would restart the current track; wait for the next.
-		b.stale = true
-		return
-	}
-	b.send(map[string]any{"cmd": "repeat", "repeat": map[bool]string{true: "show", false: ""}[on]})
+	b.repeatLocked()
 	if i := slices.IndexFunc(b.items, func(it player.Item) bool { return b.at >= 0 && b.at < len(b.sent) && it.UID == b.sent[b.at] }); i >= 0 {
 		b.queueLocked(i, -1)
 	}
@@ -398,7 +483,7 @@ func (b *Bridge) Play(ctx context.Context, deviceID string) error {
 	b.mu.Lock()
 	if b.proc == nil {
 		b.mu.Unlock()
-		return errors.New("cast-helper attach exited; is it protocol 2 or newer?")
+		return errors.New("cast-helper exited before it answered")
 	}
 	if b.protocol < minProtocol {
 		b.releaseIfIdle()
@@ -553,28 +638,25 @@ func (b *Bridge) watchDiscovery() {
 // Load, SetPaused, Seek, SetVolume and Stop make the bridge the player's
 // Remote while casting. They run on the player loop and never wait.
 
-// Load with start < 0 is a queue edit while items[index] plays on.
-func (b *Bridge) Load(items []player.Item, index int, start float64) {
+// Load with start < 0 is a queue edit while items[index] plays on. final
+// says items end at a stop rule: the receiver ends there and doesn't loop.
+func (b *Bridge) Load(items []player.Item, index int, start float64, final bool) {
 	if index < 0 || index >= len(items) {
 		return
 	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.items = items
+	b.items, b.final = items, final
 	window := b.windowLocked(index)
 	if start < 0 {
 		have := b.sent
 		if len(window) == 0 || window[0].UID == items[index].UID {
 			have = b.sent[min(max(b.at, 0), len(b.sent)):]
 		}
-		if len(have) > 0 && slices.Equal(uids(window), have) {
+		if len(have) > 0 && slices.Equal(uids(window), have) && b.sentLoop == b.loops() {
 			return
 		}
-		if b.protocol >= editProtocol || len(b.sent) == 0 {
-			b.queueLocked(index, b.pendingSeek)
-		} else {
-			b.stale = true
-		}
+		b.queueLocked(index, b.pendingSeek)
 		return
 	}
 	if i := slices.Index(b.sent, items[index].UID); i >= 0 && start < 1 {
@@ -595,7 +677,7 @@ func uids(items []player.Item) []uint64 {
 // sendQueue resolves what the receiver opens: files as paths, server tracks
 // as stream URLs. Those carry credentials (never log them) and the receiver
 // fetches them itself, so a server on plain http isn't cast at all.
-func (b *Bridge) sendQueue(gen int, cmd, device string, window []player.Item, current uint64, loop bool) {
+func (b *Bridge) sendQueue(gen int, cmd, device string, window []player.Item, current uint64, keep string, loop bool) {
 	ctx, cancel := context.WithTimeout(b.cfg.Ctx, 30*time.Second)
 	defer cancel()
 	var items []map[string]any
@@ -603,10 +685,13 @@ func (b *Bridge) sendQueue(gen int, cmd, device string, window []player.Item, cu
 	insecure := false
 	for i, it := range window {
 		t := it.Track
-		st, err := b.cfg.Libraries.Stream(ctx, t.Ref())
-		if err != nil {
-			log.Infof("cast: skipping %q: %v", t.Title, err)
-			continue
+		st := player.Stream{URL: keep}
+		if keep == "" || it.UID != current {
+			var err error
+			if st, err = b.cfg.Libraries.Stream(ctx, t.Ref()); err != nil {
+				log.Infof("cast: skipping %q: %s", t.Title, logtext.Clean(err.Error()))
+				continue
+			}
 		}
 		item := map[string]any{"title": t.Title, "artist": t.Artist, "album": t.Album}
 		switch {
@@ -641,6 +726,7 @@ func (b *Bridge) sendQueue(gen int, cmd, device string, window []player.Item, cu
 		b.releaseIfIdle()
 		b.retick()
 		b.mu.Unlock()
+		log.Warnf("cast ended: the receiver can open none of the %d tracks", len(window))
 		if err := b.cfg.Player.SetRemote(b.cfg.Ctx, nil, false); err != nil {
 			log.Warnf("cast ended: %v", err)
 		}
@@ -722,6 +808,9 @@ func (b *Bridge) SetVolume(level float64) {
 func (b *Bridge) Stop() {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	if !b.casting {
+		return
+	}
 	b.casting, b.started = false, false
 	b.send(map[string]any{"cmd": "stop"})
 	b.releaseIfIdle()

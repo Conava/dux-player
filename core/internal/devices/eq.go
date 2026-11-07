@@ -139,7 +139,12 @@ func startEQ(ctx context.Context, dir, sink string, wait bool, g [10]float64) (*
 	go func() {
 		defer close(e.done)
 		id := ""
-		tune(e.want, e.quit, func(params string) error { return e.set(&id, params) }, e.c.gen.Load, sleep)
+		tune(e.want, e.quit, func(params string) error {
+			if err := e.set(&id, params); err != nil {
+				return fmt.Errorf("sink %s: %w", e.sink, err)
+			}
+			return nil
+		}, e.c.gen.Load, sleep)
 	}()
 	return e, nil
 }
@@ -152,7 +157,7 @@ func (e *eqChild) retune(g [10]float64) {
 	e.gains = g
 	// The file is what a restarted child reads.
 	if err := e.c.rewrite(eqConf(e.sink, e.wait, g)); err != nil {
-		log.Warnf("equalizer: %v", err)
+		log.Warnf("equalizer on %s: can't write its config: %v", e.sink, err)
 	}
 	select {
 	case <-e.want:

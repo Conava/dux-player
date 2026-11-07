@@ -40,8 +40,14 @@ type Client struct {
 	device   string
 	version  string
 	http     *http.Client
-	// onToken stores a fresh token and user id (in the keyring).
-	onToken func(token, userID string)
+	// onToken stores a fresh token, user id and user name (in the keyring).
+	onToken func(token, userID, user string)
+	// canRenew is false without a password: a refused token then needs the
+	// user to sign in again.
+	canRenew bool
+	// refused is set once a sign-in was refused; calls fail at once, with no
+	// request, until a new token arrives or Ping looks again.
+	refused atomic.Bool
 
 	mu     sync.Mutex
 	token  string
@@ -64,7 +70,7 @@ func NewClient(baseURL, user, password, deviceID, version string, hc *http.Clien
 		hc = &http.Client{Timeout: source.CallTimeout, CheckRedirect: source.SameOrigin}
 	}
 	return &Client{base: u, user: user, password: password, deviceID: deviceID, device: "Linux",
-		version: version, http: hc}, nil
+		version: version, http: hc, canRenew: true}, nil
 }
 
 func (c *Client) session() (token, userID string) {
@@ -77,6 +83,7 @@ func (c *Client) setSession(token, userID string) {
 	c.mu.Lock()
 	c.token, c.userID = token, userID
 	c.mu.Unlock()
+	c.refused.Store(false)
 }
 
 // quote drops what would break the header's quoted values.
@@ -169,7 +176,8 @@ func endpointName(path string) string {
 type authResult struct {
 	AccessToken string `json:"AccessToken"`
 	User        struct {
-		ID string `json:"Id"`
+		ID   string `json:"Id"`
+		Name string `json:"Name"`
 	} `json:"User"`
 }
 
@@ -186,25 +194,40 @@ func (c *Client) Authenticate(ctx context.Context) error {
 	}
 	c.setSession(res.AccessToken, res.User.ID)
 	if c.onToken != nil {
-		c.onToken(res.AccessToken, res.User.ID)
+		c.onToken(res.AccessToken, res.User.ID, c.user)
 	}
 	return nil
 }
 
 // renew signs in again unless another request already replaced the
-// refused token stale.
+// refused token stale. Without a password, or when the server refuses it,
+// the client is marked refused and nothing more is sent.
 func (c *Client) renew(ctx context.Context, stale string) error {
 	c.signIn.Lock()
 	defer c.signIn.Unlock()
 	if token, _ := c.session(); token != "" && token != stale {
 		return nil
 	}
-	return c.Authenticate(ctx)
+	if c.refused.Load() {
+		return source.ErrSignInNeeded
+	}
+	if !c.canRenew {
+		c.refused.Store(true)
+		return source.ErrSignInNeeded
+	}
+	err := c.Authenticate(ctx)
+	if errors.Is(err, ErrUnauthorized) {
+		c.refused.Store(true)
+	}
+	return err
 }
 
 // call signs in when there is no token yet, and once more when the token
 // is refused.
 func (c *Client) call(ctx context.Context, method, path string, q url.Values, body, out any) error {
+	if c.refused.Load() {
+		return source.ErrSignInNeeded
+	}
 	if _, err := c.UserID(ctx); err != nil {
 		return err
 	}
@@ -276,6 +299,9 @@ func (c *Client) StreamURLFor(ctx context.Context, id string, containers []strin
 }
 
 func (c *Client) streamURL(ctx context.Context, id, containers string) (string, error) {
+	if c.refused.Load() {
+		return "", source.ErrSignInNeeded
+	}
 	if !c.checked.Load() {
 		if err := c.get(ctx, "/Users/{user}", nil, nil); err != nil {
 			return "", err
@@ -304,6 +330,9 @@ func (c *Client) streamURL(ctx context.Context, id, containers string) (string, 
 
 // Image downloads an item's primary image, capped at source.MaxCover bytes.
 func (c *Client) Image(ctx context.Context, id string, size int) ([]byte, string, error) {
+	if c.refused.Load() {
+		return nil, "", source.ErrSignInNeeded
+	}
 	data, err := c.image(ctx, id, size)
 	if errors.Is(err, ErrUnauthorized) {
 		token, _ := c.session()

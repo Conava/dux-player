@@ -11,12 +11,18 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
+
+	"github.com/duxlabs-dev/dux-go/log"
 
 	"github.com/Conava/dux-player/core/internal/atomicfile"
 	"github.com/Conava/dux-player/core/internal/player"
+	"github.com/Conava/dux-player/core/internal/shuffle"
 )
 
 const FileName = "settings.json"
@@ -32,6 +38,10 @@ type Settings struct {
 	Equalizer    Equalizer `json:"equalizer"`
 	Crossfade    Crossfade `json:"crossfade"`
 	AutoContinue string    `json:"autoContinue"`
+	// ShuffleMode is what shuffle reorders: "tracks" or whole "albums".
+	ShuffleMode string `json:"shuffleMode"`
+	// SkipRules apply to what the daemon picks by itself.
+	SkipRules shuffle.SkipRules `json:"skipRules"`
 	// HistoryMonths is how long plays are kept.
 	HistoryMonths int `json:"historyMonths"`
 	// MpvIdleExit is how many minutes mpv stays with nothing playing; 0
@@ -51,11 +61,18 @@ type Settings struct {
 	Lyrics bool `json:"lyrics"`
 	// LyricsForDownloads also finds lyrics for tracks kept on this device.
 	LyricsForDownloads bool `json:"lyricsForDownloads"`
+	// LyricsAudioTiming fits word timing to the audio of tracks on this device.
+	LyricsAudioTiming bool `json:"lyricsAudioTiming"`
 	// PrefetchTracks is how many upcoming server tracks are downloaded
 	// ahead, 0-3; PrefetchOnMetered keeps doing it on a metered connection.
 	PrefetchTracks    int  `json:"prefetchTracks"`
 	PrefetchOnMetered bool `json:"prefetchOnMetered"`
 }
+
+const (
+	shuffleTracks = "tracks"
+	shuffleAlbums = "albums"
+)
 
 // defaultMpvIdleExit frees mpv's memory between listening sessions.
 const defaultMpvIdleExit = 5
@@ -106,6 +123,7 @@ func Defaults() Settings {
 		Equalizer:          Equalizer{Preset: "flat"},
 		Crossfade:          Crossfade{Seconds: 5, AlbumGapless: true},
 		AutoContinue:       player.ContinueOff,
+		ShuffleMode:        shuffleTracks,
 		HistoryMonths:      12,
 		MpvIdleExit:        defaultMpvIdleExit,
 		ArtistInfoOnline:   true,
@@ -114,7 +132,13 @@ func Defaults() Settings {
 		PrefetchTracks:     1,
 		Lyrics:             true,
 		LyricsForDownloads: true,
+		LyricsAudioTiming:  true,
 	}
+}
+
+// Picks is how a shuffle over whole libraries chooses.
+func (s Settings) Picks() shuffle.Picks {
+	return shuffle.Picks{Albums: s.ShuffleMode == shuffleAlbums, Skip: s.SkipRules}
 }
 
 // PlayerOptions maps the settings onto what the player hands to mpv.
@@ -127,6 +151,7 @@ func (s Settings) PlayerOptions() player.Options {
 		o.ReplayGain = "no"
 	}
 	o.Speed, o.AutoContinue = s.Speed, s.AutoContinue
+	o.ShuffleAlbums = s.ShuffleMode == shuffleAlbums
 	if s.Crossfade.Enabled {
 		o.Crossfade = s.Crossfade.Seconds
 	}
@@ -161,12 +186,14 @@ func Open(configDir string) (*Store, error) {
 	}
 	for k, v := range s.raw {
 		var val any
-		if json.Unmarshal(v, &val) != nil {
+		if err := json.Unmarshal(v, &val); err != nil {
+			log.Warnf("settings: ignoring %s: %v", k, err)
 			continue
 		}
 		next, err := apply(s.cur, k, val)
 		if err != nil {
 			// Unknown keys are kept for newer versions; bad values fall back.
+			log.Warnf("settings: ignoring %s: %v", k, err)
 			continue
 		}
 		s.cur = next
@@ -216,6 +243,23 @@ func (s *Store) Set(changes map[string]any) (Settings, error) {
 	}
 	s.cur, s.raw = next, raw
 	return next, nil
+}
+
+// DropLibrary takes a deleted library out of the skip rules; false when it
+// wasn't in them.
+func (s *Store) DropLibrary(id string) (bool, error) {
+	libs := s.Get().SkipRules.Libraries
+	if !slices.Contains(libs, id) {
+		return false, nil
+	}
+	keep := []any{}
+	for _, l := range libs {
+		if l != id {
+			keep = append(keep, l)
+		}
+	}
+	_, err := s.Set(map[string]any{"skipRules": map[string]any{"libraries": keep}})
+	return err == nil, err
 }
 
 // The CLI sends strings, the UI JSON types; both are accepted.
@@ -281,6 +325,10 @@ func apply(s Settings, key string, v any) (Settings, error) {
 		s.Speed = f
 	case "autoContinue":
 		s.AutoContinue, err = oneOf(key, v, player.ContinueOff, player.ContinueRandom, player.ContinueSimilar)
+	case "shuffleMode":
+		s.ShuffleMode, err = oneOf(key, v, shuffleTracks, shuffleAlbums)
+	case "skipRules":
+		s.SkipRules, err = toSkipRules(s.SkipRules, v)
 	case "historyMonths":
 		var f float64
 		if f, err = toFloat(key, v); err == nil && (f != float64(int(f)) || f < 1 || f > 120) {
@@ -313,6 +361,8 @@ func apply(s Settings, key string, v any) (Settings, error) {
 		s.Lyrics, err = toBool(key, v)
 	case "lyricsForDownloads":
 		s.LyricsForDownloads, err = toBool(key, v)
+	case "lyricsAudioTiming":
+		s.LyricsAudioTiming, err = toBool(key, v)
 	case "volumeTarget":
 		s.VolumeTarget, err = oneOf(key, v, player.VolumeApp, player.VolumeSystem)
 	case "equalizer":
@@ -337,6 +387,70 @@ func object(key string, v any) (map[string]any, error) {
 		return m, nil
 	}
 	return nil, fmt.Errorf("%s must be an object", key)
+}
+
+const (
+	maxSkipGenres    = 32
+	maxSkipLibraries = 64
+	maxSkipSeconds   = 3600
+	maxSkipText      = 256
+)
+
+// toWhole reads a whole number from 0 to limit.
+func toWhole(key string, v any, limit int) (int, error) {
+	f, err := toFloat(key, v)
+	if err != nil || f != float64(int(f)) || f < 0 || f > float64(limit) {
+		return 0, fmt.Errorf("%s must be a whole number from 0 to %d", key, limit)
+	}
+	return int(f), nil
+}
+
+// toTexts reads a list of at most limit short strings, without control characters.
+func toTexts(key string, v any, limit int) ([]string, error) {
+	list, ok := v.([]any)
+	if !ok || len(list) > limit {
+		return nil, fmt.Errorf("%s must be a list of at most %d names", key, limit)
+	}
+	out := make([]string, 0, len(list))
+	for _, e := range list {
+		s, ok := e.(string)
+		if !ok || s == "" || len(s) > maxSkipText || strings.ContainsFunc(s, unicode.IsControl) {
+			return nil, fmt.Errorf("%s holds an invalid name", key)
+		}
+		out = append(out, s)
+	}
+	return out, nil
+}
+
+// toSkipRules merges a partial {minRating, genres, libraries, shorterThan}
+// object; null keeps a list as it is.
+func toSkipRules(cur shuffle.SkipRules, v any) (shuffle.SkipRules, error) {
+	m, err := object("skipRules", v)
+	if err != nil {
+		return cur, err
+	}
+	next := cur
+	if e, ok := m["minRating"]; ok {
+		if next.MinRating, err = toWhole("skipRules.minRating", e, 5); err != nil {
+			return cur, err
+		}
+	}
+	if e, ok := m["shorterThan"]; ok {
+		if next.ShorterThan, err = toWhole("skipRules.shorterThan", e, maxSkipSeconds); err != nil {
+			return cur, err
+		}
+	}
+	if e := m["genres"]; e != nil {
+		if next.Genres, err = toTexts("skipRules.genres", e, maxSkipGenres); err != nil {
+			return cur, err
+		}
+	}
+	if e := m["libraries"]; e != nil {
+		if next.Libraries, err = toTexts("skipRules.libraries", e, maxSkipLibraries); err != nil {
+			return cur, err
+		}
+	}
+	return next, nil
 }
 
 // toCrossfade merges a partial {enabled, seconds, albumGapless} object.

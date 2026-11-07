@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"sync"
+	"sync/atomic"
+
+	"github.com/duxlabs-dev/dux-go/log"
 
 	"github.com/Conava/dux-player/core/internal/ipc"
 	"github.com/Conava/dux-player/core/internal/player"
@@ -35,6 +38,7 @@ type volumeWatch struct {
 	d      *daemon
 	mu     sync.Mutex
 	cancel context.CancelFunc
+	failed atomic.Bool
 }
 
 func (w *volumeWatch) update() {
@@ -56,7 +60,16 @@ func (w *volumeWatch) update() {
 }
 
 func (w *volumeWatch) refresh(ctx context.Context) {
-	if v, muted, err := w.d.Mixer.Get(ctx); err == nil {
-		_ = w.d.Player.SystemChanged(ctx, v, muted)
+	v, muted, err := w.d.Mixer.Get(ctx)
+	if err != nil {
+		// logged on the first failure of a run only: the mixer notifies on every change
+		if !w.failed.Swap(true) {
+			log.Warnf("system volume: can't read it: %v", err)
+		}
+		return
+	}
+	w.failed.Store(false)
+	if err := w.d.Player.SystemChanged(ctx, v, muted); err != nil {
+		log.Warnf("system volume: player update: %v", err)
 	}
 }

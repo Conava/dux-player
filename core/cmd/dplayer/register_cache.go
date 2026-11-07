@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"path/filepath"
+	"sync"
 
 	"github.com/duxlabs-dev/dux-go/log"
 
@@ -21,6 +22,7 @@ import (
 // before the stream and while the server is unreachable.
 func init() {
 	var c *cache.Cache
+	favorites := burst{run: func(ctx context.Context, lib string) { c.Favorited(ctx, lib) }}
 	addFeature(feature{
 		register: func(r *ipc.Registry, d *daemon) { cache.Register(r, func() *cache.Cache { return c }) },
 		start: func(d *daemon) error {
@@ -94,7 +96,7 @@ func init() {
 				case ipc.TopicMarks:
 					m := data.(map[string]any)
 					if _, fav := m["favorite"]; fav {
-						go c.Favorited(d.Ctx, m["library"].(string))
+						favorites.trigger(d.Ctx, m["library"].(string))
 					}
 				case ipc.TopicPlaylists:
 					m := data.(map[string]string)
@@ -108,8 +110,15 @@ func init() {
 						go c.LocalPlaylistChanged(d.Ctx, id)
 					}
 				case library.TopicLibraries:
-					if data.(map[string]any)["type"] == "changed" {
+					ev := data.(map[string]any)
+					switch ev["type"] {
+					case "changed":
 						go c.LibrariesChanged(d.Ctx)
+					case "scanDone":
+						// A walk takes favorites in without a marks event.
+						if lib, _ := ev["library"].(string); d.Libraries.Server(lib) {
+							favorites.trigger(d.Ctx, lib)
+						}
 					}
 				}
 			}, player.TopicStatus, player.TopicQueue, ipc.TopicSettings, ipc.TopicMarks, library.TopicLibraries,
@@ -118,4 +127,39 @@ func init() {
 			return nil
 		},
 	})
+}
+
+// burst runs one job per key at a time: triggers during a run add one more
+// run, not one each, so a check that finds many changes costs one or two.
+type burst struct {
+	run func(ctx context.Context, key string)
+	mu  sync.Mutex
+	// again holds the running keys, true when one more run is due.
+	again map[string]bool
+}
+
+func (b *burst) trigger(ctx context.Context, key string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if _, running := b.again[key]; running {
+		b.again[key] = true
+		return
+	}
+	if b.again == nil {
+		b.again = map[string]bool{}
+	}
+	b.again[key] = false
+	go func() {
+		for {
+			b.run(ctx, key)
+			b.mu.Lock()
+			if !b.again[key] {
+				delete(b.again, key)
+				b.mu.Unlock()
+				return
+			}
+			b.again[key] = false
+			b.mu.Unlock()
+		}
+	}()
 }

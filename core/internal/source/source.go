@@ -73,8 +73,14 @@ type Track struct {
 	ReplayGain *ReplayGain `json:"replayGain,omitempty"`
 	// PlayCount and LastPlayed (unix seconds): a server's own numbers for
 	// its tracks, this device's play history for the others.
-	PlayCount  int   `json:"playCount,omitempty"`
-	LastPlayed int64 `json:"lastPlayed,omitempty"`
+	PlayCount  int    `json:"playCount,omitempty"`
+	LastPlayed int64  `json:"lastPlayed,omitempty"`
+	Composer   string `json:"composer,omitempty"`
+	// Format is the upper-case container (FLAC, MP3), Bitrate in kbit/s, Added
+	// when the track came into the library in unix seconds.
+	Format  string `json:"format,omitempty"`
+	Bitrate int    `json:"bitrate,omitempty"`
+	Added   int64  `json:"added,omitempty"`
 	// Unavailable says why the track can't play right now, in plain
 	// English; empty when it can. UnavailableCode is the same for the UI to
 	// word (library.Code*).
@@ -195,6 +201,9 @@ func ValidTrackSort(s string) bool {
 type TrackQuery struct {
 	Offset, Limit int
 	Sort          string
+	// Details asks for the fields a server is slow to give (bitrate,
+	// composer); a page may then hold fewer tracks than Limit.
+	Details bool
 }
 
 type TrackPage struct {
@@ -202,6 +211,9 @@ type TrackPage struct {
 	Tracks []Track `json:"tracks"`
 	// Sort is the order the page is in: the one asked for, or SortNone.
 	Sort string `json:"sort"`
+	// Estimated says Total isn't what the source lists, so a sync prefers
+	// the sum of its albums' track counts.
+	Estimated bool `json:"-"`
 }
 
 // CoverArt fetches cover art for a CoverID into a local file and returns its
@@ -213,6 +225,17 @@ type CoverArt interface {
 // Scanner rebuilds a library's index from its storage.
 type Scanner interface {
 	Scan(ctx context.Context, progress func(done, total int)) (ScanStats, error)
+}
+
+// CatalogSync is a server whose catalog is kept in the library index. Neither
+// server kind has a change feed, so this only gates a full read.
+type CatalogSync interface {
+	// CatalogChanged says whether the catalog may differ from when stamp was
+	// returned; "" asks for the first time. next is never empty.
+	CatalogChanged(ctx context.Context, stamp string) (changed bool, next string, err error)
+	// CatalogBusy says the server is reading its own files, so what it lists
+	// right now may be incomplete.
+	CatalogBusy(ctx context.Context) bool
 }
 
 type ScanStats struct {
@@ -387,6 +410,12 @@ type Pinger interface {
 	Ping(ctx context.Context) (ServerInfo, error)
 }
 
+// SignInReporter is a source that learns from its own calls that the server
+// refused the sign-in, so the manager can look again.
+type SignInReporter interface {
+	SignInRefused() bool
+}
+
 type ServerInfo struct {
 	Type          string   `json:"type,omitempty"`
 	Version       string   `json:"version,omitempty"`
@@ -398,13 +427,29 @@ type ServerInfo struct {
 	Auth string `json:"auth,omitempty"`
 }
 
+// QuickConnect signs in by approving a code on another device, so no
+// password is stored. The secret stays with the caller and never reaches
+// the UI.
+type QuickConnect interface {
+	// QuickConnectEnabled says whether the server offers it. It needs no sign-in.
+	QuickConnectEnabled(ctx context.Context) (bool, error)
+	QuickConnectStart(ctx context.Context) (code, secret string, err error)
+	// QuickConnectPoll is true once the code is approved; it fails with
+	// ErrQuickConnectExpired when the code is gone and ErrQuickConnectOff
+	// when the server turned the feature off.
+	QuickConnectPoll(ctx context.Context, secret string) (bool, error)
+	// QuickConnectFinish trades an approved secret for a session, stores it
+	// through the source's Secrets and returns the user name.
+	QuickConnectFinish(ctx context.Context, secret string) (user string, err error)
+}
+
 // Capability flags reported per library. The UI enables a feature only
 // when its flag is listed. Names are part of the IPC protocol: never rename
 // one, only add.
 const (
 	CapBrowse          = "browse"          // Browser: artists, albums, search
 	CapCover           = "cover"           // CoverArt
-	CapScan            = "scan"            // Scanner
+	CapScan            = "scan"            // Scanner or CatalogSync
 	CapPing            = "ping"            // Pinger
 	CapPlaylists       = "playlists"       // Playlists: read server playlists
 	CapPlaylistEdit    = "playlistEdit"    // PlaylistEditor: create, rename, add, remove
@@ -416,6 +461,7 @@ const (
 	CapRatings         = "ratings"         // Ratings: 1–5 stars
 	CapScrobble        = "scrobble"        // Scrobbler: plays reported to the server
 	CapDetails         = "details"         // Detailer: file, format and tag facts for browse.details
+	CapQuickConnect    = "quickConnect"    // QuickConnect: sign in with a code approved on another device
 	CapWriteMarks      = "writeMarks"      // ratings and favorites can be written to the files (tagwrite.Files)
 )
 
@@ -428,7 +474,7 @@ func Capabilities(src Source) []string {
 	}{
 		{CapBrowse, is[Browser](src)},
 		{CapCover, is[CoverArt](src)},
-		{CapScan, is[Scanner](src)},
+		{CapScan, is[Scanner](src) || is[CatalogSync](src)},
 		{CapPing, is[Pinger](src)},
 		{CapPlaylists, is[Playlists](src)},
 		{CapPlaylistEdit, is[PlaylistEditor](src)},
@@ -439,6 +485,7 @@ func Capabilities(src Source) []string {
 		{CapRatings, is[Ratings](src)},
 		{CapScrobble, is[Scrobbler](src)},
 		{CapDetails, is[Detailer](src)},
+		{CapQuickConnect, is[QuickConnect](src)},
 	}
 	caps := []string{}
 	for _, c := range checks {
@@ -457,11 +504,20 @@ func is[T any](src Source) bool {
 	return ok
 }
 
+// ErrNoSecret is a Secrets.Get for a key that isn't stored, as opposed to a
+// keyring that can't be read.
+var ErrNoSecret = errors.New("not stored")
+
 // Secrets stores credentials per library.
 type Secrets interface {
 	Get(libraryID, key string) (string, error)
 	Set(libraryID, key, value string) error
 	Delete(libraryID string) error
+}
+
+// KeyDeleter is a Secrets that can remove one key of a library.
+type KeyDeleter interface {
+	DeleteKey(libraryID, key string) error
 }
 
 // Env is what a factory may use to build a source.

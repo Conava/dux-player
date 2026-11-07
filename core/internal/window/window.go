@@ -24,6 +24,8 @@ const (
 	// Bounds Wait after qs exits; processes it forks can keep its output
 	// pipes open.
 	waitDelay = 2 * time.Second
+	// How long Stop gives the UI to save what is pending after the daemon's socket closed, before it is terminated.
+	saveGrace = 500 * time.Millisecond
 )
 
 type Config struct {
@@ -139,8 +141,13 @@ func OpenLog(path string) (*os.File, error) {
 	return os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 }
 
-// Stop ends the UI, if one runs.
+// Stop ends the UI, if one runs. The UI saves its pending settings when the
+// daemon's socket closes, which happens just before this, so it gets saveGrace
+// before the signal.
 func (l *Launcher) Stop() {
+	for deadline := time.Now().Add(saveGrace); l.Running() && time.Now().Before(deadline); {
+		time.Sleep(10 * time.Millisecond)
+	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.proc != nil {

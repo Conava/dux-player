@@ -35,8 +35,11 @@ func socketPath(start bool) (string, error) {
 	if !start {
 		return "", errors.New("dplayer daemon is not running")
 	}
-	return startDaemon()
+	return spawnDaemon()
 }
+
+// spawnDaemon is a variable so tests can prove which commands start the daemon.
+var spawnDaemon = startDaemon
 
 // requireRuntimeDir refuses to run without XDG_RUNTIME_DIR: dux-go would
 // fall back to /tmp, where another user can plant the socket or the UI.

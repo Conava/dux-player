@@ -158,3 +158,39 @@ func TestAlbumGenreIsTheMostCommon(t *testing.T) {
 		})
 	}
 }
+
+// A database from before the track fields keeps its rows and rereads every file.
+func TestTrackFieldsMigration(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "library.db")
+	old, err := OpenDB(ctx, path, migrations[:6])
+	require.NoError(t, err)
+	_, err = old.ExecContext(ctx, `INSERT INTO libraries (id, kind, name, enabled, config) VALUES ('l', 'local', 'L', 1, '{}');
+		INSERT INTO albums (library_id, id, name, artist, artist_id) VALUES ('l', 'al', 'A', 'B', 'ar');
+		INSERT INTO tracks (library_id, id, path, title, artist, artist_id, album, album_id, album_artist, size, mtime, scan_gen)
+		VALUES ('l', 'a', '/m/a.flac', 'T', 'B', 'ar', 'A', 'al', 'B', 1, 5000000000, 1)`)
+	require.NoError(t, err)
+	require.NoError(t, old.Close())
+
+	s, err := Open(ctx, path)
+	require.NoError(t, err)
+	defer s.Close()
+	got, err := s.Track(ctx, "l", "a")
+	require.NoError(t, err)
+	require.Equal(t, "T", got.Title)
+	require.Empty(t, got.Format)
+	require.Zero(t, got.Added, "mtime 0 sends the file to a reread")
+
+	b, err := s.Begin(ctx, "l", 2)
+	require.NoError(t, err)
+	got.Composer, got.Format, got.Bitrate, got.MTime = "C", "FLAC", 900, 7000000000
+	require.NoError(t, b.PutTrack(ctx, got, ""))
+	_, err = b.Finish(ctx)
+	require.NoError(t, err)
+	got, err = s.Track(ctx, "l", "a")
+	require.NoError(t, err)
+	require.Equal(t, "C", got.Composer)
+	require.Equal(t, "FLAC", got.Format)
+	require.Equal(t, 900, got.Bitrate)
+	require.EqualValues(t, 7, got.Added)
+}

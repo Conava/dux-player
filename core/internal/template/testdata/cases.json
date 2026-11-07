@@ -1,0 +1,26 @@
+{
+  "fields": {"album": "Low", "artist": "Bowie", "year": "", "disc": "1", "genre": "", "plays": "0"},
+  "cases": [
+    {"name": "plain field", "template": "%artist% - %album%", "want": "Bowie - Low"},
+    {"name": "section dropped when its field is empty", "template": "%album%[ (%year%)]", "want": "Low"},
+    {"name": "section kept when one field has a value", "template": "[%year% %disc%]", "want": " 1"},
+    {"name": "section without fields is dropped", "template": "a[b]c", "want": "ac"},
+    {"name": "nested sections", "template": "[%album%[ %year%][ Disc %disc%]]", "want": "Low Disc 1"},
+    {"name": "fallback takes the first value", "template": "%genre|year|album%", "want": "Low"},
+    {"name": "fallback with nothing is empty", "template": "x%genre|year%", "want": "x"},
+    {"name": "fallback skips an unknown name", "template": "%nope|album%", "want": "Low"},
+    {"name": "unknown field stays literal", "template": "%nope%", "want": "%nope%"},
+    {"name": "unknown field keeps its section", "template": "[%nope%]", "want": "%nope%"},
+    {"name": "object prototype names are unknown", "template": "%constructor%", "want": "%constructor%"},
+    {"name": "quoted literals", "template": "'[%album%|]' %album%", "want": "[%album%|] Low"},
+    {"name": "doubled quote is an apostrophe", "template": "it''s %album%", "want": "it's Low"},
+    {"name": "lone quote is literal", "template": "rock'n %album%", "want": "rock'n Low"},
+    {"name": "percent that opens no field", "template": "50% of %album%", "want": "50% of Low"},
+    {"name": "percent at the end", "template": "%album% 100%", "want": "Low 100%"},
+    {"name": "stray closing bracket", "template": "a]b", "want": "a]b"},
+    {"name": "unclosed section ends with the text", "template": "%album%[ %disc%", "want": "Low 1"},
+    {"name": "zero is a value", "template": "Played %plays% times", "want": "Played 0 times"},
+    {"name": "section kept for a zero", "template": "[Played %plays% times]", "want": "Played 0 times"},
+    {"name": "empty template", "template": "", "want": ""}
+  ]
+}

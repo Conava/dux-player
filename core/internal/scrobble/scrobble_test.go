@@ -284,3 +284,16 @@ func TestLastFMKeysAreTheUsers(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, lastFMKeys{key: "mine", secret: "minesecret"}, k)
 }
+
+// A play the server took shows in its index at once; a play that only went
+// to the online services isn't the index's business.
+func TestServerPlayIsCounted(t *testing.T) {
+	f := &fakeServices{}
+	server := &serverSource{localSource: localSource{"srv"}}
+	s := newTestService(t, libs{"srv": server, "loc": localSource{"loc"}}, f, t.TempDir())
+	var counted []string
+	s.cfg.Counted = func(_ context.Context, lib, id string, _ time.Time) { counted = append(counted, lib+"/"+id) }
+	s.report(track("srv", "song"), false, time.Now())
+	s.report(track("loc", "other"), false, time.Now())
+	assert.Equal(t, []string{"srv/song"}, counted)
+}

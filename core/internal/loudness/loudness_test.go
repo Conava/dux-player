@@ -3,6 +3,8 @@ package loudness
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -115,4 +117,28 @@ func TestMeasureFindsSilence(t *testing.T) {
 	assert.InDelta(t, 1, r.Silence.Start, 0.05)
 	assert.InDelta(t, 3, r.Silence.End, 0.05)
 	assert.Less(t, r.Gain, maxGain)
+}
+
+// Runs real ffmpeg: a file it can't read must not pass as a short one, and
+// a reader that has seen enough is not a failure.
+func TestDecodeReportsFailure(t *testing.T) {
+	m := Find()
+	if !m.Available() {
+		t.Skip("ffmpeg not installed")
+	}
+	dir := t.TempDir()
+	bad := filepath.Join(dir, "bad.flac")
+	require.NoError(t, os.WriteFile(bad, []byte("not audio"), 0o600))
+	require.Error(t, m.Decode(t.Context(), bad, 16000, func(r io.Reader) error {
+		_, err := io.Copy(io.Discard, r)
+		return err
+	}))
+
+	good := filepath.Join(dir, "good.wav")
+	gen := exec.CommandContext(t.Context(), m.ffmpeg, "-nostdin", "-loglevel", "error", "-f", "lavfi", "-i", "sine=d=2", good)
+	require.NoError(t, gen.Run())
+	require.NoError(t, m.Decode(t.Context(), good, 16000, func(r io.Reader) error {
+		_, err := io.ReadFull(r, make([]byte, 64))
+		return err
+	}))
 }

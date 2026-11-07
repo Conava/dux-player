@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"errors"
 	"fmt"
 	"image/color"
 	"image/png"
@@ -30,6 +31,8 @@ const (
 	itemPath    = dbus.ObjectPath("/StatusNotifierItem")
 	ifaceItem   = "org.kde.StatusNotifierItem"
 	callTimeout = 5 * time.Second
+	// cmdTimeout outlasts the player's 30 s stream lookup.
+	cmdTimeout = 35 * time.Second
 )
 
 // icon.png is the app icon rendered for hosts that can't find it in the
@@ -240,10 +243,10 @@ func (t *Tray) emit(path dbus.ObjectPath, name string, args ...any) {
 // run sends a command to the player off the D-Bus goroutine.
 func (t *Tray) run(name string, f func(ctx context.Context) error) {
 	go func() {
-		ctx, cancel := context.WithTimeout(t.ctx, 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.ctx, cmdTimeout)
 		defer cancel()
-		if err := f(ctx); err != nil {
-			log.Debugf("tray %s: %v", name, err)
+		if err := f(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.Warnf("tray %s failed: %v", name, err)
 		}
 	}()
 }

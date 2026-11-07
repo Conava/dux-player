@@ -199,6 +199,9 @@ func (s *Server) serveConn(ctx context.Context, c net.Conn) {
 			s.dispatch(ctx, q, w, req, sub)
 		}()
 	}
+	if err := sc.Err(); err != nil && ctx.Err() == nil {
+		log.Warnf("ipc: dropped a client: %v", err)
+	}
 }
 
 const maxRequestLine = 1 << 20

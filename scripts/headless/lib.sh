@@ -5,7 +5,8 @@
 #   expand true|false  open or close the full now playing view
 #   look MODE STYLE  theme and player style: look dark m3e
 #   element TYPE CONTEXT  run a player element: element queue view
-#   ui NAME ARGS     any function of the headless IPC target in run.sh: ui open album ID, ui settings PAGE, ui playerLook attached
+#   ui NAME ARGS     any function of the headless IPC target in run.sh: ui open album ID, ui settings PAGE, ui playerLook attached,
+#                    ui pageOptions tracks '{"lines":["format"]}', ui addElement fullBento title '{"type":"text"}'
 #   dp ARGS          the dplayer CLI against this sandbox: dp play "$W/music", dp pause
 #   rpc METHOD JSON  one daemon IPC call; prints the reply
 #   pointer m X Y | c | d | u | w NOTCHES   move, click, press, release, wheel, through a real virtual pointer

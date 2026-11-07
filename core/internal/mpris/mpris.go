@@ -29,8 +29,9 @@ const (
 	ifacePlayer = "org.mpris.MediaPlayer2.Player"
 	noTrack     = dbus.ObjectPath("/org/mpris/MediaPlayer2/TrackList/NoTrack")
 	// A position this far off where steady playback would be is a seek.
-	seekSlack  = 1.5
-	cmdTimeout = 10 * time.Second
+	seekSlack = 1.5
+	// cmdTimeout outlasts the player's 30 s stream lookup, so a slow server fails there with its own error.
+	cmdTimeout = 35 * time.Second
 )
 
 // Player is what the MPRIS controls drive.
@@ -153,8 +154,8 @@ func (s *Server) run(name string, f func(ctx context.Context) error) {
 	go func() {
 		ctx, cancel := context.WithTimeout(s.ctx, cmdTimeout)
 		defer cancel()
-		if err := f(ctx); err != nil {
-			log.Debugf("mpris %s: %v", name, err)
+		if err := f(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.Warnf("mpris %s failed: %v", name, err)
 		}
 	}()
 }

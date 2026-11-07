@@ -89,6 +89,14 @@ func (q *Queue) Len() int {
 	return len(q.items)
 }
 
+// Has says whether an item has a change waiting.
+func (q *Queue) Has(library, kind, id string) bool {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	_, ok := q.items[key{library, kind, id}]
+	return ok
+}
+
 // Add merges a change into the item's pending one: the latest favorite and
 // the latest rating win.
 func (q *Queue) Add(c Change) error {
@@ -112,6 +120,19 @@ func (q *Queue) Add(c Change) error {
 	q.items[c.key()] = cur
 	q.saveLocked()
 	return nil
+}
+
+// DropLibrary forgets a library's changes: they belong to an account it no
+// longer signs in with.
+func (q *Queue) DropLibrary(library string) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	for k := range q.items {
+		if k.library == library {
+			delete(q.items, k)
+		}
+	}
+	q.saveLocked()
 }
 
 // Flush sends the changes of the libraries online says are available and
@@ -138,6 +159,12 @@ func (q *Queue) Flush(ctx context.Context, online map[string]bool, send func(con
 	failed := map[string]bool{}
 	for _, c := range todo {
 		if failed[c.Library] || ctx.Err() != nil {
+			continue
+		}
+		q.mu.Lock()
+		_, waiting := q.items[c.key()]
+		q.mu.Unlock()
+		if !waiting {
 			continue
 		}
 		err := send(ctx, c)

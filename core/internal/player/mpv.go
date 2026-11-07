@@ -169,6 +169,13 @@ func (c *conn) shutdown(err error) {
 	close(c.done)
 }
 
+// cause is why the connection ended, nil while it is open.
+func (c *conn) cause() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.err
+}
+
 func (c *conn) close() { c.shutdown(errors.New("connection closed")) }
 
 // command sends args as an mpv command and waits for its reply.
@@ -224,6 +231,8 @@ type process struct {
 	conn   *conn
 	socket string
 	exited chan struct{}
+	// exitErr is how the process ended; read it after exited closes.
+	exitErr error
 }
 
 func (p *process) builtin() bool { return p.cmd == nil }
@@ -242,8 +251,9 @@ func startBuiltin(ctx context.Context, env []string) (*process, error) {
 	p := &process{exited: make(chan struct{})}
 	go func() {
 		defer close(p.exited)
-		if err := engine.Serve(a, out, env); err != nil {
-			log.Debugf("built-in player stopped: %v", err)
+		p.exitErr = engine.Serve(a, out, env)
+		if p.exitErr != nil {
+			log.Debugf("built-in player stopped: %v", p.exitErr)
 		}
 	}()
 	p.conn = newConn(b)
@@ -289,7 +299,7 @@ func startProcess(ctx context.Context, binary, socket string, extra, env []strin
 	}
 	p := &process{cmd: cmd, socket: socket, exited: make(chan struct{})}
 	go func() {
-		_ = cmd.Wait()
+		p.exitErr = cmd.Wait()
 		close(p.exited)
 	}()
 

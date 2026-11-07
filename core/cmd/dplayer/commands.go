@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -105,11 +106,26 @@ var muteCmd = &cobra.Command{
 }
 
 var sleepCmd = &cobra.Command{
-	Use:       "sleep <minutes|end|off>",
-	Short:     "Pause after some minutes, at the end of the track, or cancel the sleep timer",
-	Args:      cobra.ExactArgs(1),
-	ValidArgs: []string{"end", "off"},
+	Use:   "sleep <minutes|end|off|after <number>>",
+	Short: "Stop after some minutes, at the end of the track or of a queue entry, or cancel the sleep timer",
+	Long: "Stop after some minutes, at the end of the track, or after a queue entry.\n" +
+		"`sleep after <number>` takes the entry's number as `dplayer queue` shows it.",
+	Args:      cobra.RangeArgs(1, 2),
+	ValidArgs: []string{"end", "off", "after"},
 	RunE: func(_ *cobra.Command, args []string) error {
+		if args[0] == "after" {
+			if len(args) != 2 {
+				return errors.New("give the queue number: dplayer sleep after <number>")
+			}
+			n, err := strconv.Atoi(args[1])
+			if err != nil || n < 1 {
+				return fmt.Errorf("%q is not a queue number", args[1])
+			}
+			return statusCall("player.sleep", map[string]any{"mode": "afterEntry", "index": n - 1})
+		}
+		if len(args) != 1 {
+			return fmt.Errorf("unexpected argument %q", args[1])
+		}
 		switch args[0] {
 		case "end":
 			return statusCall("player.sleep", map[string]any{"endOfTrack": true})
@@ -193,6 +209,8 @@ func printStatus(st player.Status) error {
 		modes += "  sleep at " + time.Unix(st.Sleep.At, 0).Format("15:04")
 	case player.SleepEndOfTrack:
 		modes += "  sleep at end of track"
+	case player.SleepAfterEntry:
+		modes += "  sleep after a queue entry"
 	}
 	fmt.Printf("%s: %s - %s (%s)  %s / %s  volume %.0f  [%d/%d]%s\n",
 		st.State, t.Artist, t.Title, t.Album, clock(st.Position), clock(st.Duration), st.Volume, st.Index+1, st.Length, modes)
@@ -225,7 +243,17 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show what is playing",
 	Args:  cobra.NoArgs,
-	RunE:  func(*cobra.Command, []string) error { return statusCall("player.status", nil) },
+	RunE: func(*cobra.Command, []string) error {
+		if statusFormat == "" {
+			return statusCall("player.status", nil)
+		}
+		var st player.Status
+		if err := call(false, "player.status", nil, &st); err != nil {
+			return err
+		}
+		fmt.Println(formatStatus(statusFormat, st, libraryNames()))
+		return nil
+	},
 }
 
 // Flag parsing is off for seek and volume so "-10" is a value, not a flag.

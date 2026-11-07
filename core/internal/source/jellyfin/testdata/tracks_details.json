@@ -1,0 +1,7 @@
+{"Items":[
+{"Id":"t1","Name":"Prelude","Type":"Audio","Album":"Cello Suites","AlbumId":"a1","AlbumArtist":"Yo-Yo Ma","Artists":["Yo-Yo Ma"],"ArtistItems":[{"Name":"Yo-Yo Ma","Id":"ar1"}],"RunTimeTicks":1500000000,"Container":"flac","DateCreated":"2024-05-01T10:00:00.0000000Z",
+ "MediaSources":[{"Container":"flac","Size":22000000,"Bitrate":1100000,"MediaStreams":[{"Type":"Audio","Codec":"flac","BitRate":912000,"SampleRate":44100,"BitDepth":16,"Channels":2},{"Type":"EmbeddedImage"}]}],
+ "People":[{"Name":"Johann Sebastian Bach","Id":"p1","Type":"Composer"},{"Name":"Anna Magdalena Bach","Id":"p2","Type":"Composer"},{"Name":"Some Producer","Id":"p3","Type":"Producer"}]},
+{"Id":"t2","Name":"No stream rate","Type":"Audio","Album":"Cello Suites","AlbumId":"a1","AlbumArtist":"Yo-Yo Ma","Artists":["Yo-Yo Ma"],"RunTimeTicks":1000000000,
+ "MediaSources":[{"Container":"mp3","Bitrate":320000,"MediaStreams":[{"Type":"Audio","Codec":"mp3"}]}],"People":[]}
+],"TotalRecordCount":2,"StartIndex":0}

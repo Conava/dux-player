@@ -129,3 +129,35 @@ func TestPlayTurnsShuffleOff(t *testing.T) {
 		})
 	}
 }
+
+// A stop-after rule on an entry the queue passes over still stops playback
+// at that place.
+func TestStopAfterAPassedOverEntry(t *testing.T) {
+	tests := []struct {
+		name string
+		skip skipper
+		cur  int
+		rule string
+		want bool
+	}{
+		{"entry skipped ahead", skipper{"c": true}, 1, "c", true},
+		{"entry playable ahead", skipper{}, 1, "c", false},
+		{"other entry skipped", skipper{"c": true}, 1, "d", false},
+		{"skipped entry behind", skipper{"a": true}, 1, "a", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv"), Resolver: tt.skip})
+			items := tracks("a", "b", "c", "d")
+			p.queue.Replace(items, tt.cur, Origin{})
+			var uid uint64
+			for _, it := range p.queue.Items() {
+				if it.Track.ID == tt.rule {
+					uid = it.UID
+				}
+			}
+			p.setSleep(Sleep{Mode: SleepAfterEntry, Entry: uid})
+			assert.Equal(t, tt.want, p.stopsAtEnd())
+		})
+	}
+}

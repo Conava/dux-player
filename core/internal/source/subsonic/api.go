@@ -24,6 +24,7 @@ type Song struct {
 	Duration           num      `json:"duration"`
 	CoverArt           str      `json:"coverArt"`
 	DisplayAlbumArtist string   `json:"displayAlbumArtist"`
+	DisplayComposer    string   `json:"displayComposer"`
 	Starred            string   `json:"starred"`
 	UserRating         num      `json:"userRating"`
 	ReplayGain         songGain `json:"replayGain"`
@@ -341,8 +342,8 @@ func (g songGain) values() *source.ReplayGain {
 	return &rg
 }
 
-// ScanCount is getScanStatus' count; 0 while the server is scanning.
-func (c *Client) ScanCount(ctx context.Context) (int, error) {
+// ScanStatus is getScanStatus: whether the server is scanning and its count.
+func (c *Client) ScanStatus(ctx context.Context) (bool, int, error) {
 	var out struct {
 		Status struct {
 			Scanning boolean `json:"scanning"`
@@ -350,10 +351,34 @@ func (c *Client) ScanCount(ctx context.Context) (int, error) {
 		} `json:"scanStatus"`
 	}
 	if _, err := c.call(ctx, "getScanStatus", nil, &out); err != nil {
+		return false, 0, err
+	}
+	return bool(out.Status.Scanning), out.Status.Count.int(), nil
+}
+
+// ScanCount is getScanStatus' count; 0 while the server is scanning.
+func (c *Client) ScanCount(ctx context.Context) (int, error) {
+	scanning, n, err := c.ScanStatus(ctx)
+	if scanning {
 		return 0, err
 	}
-	if out.Status.Scanning {
-		return 0, nil
+	return n, err
+}
+
+// IndexesModified is getIndexes' lastModified; 0 when the server sends none.
+// since, when not empty, is a lastModified of an earlier reply.
+func (c *Client) IndexesModified(ctx context.Context, since string) (int64, error) {
+	var out struct {
+		Indexes struct {
+			LastModified num `json:"lastModified"`
+		} `json:"indexes"`
 	}
-	return out.Status.Count.int(), nil
+	var params url.Values
+	if since != "" {
+		params = url.Values{"ifModifiedSince": {since}}
+	}
+	if _, err := c.call(ctx, "getIndexes", params, &out); err != nil {
+		return 0, err
+	}
+	return int64(out.Indexes.LastModified), nil
 }

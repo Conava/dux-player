@@ -113,3 +113,46 @@ func TestCrossfadeSettings(t *testing.T) {
 	assert.Equal(t, 0.0, got.PlayerOptions().Crossfade)
 	assert.Equal(t, 8.0, got.Crossfade.Seconds, "turning it off keeps the length")
 }
+
+func TestSkipRulesAreChecked(t *testing.T) {
+	tests := []struct {
+		name string
+		v    any
+		ok   bool
+	}{
+		{"object", map[string]any{"minRating": 2.0, "shorterThan": 30.0, "genres": []any{"Christmas"}}, true},
+		{"json text from the cli", `{"minRating":2}`, true},
+		{"rating out of range", map[string]any{"minRating": 6.0}, false},
+		{"fractional seconds", map[string]any{"shorterThan": 1.5}, false},
+		{"control character", map[string]any{"genres": []any{"a\nb"}}, false},
+		{"not a list", map[string]any{"genres": "Rock"}, false},
+		{"too many", map[string]any{"genres": make([]any, 33)}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := apply(Defaults(), "skipRules", tt.v)
+			assert.Equal(t, tt.ok, err == nil, "%v", err)
+		})
+	}
+}
+
+// A deleted library leaves the skip rules, and the file.
+func TestDropLibraryLeavesTheSkipRules(t *testing.T) {
+	dir := t.TempDir()
+	s, err := Open(dir)
+	require.NoError(t, err)
+	_, err = s.Set(map[string]any{"skipRules": map[string]any{"libraries": []any{"a", "b"}, "minRating": 2.0}})
+	require.NoError(t, err)
+
+	dropped, err := s.DropLibrary("c")
+	require.NoError(t, err)
+	assert.False(t, dropped)
+	dropped, err = s.DropLibrary("a")
+	require.NoError(t, err)
+	assert.True(t, dropped)
+
+	again, err := Open(dir)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"b"}, again.Get().SkipRules.Libraries)
+	assert.Equal(t, 2, again.Get().SkipRules.MinRating, "the other rules stay")
+}
