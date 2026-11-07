@@ -1687,6 +1687,13 @@
     "comment": ""
   },
   {
+    "term": "Copied",
+    "translation": "",
+    "context": "toast after text was copied to the clipboard",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Copy",
     "translation": "",
     "context": "copy a config snippet",
@@ -4315,6 +4322,13 @@
     "term": "MusicBrainz track",
     "translation": "",
     "context": "details field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Mute",
+    "translation": "",
+    "context": "volume button",
     "reference": "",
     "comment": ""
   },
