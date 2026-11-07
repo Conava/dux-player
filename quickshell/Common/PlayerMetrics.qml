@@ -134,7 +134,7 @@ Singleton {
     // width of the soft edge ahead of the fill, in row heights
     readonly property real lyricsSweepLead: 0.9
     readonly property int lyricsLineLinger: 500
-    // a line moves into the centre over this share of the seconds since the line before it, within the bounds
+    // a line grows and lights up over this share of the seconds since the line before it, within the bounds
     readonly property real lyricsMoveShare: 0.3
     readonly property real lyricsMoveMin: 0.4
     readonly property real lyricsMoveMax: 1
@@ -142,19 +142,19 @@ Singleton {
     readonly property real lyricsLineLeadIn: 0.4
     // a clock that steps back less than this (s) right after the centre advanced keeps the new row
     readonly property real lyricsFollowBackstepSlack: 1.5
-    // a far seek scrolls on a critically damped spring that settles in about ten time constants
-    readonly property int lyricsSeekScrollDuration: 650
-    readonly property real lyricsScrollRate: 10000 / lyricsSeekScrollDuration
+    // the list scrolls on a critically damped spring that settles in about ten time constants
+    readonly property int lyricsScrollDuration: 1000
+    readonly property real lyricsScrollRate: 10000 / lyricsScrollDuration
     readonly property real lyricsScrollStiffness: lyricsScrollRate * lyricsScrollRate
     readonly property real lyricsScrollDamping: 2 * lyricsScrollRate
-    // below half a pixel the rounded position no longer moves, so the spring stops there
+    // the spring stops this close to the line and lands on it
     readonly property real lyricsScrollSettleDistance: 0.5
     readonly property real lyricsScrollSettleSpeed: 10
-    // rows catch up one after another, each a share of the move behind its neighbour
-    readonly property real lyricsTrackPushShare: 0.06
-    readonly property int lyricsTrackMaxPush: 5
-    // a gentle start, so a row that follows its neighbour a step later never closes onto it, and a long settle
+    // a line's scale change: a gentle start and a long settle
     readonly property var lyricsTrackCurve: [0.25, 0.3, 0.13, 1, 1, 1]
+    // rows fade out over this share of the view's height towards its edges, up to the most below
+    readonly property real lyricsEdgeFadeRatio: 0.2
+    readonly property real lyricsEdgeFadeMax: Theme.spacingXL * 2
     readonly property real lyricsBreakGap: 5
     readonly property real lyricsBreakIndicatorScale: 1.2
     // below this view width the follow button shows only its icon
