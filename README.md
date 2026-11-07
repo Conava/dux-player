@@ -8,25 +8,44 @@ Dux Player plays local libraries and streams from Navidrome, Subsonic and Jellyf
 
 ![Home in the Bento style](docs/screenshots/home.png)
 
+![Full view in the Bento style](docs/screenshots/now-playing.png)
+
+![Synced lyrics beside the player](docs/screenshots/lyrics.png)
+
+<details>
+<summary>More screenshots</summary>
+
+Bottom bar and side panel, Bento and Material styles:
+
 ![Bottom bar and side panel in the Bento and Material styles](docs/screenshots/bars.png)
 
-| Full view, Bento | Full view, Material |
-|---|---|
-| ![Full view in the Bento style](docs/screenshots/now-playing.png) | ![Full view in the Material style](docs/screenshots/now-playing-material.png) |
+Full view, Material style:
 
-| Synced lyrics | Home with other shelves and layout |
-|---|---|
-| ![Synced lyrics beside the player](docs/screenshots/lyrics.png) | ![Home in the Material style with other shelves](docs/screenshots/home-custom.png) |
+![Full view in the Material style](docs/screenshots/now-playing-material.png)
 
-Pages, columns and the full view can be customized.
+Home with other shelves and layout:
 
-| Custom columns | Page editor |
-|---|---|
-| ![Tracks page with custom columns](docs/screenshots/tracks.png) | ![The page editor](docs/screenshots/page-editor.png) |
+![Home in the Material style with other shelves](docs/screenshots/home-custom.png)
+
+Tracks page with custom columns:
+
+![Tracks page with custom columns](docs/screenshots/tracks.png)
+
+Page editor:
+
+![The page editor](docs/screenshots/page-editor.png)
+
+A customized full view:
 
 ![A customized full view](docs/screenshots/now-playing-custom.png)
 
-![Supported sources and outputs](docs/screenshots/sources.png)
+Supported libraries and outputs:
+
+![Supported libraries and outputs](docs/screenshots/sources.png)
+
+</details>
+
+Pages, columns and the full view can be customized.
 
 ## Features
 - Local libraries (several folders, indexed and watched) and any number of server libraries; Jellyfin also signs in with Quick Connect, so no password is stored
@@ -34,17 +53,17 @@ Pages, columns and the full view can be customized.
 - Offline rules per server library, caching and preloading the next songs for a seamless experience; favorites and ratings set while a server is unreachable are sent once it is back
 - Server catalogs are kept on the device once a first sync finishes: browsing and search are instant and work while the server is unreachable, where tracks without a cached copy show that they can't play. Checked every 15 minutes, read in full when the server reports a change (at most hourly), at least daily, and on Rescan; the sync waits on a metered connection unless started by hand
 - Gapless playback, crossfade, volume normalization, skipping leading and trailing silence, equalizer several outputs at once
-- Optional synced lyrics with word-by-word fill, in the full view and as one line in the bar, on by default, scrobbling (through the server, or to ListenBrainz and Last.fm), casting through [dux-cast](https://github.com/Conava/dux-cast)
+- Optional synced lyrics with word-by-word fill, in the full view and as one line in the bar, on by default, scrobbling (to ListenBrainz, Last.fm and the server), casting through [dux-cast](https://github.com/Conava/dux-cast)
 - Keeps playing with the window closed; MPRIS, a tray icon and a CLI (`dplayer play`, `dplayer next`, …) for keybinds
 - Phones can control the player over the network through KDE Connect or GSConnect (through MPRIS), until a LAN remote exists
 - `dplayer watch` and `dplayer status --format` for status bars and scripts
 - `dplayer sleep after <number>` stops when a queue entry ends, numbered as `dplayer queue` lists it; a rule behind the current track is dropped unless repeat all is on, and while casting the receiver gets the queue only up to that entry
-- Text templates for a now-playing line and for custom columns in track lists; each column has its own title, Sort by field and width (small, medium or large; Length is sized the same way)
+- Text templates for a now-playing line and for custom columns in track lists; each column has its own title, Sort by field and width (small, medium or large, or drag the border between two columns; Length takes the three sizes only)
 - Filter rules for track, album and artist pages: match all or any of a list of conditions on fields such as genre, library, rating, year, length, plays, date added and last played
 - Stop after a chosen queue entry, shuffle by album, and rules for what shuffle all and auto-continue skip (genres, libraries, low ratings, short tracks); shuffling a named library ignores that library's skip entry
 - Keep a single song on the device for offline play, from its menu; track tiles can open the album instead of playing; `dplayer keep library:id…` and `dplayer unkeep library:id…` do the same from the CLI
 - When a track has no lyrics, the full view can fall back to the cover
-- Now-playing bar, side panel and full view in Bento or Material design, with arrangeable elements, a customizable home page and track lists, and searchable settings
+- Now-playing bar, side panel and full view in Bento or Material design, with arrangeable elements, also in lines above and below the seekbar, a customizable home page and track lists, custom pages with their own rules, columns, limit, random order, grouping and icon, and searchable settings
 
 ## Requirements
 
@@ -105,13 +124,15 @@ Fields: `title`, `artist`, `artists`, `album`, `albumartist`, `composer`, `genre
 
 The daemon logs to `~/.local/state/dplayer/daemon.log` and the window to `ui.log` next to it, including mpv's warnings and the mpv version found at startup. To watch it live, run `dplayer quit`, then `dplayer daemon` in a terminal, and open the window.
 
+A clone without `--recursive` has no `dux-qml-common`: run `git submodule update --init`.
+
 ## Online services
 
 Dux Player only contacts the servers you add, except for these features, each of which can be turned off in Settings:
 
-- **Artist information:** artist names are sent to MusicBrainz, Wikidata and Wikipedia, and to fanart.tv and Last.fm once you add your own API key. Biographies from Wikipedia are available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- **Artist information:** artist names are sent to MusicBrainz, Wikidata and Wikipedia, and to fanart.tv once you add your own API key. Last.fm gets them too, through the app's built-in API key or your own. Biographies from Wikipedia are available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 - **Lyrics:** on by default. Title, artist, album and length of the playing track, of the next track while lyrics are open, and of downloaded tracks are sent to the enabled lyrics providers. Turn lyrics off in Settings → Lyrics and no provider is contacted; turn off Lyrics for downloaded tracks to send only tracks you play. Matching lyrics timing to the audio runs on this device and sends nothing.
-- **Scrobbling:** played tracks are sent to ListenBrainz or Last.fm when you connect an account. Last.fm needs your own [API account](https://www.last.fm/api/account/create).
+- **Scrobbling:** played tracks are sent to ListenBrainz or Last.fm when you connect an account, from server libraries too unless you turn that off for a library. Last.fm uses the app's built-in API account; if you prefer, enter your own [API account](https://www.last.fm/api/account/create).
 
 ## Contributing
 
