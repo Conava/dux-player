@@ -68,12 +68,26 @@ cat >>"$W/tree/shell.qml" <<'Q'
         }
         // a new custom page as the first navigation entry, open in edit mode with no history
         function editFirstView(): void {
-            const id = UiConfig.saveView("First", "albums", {});
-            UiConfig.pin("view", id, "First");
-            const first = e => e.kind === "view" && e.target === id;
-            UiConfig.setNavigation(UiConfig.navigation.filter(first).concat(UiConfig.navigation.filter(e => !first(e))));
+            pinFirst("view", "");
             Router.openEntry(Router.navEntries[0]);
             Router.editing = true;
+        }
+        // pins an item as the first navigation entry without navigating; the view target "" makes a new custom page.
+        // Returns its id.
+        function pinFirst(kind: string, target: string): string {
+            const id = kind === "view" && target === "" ? UiConfig.saveView("First", "albums", {}) : target;
+            UiConfig.pin(kind, id, "First");
+            const first = e => e.kind === kind && e.target === id;
+            UiConfig.setNavigation(UiConfig.navigation.filter(first).concat(UiConfig.navigation.filter(e => !first(e))));
+            return id;
+        }
+        // removes the first navigation entry without navigating
+        function unpinFirst(): void {
+            const e = Router.navEntries[0];
+            UiConfig.removeEntry(e.kind, e.target);
+        }
+        function albumId(title: string): string {
+            return PlayerService.query("albums", {}).find(a => a.title === title)?.id ?? "";
         }
         function shortcutFree(sequence: string): bool {
             return UiConfig.shortcutProblem(sequence) === "";

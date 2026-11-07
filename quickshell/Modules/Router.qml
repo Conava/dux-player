@@ -13,8 +13,13 @@ Singleton {
 
     readonly property var navEntries: UiConfig.shownNavigation
 
-    property string page: navEntries.length > 0 ? UiConfig.entryRoute(navEntries[0]).page : "home"
-    property string itemId: ""
+    // the first entry's whole route until something navigates, so a config or catalog that loads late still sets it
+    readonly property var startRoute: navEntries.length > 0 ? UiConfig.entryRoute(navEntries[0]) : {
+        "page": "home",
+        "itemId": ""
+    }
+    property string page: startRoute.page
+    property string itemId: startRoute.itemId
     property var history: []
     property var forwardHistory: []
     // the main window's side panel beside the pages: "" | "queue" | "lyrics"
