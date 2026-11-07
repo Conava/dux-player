@@ -19,6 +19,8 @@ DListItem {
         dragHandle.forceActiveFocus(reason);
     }
 
+    // the handle is the row's Tab stop; the row itself has no action
+    focusPolicy: Qt.ClickFocus
     width: view.width
     surfaceColor: SettingsMetrics.rowColor
     firstInGroup: view.order.indexOf(index) === 0
