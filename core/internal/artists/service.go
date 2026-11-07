@@ -16,6 +16,7 @@ import (
 	"github.com/duxlabs-dev/dux-go/log"
 
 	"github.com/Conava/dux-player/core/internal/keyring"
+	"github.com/Conava/dux-player/core/internal/lastfm"
 	"github.com/Conava/dux-player/core/internal/playlists"
 	"github.com/Conava/dux-player/core/internal/source"
 )
@@ -59,7 +60,7 @@ type Service struct {
 
 func New(cfg Config) *Service {
 	s := &Service{cfg: cfg, keys: map[string]string{}, index: map[string]*plIndex{}}
-	s.online = newOnline(filepath.Join(cfg.CacheDir, "artists"), cfg.Version, cfg.Lang, s.key)
+	s.online = newOnline(filepath.Join(cfg.CacheDir, "artists"), cfg.Version, cfg.Lang, s.requestKey)
 	return s
 }
 
@@ -81,6 +82,14 @@ func (s *Service) key(provider string) string {
 	s.keys[provider] = k
 	s.mu.Unlock()
 	return k
+}
+
+// requestKey is the key a request uses: the user's own, else Last.fm's built-in one.
+func (s *Service) requestKey(provider string) string {
+	if k := s.key(provider); k != "" || provider != ProviderLastFM {
+		return k
+	}
+	return lastfm.APIKey
 }
 
 func (s *Service) SetKey(provider, key string) error {

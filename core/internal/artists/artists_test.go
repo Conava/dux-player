@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/Conava/dux-player/core/internal/lastfm"
 	"github.com/Conava/dux-player/core/internal/playlists"
 	"github.com/Conava/dux-player/core/internal/source"
 )
@@ -285,4 +286,28 @@ func TestArtistPlaylistRefreshes(t *testing.T) {
 		assert.Zero(t, s.index["srv"].Listed, "the edit is refetched on the next visit")
 		s.mu.Unlock()
 	})
+}
+
+type keySecrets struct{ noSecrets }
+
+func (keySecrets) Get(string, string) (string, error) { return "mine", nil }
+
+func TestLastFMKeyFallsBackToBuiltIn(t *testing.T) {
+	old := lastfm.APIKey
+	t.Cleanup(func() { lastfm.APIKey = old })
+	for name, c := range map[string]struct {
+		builtIn string
+		secrets source.Secrets
+		want    string
+	}{
+		"built-in":     {"builtin", noSecrets{}, "builtin"},
+		"own key wins": {"builtin", keySecrets{}, "mine"},
+		"none":         {"", noSecrets{}, ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			lastfm.APIKey = c.builtIn
+			s := New(Config{Secrets: c.secrets, CacheDir: t.TempDir()})
+			assert.Equal(t, c.want, s.requestKey(ProviderLastFM))
+		})
+	}
 }
