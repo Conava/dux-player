@@ -43,6 +43,7 @@ Rectangle {
         id: background
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
+        preventStealing: true
         onClicked: mouse => {
             if (mouse.button === Qt.RightButton)
                 barMenu.open(background, mouse.x, mouse.y);

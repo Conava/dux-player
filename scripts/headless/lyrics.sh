@@ -111,7 +111,24 @@ dp seek 90 >/dev/null
 sleep 0.15
 SETTLE=0 cap bento-far-seek-mid
 cap bento-far-seek-end
+
+# a line change moves the list as one: at every instant the rows keep their spacing (the verse lines are all one height)
+dp seek 91 >/dev/null
+sleep 1
+for _ in $(seq 1 80); do
+    qs ipc -p "$W/tree" call headless lyricsRows
+done >"$W/out/rows.txt"
 dp pause >/dev/null
+python3 -I - "$W/out/rows.txt" >>"$W/out/facts.txt" <<'P'
+import sys
+# above the window an instrumental gap spaces the rows differently, and pooled rows linger on top of live ones
+samples = [sorted({round(y, 1) for y in map(float, line.split()[1:]) if y > 0}) for line in open(sys.argv[1])]
+spread = lambda rows: max(b - a for a, b in zip(rows, rows[1:])) - min(b - a for a, b in zip(rows, rows[1:]))
+rest = samples[0]
+moving = [s for s in samples if s != rest and s != samples[-1]]
+worst = max(map(spread, moving), default=0)
+print(f"{'ok  ' if moving and worst <= 2 else 'FAIL'} line change: {len(moving)} of {len(samples)} samples moving, spacing varied by {worst:.1f} px")
+P
 
 ui reduceMotion true
 at 8.1 reduced-word-fill
@@ -158,3 +175,4 @@ expand true
 at 3 bento-duet
 ui lyricsDisplay backgroundVocals false
 at 3.1 bento-duet-no-background
+! grep -q FAIL "$W/out/facts.txt"

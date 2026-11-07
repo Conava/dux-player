@@ -25,7 +25,6 @@ Item {
     property var backgroundMetrics: null
     property real breakSize: Theme.iconSizeLarge
     property color dimColor: Theme.onSurfaceVariant
-    property real shift: 0
     // a line that playback moves on from keeps its highlight a moment before it dims
     property bool lingering: false
     // a line left by a seek turns inactive at once and stays unsung until the dimming hides its real fill
@@ -62,19 +61,6 @@ Item {
         layouts = LyricsModel.partLayouts(item.parts, width, leadMetrics, backgroundMetrics, Theme.spacingXS);
     }
 
-    // the view snaps to the new centre and pushes the row back, so the rows catch up one after another
-    function push(delta, delay) {
-        pushMotion.stop();
-        shift += delta;
-        pushPause.duration = delay;
-        pushMotion.start();
-    }
-
-    function settle() {
-        pushMotion.stop();
-        shift = 0;
-    }
-
     function alignedX(alignment, childWidth) {
         return Math.round(alignment === Text.AlignLeft ? 0 : alignment === Text.AlignRight ? width - childWidth : (width - childWidth) / 2);
     }
@@ -107,9 +93,7 @@ Item {
     height: implicitHeight
     Accessible.role: Accessible.StaticText
     Accessible.name: isBreak ? I18n.tr("Instrumental", "track has no lyrics because it is instrumental") : item.text
-    ListView.onPooled: settle()
     ListView.onReused: {
-        settle();
         lingerTimer.stop();
         fadeTimer.stop();
         lingering = false;
@@ -144,111 +128,84 @@ Item {
         }
     }
 
-    SequentialAnimation {
-        id: pushMotion
+    Repeater {
+        model: root.layouts
 
-        PauseAnimation {
-            id: pushPause
-        }
+        LyricsPart {
+            required property var modelData
 
-        NumberAnimation {
-            target: root
-            property: "shift"
-            to: 0
-            duration: root.moveDuration
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: PlayerMetrics.lyricsTrackCurve
+            y: Theme.spacingS + modelData.y
+            width: root.width
+            layout: modelData
         }
     }
 
-    Item {
-        id: face
+    Loader {
+        x: root.alignedX(root.leadAlignment, width)
+        y: Theme.spacingS
+        width: root.breakSize
+        height: root.breakSize
+        active: root.isBreak
+        scale: root.shrunk ? PlayerMetrics.lyricsLineInactiveScale : 1
+        transformOrigin: root.originFor(root.leadAlignment)
 
-        width: root.width
-        height: root.height
-        transform: Translate {
-            y: root.shift
-        }
-
-        Repeater {
-            model: root.layouts
-
-            LyricsPart {
-                required property var modelData
-
-                y: Theme.spacingS + modelData.y
-                width: face.width
-                layout: modelData
+        Behavior on scale {
+            enabled: root.animationsEnabled
+            NumberAnimation {
+                duration: root.moveDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: PlayerMetrics.lyricsTrackCurve
             }
         }
 
-        Loader {
-            x: root.alignedX(root.leadAlignment, width)
-            y: Theme.spacingS
-            width: root.breakSize
-            height: root.breakSize
-            active: root.isBreak
-            scale: root.shrunk ? PlayerMetrics.lyricsLineInactiveScale : 1
-            transformOrigin: root.originFor(root.leadAlignment)
+        sourceComponent: DCircularWavyProgress {
+            readonly property color lead: root.accents[0]
 
-            Behavior on scale {
+            progress: root.ringProgress
+            color: root.lit ? lead : root.restingColor
+            trackColor: root.lit && root.following ? Theme.withAlpha(lead, PlayerMetrics.lyricsRestAlpha) : root.restingColor
+            waveSpeed: root.promoted && root.playing && root.animationsEnabled ? wavelength : 0
+
+            Behavior on color {
                 enabled: root.animationsEnabled
-                NumberAnimation {
+                ColorAnimation {
                     duration: root.moveDuration
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: PlayerMetrics.lyricsTrackCurve
                 }
             }
 
-            sourceComponent: DCircularWavyProgress {
-                readonly property color lead: root.accents[0]
-
-                progress: root.ringProgress
-                color: root.lit ? lead : root.restingColor
-                trackColor: root.lit && root.following ? Theme.withAlpha(lead, PlayerMetrics.lyricsRestAlpha) : root.restingColor
-                waveSpeed: root.promoted && root.playing && root.animationsEnabled ? wavelength : 0
-
-                Behavior on color {
-                    enabled: root.animationsEnabled
-                    ColorAnimation {
-                        duration: root.moveDuration
-                    }
-                }
-
-                Behavior on trackColor {
-                    enabled: root.animationsEnabled
-                    ColorAnimation {
-                        duration: root.moveDuration
-                    }
+            Behavior on trackColor {
+                enabled: root.animationsEnabled
+                ColorAnimation {
+                    duration: root.moveDuration
                 }
             }
         }
+    }
 
-        Loader {
-            id: plainLoader
+    Loader {
+        id: plainLoader
 
-            y: Theme.spacingS
-            width: parent.width
-            active: root.isPlain
+        y: Theme.spacingS
+        width: parent.width
+        active: root.isPlain
 
-            sourceComponent: StyledText {
-                text: root.item.text || " "
-                color: root.dimColor
-                font.pixelSize: root.leadFontSize
-                font.weight: Theme.fontWeightMedium
-                horizontalAlignment: root.leadAlignment
-                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                Accessible.ignored: true
-            }
+        sourceComponent: StyledText {
+            text: root.item.text || " "
+            color: root.dimColor
+            font.pixelSize: root.leadFontSize
+            font.weight: Theme.fontWeightMedium
+            horizontalAlignment: root.leadAlignment
+            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+            Accessible.ignored: true
         }
+    }
 
-        StateLayer {
-            anchors.fill: parent
-            enabled: root.controller.canSeekLines
-            stateColor: Theme.onSurfaceVariant
-            cornerRadius: Theme.cornerRadius
-            onClicked: root.activated()
-        }
+    StateLayer {
+        anchors.fill: parent
+        enabled: root.controller.canSeekLines
+        stateColor: Theme.onSurfaceVariant
+        cornerRadius: Theme.cornerRadius
+        onClicked: root.activated()
     }
 
     component LyricsPart: Item {

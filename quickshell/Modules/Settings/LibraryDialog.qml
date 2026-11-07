@@ -427,7 +427,10 @@ WindowDialog {
                 iconName: "content_copy"
                 tooltipText: I18n.tr("Copy", "copy a config snippet")
                 Accessible.name: tooltipText
-                onClicked: Quickshell.clipboardText = root.quickConnect.code
+                onClicked: {
+                    Quickshell.clipboardText = root.quickConnect.code;
+                    Router.notify(I18n.tr("Copied", "toast after text was copied to the clipboard"));
+                }
             }
         }
 

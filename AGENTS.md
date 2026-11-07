@@ -52,6 +52,7 @@ For GUI work, use `make headless` before handing anything over. It runs the real
 - `make headless SCENARIO=scripts/headless/typing.sh` types real keys into fields that change the list around them and fails when a character goes missing. Run it after touching a list, its model or a field in a page header.
 - `make headless SCENARIO=scripts/headless/corners.sh` walks the settings pages and fails on a row outside a `SettingsGroup` or with the wrong corners for its place on screen. Run it after touching settings rows or groups, and add new pages to it.
 - `make headless SCENARIO=scripts/headless/cursors.sh` hovers a text field, a column gap and a button, with and without a focused search field, and fails when the Wayland log lacks their `set_shape`. Run it after adding anything that covers the window: a MouseArea sets an arrow cursor even while disabled.
+- `make headless SCENARIO=scripts/headless/menus.sh` checks a tile's buttons after its menu closes and under Tab, and that a menu stays at the pointer in fullscreen with a reserved top area. Run it after touching a tile's hover buttons or `DMenu` placement.
 - `make headless SCENARIO=scripts/headless/readme.sh` regenerates `docs/screenshots/` from a made-up library. Run it when the look changes.
 - Don't use `make run` or `make quit` for tests: `quit` can stop the developer's real player. Real speakers and devices can't be tested here.
 
