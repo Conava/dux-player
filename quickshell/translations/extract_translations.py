@@ -40,7 +40,7 @@ def extract_qstr_strings(root_dir):
 
     # DCommon terms are owned by the dux-qml-common repo (synced through
     # the DMS POEditor project); rglob not following the symlink is load-bearing.
-    for qml_file in Path(root_dir).rglob('*.qml'):
+    for qml_file in sorted(Path(root_dir).rglob('*.qml')):
         relative_path = qml_file.relative_to(root_dir)
 
         with open(qml_file, 'r', encoding='utf-8') as f:
