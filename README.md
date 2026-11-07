@@ -6,44 +6,52 @@ Dux Player plays local libraries and streams from Navidrome, Subsonic and Jellyf
 
 > **Status: 0.0.1-alpha.** Early Development Version
 
-![Home with the player bar](docs/screenshots/home.png)
+![Home in the Bento style](docs/screenshots/home.png)
+
+![Bottom bar and side panel in the Bento and Material styles](docs/screenshots/bars.png)
 
 | Full view, Bento | Full view, Material |
 |---|---|
 | ![Full view in the Bento style](docs/screenshots/now-playing.png) | ![Full view in the Material style](docs/screenshots/now-playing-material.png) |
 
-<details>
-<summary>More screenshots</summary>
-
-| Synced lyrics | Queue beside the player |
+| Synced lyrics | Home with other shelves and layout |
 |---|---|
-| ![Synced lyrics in the Bento full view](docs/screenshots/lyrics.png) | ![Queue beside the Material player](docs/screenshots/material-queue.png) |
-| **Side panel** | **Light mode** |
-| ![Home with the side panel](docs/screenshots/side-panel.png) | ![Home in light mode](docs/screenshots/light.png) |
-| **Albums** | **Album** |
-| ![Albums page](docs/screenshots/albums.png) | ![An album page](docs/screenshots/album.png) |
-| **Playlists** | **Add to playlists** |
-| ![Playlists page](docs/screenshots/playlists.png) | ![Dialog listing which playlists hold the track](docs/screenshots/playlist-dialog.png) |
-| **Settings** | **Settings search** |
-| ![Now playing settings](docs/screenshots/settings.png) | ![Settings search results](docs/screenshots/settings-search.png) |
+| ![Synced lyrics beside the player](docs/screenshots/lyrics.png) | ![Home in the Material style with other shelves](docs/screenshots/home-custom.png) |
 
-</details>
+Pages, columns and the full view can be customized.
+
+| Custom columns | Page editor |
+|---|---|
+| ![Tracks page with custom columns](docs/screenshots/tracks.png) | ![The page editor](docs/screenshots/page-editor.png) |
+
+![A customized full view](docs/screenshots/now-playing-custom.png)
+
+![Supported sources and outputs](docs/screenshots/sources.png)
 
 ## Features
-- Local libraries (several folders, indexed and watched) and any number of server libraries
+- Local libraries (several folders, indexed and watched) and any number of server libraries; Jellyfin also signs in with Quick Connect, so no password is stored
 - Local playlists that mix tracks from any library, plus server native playlists; add a track to several at once and see which ones hold it
 - Offline rules per server library, caching and preloading the next songs for a seamless experience; favorites and ratings set while a server is unreachable are sent once it is back
+- Server catalogs are kept on the device once a first sync finishes: browsing and search are instant and work while the server is unreachable, where tracks without a cached copy show that they can't play. Checked every 15 minutes, read in full when the server reports a change (at most hourly), at least daily, and on Rescan; the sync waits on a metered connection unless started by hand
 - Gapless playback, crossfade, volume normalization, skipping leading and trailing silence, equalizer several outputs at once
-- Optional synced lyrics with word-by-word fill, on by default, scrobbling (through the server, or to ListenBrainz and Last.fm), casting through [dux-cast](https://github.com/Conava/dux-cast)
+- Optional synced lyrics with word-by-word fill, in the full view and as one line in the bar, on by default, scrobbling (through the server, or to ListenBrainz and Last.fm), casting through [dux-cast](https://github.com/Conava/dux-cast)
 - Keeps playing with the window closed; MPRIS, a tray icon and a CLI (`dplayer play`, `dplayer next`, …) for keybinds
-- Fully customizable now-playing bar, side panel and full view in Bento or Material design as well as customizable home page, lists and menus, with searchable settings
+- Phones can control the player over the network through KDE Connect or GSConnect (through MPRIS), until a LAN remote exists
+- `dplayer watch` and `dplayer status --format` for status bars and scripts
+- `dplayer sleep after <number>` stops when a queue entry ends, numbered as `dplayer queue` lists it; a rule behind the current track is dropped unless repeat all is on, and while casting the receiver gets the queue only up to that entry
+- Text templates for a now-playing line and for custom columns in track lists; each column has its own title, Sort by field and width (small, medium or large; Length is sized the same way)
+- Filter rules for track, album and artist pages: match all or any of a list of conditions on fields such as genre, library, rating, year, length, plays, date added and last played
+- Stop after a chosen queue entry, shuffle by album, and rules for what shuffle all and auto-continue skip (genres, libraries, low ratings, short tracks); shuffling a named library ignores that library's skip entry
+- Keep a single song on the device for offline play, from its menu; track tiles can open the album instead of playing; `dplayer keep library:id…` and `dplayer unkeep library:id…` do the same from the CLI
+- When a track has no lyrics, the full view can fall back to the cover
+- Now-playing bar, side panel and full view in Bento or Material design, with arrangeable elements, a customizable home page and track lists, and searchable settings
 
 ## Requirements
 
 - [Quickshell](https://quickshell.org) with Qt 6
 - Recommended: mpv 0.38 or newer. Without it a built-in player plays FLAC, MP3, Ogg Vorbis, Opus, WAV and AIFF through PulseAudio or PipeWire (pipewire-pulse), but not AAC/M4A, ALAC, WavPack, APE or Musepack files; it has no crossfade, speed control, equalizer or several outputs at once, and can't seek in a track the server converts while it plays
 - Go 1.27 to build
-- Optional: ffmpeg (loudness and silence measurement), PipeWire with WirePlumber (multiple outputs, equalizer, system volume), a Secret Service keyring (server passwords), `cast-helper` (casting)
+- Optional: ffmpeg (loudness and silence measurement, matching lyrics timing to the audio), PipeWire with WirePlumber (multiple outputs, equalizer, system volume), a Secret Service keyring (server passwords and sign-in tokens), `cast-helper` 0.2.0 or newer (casting)
 
 ## Build and run
 
@@ -69,6 +77,30 @@ make install
 
 `make help` to list every target.
 
+## Text templates
+
+The Text element of the now-playing surfaces, the Custom text line of track lists and `dplayer status --format` share one syntax:
+
+| | |
+|---|---|
+| `%field%` | The field's value. An unknown name stays as typed. |
+| `%a\|b%` | The first of the fields with a value. |
+| `[ … ]` | Printed only if a field inside has a value: `%album%[ (%year%)]`. |
+| `'…'` | Literal text, for `%`, `[`, `]` and `\|`. `''` is an apostrophe. |
+
+Fields: `title`, `artist`, `artists`, `album`, `albumartist`, `composer`, `genre`, `year`, `tracknumber`, `discnumber`, `duration`, `rating`, `playcount`, `library`, `format`, `bitrate`, `added`, and `playingfrom` for the playing track. The CLI adds `state` (`playing`, `paused`, `stopped`).
+
+## Scripts and status bars
+
+`dplayer status --format '%artist% - %title%'` prints one line. `dplayer watch --format '…'` prints one on every track or play state change until Ctrl+C, and exits with an error when the daemon stops; without `--format` each line is a JSON event. Neither starts the player: with no daemon running they print nothing and fail, so a bar that retries picks the player up once it runs. A waybar module:
+
+```json
+"custom/dplayer": {
+    "exec": "dplayer watch --format '[%artist% - %title%]'",
+    "restart-interval": 5
+}
+```
+
 ## Troubleshooting
 
 The daemon logs to `~/.local/state/dplayer/daemon.log` and the window to `ui.log` next to it, including mpv's warnings and the mpv version found at startup. To watch it live, run `dplayer quit`, then `dplayer daemon` in a terminal, and open the window.
@@ -78,7 +110,7 @@ The daemon logs to `~/.local/state/dplayer/daemon.log` and the window to `ui.log
 Dux Player only contacts the servers you add, except for these features, each of which can be turned off in Settings:
 
 - **Artist information:** artist names are sent to MusicBrainz, Wikidata and Wikipedia, and to fanart.tv and Last.fm once you add your own API key. Biographies from Wikipedia are available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
-- **Lyrics:** on by default. Title, artist, album and duration of the playing track, of the next track while lyrics are open, and of downloaded tracks are sent to the enabled lyrics providers. Turn lyrics off in Settings → Lyrics and no provider is contacted; turn off Lyrics for downloaded tracks to send only tracks you play.
+- **Lyrics:** on by default. Title, artist, album and length of the playing track, of the next track while lyrics are open, and of downloaded tracks are sent to the enabled lyrics providers. Turn lyrics off in Settings → Lyrics and no provider is contacted; turn off Lyrics for downloaded tracks to send only tracks you play. Matching lyrics timing to the audio runs on this device and sends nothing.
 - **Scrobbling:** played tracks are sent to ListenBrainz or Last.fm when you connect an account. Last.fm needs your own [API account](https://www.last.fm/api/account/create).
 
 ## Contributing
