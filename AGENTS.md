@@ -52,6 +52,10 @@ For GUI work, use `make headless` before handing anything over. It runs the real
 - `make headless SCENARIO=scripts/headless/typing.sh` types real keys into fields that change the list around them and fails when a character goes missing. Run it after touching a list, its model or a field in a page header.
 - `make headless SCENARIO=scripts/headless/corners.sh` walks the settings pages and fails on a row outside a `SettingsGroup` or with the wrong corners for its place on screen. Run it after touching settings rows or groups, and add new pages to it.
 - `make headless SCENARIO=scripts/headless/cursors.sh` hovers a text field, a column gap and a button, with and without a focused search field, and fails when the Wayland log lacks their `set_shape`. Run it after adding anything that covers the window: a MouseArea sets an arrow cursor even while disabled.
+- `make headless SCENARIO=scripts/headless/navigation.sh` sends Alt+Left, Alt+Right and the side buttons (`pointer b|f`) with and without the full view open and fails on a wrong route. Run it after touching `Router`, the back and forward shortcuts or what opens a page.
+- `make headless SCENARIO=scripts/headless/scroll.sh` checks that back and forward restore a page's scroll offset, a new visit starts at the top and a late layout change doesn't pull the view back. Run it after touching a page's scrolling view or `PageScroll`. A new page's scrolling view declares a `PageScroll`.
+- `make headless SCENARIO=scripts/headless/keys.sh` types Space, the arrows, Ctrl+arrows and F with focus on a button, a text field, a dialog, a menu and a dropdown, and fails when a key goes to the wrong place. Run it after adding a field, popup or overlay, or touching the window's `Shortcut`s.
+- `make headless SCENARIO=scripts/headless/columns.sh` shrinks a track list's columns and fails on a QML warning. Run it after touching column cells or the column options.
 - `make headless SCENARIO=scripts/headless/readme.sh` regenerates `docs/screenshots/` from a made-up library. Run it when the look changes.
 - Don't use `make run` or `make quit` for tests: `quit` can stop the developer's real player. Real speakers and devices can't be tested here.
 
@@ -113,6 +117,7 @@ The whole Dux suite follows Google's Material 3 Expressive (M3E). The app must l
 - A content-sized item (Column, Row) inside a settings group needs an explicit `width`, or the group renders 0×0.
 - Guard transient empty inputs (`Quickshell.screens` and other live lists can be empty for a moment).
 - **qmllint with warnings is the real check**, and `make lint` runs it: an unresolved type or an assignment to a property that doesn't exist only warns, yet breaks at runtime, so every `Could not find property` and unresolved type is a blocker. The lint script builds Quickshell's tooling files by itself when they're missing.
+- **A popup or overlay that takes keys stops the window's `Shortcut`s.** A `Shortcut` fires before the focused item; `DMenu` does it with `Keys.onShortcutOverride`.
 - **Settings search is generated.** `make settings-index` builds `Modules/Settings/SettingsSearchIndex.js` from the settings pages (`quickshell/scripts/settings_index.py`); `make run` regenerates it and `make check` fails when it is stale. Never edit it by hand. A row, card or section label is found when its title is one literal `I18n.tr(…)` call; its description, option and button labels are searchable too. Give a row `keywords: "…"` for common synonyms its text doesn't contain (English, space-separated), and `searchable: false` when it is a status line rather than a setting. A new row type or a page file goes into the script's tables.
 
 ## State and persistence
