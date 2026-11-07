@@ -29,6 +29,13 @@ Item {
 
     signal triggered(string id)
 
+    onOpenedChanged: {
+        if (opened)
+            MenuState.open = root;
+        else if (MenuState.open === root)
+            MenuState.open = null;
+    }
+
     // x, y: a point in anchor's coordinates (the pointer for right-click); omitted, the menu opens below anchor
     function open(anchor, x, y) {
         const window = root.QsWindow.window;
@@ -146,7 +153,8 @@ Item {
             FocusScope {
                 anchors.fill: parent
                 focus: true
-                Component.onCompleted: forceActiveFocus()
+                // the popup's window doesn't exist yet at this point, and without one the focus goes nowhere
+                Component.onCompleted: Qt.callLater(forceActiveFocus)
 
                 Keys.onPressed: event => {
                     switch (event.key) {

@@ -38,6 +38,7 @@ Item {
         id: background
         anchors.fill: parent
         acceptedButtons: Qt.RightButton
+        preventStealing: true
         onClicked: mouse => sideMenu.open(background, mouse.x, mouse.y)
     }
 
