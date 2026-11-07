@@ -23,7 +23,14 @@ int main(void) {
     else if (sscanf(line, "w %d", &x) == 1) { zwlr_virtual_pointer_v1_axis_source(p, 0); zwlr_virtual_pointer_v1_axis_discrete(p, now(), 0, wl_fixed_from_int(15 * x), x); zwlr_virtual_pointer_v1_frame(p); }
     else if (line[0] == 'd') { zwlr_virtual_pointer_v1_button(p, now(), 272, 1); zwlr_virtual_pointer_v1_frame(p); }
     else if (line[0] == 'u') { zwlr_virtual_pointer_v1_button(p, now(), 272, 0); zwlr_virtual_pointer_v1_frame(p); }
-    else if (line[0] == 'b' || line[0] == 'f') { int b = line[0] == 'b' ? 275 : 276; zwlr_virtual_pointer_v1_button(p, now(), b, 1); zwlr_virtual_pointer_v1_frame(p); wl_display_roundtrip(d); nanosleep(&(struct timespec){0, 80000000}, NULL); zwlr_virtual_pointer_v1_button(p, now(), b, 0); zwlr_virtual_pointer_v1_frame(p); }
+    else if (line[0] == 'b' || line[0] == 'f') {
+      /* "b [ms [dx]]": hold the side button for ms, moving dx px halfway through */
+      int b = line[0] == 'b' ? 275 : 276, ms = 80, dx = 0; sscanf(line + 1, "%d %d", &ms, &dx);
+      struct timespec half = { ms / 2000, (ms / 2 % 1000) * 1000000L };
+      zwlr_virtual_pointer_v1_button(p, now(), b, 1); zwlr_virtual_pointer_v1_frame(p); wl_display_roundtrip(d); nanosleep(&half, NULL);
+      if (dx) { zwlr_virtual_pointer_v1_motion(p, now(), wl_fixed_from_int(dx), 0); zwlr_virtual_pointer_v1_frame(p); wl_display_roundtrip(d); }
+      nanosleep(&half, NULL); zwlr_virtual_pointer_v1_button(p, now(), b, 0); zwlr_virtual_pointer_v1_frame(p);
+    }
     else if (line[0] == 'c') { zwlr_virtual_pointer_v1_button(p, now(), 272, 1); zwlr_virtual_pointer_v1_frame(p); wl_display_roundtrip(d); nanosleep(&(struct timespec){0, 80000000}, NULL); zwlr_virtual_pointer_v1_button(p, now(), 272, 0); zwlr_virtual_pointer_v1_frame(p); }
     wl_display_roundtrip(d);
   }

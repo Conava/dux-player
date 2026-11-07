@@ -160,7 +160,10 @@ DFloatingWindow {
         }
 
         TapHandler {
+            // a thumb press is held and shoves the mouse; act on release like browsers do
             acceptedButtons: Qt.BackButton | Qt.ForwardButton
+            gesturePolicy: TapHandler.ReleaseWithinBounds
+            longPressThreshold: 0
             enabled: !focusScope.dialogOpen
             onTapped: (point, button) => {
                 if (button === Qt.BackButton)

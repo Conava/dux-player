@@ -49,6 +49,27 @@ pointer f
 sleep 0.8
 expect "extra button forward" "$(route)" "albums/"
 
+# a real mouse holds the button for a while and moves a little: one action on release either way
+held() {
+    # the pointer helper returns at once, so wait out the hold too
+    wait=$(awk "BEGIN { print $1 / 1000 + 0.8 }")
+    go tracks
+    go albums
+    pointer b "$1" "$2"
+    sleep "$wait"
+    expect "side button back, $3" "$(route)" "tracks/"
+    go tracks
+    go albums
+    alt Left
+    pointer f "$1" "$2"
+    sleep "$wait"
+    expect "extra button forward, $3" "$(route)" "albums/"
+}
+held 1000 0 "held 1 s"
+held 300 20 "moved 20 px"
+pointer m 1280 720
+sleep 0.3
+
 alt Left
 go libraries
 alt Right
