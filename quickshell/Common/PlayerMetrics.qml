@@ -14,6 +14,12 @@ Singleton {
     readonly property real paneRadius: Theme.cornerRadiusL
     // M3 fade through: the incoming page grows from this scale
     readonly property real pageEnterScale: 0.92
+    // the full view's morph, as shares of its time: the pages are gone by the first, the view starts fading in at
+    // the second, after them so it never shows over the pages
+    readonly property real morphPagesFade: 0.3
+    readonly property real morphViewFade: 0.5
+    // how far the surface has grown before the view shows at all
+    readonly property real morphViewCover: 0.6
     readonly property real pagePadding: Theme.spacingXL
     readonly property real pageHeaderHeight: Theme.fontSizeXXLarge + Theme.spacingXL + Theme.spacingM
     readonly property real gridCellWidth: 184

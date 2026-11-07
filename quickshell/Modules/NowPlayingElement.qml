@@ -197,6 +197,7 @@ Loader {
             // one of the title components below, which share no type
             readonly property var titleText: titleLoader.item
             readonly property real textWidth: titleText?.fullTextWidth ?? titleText?.implicitTextWidth ?? 0
+            readonly property real drawnWidth: textWidth + heartSpace
 
             implicitWidth: titleLoader.implicitWidth + heartSpace
             implicitHeight: titleLoader.implicitHeight

@@ -13,6 +13,7 @@
 #                    left press and release, right press and release, pause, wheel. Lines of one write keep their
 #                    timing: pointer "$(printf 'D\ns 30\nU')"
 #   click X Y        move and click
+#   frames NAME CMD  run CMD and write the ms between UI frames to out/NAME.frames
 #   rclick X Y       move and right click
 dp() { dplayer-dev "$@"; }
 
@@ -43,6 +44,15 @@ expand() { ui expand "$1"; sleep "${SETTLE:-1.5}"; }
 look() { ui look "$1" "$2"; sleep "${SETTLE:-1.5}"; }
 element() { ui element "$1" "$2"; }
 shot() { grim "$W/out/$1.png"; }
+# frames NAME CMD...: runs CMD, then records the ms between UI frames for 1.5 s in out/NAME.frames
+frames() {
+    local name=$1
+    shift
+    qs ipc -p "$W/tree" call headless framesStart >/dev/null
+    "$@"
+    sleep 1.5
+    qs ipc -p "$W/tree" call headless framesStop >"$W/out/$name.frames"
+}
 
 pointer() {
     if [ ! -p "$W/ptr" ]; then
