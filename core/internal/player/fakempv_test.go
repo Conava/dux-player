@@ -62,6 +62,11 @@ func fakeMPV(stallMS string) {
 		if json.Unmarshal(sc.Bytes(), &req) != nil || len(req.Command) == 0 {
 			continue
 		}
+		if file := os.Getenv("FAKE_MPV_HANG"); file != "" {
+			if _, err := os.Stat(file); err == nil {
+				select {}
+			}
+		}
 		reply := map[string]any{"request_id": req.RequestID, "error": "success"}
 		switch req.Command[0] {
 		case "observe_property":
@@ -73,7 +78,7 @@ func fakeMPV(stallMS string) {
 			if len(req.Command) > 1 && req.Command[1] == "loop-file" {
 				if file := os.Getenv("FAKE_MPV_STALL_LOOP_FILE"); file != "" {
 					if _, err := os.Stat(file); err == nil {
-						time.Sleep(600 * time.Millisecond)
+						time.Sleep(300 * time.Millisecond)
 					}
 					if f, err := os.OpenFile(file+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600); err == nil {
 						fmt.Fprintln(f, req.Command[2])
@@ -143,4 +148,27 @@ func TestSetRepeatTimeoutRevertsTheBackend(t *testing.T) {
 		lines := strings.Fields(string(log))
 		return strings.Join(lines, ",") == "no,inf,no"
 	}, 3*time.Second, 20*time.Millisecond, "mpv was not sent the old value last")
+}
+
+// An mpv whose core stalls for good stays alive, so only the unanswered
+// commands show it; playback has to come back without a daemon restart.
+func TestHungMPVIsReplaced(t *testing.T) {
+	old := commandTimeout
+	commandTimeout = 200 * time.Millisecond
+	t.Cleanup(func() { commandTimeout = old })
+	t.Setenv("FAKE_MPV_STALL_MS", "1")
+
+	dir := t.TempDir()
+	hang := filepath.Join(dir, "hang")
+	t.Setenv("FAKE_MPV_HANG", hang)
+	p := New(Config{Binary: os.Args[0], Socket: filepath.Join(dir, "mpv.sock"), Resolver: pathResolver{"a": filepath.Join(dir, "a.wav")}})
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go p.Run(ctx)
+	require.NoError(t, p.Play(ctx, []source.Track{{Library: "l", ID: "a", Title: "a"}}, 0, Origin{Kind: "track"}))
+
+	require.NoError(t, os.WriteFile(hang, nil, 0o600))
+	require.Error(t, p.SetRepeat(ctx, RepeatOne))
+	require.NoError(t, os.Remove(hang))
+	require.Eventually(t, func() bool { return p.SetRepeat(ctx, RepeatOne) == nil }, 3*time.Second, 20*time.Millisecond, "the hung mpv was not replaced")
 }

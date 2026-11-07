@@ -964,7 +964,25 @@ func (p *Player) cmd(ctx context.Context, args ...any) (json.RawMessage, error) 
 	if err := p.ensureProc(ctx); err != nil {
 		return nil, err
 	}
-	return p.proc.conn.command(ctx, args...)
+	out, err := p.proc.conn.command(ctx, args...)
+	if errors.Is(err, context.DeadlineExceeded) && ctx.Err() == nil {
+		p.killIfHung(ctx)
+	}
+	return out, err
+}
+
+// killIfHung ends an mpv that ignores a second command as well. Its core can
+// stall for good when the sound server goes away, and only a new process
+// recovers; the exit then takes the crash path, which resumes the track.
+func (p *Player) killIfHung(ctx context.Context) {
+	if p.proc.builtin() {
+		return
+	}
+	if _, err := p.proc.conn.command(ctx, "get_property", "mpv-version"); !errors.Is(err, context.DeadlineExceeded) {
+		return
+	}
+	log.Warnf("mpv stopped answering; replacing it")
+	_ = p.proc.cmd.Process.Kill()
 }
 
 func (p *Player) setProp(ctx context.Context, name string, value any) {
