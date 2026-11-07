@@ -27,8 +27,30 @@ done
 sed -e '0,/^import Quickshell$/s//import Quickshell\nimport Quickshell.Io/' -e '$d' "$repo/quickshell/shell.qml" >"$W/tree/shell.qml"
 cat >>"$W/tree/shell.qml" <<'Q'
 
+    // ms between frames the window really presented: a stall shows as one long gap
+    QtObject {
+        id: frameProbe
+        property var times: []
+        property var target: null
+        function window() {
+            return windowLoader.item.contentItem.Window.window;
+        }
+        function swapped() {
+            times.push(Date.now());
+        }
+    }
+
     IpcHandler {
         target: "headless"
+        function framesStart(): void {
+            frameProbe.times = [];
+            frameProbe.target = frameProbe.window();
+            frameProbe.target.frameSwapped.connect(frameProbe, frameProbe.swapped);
+        }
+        function framesStop(): string {
+            frameProbe.target.frameSwapped.disconnect(frameProbe, frameProbe.swapped);
+            return frameProbe.times.slice(1).map((t, i) => t - frameProbe.times[i]).join(" ");
+        }
         function go(page: string): void {
             Router.go(page);
         }
@@ -40,6 +62,29 @@ cat >>"$W/tree/shell.qml" <<'Q'
                 Router.openNowPlaying();
             else
                 Router.nowPlayingOpen = false;
+        }
+        function searchEverything(): void {
+            Router.searchEverything();
+        }
+        // the full view's device button, pressed as a click does; true when the sheet opened knowing its button
+        function pressDevice(): bool {
+            const find = item => {
+                if (!item || !item.visible)
+                    return null;
+                if (String(item).startsWith("DeviceButton") && item.context === "view")
+                    return item;
+                for (const child of item.children) {
+                    const found = find(child);
+                    if (found)
+                        return found;
+                }
+                return null;
+            };
+            find(frameProbe.window().contentItem)?.clicked();
+            return Router.playOnOpen && Router.playOnFrom !== null;
+        }
+        function focused(): string {
+            return String(frameProbe.window()?.activeFocusItem ?? "");
         }
         function focusSearch(): void {
             Router.pageSearch.forceActiveFocus();
@@ -133,6 +178,9 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function reduceMotion(on: bool): void {
             SettingsData.reduceMotion = on;
         }
+        function animationDuration(ms: int): void {
+            SettingsData.animationDuration = ms;
+        }
         function lyricsDisplay(key: string, value: string): void {
             UiConfig.setLyricsDisplay({
                 [key]: value === "true" || (value !== "false" && value)
@@ -185,7 +233,7 @@ env -i LANG=C.UTF-8 USER="$USER" HOME="$W/home" PATH="$W/bin:$repo/core/bin:/usr
     XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/share}" QT_QPA_PLATFORMTHEME=qtengine DPLAYER_WINRULES=off DPLAYER_CAST=off DPLAYER_BACKEND="${DPLAYER_BACKEND:-}" \
     DPLAYER_DISABLE_HOT_RELOAD=1 HYPRLAND_NO_SD_NOTIFY=1 HYPRLAND_NO_SD_VARS=1 HYPRLAND_NO_CRASHREPORTER=1 \
     W="$W" LIB="$here/lib.sh" SCENARIO="$scenario" \
-    timeout -k 30 "${HEADLESS_TIMEOUT:-180}" dbus-run-session -- bash "$here/session.sh"
+    timeout -k 30 "${HEADLESS_TIMEOUT:-300}" dbus-run-session -- bash "$here/session.sh"
 status=$?
 
 log="$W/out/ui.log"

@@ -11,6 +11,7 @@
 #   rpc METHOD JSON  one daemon IPC call; prints the reply
 #   pointer m X Y | c | d | u | w NOTCHES   move, click, press, release, wheel, through a real virtual pointer
 #   click X Y        move and click
+#   frames NAME CMD  run CMD and write the ms between UI frames to out/NAME.frames
 dp() { dplayer-dev "$@"; }
 
 wait_for_daemon() {
@@ -40,6 +41,15 @@ expand() { ui expand "$1"; sleep "${SETTLE:-1.5}"; }
 look() { ui look "$1" "$2"; sleep "${SETTLE:-1.5}"; }
 element() { ui element "$1" "$2"; }
 shot() { grim "$W/out/$1.png"; }
+# frames NAME CMD...: runs CMD, then records the ms between UI frames for 1.5 s in out/NAME.frames
+frames() {
+    local name=$1
+    shift
+    qs ipc -p "$W/tree" call headless framesStart >/dev/null
+    "$@"
+    sleep 1.5
+    qs ipc -p "$W/tree" call headless framesStop >"$W/out/$name.frames"
+}
 
 pointer() {
     if [ ! -p "$W/ptr" ]; then
