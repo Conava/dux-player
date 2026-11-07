@@ -37,6 +37,12 @@ Singleton {
         if (nowPlayingOpen && forwardHistory[forwardHistory.length - 1]?.view === true)
             forwardHistory = forwardHistory.slice(0, -1);
     }
+    // the full view shows only with a track: an emptied queue closes it, so the window doesn't stay blank
+    readonly property bool hasTrack: PlayerService.current !== null
+    onHasTrackChanged: {
+        if (!hasTrack)
+            nowPlayingOpen = false;
+    }
     property bool sleepPickerOpen: false
     property bool speedPickerOpen: false
     // the shown page's own search field, which Ctrl+F focuses before the global search
@@ -223,7 +229,10 @@ Singleton {
         const next = forwardHistory[forwardHistory.length - 1];
         forwardHistory = forwardHistory.slice(0, -1);
         if (next.view) {
-            nowPlayingOpen = true;
+            if (hasTrack)
+                nowPlayingOpen = true;
+            else
+                forward();
             return;
         }
         history = history.concat([_here()]);

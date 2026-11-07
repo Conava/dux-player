@@ -103,6 +103,11 @@ cat >>"$W/tree/shell.qml" <<'Q'
             }
             return "";
         }
+        // the item with the keyboard focus: its accessible name, else its type
+        function focusName(): string {
+            const item = Router.pageScroll?.view.Window.activeFocusItem ?? null;
+            return item ? item.Accessible.name || String(item).replace(/[_(].*/, "") : "";
+        }
         function elementOptions(id: string): void {
             const find = item => {
                 if (!item)

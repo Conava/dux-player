@@ -206,4 +206,47 @@ wtype -k Escape
 sleep 1
 shot navigation
 
+# A dialog gives the focus back to what opened it, also through a dialog it opened: Add to playlist at 684,365 on the
+# album page, New playlist by Tab and Space, which closes Add to playlist
+focus() { ask focusName | tr -d '\n'; }
+ui open album "$(ask albumId "Test Album" | tr -d '\n')"
+sleep 2
+click 684 365
+sleep 1.5
+wtype -k Tab
+sleep 0.5
+wtype -k space
+sleep 1.5
+wtype -k Escape
+sleep 1.2
+expect "a closed dialog returns the focus to its opener" "$(focus)" "Add to playlist"
+
+# Rename from a row's menu, at 2478,247 on the only playlist and 2408,467
+rpc localPlaylists.create '{"name":"Renamed"}' >/dev/null
+go playlists
+click 2478 247
+sleep 1
+click 2408 467
+sleep 1.2
+wtype -k Escape
+sleep 1
+expect "a prompt from a row menu returns the focus to the row" "$(focus)" "More"
+
+# an emptied queue closes the full view and leaves forward nothing to open
+go albums
+expand true
+alt Left
+rpc queue.clear '{}' >/dev/null
+sleep 1.5
+alt Right
+expect "forward with an empty queue opens no view" "$(view)" "false"
+expect "forward with an empty queue stays on the page" "$(route)" "albums/"
+dp play "$W/music" >/dev/null
+sleep 2
+expand true
+rpc queue.clear '{}' >/dev/null
+sleep 1.5
+shot cleared
+expect "clearing the queue closes the view" "$(view)" "false"
+
 [ "$failed" = 0 ]

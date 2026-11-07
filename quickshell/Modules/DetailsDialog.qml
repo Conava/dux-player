@@ -87,10 +87,6 @@ WindowDialog {
     opened: request !== null
     acceptEnabled: false
     onRejected: Router.details = null
-    onOpenedChanged: {
-        if (opened)
-            Qt.callLater(forceActiveFocus);
-    }
 
     // label at the start, value at the end on one line; the value takes what the label leaves and elides
     component FactRow: SettingsRow {
