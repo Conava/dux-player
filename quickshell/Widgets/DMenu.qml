@@ -107,6 +107,10 @@ Item {
     }
 
     Keys.onShortcutOverride: event => event.accepted = opened
+    Component.onDestruction: {
+        if (opened)
+            focusBack?.forceActiveFocus(focusBackReason);
+    }
 
     width: 0
     height: 0
