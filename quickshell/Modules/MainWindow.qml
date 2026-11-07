@@ -224,7 +224,7 @@ DFloatingWindow {
                 Behavior on fullReveal {
                     enabled: Theme.animationsEnabled
                     NumberAnimation {
-                        duration: PlayerMetrics.morphDuration
+                        duration: Theme.expressiveDurations.large
                         easing.type: Easing.BezierSpline
                         easing.bezierCurve: Theme.expressiveCurves.standard
                     }
@@ -233,7 +233,7 @@ DFloatingWindow {
                 Behavior on fullFade {
                     enabled: Theme.animationsEnabled
                     NumberAnimation {
-                        duration: PlayerMetrics.morphDuration
+                        duration: Theme.expressiveDurations.large
                     }
                 }
 
@@ -251,9 +251,12 @@ DFloatingWindow {
                     height: body.height + (source.height - body.height) * remaining
                     radius: source.radius * remaining
                     // the attached look's bar has no card of its own, and the shape has to be seen to read as growing
-                    color: source.color.a > 0 ? source.color : ArtColors.cardColor
+                    readonly property color from: source.color.a > 0 ? source.color : ArtColors.cardColor
+
+                    // turns into the window's own surface as it grows and thins out all the way, so it never ends in a jump
+                    color: Theme.blend(from, Theme.withAlpha(ArtColors.surface, from.a), body.fullFade)
                     // under the fading source this adds up to one layer of its colour, not two
-                    opacity: (pages.opacity < 1 ? (1 - pages.opacity) / (1 - color.a * pages.opacity) : 0) * Math.min(1, (1 - body.fullFade) / (1 - PlayerMetrics.morphCardFade))
+                    opacity: (pages.opacity < 1 ? (1 - pages.opacity) / (1 - color.a * pages.opacity) : 0) * (1 - body.fullFade * body.fullFade)
                     visible: body.fullFade > 0 && body.fullFade < 1
                 }
 

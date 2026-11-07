@@ -23,6 +23,14 @@ RowLayout {
     property string look: "plain"
     // the transport's button height when it isn't the size's (Bento's deck)
     property real buttonHeight: 0
+    // a filled row never makes a button taller than wide: one share of the width each, play two
+    readonly property real fillShare: {
+        if (!fill)
+            return 0;
+        const shown = instances.filter(i => !i.hidden && shows(i.type, i.options));
+        const shares = shown.reduce((n, i) => n + (i.type === "playPause" ? PlayerMetrics.mediaPlayWidthRatio : 1), 0);
+        return shares > 0 ? Math.floor((width - spacing * (shown.length - 1)) / shares) : 0;
+    }
     // per element: the plain look for everything but the transport
     property bool transportOnly: false
     property bool fill: false
@@ -314,7 +322,7 @@ RowLayout {
     component Element: NowPlayingElement {
         context: root.context
         size: root.size
-        buttonHeight: root.buttonHeight
+        buttonHeight: root.fillShare > 0 ? Math.min(root.buttonHeight > 0 ? root.buttonHeight : root.size === "m" ? Theme.buttonHeightM : Theme.buttonHeightS, root.fillShare) : root.buttonHeight
         groupWidth: groupProbe.width
         look: root.transportOnly && !transportId ? "plain" : root.look
         textLook: root.textLook
