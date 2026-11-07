@@ -14,7 +14,7 @@ Item {
     readonly property bool editing: Router.editing
     readonly property var shelves: UiConfig.surface("home").zones.shelves
     readonly property bool hasLibraries: CatalogService.libraries.length > 0
-    readonly property var shown: shelves.filter(s => !s.hidden && UiConfig.isKnown(s.type) && (s.type === "search" || hasLibraries))
+    readonly property var shown: shelves.filter(s => !s.hidden && UiConfig.isKnown(s.type) && (s.type === "search" ? !Router.headerSearchField : hasLibraries))
     readonly property var layouts: ["carousel", "grid", "list"]
     readonly property var sizes: ["s", "m", "l"]
 
