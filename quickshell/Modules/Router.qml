@@ -209,12 +209,14 @@ Singleton {
         nowPlayingOpen = false;
     }
 
-    // this page is gone: back, or to the first navigation entry when there is no history; not forward-reachable
+    // this page is gone: back, or to the first navigation entry or Home when there is no history; not forward-reachable
     function leave() {
         if (canGoBack)
             _stepBack();
         else if (navEntries.length > 0)
             openEntry(navEntries[0]);
+        else
+            _show("home", "", -1);
         forwardHistory = [];
         nowPlayingOpen = false;
     }
