@@ -9,7 +9,9 @@
 #                    ui pageOptions tracks '{"lines":["format"]}', ui addElement fullBento title '{"type":"text"}'
 #   dp ARGS          the dplayer CLI against this sandbox: dp play "$W/music", dp pause
 #   rpc METHOD JSON  one daemon IPC call; prints the reply
-#   pointer m X Y | c | r | d | u | w NOTCHES   move, click, right click, press, release, wheel, through a real virtual pointer
+#   pointer m X Y | c | r | d | u | D | U | s MS | w NOTCHES   through a real virtual pointer: move, click, right click,
+#                    left press and release, right press and release, pause, wheel. Lines of one write keep their
+#                    timing: pointer "$(printf 'D\ns 30\nU')"
 #   click X Y        move and click
 #   rclick X Y       move and right click
 dp() { dplayer-dev "$@"; }

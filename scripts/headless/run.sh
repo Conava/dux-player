@@ -41,6 +41,9 @@ cat >>"$W/tree/shell.qml" <<'Q'
             else
                 Router.nowPlayingOpen = false;
         }
+        function viewOpen(): bool {
+            return Router.nowPlayingOpen;
+        }
         function focusSearch(): void {
             Router.pageSearch.forceActiveFocus();
         }
