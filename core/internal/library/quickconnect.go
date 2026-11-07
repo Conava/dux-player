@@ -14,7 +14,7 @@ import (
 
 // Quick Connect timing: the server keeps a code for 10 minutes and the
 // Jellyfin clients poll every 5 seconds.
-var (
+const (
 	quickConnectEvery    = 5 * time.Second
 	quickConnectLifetime = 10 * time.Minute
 )
@@ -123,14 +123,23 @@ func (m *Manager) QuickConnectStart(ctx context.Context, libID, kind, name strin
 	}
 	s := &quickConnectSession{id: source.NewID()}
 	var rctx context.Context
-	rctx, s.cancel = context.WithTimeout(context.Background(), quickConnectLifetime)
+	rctx, s.cancel = context.WithTimeout(m.ctx, m.qcLifetime)
 	m.qcMu.Lock()
 	if m.qc != nil {
 		m.qc.cancel()
 	}
 	m.qc = s
 	m.qcMu.Unlock()
-	go m.quickConnectRun(rctx, s, src, q, secret, libID == "", lib, vals, code)
+	if !m.spawn(func() { m.quickConnectRun(rctx, s, src, q, secret, libID == "", lib, vals, code) }) {
+		_ = src.Close()
+		s.cancel()
+		m.qcMu.Lock()
+		if m.qc == s {
+			m.qc = nil
+		}
+		m.qcMu.Unlock()
+		return "", "", errors.New("the library manager has stopped")
+	}
 	return s.id, code, nil
 }
 
@@ -179,7 +188,7 @@ func (m *Manager) quickConnectRun(ctx context.Context, s *quickConnectSession, s
 			end(QuickConnectFailed, failReason(err).Code)
 		}
 	}
-	tick := time.NewTicker(quickConnectEvery)
+	tick := time.NewTicker(m.qcEvery)
 	defer tick.Stop()
 	failures := 0
 	for approved := false; !approved; {

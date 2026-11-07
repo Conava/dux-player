@@ -40,6 +40,7 @@ func TestAddedLibraryIsScanned(t *testing.T) {
 	libs := library.NewManager(store, source.Registry{"fake": func(l source.Library, _ source.Env) (source.Source, error) {
 		return scanned{lib: l, done: done}, nil
 	}}, source.Env{})
+	t.Cleanup(libs.Close)
 
 	c, peer := net.Pipe()
 	t.Cleanup(func() { c.Close(); peer.Close() })

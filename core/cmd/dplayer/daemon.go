@@ -111,6 +111,7 @@ func runDaemon() error {
 	secrets := keyring.Open()
 	env := source.Env{Secrets: secrets, CacheDir: cacheDir, Meter: meter, Version: Version}
 	libs := library.NewManager(store, registry, env, local.Files{})
+	defer libs.Close()
 
 	// mpv's socket lives in a private subdirectory so FindRunningSocket,
 	// which dials every dplayer-*.sock, never mistakes it for ours.

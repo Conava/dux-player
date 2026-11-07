@@ -37,6 +37,7 @@ func realSourceManager(t *testing.T, kind string, factory source.Factory, config
 	t.Cleanup(func() { store.Close() })
 	require.NoError(t, store.AddLibrary(ctx, source.Library{ID: "srv", Kind: kind, Name: "Server", Enabled: true, Config: config}))
 	m := NewManager(store, source.Registry{kind: factory}, source.Env{Secrets: secrets, CacheDir: t.TempDir(), Version: "1"})
+	t.Cleanup(m.Close)
 	require.NoError(t, m.Load(ctx))
 	m.awaitAll(ctx)
 	return m, store

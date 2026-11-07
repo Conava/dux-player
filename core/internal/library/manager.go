@@ -221,6 +221,15 @@ type Manager struct {
 
 	qcMu sync.Mutex
 	qc   *quickConnectSession
+	// Fields so a test can shorten them without racing other tests.
+	qcEvery, qcLifetime time.Duration
+	maxCatalog          int
+
+	// ctx ends at Close; work holds the goroutines Close waits for.
+	ctx    context.Context
+	stop   context.CancelFunc
+	workMu sync.Mutex // keeps spawn from racing Close's wait
+	work   sync.WaitGroup
 }
 
 func NewManager(store *Store, registry source.Registry, env source.Env, builtin ...source.Source) *Manager {
@@ -245,11 +254,50 @@ func NewManager(store *Store, registry source.Registry, env source.Env, builtin 
 		nextWalk: make(map[string]time.Time),
 		checks:   make(map[string]bool),
 		checked:  make(map[string]time.Time),
+
+		qcEvery:    quickConnectEvery,
+		qcLifetime: quickConnectLifetime,
+		maxCatalog: maxCatalog,
 	}
+	m.ctx, m.stop = context.WithCancel(context.Background())
 	for _, b := range builtin {
 		m.builtin[b.Library().ID] = b
 	}
 	return m
+}
+
+// spawn runs f in the background for Close to wait on, and reports false
+// without running it once the manager has closed.
+func (m *Manager) spawn(f func()) bool {
+	m.workMu.Lock()
+	defer m.workMu.Unlock()
+	if m.ctx.Err() != nil {
+		return false
+	}
+	m.work.Go(f)
+	return true
+}
+
+// closeWait bounds Close: a library build can wait on the keyring, which
+// doesn't stop when cancelled.
+const closeWait = 3 * time.Second
+
+// Close cancels the manager's background work and waits up to closeWait for
+// it, so none of it outlives the store.
+func (m *Manager) Close() {
+	m.workMu.Lock()
+	m.stop()
+	m.workMu.Unlock()
+	done := make(chan struct{})
+	go func() {
+		m.work.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(closeWait):
+		log.Infof("libraries: stopped waiting for background work after %s", closeWait)
+	}
 }
 
 func (m *Manager) Kinds() []string { return m.registry.Kinds() }
@@ -271,14 +319,18 @@ func (m *Manager) Load(ctx context.Context) error {
 		}
 		done := make(chan struct{})
 		m.starting[lib.ID] = done
-		go func() {
+		started := m.spawn(func() {
 			m.build(lib)
 			m.mu.Lock()
 			delete(m.starting, lib.ID)
 			m.mu.Unlock()
 			close(done)
-			m.PublishChanges(context.Background())
-		}()
+			m.PublishChanges(m.ctx)
+		})
+		if !started {
+			delete(m.starting, lib.ID)
+			close(done)
+		}
 	}
 	return nil
 }
@@ -482,7 +534,7 @@ func (m *Manager) Get(id string) (source.Source, error) {
 	if b, ok := m.builtin[id]; ok {
 		return b, nil
 	}
-	m.await(context.Background(), id)
+	m.await(m.ctx, id)
 	m.watchCaps()
 	m.mu.RLock()
 	src, ok := m.sources[id]
@@ -491,9 +543,9 @@ func (m *Manager) Get(id string) (source.Source, error) {
 	m.mu.RUnlock()
 	switch {
 	case due && failed:
-		m.retry(context.Background(), id)
+		m.retry(m.ctx, id)
 	case due:
-		go m.retry(context.Background(), id)
+		m.spawn(func() { m.retry(m.ctx, id) })
 	}
 	if ok {
 		return src, nil
@@ -665,14 +717,14 @@ func (m *Manager) Probe(ctx context.Context, ref source.Ref, done func(gain floa
 	if _, ok := src.(source.Loudness); ok {
 		return
 	}
-	go func() {
+	m.spawn(func() {
 		gain, err := (*off).Probe(ctx, ref)
 		if err != nil {
 			log.Debugf("loudness probe: %v", err)
 			return
 		}
 		done(gain)
-	}()
+	})
 }
 
 // Unavailable says why a track can't play right now, or "" when it can.
@@ -755,13 +807,13 @@ func (m *Manager) Failed(ref source.Ref, recheck func()) {
 	if pending {
 		return
 	}
-	go func() {
-		m.retry(context.Background(), ref.Library)
+	m.spawn(func() {
+		m.retry(m.ctx, ref.Library)
 		m.mu.Lock()
 		delete(m.suspect, ref.Library)
 		m.mu.Unlock()
 		recheck()
-	}()
+	})
 }
 
 const maxDelta = 1000
@@ -855,7 +907,9 @@ func (m *Manager) emit(topic string, data any) {
 func (m *Manager) PublishChanges(ctx context.Context) {
 	infos, err := m.List(ctx)
 	if err != nil {
-		log.Warnf("libraries: can't list them to publish changes: %v", err)
+		if ctx.Err() == nil {
+			log.Warnf("libraries: can't list them to publish changes: %v", err)
+		}
 		return
 	}
 	now := make(map[string]string, len(infos))
@@ -886,7 +940,7 @@ func (m *Manager) watchCaps() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.capsTimer == nil {
-		m.capsTimer = time.AfterFunc(capsDelay, func() { m.PublishChanges(context.Background()) })
+		m.capsTimer = time.AfterFunc(capsDelay, func() { m.spawn(func() { m.PublishChanges(m.ctx) }) })
 		return
 	}
 	m.capsTimer.Reset(capsDelay)
@@ -943,7 +997,9 @@ func (m *Manager) Retry(ctx context.Context, id string) (Info, error) {
 func (m *Manager) retry(ctx context.Context, id string) {
 	lib, err := m.library(ctx, id)
 	if err != nil {
-		log.Warnf("library %s: can't retry: %v", id, err)
+		if ctx.Err() == nil {
+			log.Warnf("library %s: can't retry: %v", id, err)
+		}
 		return
 	}
 	if !lib.Enabled {
@@ -1002,7 +1058,7 @@ func (m *Manager) check(ctx context.Context, lib source.Library) {
 		return
 	}
 	m.servers[lib.ID] = srv
-	go m.catalogCheck(lib.ID, src, back)
+	m.spawn(func() { m.catalogCheck(lib.ID, src, back) })
 }
 
 // SetEnabled turns a library on or off. A library that is off has no
