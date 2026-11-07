@@ -1,4 +1,4 @@
-# Player keys: Space, Left, Right, Ctrl+Left, Ctrl+Right and F, with focus on a clicked button, a Tab-focused button, a text field, a dialog, a menu and a dropdown.
+# Player keys: Space, Left, Right, Ctrl+Left, Ctrl+Right and F, with focus on a clicked button, a Tab-focused button, a text field, a dialog, Bento's Play on sheet, the volume panel, a menu and a dropdown.
 # Real keys through wtype. Fails when a key goes to the wrong place.
 failed=0
 expect() {
@@ -136,6 +136,53 @@ covered() {
     key -M ctrl -k space -m ctrl
     expect "ctrl+space under $1" "$(state)" "$s"
 }
+
+# Bento's Play on sheet over the full view. Space goes last: the sheet's focused back button takes it and closes the sheet.
+sheet() { ask playOnOpen | tr -d '\n'; }
+look dark bento
+go tracks
+expand true
+element device view
+sleep 1.5
+shot keys-sheet
+expect "the sheet opens" "$(sheet)" "true"
+dp pause >/dev/null
+sleep 0.5
+p=$(pos)
+key -k Right
+expect "right under the sheet" "$(pos)" "$p"
+key -k Left
+expect "left under the sheet" "$(pos)" "$p"
+key -k f
+expect "f under the sheet" "$(view)" "true"
+wtype -M alt -k Left -m alt
+sleep 0.8
+expect "alt+left under the sheet" "$(view)" "true"
+pointer b
+sleep 0.8
+expect "side button under the sheet" "$(view)" "true"
+s=$(state)
+key -k space
+expect "space under the sheet" "$(state)" "$s"
+element device view
+sleep 1
+key -k Escape
+expect "escape closes the sheet" "$(sheet)" "false"
+expect "escape keeps the view" "$(view)" "true"
+expand false
+
+# the bar's volume button, at 2445,1352: the slider takes the focus and the page stays put
+go albums
+go tracks
+click 2445 1352
+sleep 1
+shot keys-volume
+wtype -M alt -k Left -m alt
+sleep 0.8
+expect "alt+left under the volume panel" "$(ask route | tr -d '\n')" "tracks/"
+key -k f
+expect "f under the volume panel" "$(view)" "false"
+key -k Escape
 
 dp pause >/dev/null
 go tracks

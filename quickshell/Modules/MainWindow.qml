@@ -75,8 +75,8 @@ DFloatingWindow {
             onActivated: PlayerService.toggle()
         }
 
-        // a dialog or sheet is open in this window: it owns the keys and the mouse buttons
-        readonly property bool dialogOpen: Escape.top(Router.escapeLayers, l => l.handlesKey && l.owner.visible && l.owner.Window.window === focusScope.Window.window) !== null
+        // a dialog, sheet or volume panel is open in this window: it owns the keys and the mouse buttons
+        readonly property bool dialogOpen: Router.playOnOpen || Escape.top(Router.escapeLayers, l => (l.handlesKey || (l.owner as VolumePanel) !== null) && l.owner.visible && l.owner.Window.window === focusScope.Window.window) !== null
 
         // Player keys: a Shortcut fires before the focused item, so `enabled` is what leaves a key to a field or to a control reached by Tab
         readonly property Item keyItem: Window.activeFocusItem

@@ -31,8 +31,8 @@ Singleton {
     property bool speedPickerOpen: false
     // the shown page's own search field, which Ctrl+F focuses before the global search
     property Item pageSearch: null
-    // the shown page's scrolling view
-    property Flickable pageView: null
+    // the shown page's scrolling view, through its PageScroll
+    property PageScroll pageScroll: null
     // the offset the route being shown goes back to, -1 for a new visit; only set while the page changes, so a view
     // built later starts at the top
     property real restoreOffset: -1
@@ -121,8 +121,12 @@ Singleton {
         nowPlayingOpen = false;
     }
 
+    // an offset still waiting for its rows counts, not where the view sits until they arrive
     function pageOffset() {
-        return pageView ? Math.max(0, pageView.contentY - pageView.originY) : 0;
+        const scroll = pageScroll;
+        if (!scroll)
+            return 0;
+        return scroll.pending >= 0 ? scroll.pending : Math.max(0, scroll.view.contentY - scroll.view.originY);
     }
 
     function _here() {
@@ -215,11 +219,17 @@ Singleton {
         nowPlayingOpen = false;
     }
 
-    // a deleted playlist or custom page: back and forward must not open it again
+    // a deleted playlist or custom page: back and forward must not open it again, nor stay put where it was between
+    // two visits of one route. The top of both stacks is their last entry, next to the current route.
     function forget(target, id) {
         const kept = e => e.page !== target || e.itemId !== id;
-        history = history.filter(kept);
-        forwardHistory = forwardHistory.filter(kept);
+        const same = (a, b) => a.page === b.page && a.itemId === b.itemId;
+        const tidy = stack => stack.filter(kept).filter((e, i, a) => !same(e, a[i + 1] ?? {
+                    "page": page,
+                    "itemId": itemId
+                }));
+        history = tidy(history);
+        forwardHistory = tidy(forwardHistory);
     }
 
     readonly property bool lyricsOn: UiConfig.lyricsOn

@@ -36,7 +36,7 @@ Item {
 
     function apply() {
         // a page on its way out still sees the route change
-        if (pending < 0 || Router.pageView !== view)
+        if (pending < 0 || Router.pageScroll !== scroll)
             return;
         placing = true;
         view.contentY = view.originY + Math.max(0, Math.min(pending, room()));
@@ -74,13 +74,13 @@ Item {
     onViewHeightChanged: Qt.callLater(apply)
 
     Component.onCompleted: {
-        Router.pageView = view;
+        Router.pageScroll = scroll;
         pending = Router.restoreOffset;
         ready = true;
         Qt.callLater(apply);
     }
     Component.onDestruction: {
-        if (Router.pageView === view)
-            Router.pageView = null;
+        if (Router.pageScroll === scroll)
+            Router.pageScroll = null;
     }
 }

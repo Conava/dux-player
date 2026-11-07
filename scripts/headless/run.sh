@@ -39,7 +39,8 @@ cat >>"$W/tree/shell.qml" <<'Q'
             return Router.route;
         }
         function offset(): real {
-            return Router.pageOffset();
+            const view = Router.pageScroll?.view;
+            return view ? Math.max(0, view.contentY - view.originY) : 0;
         }
         function nowPlaying(): bool {
             return Router.nowPlayingOpen;
@@ -57,10 +58,22 @@ cat >>"$W/tree/shell.qml" <<'Q'
             Router.pageSearch.forceActiveFocus();
         }
         function focusRole(): int {
-            return Router.pageView?.Window.activeFocusItem?.Accessible.role ?? 0;
+            return Router.pageScroll?.view.Window.activeFocusItem?.Accessible.role ?? 0;
         }
         function deletePlaylist(id: string): void {
             Router.deletePlaylist(id);
+        }
+        function playOnOpen(): bool {
+            return Router.playOnOpen;
+        }
+        // a new custom page as the first navigation entry, open in edit mode with no history
+        function editFirstView(): void {
+            const id = UiConfig.saveView("First", "albums", {});
+            UiConfig.pin("view", id, "First");
+            const first = e => e.kind === "view" && e.target === id;
+            UiConfig.setNavigation(UiConfig.navigation.filter(first).concat(UiConfig.navigation.filter(e => !first(e))));
+            Router.openEntry(Router.navEntries[0]);
+            Router.editing = true;
         }
         function shortcutFree(sequence: string): bool {
             return UiConfig.shortcutProblem(sequence) === "";

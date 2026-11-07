@@ -157,6 +157,12 @@ sleep 1
 alt Left
 below "clamped to a shorter list" "$(offset)" "$end"
 shot clamped
+# rows that come after the user has left: the offset still waiting for them is what back restores
+go libraries
+ui pageOptions albums '{"rules":{"match":"all","list":[]}}'
+sleep 1
+alt Left
+near "left before the rows came" "$(offset)" "$end"
 ui pageOptions albums '{"rules":{"match":"all","list":[]},"layout":"grid","tileSize":"l"}'
 sleep 1
 

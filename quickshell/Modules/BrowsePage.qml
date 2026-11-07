@@ -359,8 +359,8 @@ Item {
                 onDeleteRequested: {
                     const id = root.savedView.id;
                     Router.forget("view", id);
-                    Router.leave();
                     UiConfig.deleteSavedView(id);
+                    Router.leave();
                 }
 
                 SettingsToggleRow {

@@ -21,6 +21,20 @@ sleep 0.5
 dp play "$W/music" >/dev/null
 sleep 2
 
+# the first entry deleted with no history to go back to, by Delete page at 516,785 and the dialog's Delete at 1498,768
+ui editFirstView
+sleep 2
+pointer w 30
+sleep 1.5
+click 516 785
+sleep 1.5
+click 1498 768
+sleep 1.5
+shot deleted-first
+expect "deleting the first entry opens the next" "$(route)" "home/"
+pointer m 1280 720
+sleep 0.5
+
 go tracks
 go albums
 alt Left
@@ -91,6 +105,53 @@ ui deletePlaylist "$ahead"
 sleep 1
 alt Right
 expect "forward skips a deleted playlist" "$(route)" "albums/"
+
+# what the deleted page separated is one step: equal neighbours and a top equal to the current route make no dead press
+twice=$(playlist Twice)
+sleep 1
+go tracks
+go libraries
+ui open playlist "$twice"
+sleep 1
+go libraries
+go albums
+ui deletePlaylist "$twice"
+sleep 1
+alt Left
+expect "back to the route around a deleted playlist" "$(route)" "libraries/"
+alt Left
+expect "back past the route around a deleted playlist" "$(route)" "tracks/"
+
+top=$(playlist Top)
+sleep 1
+go libraries
+go tracks
+ui open playlist "$top"
+sleep 1
+go tracks
+ui deletePlaylist "$top"
+sleep 1
+alt Left
+expect "back from the route around a deleted playlist" "$(route)" "libraries/"
+
+ahead2=$(playlist Ahead2)
+sleep 1
+go history
+go tracks
+ui open playlist "$ahead2"
+sleep 1
+go tracks
+go albums
+alt Left
+alt Left
+alt Left
+alt Left
+ui deletePlaylist "$ahead2"
+sleep 1
+alt Right
+expect "forward to the route around a deleted playlist" "$(route)" "tracks/"
+alt Right
+expect "forward past the route around a deleted playlist" "$(route)" "albums/"
 
 go albums
 element sleep bar
