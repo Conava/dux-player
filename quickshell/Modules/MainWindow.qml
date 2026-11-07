@@ -90,7 +90,7 @@ DFloatingWindow {
         // Hyprland leaves the keyboard here under an open dropdown, so every Shortcut would beat its popup. Its trigger holds the focus.
         readonly property bool dropdownOpen: (keyItem?.parent as DDropdown)?.menuOpen ?? false
         Keys.onShortcutOverride: event => event.accepted = dropdownOpen
-        readonly property bool canSeek: PlayerService.current !== null && PlayerService.seekable && PlayerService.duration > 0
+        readonly property bool canSeek: PlayerService.active && PlayerService.seekable && PlayerService.duration > 0
 
         Shortcut {
             sequence: "Space"

@@ -81,7 +81,9 @@ expand true
 alt Left
 expect "alt+left closes the view" "$(view)" "false"
 expect "alt+left keeps the route" "$(route)" "albums/"
-expand true
+alt Right
+expect "alt+right reopens the view" "$(view)" "true"
+expect "alt+right reopens it on the page" "$(route)" "albums/"
 pointer b
 sleep 0.8
 expect "side button closes the view" "$(view)" "false"
@@ -89,6 +91,23 @@ expect "side button keeps the route" "$(route)" "albums/"
 pointer b
 sleep 0.8
 expect "side button then moves" "$(route)" "tracks/"
+alt Right
+expect "forward to the page the view closed on" "$(route)" "albums/"
+expect "forward to the page leaves the view closed" "$(view)" "false"
+pointer f
+sleep 0.8
+expect "extra button then reopens the view" "$(view)" "true"
+expect "extra button reopens it on the page" "$(route)" "albums/"
+wtype -k Escape
+sleep 0.8
+expect "escape closes the view" "$(view)" "false"
+alt Right
+expect "forward after escape leaves the view closed" "$(view)" "false"
+expand true
+alt Left
+go libraries
+alt Right
+expect "forward after a new page leaves the view closed" "$(view)" "false"
 
 ui entry 0
 sleep 1
