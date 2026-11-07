@@ -18,6 +18,8 @@ Rectangle {
     readonly property string pane: Router.viewPane
     readonly property bool beside: m3e && wide && pane !== ""
     readonly property bool inPlace: pane !== "" && !beside
+    // lyrics in place of the art hand the place back when there are none; the pane stays, and with it the lookup
+    readonly property string artNote: inPlace && pane === "lyrics" ? PlayerService.lyricsHeldMessage : ""
     // the attached look: Material's player and pane share one card; Bento has no card to join, so the pane loses its own
     readonly property bool joined: beside && UiConfig.attachedPanes
     // Material's pane in place sits inside the player's card, so it takes the art's corners and no fill of its own
@@ -131,6 +133,7 @@ Rectangle {
         id: bentoPlayer
         BentoPlayer {
             inPlace: root.inPlace ? (root.pane === "queue" ? queuePane : lyricsPane) : null
+            artNote: root.artNote
         }
     }
 
@@ -138,6 +141,7 @@ Rectangle {
         id: m3ePlayer
         M3EPlayer {
             inPlace: root.inPlace ? (root.pane === "queue" ? queuePane : lyricsPane) : null
+            artNote: root.artNote
             beside: root.beside
             joined: root.joined
         }
@@ -159,6 +163,7 @@ Rectangle {
         LyricsView {
             radius: root.paneRadius
             cardColor: root.paneColor
+            backdropColor: root.joined ? ArtColors.cardColor : "transparent"
             artScheme: ArtColors.nowPlaying
         }
     }

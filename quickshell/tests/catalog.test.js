@@ -4,7 +4,7 @@ const path = require("path");
 const assert = require("assert");
 
 const source = fs.readFileSync(path.join(__dirname, "../Services/Catalog.js"), "utf8").replace(".pragma library", "");
-const C = new Function(source + "; return { trackPositions, sortBy, suffixDurations, diff, singleMove, navEntries, pageTargets, setPinned, track, filterText };")();
+const C = new Function(source + "; return { trackPositions, sortBy, suffixDurations, diff, singleMove, navEntries, pageTargets, setPinned, track, filterText, browsable, sortSignature };")();
 
 function apply(list, edit) {
     const out = list.slice();
@@ -102,3 +102,22 @@ assert.deepStrictEqual(C.trackPositions([
 ], [{ "library": "a", "id": "1" }]), [0, 3]);
 
 console.log("catalog.test.js: ok");
+
+// browsable: a library loads when it can be listed, not when it first shows up
+{
+    const caps = ["browse"];
+    assert.strictEqual(C.browsable({ "enabled": true, "available": true, "capabilities": [] }), false, "a build still running has no capabilities yet");
+    assert.strictEqual(C.browsable({ "enabled": true, "available": true, "capabilities": caps }), true);
+    assert.strictEqual(C.browsable({ "enabled": true, "available": false, "capabilities": caps }), false, "unreachable without a sync");
+    assert.strictEqual(C.browsable({ "enabled": true, "available": false, "synced": true, "capabilities": caps }), true, "unreachable with a sync");
+    assert.strictEqual(C.browsable({ "enabled": false, "available": true, "synced": true, "capabilities": caps }), false);
+}
+
+// the sorted-tracks memo: a library rename changes a sort by library only
+{
+    const opts = { filters: {}, descending: false };
+    const a = [{ id: "l1", name: "Old" }];
+    const b = [{ id: "l1", name: "New" }];
+    assert.notStrictEqual(C.sortSignature(3, opts, "library", "", a), C.sortSignature(3, opts, "library", "", b));
+    assert.strictEqual(C.sortSignature(3, opts, "name", "", a), C.sortSignature(3, opts, "name", "", b));
+}

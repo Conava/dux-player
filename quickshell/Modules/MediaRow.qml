@@ -11,8 +11,9 @@ DListItem {
     property string kind: "album"
     required property var item
     property var lines: []
+    property var lineOptions: ({})
     property bool compact: false
-    readonly property string info: UiConfig.infoText(item, lines)
+    readonly property string info: UiConfig.infoText(item, lines, lineOptions)
 
     implicitHeight: compact ? PlayerMetrics.listRowHeight : PlayerMetrics.listRowTwoLineHeight
     surfaceColor: PlayerMetrics.listRowColor

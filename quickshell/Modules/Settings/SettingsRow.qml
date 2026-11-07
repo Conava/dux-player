@@ -158,8 +158,9 @@ T.Control {
     StyledButton {
         id: clickControl
         anchors.fill: parent
-        enabled: root.clickable && root.enabled
-        hoverEnabled: root.clickable
+        visible: root.clickable
+        enabled: root.enabled
+        hoverEnabled: true
         focusPolicy: Qt.ClickFocus
         background: null
         Accessible.ignored: true
@@ -170,7 +171,7 @@ T.Control {
         onClicked: root.clicked()
 
         HoverHandler {
-            cursorShape: root.clickable ? Qt.PointingHandCursor : Qt.ArrowCursor
+            cursorShape: Qt.PointingHandCursor
         }
     }
 

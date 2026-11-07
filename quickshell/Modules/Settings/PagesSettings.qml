@@ -44,7 +44,7 @@ Item {
         else
             parts.push(UiConfig.layoutChoices().find(l => l.value === o.layout)?.text ?? "");
         if (["history", "album", "search", "queue", "favorites"].indexOf(entry.kind) < 0)
-            parts.push(UiConfig.sortLabel(o.sort) + (o.descending ? " ↓" : " ↑"));
+            parts.push(UiConfig.sortLabel(o.sort, o.lineOptions) + (o.descending ? " ↓" : " ↑"));
         const pages = entry.multi ? UiConfig.changedPages(entry.kind) : 0;
         if (pages > 0)
             parts.push(I18n.tr("%1 changed", "settings pages: how many pages of a kind have their own options, %1 is the count").arg(pages));
@@ -146,9 +146,9 @@ Item {
     }
 
     // Edit and reset of a plain settings row, in the columns of the navigation rows above (DInstanceRow: actions,
-    // chevron, eye and remove, spacingXS apart, spacingS from the edge)
+    // eye and remove, spacingXS apart, spacingS from the edge; the rename pencil is the last action)
     component TrailingColumns: Row {
-        readonly property real endGap: Theme.iconSize + Theme.buttonHeightXS * 2 + Theme.spacingXS * 3 + Theme.spacingS - SettingsMetrics.rowPaddingH
+        readonly property real endGap: Theme.buttonHeightXS * 3 + Theme.spacingXS * 3 + Theme.spacingS - SettingsMetrics.rowPaddingH
 
         anchors.verticalCenter: parent?.verticalCenter
         spacing: Theme.spacingXS
@@ -176,7 +176,6 @@ Item {
             SettingsButtonGroupRow {
                 text: I18n.tr("Navigation", "settings sidebar tab label")
                 keywords: "rail bar sidebar"
-                description: I18n.tr("Automatic shows a rail in wide windows and a bar in narrow ones.", "navigation style description")
                 model: UiConfig.navStyles.map(style => UiConfig.navStyleLabel(style))
                 currentIndex: UiConfig.navStyles.indexOf(SettingsData.navStyle)
                 onSelectionChanged: (index, selected) => {
@@ -184,10 +183,17 @@ Item {
                         SettingsData.navStyle = UiConfig.navStyles[index];
                 }
             }
+
+            SettingsToggleRow {
+                text: I18n.tr("Open album on track tile click", "pages setting")
+                keywords: "click grid home shelf tiles"
+                checked: SettingsData.trackTileOpensAlbum
+                onToggled: value => SettingsData.trackTileOpensAlbum = value
+            }
         }
 
         SettingsPageIntro {
-            text: I18n.tr("Drag to set the navigation order; the eye shows or hides a page there. Select an entry to rename it. Edit opens the page in its edit mode.", "settings pages intro")
+            text: I18n.tr("Drag to reorder. Use the pencil to rename an entry.", "settings pages intro")
         }
 
         DReorderList {
@@ -219,8 +225,6 @@ Item {
                 hideEnabled: !lastShown && valid
                 // pages always have a place; pinned items can go
                 removable: modelData.kind !== "page"
-                hasOptions: valid
-                onOptionsRequested: prompt.ask(I18n.tr("Rename entry", "navigation rename dialog title"), UiConfig.entryLabel(modelData), I18n.tr("Save", "dialog confirm button"), name => UiConfig.renameEntry(modelData.key, name === UiConfig.defaultEntryLabel(modelData) ? "" : name))
                 onHiddenToggled: hidden => root.setShown(modelData, !hidden)
                 onRemoveRequested: root.remove(modelData)
                 actions: [
@@ -240,6 +244,20 @@ Item {
                             enabled: entryRow.target?.changed ?? false
                             label: entryRow.title
                             onReset: root.ask(I18n.tr("Reset %1?", "settings pages: reset confirmation title, %1 is the page").arg(label), entryRow.target.reset)
+                        }
+                    },
+                    Item {
+                        anchors.verticalCenter: parent?.verticalCenter
+                        width: rename.width
+                        height: rename.height
+
+                        DActionButton {
+                            id: rename
+                            visible: entryRow.valid
+                            iconName: "edit"
+                            tooltipText: I18n.tr("Rename", "settings pages: renames a navigation entry")
+                            Accessible.name: I18n.tr("Rename %1", "settings pages: renames a navigation entry, %1 is its name").arg(entryRow.title)
+                            onClicked: prompt.ask(I18n.tr("Rename entry", "navigation rename dialog title"), UiConfig.entryLabel(entryRow.modelData), I18n.tr("Save", "dialog confirm button"), name => UiConfig.renameEntry(entryRow.modelData.key, name === UiConfig.defaultEntryLabel(entryRow.modelData) ? "" : name))
                         }
                     }
                 ]
@@ -342,7 +360,7 @@ Item {
         id: removeDialog
         property var run: null
         host: root
-        supportingText: I18n.tr("You can add it again with Add entry.", "remove navigation entry confirmation")
+        supportingText: I18n.tr("It can be added again with Add entry.", "remove navigation entry confirmation")
         confirmText: I18n.tr("Remove", "button that removes an item")
         onConfirmed: run?.()
     }
@@ -350,7 +368,7 @@ Item {
     ConfirmDialog {
         id: resetDialog
         host: root
-        supportingText: I18n.tr("Its own options and every change made on its pages go back to the defaults.", "settings pages: reset confirmation")
+        supportingText: I18n.tr("Its options and page changes are reset.", "settings pages: reset confirmation")
         confirmText: I18n.tr("Reset", "button that restores the defaults")
         onConfirmed: {
             root.pendingReset?.();

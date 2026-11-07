@@ -39,7 +39,9 @@ Item {
             return sortDescending ? tracks.slice().reverse() : tracks;
         return CatalogService.refine(tracks, "tracks", {
             "sort": sortKey,
-            "descending": sortDescending
+            "descending": sortDescending,
+            "lines": options.lines,
+            "lineOptions": options.lineOptions
         });
     }
     readonly property int libraryCount: tracks.map(t => t.library).filter((id, i, all) => all.indexOf(id) === i).length
@@ -165,7 +167,7 @@ Item {
         StyledText {
             width: parent.width
             visible: root.tracks.length === 0 || root.shownTracks.length === 0
-            text: root.tracks.length === 0 ? I18n.tr("Add tracks from their menu or drag them here.", "empty playlist hint") : I18n.tr("Nothing matches \"%1\".", "search page empty result").arg(root.filterText.trim())
+            text: root.tracks.length === 0 ? I18n.tr("Add tracks from the track menu or drag them here.", "empty playlist hint") : I18n.tr("Nothing matches \"%1\".", "search page empty result").arg(root.filterText.trim())
             font.pixelSize: Theme.fontSizeMedium
             color: Theme.surfaceVariantText
             wrapMode: Text.WordWrap
@@ -198,6 +200,7 @@ Item {
         visible: !root.reordering
         tracks: root.shownTracks
         lines: root.options.lines
+        lineOptions: root.options.lineOptions ?? ({})
         layout: root.options.layout
         playlistId: root.playlist?.id ?? ""
         showArt: false

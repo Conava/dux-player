@@ -208,7 +208,8 @@ DFloatingWindow {
                     visible: window.navMode === "rail" && !Router.nowPlayingOpen
                     orientation: Qt.Vertical
                     evenlySpaced: false
-                    anchors.left: parent.left
+                    // DNavigationBar turns mirroring off on itself, so a left anchor would stay left in RTL
+                    x: I18n.isRtl ? parent.width - width : 0
                     anchors.top: parent.top
                     anchors.bottom: bottomBar.visible ? bottomBar.top : parent.bottom
                     model: window.navModel

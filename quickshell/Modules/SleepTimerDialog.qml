@@ -26,6 +26,8 @@ WindowDialog {
             return I18n.tr("Pauses in %1 min", "sleep timer status, %1 is the remaining minutes").arg(Math.max(1, Math.ceil(PlayerService.sleepRemaining / 60)));
         case "endOfTrack":
             return I18n.tr("Pauses at the end of this track", "sleep timer status");
+        case "afterEntry":
+            return I18n.tr("Stops after %1", "sleep timer status, %1 is a track title").arg(PlayerService.queueItem(PlayerService.sleepEntry)?.title ?? "");
         }
         return I18n.tr("Pauses playback after a set time.", "sleep timer status when off");
     }

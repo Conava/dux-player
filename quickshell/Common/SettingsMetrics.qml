@@ -10,7 +10,8 @@ Singleton {
     readonly property real windowMinWidth: 520
     readonly property real windowMinHeight: 420
     readonly property real sidebarWidth: 260
-    readonly property real compactBreakpoint: 640
+    readonly property real compactBreakpoint: 860
+    readonly property real overviewTwoColumnWidth: 640
     readonly property real contentMaxWidth: 920
     readonly property real pagePaddingV: Theme.spacingXL
     readonly property real paneMargin: Theme.windowInset

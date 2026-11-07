@@ -193,6 +193,7 @@ function track(t) {
         "albumId": t.albumId ? t.library + ":" + t.albumId : "",
         "number": t.trackNo ?? 0,
         "disc": t.discNo ?? 1,
+        "discTag": t.discNo ?? 0,
         "duration": t.duration ?? 0,
         "year": t.year ?? 0,
         "genre": t.genre ?? "",
@@ -202,6 +203,11 @@ function track(t) {
         "rating": t.rating ?? 0,
         "playCount": t.playCount ?? 0,
         "lastPlayed": t.lastPlayed ?? 0,
+        "albumArtist": t.albumArtist ?? "",
+        "composer": t.composer ?? "",
+        "format": t.format ?? "",
+        "bitrate": t.bitrate ?? 0,
+        "added": t.added ?? 0,
         "unavailable": t.unavailable ?? "",
         "unavailableCode": t.unavailableCode ?? ""
     };
@@ -302,14 +308,22 @@ function library(l, old) {
         "folders": config.folders ?? [],
         "url": config.url ?? "",
         "user": config.username ?? "",
+        "auth": config.auth ?? "",
         "capabilities": l.capabilities ?? [],
         "noticeCodes": l.noticeCodes ?? [],
         "error": l.error ?? "",
         "errorCode": l.errorCode ?? "",
         "scanning": old?.scanning ?? false,
         "lastScan": l.lastScan ?? 0,
+        "synced": l.synced === true,
         "writeMarks": config.writeMarks === true
     };
+}
+
+// a library the daemon can list right now: a server with a complete sync can while it is unreachable, and
+// one still being built can't until its capabilities arrive
+function browsable(l) {
+    return l.enabled && (l.available !== false || l.synced === true) && (l.capabilities ?? []).indexOf("browse") >= 0;
 }
 
 // a queue origin from the daemon to the UI's play context
@@ -345,6 +359,11 @@ function contextOf(origin) {
     return {
         "type": "tracks"
     };
+}
+
+// What the sorted-tracks memo depends on. Sorting by library orders by name, so a rename invalidates it.
+function sortSignature(count, options, sortKey, template, libraries) {
+    return JSON.stringify([count, options.filters, sortKey, options.descending === true, template, sortKey === "library" ? libraries.map(l => [l.id, l.name]) : null]);
 }
 
 // the items holding every word of `text` (any case) in their names: title, name, artists, album, genre

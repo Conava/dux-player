@@ -55,14 +55,25 @@ Singleton {
 
     // "idle" | "loading" | "ready" | "none" | "instrumental" | "error"
     readonly property string lyricsState: _lyricsKey === "" || _lyricsKey === currentKey || _lyricsState === "idle" ? _lyricsState : "loading"
+    // why the current track shows no lyrics; "" with lyrics, and while they load
+    readonly property string lyricsMessage: _lyricsMessage(lyricsState)
+    // lyricsMessage held while the next track loads, so a view doesn't flash on a track change
+    property string lyricsHeldMessage: ""
+    // from the state itself: lyricsMessage may not have followed yet when this runs
+    onLyricsStateChanged: {
+        if (lyricsState !== "loading")
+            lyricsHeldMessage = _lyricsMessage(lyricsState);
+    }
     // dux-go lyrics Result JSON for the current track, or null
     readonly property var lyrics: _lyricsKey === "" || _lyricsKey === currentKey ? _lyrics : null
     // the user picked these lyrics for this track
     readonly property bool lyricsChosen: _lyricsChosen && lyrics !== null
 
-    // "off" | "minutes" | "endOfTrack"
+    // "off" | "minutes" | "endOfTrack" | "afterEntry"
     property string sleepMode: "off"
     property real sleepAt: 0
+    // the queue entry (qid) playback stops after, in mode "afterEntry"
+    property real sleepEntry: 0
     property real sleepRemaining: 0
 
     signal seeked(real position)
@@ -126,14 +137,14 @@ Singleton {
         muted = value;
         DaemonBridge.request("player.mute", {
             "muted": value
-        }, null, null, () => root._refreshStatus());
+        }, I18n.tr("Couldn't change the volume", "toast when the volume or mute command fails"), null, () => root._refreshStatus());
     }
 
     function setShuffle(on) {
         shuffle = _shuffleOn(on);
         DaemonBridge.request("player.shuffle", {
             "on": shuffle
-        }, null, null, () => root._refreshStatus());
+        }, I18n.tr("Couldn't change shuffle", "toast when the shuffle command fails"), null, () => root._refreshStatus());
     }
 
     function toggleShuffle() {
@@ -144,7 +155,7 @@ Singleton {
         repeat = mode;
         DaemonBridge.request("player.repeat", {
             "mode": mode
-        }, null, null, () => root._refreshStatus());
+        }, I18n.tr("Couldn't change repeat", "toast when the repeat command fails"), null, () => root._refreshStatus());
     }
 
     // endless continue for the queue playing now, whatever Settings say for new queues
@@ -242,8 +253,11 @@ Singleton {
         }
         if (list.length === 0)
             return;
+        // in list order, so turning shuffle off restores it; a longer list only has room for a sample
+        const tracks = list.length > PlayerMetrics.queueRefsMax ? Catalog.shuffled(list).slice(0, PlayerMetrics.queueRefsMax) : list;
         DaemonBridge.request("player.play", {
-            "tracks": Catalog.refsOf(Catalog.shuffled(list).slice(0, PlayerMetrics.queueRefsMax)),
+            "tracks": Catalog.refsOf(tracks),
+            "index": Math.floor(Math.random() * tracks.length),
             "shuffle": true,
             "origin": _originOf(ctx)
         }, I18n.tr("Couldn't start playback", "toast when the daemon refuses to play"));
@@ -322,7 +336,7 @@ Singleton {
         DaemonBridge.request("queue.move", {
             "from": from,
             "to": to
-        }, null, null, () => {
+        }, I18n.tr("Couldn't move the track", "toast when moving a queue entry fails"), null, () => {
             root._refreshQueue();
             failed?.();
         });
@@ -338,14 +352,14 @@ Singleton {
     function queueRemove(index) {
         DaemonBridge.request("queue.remove", {
             "index": index
-        });
+        }, I18n.tr("Couldn't remove from the queue", "toast when removing a queue entry fails"));
     }
 
     // keeps the current track playing
     function queueClear() {
         DaemonBridge.request("queue.clear", {
             "keepCurrent": true
-        });
+        }, I18n.tr("Couldn't clear the queue", "toast when clearing the play queue fails"));
     }
 
     // Sleep timer
@@ -362,15 +376,23 @@ Singleton {
         });
     }
 
+    function setSleepAfter(index) {
+        DaemonBridge.request("player.sleep", {
+            "mode": "afterEntry",
+            "index": index
+        }, I18n.tr("Couldn't set the stop point", "toast when setting where playback stops fails"));
+    }
+
     function cancelSleepTimer() {
         DaemonBridge.request("player.sleep", {
             "off": true
-        });
+        }, I18n.tr("Couldn't cancel the sleep timer", "toast when cancelling the sleep timer fails"));
     }
 
     // the lyrics view holds this while it shows; the daemon looks lyrics up only then
     function watchLyrics(on) {
         if (on && (DaemonBridge.watchers.lyrics ?? 0) === 0) {
+            lyricsHeldMessage = "";
             _lyrics = null;
             _lyricsKey = "";
             _lyricsState = current ? "loading" : "idle";
@@ -433,6 +455,7 @@ Singleton {
                 root._sendVolume();
             else if (r.error) {
                 root.log.warn("player.volume", r.error);
+                root.notice(I18n.tr("Couldn't change the volume", "toast when the volume or mute command fails"));
                 root._refreshStatus();
             } else
                 root._applyStatus(r);
@@ -489,7 +512,8 @@ Singleton {
         if (!t || !_statusTrack || Catalog.key(t) !== Catalog.key(_statusTrack))
             _statusTrack = t;
         const sleep = s.sleep ?? {};
-        sleepMode = sleep.mode === "timer" ? "minutes" : sleep.mode === "endOfTrack" ? "endOfTrack" : "off";
+        sleepMode = sleep.mode === "timer" ? "minutes" : sleep.mode === "endOfTrack" || sleep.mode === "afterEntry" ? sleep.mode : "off";
+        sleepEntry = sleep.entry ?? 0;
         sleepAt = sleep.at ?? 0;
         sleepRemaining = sleepMode === "minutes" ? Math.max(0, sleepAt - Date.now() / 1000) : 0;
         _applyPosition(s, false);
@@ -529,7 +553,7 @@ Singleton {
             const byQid = {};
             queue = items.map(item => byQid[item.uid] = Object.assign(Catalog.track(item.track), {
                     "qid": item.uid,
-                    "added": item.added === true
+                    "byHand": item.added === true
                 }));
             _queueKeys = keys;
             _queueByQid = byQid;
@@ -549,6 +573,18 @@ Singleton {
             return;
         continueKnown = true;
         continuing = e.continuing === true;
+    }
+
+    function _lyricsMessage(state) {
+        switch (state) {
+        case "instrumental":
+            return I18n.tr("Instrumental", "track has no lyrics because it is instrumental");
+        case "error":
+            return I18n.tr("Lyrics unavailable", "lyrics lookup failed");
+        case "none":
+            return I18n.tr("No lyrics available", "lyrics lookup found nothing");
+        }
+        return "";
     }
 
     function _applyLyrics(e) {
@@ -803,13 +839,13 @@ Singleton {
     readonly property bool casting: OutputService.casting
     readonly property string castDeviceName: OutputService.castDeviceName
 
-    signal serverTestFinished(bool ok, string message)
+    signal serverTestFinished(bool ok, string message, int ticket)
 
     Connections {
         target: CatalogService
 
-        function onServerTestFinished(ok, message) {
-            root.serverTestFinished(ok, message);
+        function onServerTestFinished(ok, message, ticket) {
+            root.serverTestFinished(ok, message, ticket);
         }
     }
 
@@ -912,8 +948,8 @@ Singleton {
     function addLocalLibrary(name, folders) {
         CatalogService.addLocalLibrary(name, folders);
     }
-    function testServer(kind, url, user, password) {
-        CatalogService.testServer(kind, url, user, password);
+    function testServer(kind, url, user, password, ticket) {
+        CatalogService.testServer(kind, url, user, password, ticket);
     }
     function addServerLibrary(kind, name, url, user, password) {
         CatalogService.addServerLibrary(kind, name, url, user, password);

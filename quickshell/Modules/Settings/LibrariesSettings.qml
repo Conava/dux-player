@@ -40,6 +40,14 @@ Item {
         return bytes >= gigabyte ? I18n.tr("%1 GB", "file size").arg((bytes / gigabyte).toFixed(1)) : I18n.tr("%1 MB", "file size").arg(Math.round(bytes / 1e6));
     }
 
+    // "track" is a song kept from its menu, not a rule
+    function heldBy(rules) {
+        const named = rules.filter(r => r.kind !== "track");
+        if (named.length > 0)
+            return I18n.tr("Kept by %1", "offline song row, %1 lists the rules holding it").arg(named.map(r => ruleLabel(r.local ? "" : cachePage, r)).join(", "));
+        return rules.length > 0 ? I18n.tr("Kept on this device", "offline song row for a song kept on its own") : I18n.tr("No rule", "offline song row for a song no rule holds");
+    }
+
     function kindLabel(kind) {
         switch (kind) {
         case "everything":
@@ -368,7 +376,7 @@ Item {
                 visible: SettingsService.cache.pinnedOverLimit === true || SettingsService.cache.full === true
                 searchable: false
                 title: SettingsService.cache.pinnedOverLimit ? I18n.tr("Kept tracks exceed the size limit", "offline warning title") : I18n.tr("Offline storage is full", "offline warning title")
-                subtitle: SettingsService.cache.pinnedOverLimit ? I18n.tr("Rules other than Recently played and Most played keep %1, over the %2 size limit. Downloads are paused.", "offline warning: pinned songs exceed the size limit").arg(root.size(SettingsService.cache.pinned ?? 0)).arg(root.size(SettingsService.cache.limit ?? 0)) : I18n.tr("Downloads are paused. Raise the size limit or remove a rule.", "offline warning: the cache is full")
+                subtitle: SettingsService.cache.pinnedOverLimit ? I18n.tr("Kept tracks use %1, over the %2 limit. Downloads are paused.", "offline warning: pinned songs exceed the size limit").arg(root.size(SettingsService.cache.pinned ?? 0)).arg(root.size(SettingsService.cache.limit ?? 0)) : I18n.tr("Downloads are paused. Raise the size limit or remove a rule.", "offline warning: the cache is full")
                 subtitleColor: Theme.error
                 iconName: "warning"
                 iconColor: Theme.error
@@ -414,7 +422,6 @@ Item {
             SettingsButtonGroupRow {
                 text: I18n.tr("Download upcoming tracks", "offline setting: how many of the next server tracks download ahead")
                 keywords: "cache prefetch"
-                description: I18n.tr("Downloads the next tracks of the queue while one plays.", "offline setting description")
                 model: [I18n.tr("Off", "option that turns something off"), "1", "2", "3"]
                 currentIndex: SettingsService.settings.prefetchTracks
                 onSelectionChanged: (index, selected) => {
@@ -586,7 +593,7 @@ Item {
                 SettingsRow {
                     required property var modelData
                     title: modelData.track.title
-                    subtitle: Phrases.join(Phrases.join(modelData.track.artist, root.size(modelData.size ?? 0)), (modelData.rules ?? []).length > 0 ? I18n.tr("Kept by %1", "offline song row, %1 lists the rules holding it").arg(modelData.rules.map(r => root.ruleLabel(r.local ? "" : root.cachePage, r)).join(", ")) : I18n.tr("No rule", "offline song row for a song no rule holds"))
+                    subtitle: Phrases.join(Phrases.join(modelData.track.artist, root.size(modelData.size ?? 0)), root.heldBy(modelData.rules ?? []))
                 }
             }
 

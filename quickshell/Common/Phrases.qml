@@ -121,6 +121,10 @@ Singleton {
         switch (code) {
         case "serverUnreachable":
             return I18n.tr("Server unreachable", "why a server library or its tracks can't be used");
+        case "signInExpired":
+            return I18n.tr("Sign-in expired. Sign in again.", "why a server library can't be used");
+        case "quickConnectOff":
+            return I18n.tr("Quick Connect is turned off on this server", "why Quick Connect can't sign in");
         case "keyringLocked":
             return I18n.tr("The system keyring is locked", "why a server library can't sign in");
         case "noKeyring":
@@ -164,27 +168,27 @@ Singleton {
         case "scanFailed":
             return I18n.tr("Couldn't scan the library", "library error");
         case "noFFmpeg":
-            return I18n.tr("ffmpeg is not installed, so tracks without ReplayGain tags play without loudness correction", "library notice");
+            return I18n.tr("ffmpeg is not installed. Tracks without ReplayGain tags play without loudness correction.", "library notice");
         case "watchFailed":
             return I18n.tr("Changes on disk show only after a rescan", "library notice");
         case "tooManyFolders":
             return I18n.tr("Too many folders to watch (fs.inotify.max_user_watches); some changes show only after a rescan", "library notice");
         case "plainHttp":
-            return I18n.tr("The connection isn't encrypted: sign-in tokens and what you play are readable on the network. Use an https address.", "library notice");
+            return I18n.tr("The connection isn't encrypted. Sign-in tokens and playback can be read on the network. Use an https address.", "library notice");
         case "passwordSignIn":
-            return I18n.tr("Signs in with the password itself; this server doesn't accept token sign-in.", "library notice");
+            return I18n.tr("Signs in with the password because this server doesn't accept token sign-in.", "library notice");
         case "signInRefused":
-            return I18n.tr("The server refused the username or password", "why a server connection test failed");
+            return I18n.tr("Incorrect user name or password", "why a server connection test failed");
         case "passwordNeedsHttps":
-            return I18n.tr("Signing in with the password itself needs an https server address", "why a server connection test failed");
+            return I18n.tr("Signing in with the password requires an https server address", "why a server connection test failed");
         case "certificateInvalid":
             return I18n.tr("The server's certificate isn't trusted", "why a server connection test failed");
         case "badAddress":
             return I18n.tr("That isn't an http(s) server address", "why a server connection test failed");
         case "credentialsInAddress":
-            return I18n.tr("Put the username and password in their own fields, not in the server address", "why a server connection test failed");
+            return I18n.tr("Enter the user name and password in their own fields, not in the server address", "why a server connection test failed");
         case "redirected":
-            return I18n.tr("The server redirected to another address; use that address as the server", "why a server connection test failed");
+            return I18n.tr("The server redirected to another address. Use that address instead.", "why a server connection test failed");
         case "testFailed":
             return I18n.tr("Couldn't connect to this server", "why a server connection test failed");
         case "daemonDisconnected":
@@ -194,7 +198,7 @@ Singleton {
         case "daemonOffline":
             return I18n.tr("Not connected to the player", "why a request to the player daemon failed");
         case "busy":
-            return I18n.tr("Ratings are being written already", "why writing ratings to files couldn't start");
+            return I18n.tr("Ratings are already being written", "why writing ratings to files couldn't start");
         }
         return english ?? "";
     }

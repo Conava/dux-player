@@ -19,7 +19,7 @@ SettingsPage {
     }
 
     SettingsPageIntro {
-        text: I18n.tr("A play is scrobbled after half the track or four minutes, whichever comes first. Server libraries scrobble to their server, which may forward the play. Local libraries scrobble to the accounts below. No play is scrobbled twice.", "scrobbling settings intro")
+        text: I18n.tr("A play is scrobbled after half the track or four minutes, whichever comes first. Server libraries scrobble to their server, local libraries to the accounts below.", "scrobbling settings intro")
     }
 
     // brand names stay untranslated
@@ -130,7 +130,7 @@ SettingsPage {
         SettingsRow {
             visible: root.lastfm.connected !== true && root.lastfm.awaitingApproval === true
             title: I18n.tr("Approve Dux Player on Last.fm", "Last.fm sign-in step")
-            subtitle: I18n.tr("Allow access on the Last.fm page in your browser, then select Finish sign-in.", "Last.fm sign-in step description")
+            subtitle: I18n.tr("Approve access in your browser, then select Finish sign-in.", "Last.fm sign-in step description")
 
             DButton {
                 anchors.verticalCenter: parent.verticalCenter
@@ -144,7 +144,7 @@ SettingsPage {
             visible: root.lastfm.connected !== true
             unavailableReason: root.accountLine(root.lastfm)
             title: I18n.tr("API key", "API key field")
-            subtitle: I18n.tr("Create an API account at last.fm/api and enter its key and shared secret. Stored in the system keyring.", "Last.fm sign-in hint")
+            subtitle: I18n.tr("Create an API account at last.fm/api. The key and secret are stored in the system keyring.", "Last.fm sign-in hint")
         }
 
         SettingsFieldRow {

@@ -44,8 +44,8 @@ SettingsPage {
             if (c.status === "tooOld")
                 return I18n.tr("Version %1 is too old. Requires %2 or newer.", "about page: the installed mpv can't be used").arg(c.version).arg(c.minVersion);
             if (c.status === "failed")
-                return I18n.tr("Installed, but doesn't start. Playback uses the built-in player, which plays fewer formats.", "about page: mpv is installed but broken");
-            return ok ? I18n.tr("Audio playback", "about page credit") : I18n.tr("Not installed. Playback uses the built-in player, which plays fewer formats.", "about page: mpv is missing");
+                return I18n.tr("Installed, but doesn't start. The built-in player is used, with fewer formats.", "about page: mpv is installed but broken");
+            return ok ? I18n.tr("Audio playback", "about page credit") : I18n.tr("Not installed. The built-in player is used, with fewer formats.", "about page: mpv is missing");
         case "ffmpeg":
             return ok ? I18n.tr("Loudness and silence measurement", "about page: what ffmpeg is used for") : I18n.tr("Not installed. Loudness and silence aren't measured.", "about page: ffmpeg is missing");
         case "pipewire":

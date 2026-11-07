@@ -100,10 +100,23 @@ else
     mapfile -t files < <(cd "${quickshell_dir}" && find shell.qml "${own_dirs[@]}" -name '*.qml')
 fi
 
+# Plain output drops warnings for files in a module, an unresolved type among them; JSON has them all.
 # known noise: Quickshell's own type info, not our code
-output="$(cd "${root}/qs" && "${qmllint_bin}" --ignore-settings -I "${root}" "${imports[@]}" "${files[@]}" 2>&1 |
-    grep -E '^(Warning|Error)' |
-    grep -v 'not declared as singleton in qmldir' |
+report="${root}/report.json"
+(cd "${root}/qs" && "${qmllint_bin}" --ignore-settings -I "${root}" "${imports[@]}" --json "${report}" "${files[@]}" >/dev/null 2>&1) || true
+[[ -s "${report}" ]] || { printf 'error: qmllint wrote no report\n' >&2; exit 1; }
+# a report that doesn't parse, or doesn't cover every file, fails here instead of passing as "no warnings"
+python3 - "${report}" "${#files[@]}" >"${root}/warnings.txt" <<'PY'
+import json, sys
+report = json.load(open(sys.argv[1]))
+if len(report["files"]) != int(sys.argv[2]):
+    sys.exit(f"error: qmllint reported {len(report['files'])} of {sys.argv[2]} files")
+for f in report["files"]:
+    for w in f.get("warnings", []):
+        if w.get("type") in ("warning", "critical"):
+            print(f"Warning: {f['filename']}:{w.get('line', 0)}: {w['message']} [{w.get('id', '')}]")
+PY
+output="$(grep -v 'not declared as singleton in qmldir' "${root}/warnings.txt" |
     grep -v 'Member "\(width\|height\)" not found on type "QuickshellScreenInfo"' |
     grep -v 'incomplete type "FileViewAdapter"' || true)"
 if [[ -n "${output}" ]]; then

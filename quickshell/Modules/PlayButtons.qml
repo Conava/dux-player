@@ -13,12 +13,24 @@ Item {
 
     signal play(bool shuffle)
 
-    implicitWidth: row.width
+    // the buttons in one line; the Flow wraps them when the parent is narrower
+    implicitWidth: {
+        let w = 0, n = 0;
+        for (const c of row.children) {
+            if (!c.visible)
+                continue;
+            w += c.implicitWidth;
+            n++;
+        }
+        return w + Math.max(0, n - 1) * row.spacing;
+    }
     implicitHeight: row.height + topPadding
+    width: Math.min(implicitWidth, parent?.width ?? implicitWidth)
 
-    Row {
+    Flow {
         id: row
         y: root.topPadding
+        width: root.width
         spacing: Theme.spacingS
 
         DButton {

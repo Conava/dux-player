@@ -41,7 +41,7 @@ Singleton {
         const hostXdg = Quickshell.env("HOST_XDG_CACHE_HOME");
         if (hostXdg && hostXdg !== "")
             return hostXdg;
-        return Paths.strip(Paths.home) + "/.cache";
+        return Quickshell.env("HOME") + "/.cache";
     }
 
     property bool useLegacyDmsCache: false
@@ -339,6 +339,8 @@ Singleton {
     readonly property real radiusStrength: StyleSource.radiusStrength
     readonly property real shapeScale: Shape.scaleForStrength(radiusStrength)
     readonly property real fixedRadius: StyleSource.fixedRadius
+    readonly property bool pillControls: !StyleSource.classicShape
+    readonly property bool shapeMorph: !StyleSource.classicShape
     readonly property real cornerRadius: cornerRadiusM
     readonly property real cornerRadiusXXS: Shape.radius("xxs", shapeScale)
     readonly property real cornerRadiusXS: Shape.radius("xs", shapeScale)
@@ -359,11 +361,11 @@ Singleton {
     }
 
     function fullRadius(width, height) {
-        return Shape.fullRadius(width, height, shapeScale);
+        return Shape.fullRadius(width, height, shapeScale, fixedRadius);
     }
 
     function buttonRadius(width, height, sizeHeight, pressed, round) {
-        return Shape.buttonRadius(width, height, sizeHeight, pressed, round, shapeScale);
+        return Shape.buttonRadius(width, height, sizeHeight, pressed, round, shapeScale, fixedRadius, shapeMorph, pillControls);
     }
 
     readonly property int densityLevel: {

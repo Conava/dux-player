@@ -6,6 +6,7 @@ import qs.Services
 import qs.DCommon.Widgets
 import qs.Modules.Settings
 import "../Services/Catalog.js" as Catalog
+import "../Services/Rules.js" as Rules
 
 // Every browse view: albums, artists, tracks, playlists, genres, favorites, most played, a genre, a library,
 // recently added albums and saved views. Display options come from UiConfig (or the saved view) and change in
@@ -27,12 +28,7 @@ Item {
             return {
                 "type": "tracks",
                 "kind": "mostPlayed",
-                "title": UiConfig.pageLabel(page),
-                "filters": ["library"],
-                "pin": {
-                    "kind": "page",
-                    "target": page
-                }
+                "title": UiConfig.pageLabel(page)
             };
         case "favorites":
             return {
@@ -41,11 +37,6 @@ Item {
                 "title": UiConfig.pageLabel(page),
                 "locked": {
                     "favorites": true
-                },
-                "filters": ["library"],
-                "pin": {
-                    "kind": "page",
-                    "target": page
                 }
             };
         case "genre":
@@ -57,11 +48,6 @@ Item {
                 "title": PlayerService.genre(id)?.name ?? "",
                 "locked": {
                     "genre": id
-                },
-                "filters": ["library"],
-                "pin": {
-                    "kind": "genre",
-                    "target": id
                 },
                 "shelf": {
                     "type": "genre",
@@ -78,11 +64,6 @@ Item {
                 "locked": {
                     "library": id
                 },
-                "filters": ["genre"],
-                "pin": {
-                    "kind": "library",
-                    "target": id
-                },
                 "shelf": {
                     "type": "library",
                     "id": id
@@ -93,11 +74,6 @@ Item {
                 "type": savedView?.type ?? "albums",
                 "kind": savedView?.type ?? "albums",
                 "title": savedView?.name ?? "",
-                "filters": UiConfig.filterKinds(savedView?.type ?? "albums"),
-                "pin": {
-                    "kind": "view",
-                    "target": id
-                },
                 "shelf": {
                     "type": "view",
                     "id": id
@@ -113,22 +89,12 @@ Item {
                 "sort": {
                     "sort": "added",
                     "descending": true
-                },
-                "filters": UiConfig.filterKinds("albums"),
-                "pin": {
-                    "kind": "page",
-                    "target": page
                 }
             };
         return {
             "type": page,
             "kind": page,
-            "title": UiConfig.typeLabel(page),
-            "filters": page === "genres" ? [] : page === "playlists" ? ["library"] : UiConfig.filterKinds(page),
-            "pin": {
-                "kind": "page",
-                "target": page
-            }
+            "title": UiConfig.typeLabel(page)
         };
     }
     readonly property string type: context.type
@@ -139,17 +105,13 @@ Item {
         })
     readonly property string kind: UiConfig.kindOf(type)
     readonly property var options: {
-        if (savedView) {
-            const base = UiConfig.kindDefault(savedView.type);
-            return Object.assign({}, base, savedView.options, {
-                "filters": Object.assign({}, base.filters, savedView.options.filters ?? {})
-            });
-        }
+        if (savedView)
+            return UiConfig.savedViewOptions(savedView);
         return Object.assign({}, UiConfig.pageOptions(context.kind, pageItem), context.sort ?? {});
     }
     readonly property var queryOptions: Object.assign({}, options, {
         "filters": Object.assign({}, options.filters, context.locked ?? {}),
-        "base": context.kind === "mostPlayed" ? "mostPlayed" : ""
+        "base": context.kind === "mostPlayed" ? "mostPlayed" : options.base ?? ""
     })
     readonly property bool editing: Router.editing
     // a page that lists things searches those things; a page of one item searches in it
@@ -195,7 +157,13 @@ Item {
                 "location": p.kind === "server" ? I18n.tr("On %1", "playlists section for one server, %1 is the library name").arg(PlayerService.libraryName(p.library)) : I18n.tr("On this device", "playlists section for local playlists")
             })).sort((a, b) => locationOrder.indexOf(where(a)) - locationOrder.indexOf(where(b)));
     }
-    readonly property bool narrowed: filterText.trim() !== "" || Object.keys(options.filters ?? {}).some(k => (options.filters[k] ?? "") !== "" && options.filters[k] !== false)
+    readonly property bool ruled: Rules.active(options.rules, type).length > 0
+    // the page without its rules, for "312 of 1105 tracks"; no sort, it is only counted
+    readonly property int unruledCount: ruled ? PlayerService.query(type, Object.assign({}, queryOptions, {
+        "rules": null,
+        "sort": ""
+    })).length : 0
+    readonly property bool narrowed: filterText.trim() !== "" || ruled || Object.keys(options.filters ?? {}).some(k => (options.filters[k] ?? "") !== "" && options.filters[k] !== false)
     // the user narrowed the list (or it is a ranking): shuffling it can't hand the whole thing to the daemon
     readonly property bool filtered: context.kind === "mostPlayed" || narrowed
     readonly property bool noMusic: CatalogService.librariesLoaded && PlayerService.libraries.length === 0 && type !== "playlists"
@@ -236,9 +204,22 @@ Item {
         const cleared = {};
         for (const key of Object.keys(options.filters ?? {}))
             cleared[key] = typeof options.filters[key] === "boolean" ? false : "";
+        const before = ruled ? options : null;
+        const target = {
+            "kind": context.kind,
+            "itemId": pageItem,
+            "allScope": false,
+            "view": savedView?.id ?? ""
+        };
         setOptions(Object.assign({}, options, {
-            "filters": cleared
+            "filters": cleared,
+            "rules": {
+                "match": "all",
+                "list": []
+            }
         }));
+        if (before)
+            Router.offerUndo(I18n.tr("Filters cleared", "toast after clearing a page's filter rules"), UiConfig.optionsUndo(target, before));
     }
 
     function emptyTitle() {
@@ -286,9 +267,9 @@ Item {
             onDone: Router.editing = false
             onResetRequested: (editorLoader.item as PageEditor)?.reset()
             subtitle: {
-                if (root.savedView)
+                if (root.savedView && !root.ruled)
                     return I18n.tr("Saved view · %1", "saved view page subtitle, %1 is the view type").arg(UiConfig.typeLabel(root.type));
-                const count = Phrases.count(root.type, root.items.length);
+                const count = root.ruled ? I18n.tr("%1 of %2", "browse page count on a filtered page, %2 is the whole count with its noun: 312 of 1105 tracks").arg(root.items.length).arg(Phrases.count(root.type, root.unruledCount)) : Phrases.count(root.type, root.items.length);
                 return root.type === "tracks" && CatalogService.tracksLoading ? I18n.tr("%1, loading more…", "browse page item count while tracks still load").arg(count) : count;
             }
 
@@ -337,12 +318,12 @@ Item {
                 sheetHost: root
                 kind: root.context.kind
                 itemId: root.pageItem
+                filterable: true
                 type: root.type
                 scopeThis: root.context.scope?.[0] ?? ""
                 scopeAll: root.context.scope?.[1] ?? ""
                 layouts: root.type === "tracks" ? ["list", "compact"] : ["list", "grid", "compact"]
                 sorts: root.context.sort ? [] : UiConfig.sortChoices(root.type)
-                filterKinds: root.context.filters ?? []
                 itemType: root.kind
                 savedView: root.savedView
                 savable: root.savedView === null
@@ -401,7 +382,7 @@ Item {
                 if (root.noMusic)
                     return I18n.tr("Add a music folder or server.", "home empty state when no library is set up");
                 if (Router.page === "favorites")
-                    return I18n.tr("No favorites. Mark tracks, albums and artists with the heart.", "favorites empty state");
+                    return I18n.tr("No favorites. Use the heart to add some.", "favorites empty state");
                 if (Router.page === "mostPlayed")
                     return I18n.tr("Nothing played yet.", "history and most played empty state");
                 return "";
@@ -430,6 +411,7 @@ Item {
             tracks: root.items
             context: root.playContext
             lines: root.options.lines
+            lineOptions: root.options.lineOptions ?? ({})
             layout: root.options.layout
             sortable: true
             sortKey: root.options.sort

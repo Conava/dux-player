@@ -60,7 +60,9 @@ Singleton {
     readonly property real mediaArtColumnRatioS: 0.4
     readonly property real mediaArtColumnRatioM: 0.5
     readonly property real mediaArtColumnRatioL: 0.6
+    // the deck's cap grows with the window past this much width (680 is 0.4 of 1700)
     readonly property real mediaDeckMaxWidth: 680
+    readonly property real mediaDeckMaxRatio: 0.4
     // narrower than this, the deck goes below the art
     readonly property real mediaDeckMinWidth: 320
     // the stacked layout needs at least this much art; with less, art and deck stay side by side
@@ -100,8 +102,11 @@ Singleton {
     readonly property real columnNumberWidth: Theme.iconButtonSize
     readonly property real columnTimeWidth: Theme.buttonMinWidth
     readonly property real columnLibraryWidth: 140
+    // a track row narrower than this drops favorite, rating, library, cloud and duration from its end: they would leave the title under 170
+    readonly property real fullRowWidth: 480
     readonly property real columnGenreWidth: 120
     readonly property real columnYearWidth: Theme.buttonMinWidth
+    readonly property real columnTitleMinWidth: Theme.buttonMinWidth
     readonly property real columnRatingWidth: 96
     // the title column's share of the free width, against the other columns' fill weights
     readonly property real titleColumnWeight: 3
@@ -112,6 +117,10 @@ Singleton {
     readonly property real lyricsScaleS: 0.8
     readonly property real lyricsScaleL: 1.25
     readonly property real expandedArtMaxLarge: 640
+    // the Material card's art grows with the window from these floors, in the same proportion as the floors (200, 480, 640)
+    readonly property real expandedArtRatioS: 0.25
+    readonly property real expandedArtRatioM: 0.6
+    readonly property real expandedArtRatioL: 0.8
     readonly property real lyricsLeadHeightDivisor: 12
     readonly property real lyricsLeadWidthDivisor: 11
     readonly property real lyricsLineInactiveScale: 0.8
@@ -160,6 +169,8 @@ Singleton {
     readonly property int searchLimit: 50
     readonly property int searchDelay: 250
     readonly property int searchMinLength: 2
+    // a typed filter rule value applies after this pause; each apply rewrites settings and re-runs the query
+    readonly property int ruleEditDelay: 300
     // the most track refs the daemon takes in one play request (its list bound)
     readonly property int queueRefsMax: 5000
     // the folder watcher reports changes every few seconds while files move

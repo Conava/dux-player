@@ -162,6 +162,7 @@ Item {
         tracks: root.view === "tracks" ? root.shownTracks : []
         context: root.context
         lines: UiConfig.pageOptions("tracks", "").lines
+        lineOptions: UiConfig.pageOptions("tracks", "").lineOptions ?? ({})
 
         header: Component {
             Column {

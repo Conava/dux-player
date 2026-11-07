@@ -38,6 +38,16 @@ ShellRoot {
         Router.flushUndo(() => Qt.quit());
     }
 
+    // The daemon stopping (CLI, tray or window menu) can arrive inside the settings write debounce
+    Connections {
+        target: DaemonBridge
+
+        function onConnectedChanged() {
+            if (!DaemonBridge.connected)
+                SettingsData.flush();
+        }
+    }
+
     LazyLoader {
         id: windowLoader
         active: true

@@ -15,51 +15,52 @@ Singleton {
     readonly property string settingsPath: Paths.configDir + "/ui-settings.json"
     readonly property string statePath: Paths.stateDir + "/ui-state.json"
 
-    property alias themeMode: adapter.themeMode
-    property alias presetTheme: adapter.presetTheme
+    property alias themeMode: settingsAdapter.themeMode
+    property alias presetTheme: settingsAdapter.presetTheme
     // "" (unset: shell colors when detected, else the stock preset) | "stock" | "seed" | "custom"
-    property alias colorScheme: adapter.colorScheme
-    property alias seedColor: adapter.seedColor
+    property alias colorScheme: settingsAdapter.colorScheme
+    property alias seedColor: settingsAdapter.seedColor
     // a validated theme from CustomTheme.parse: {name, dark, light}
-    property alias customTheme: adapter.customTheme
+    property alias customTheme: settingsAdapter.customTheme
     // per style group: "shell" | "custom" (used while Follow Dux Shell is off)
-    property alias styleGroups: adapter.styleGroups
-    property alias windowTransparency: adapter.windowTransparency
-    property alias elevationEnabled: adapter.elevationEnabled
-    property alias blurEnabled: adapter.blurEnabled
-    property alias radiusStrength: adapter.radiusStrength
-    property alias density: adapter.density
-    property alias animationDuration: adapter.animationDuration
-    property alias reduceMotion: adapter.reduceMotion
-    property alias springBounce: adapter.springBounce
-    property alias enableRippleEffects: adapter.enableRippleEffects
-    property alias fontSource: adapter.fontSource
-    property alias fontFamily: adapter.fontFamily
-    property alias monoFontFamily: adapter.monoFontFamily
-    property alias displayFontFamily: adapter.displayFontFamily
-    property alias fontWeight: adapter.fontWeight
-    property alias fontScale: adapter.fontScale
-    property alias focusRingEnabled: adapter.focusRingEnabled
-    property alias focusRingWidth: adapter.focusRingWidth
-    property alias focusRingColor: adapter.focusRingColor
-    property alias windowTitleBars: adapter.windowTitleBars
+    property alias styleGroups: settingsAdapter.styleGroups
+    property alias windowTransparency: settingsAdapter.windowTransparency
+    property alias elevationEnabled: settingsAdapter.elevationEnabled
+    property alias blurEnabled: settingsAdapter.blurEnabled
+    property alias radiusStrength: settingsAdapter.radiusStrength
+    property alias density: settingsAdapter.density
+    property alias animationDuration: settingsAdapter.animationDuration
+    property alias reduceMotion: settingsAdapter.reduceMotion
+    property alias springBounce: settingsAdapter.springBounce
+    property alias enableRippleEffects: settingsAdapter.enableRippleEffects
+    property alias fontSource: settingsAdapter.fontSource
+    property alias fontFamily: settingsAdapter.fontFamily
+    property alias monoFontFamily: settingsAdapter.monoFontFamily
+    property alias displayFontFamily: settingsAdapter.displayFontFamily
+    property alias fontWeight: settingsAdapter.fontWeight
+    property alias fontScale: settingsAdapter.fontScale
+    property alias focusRingEnabled: settingsAdapter.focusRingEnabled
+    property alias focusRingWidth: settingsAdapter.focusRingWidth
+    property alias focusRingColor: settingsAdapter.focusRingColor
+    property alias windowTitleBars: settingsAdapter.windowTitleBars
     // "button" | "field": the header search as a button or a full field
-    property alias headerSearch: adapter.headerSearch
-    property alias language: adapter.language
+    property alias headerSearch: settingsAdapter.headerSearch
+    property alias language: settingsAdapter.language
     // take every style value from Dux Shell when it is detected
-    property alias followShell: adapter.followShell
+    property alias followShell: settingsAdapter.followShell
     // Customization: surfaces, row actions, list options, navigation and saved views, in one versioned object
     // (Layouts.js) whose contents round-trip untouched. Read it through UiConfig, which applies the defaults.
-    property alias layout: adapter.layout
-    property alias lyricsDisplay: adapter.lyricsDisplay
-    property alias undoToast: adapter.undoToast
+    property alias layout: settingsAdapter.layout
+    property alias lyricsDisplay: settingsAdapter.lyricsDisplay
+    property alias undoToast: settingsAdapter.undoToast
     // "auto" (rail when wide, bar when narrow) | "rail" | "railLabels" | "bar"
-    property alias navStyle: adapter.navStyle
+    property alias navStyle: settingsAdapter.navStyle
     // {searchPage, searchAll}: key sequences in Qt's portable text ("Ctrl+Shift+F"); missing ones use the defaults
-    property alias shortcuts: adapter.shortcuts
+    property alias shortcuts: settingsAdapter.shortcuts
     // colors from the current album art override the palette: in now playing, or in the whole app
-    property alias artColors: adapter.artColors
-    property alias artColorsApp: adapter.artColorsApp
+    property alias artColors: settingsAdapter.artColors
+    property alias artColorsApp: settingsAdapter.artColorsApp
+    property alias trackTileOpensAlbum: settingsAdapter.trackTileOpensAlbum
     // ui-state.json: the full view's last pane ("lyrics" | "queue" | "") and the side panel's last tab
     property alias lastPane: stateAdapter.lastPane
     property alias sideTab: stateAdapter.sideTab
@@ -69,29 +70,52 @@ Singleton {
             stateDebounce.stop();
             stateFile.writeAdapter();
         }
+        // Quickshell blanks the pending data when a blocking write has to wait for a running one, and saves an empty file
+        settingsWriter.waitForJob();
         if (!writeDebounce.running)
             return;
         writeDebounce.stop();
-        settingsFile.blockWrites = true;
+        settingsWriter.blockWrites = true;
         settingsFile._write();
+        settingsWriter.blockWrites = false;
     }
 
     // Files from before the layout object: build it from the old keys, which the next write drops
     function migrate() {
-        let raw;
+        const text = settingsFile.text();
+        let raw = null;
         try {
-            raw = JSON.parse(settingsFile.text());
-        } catch (e) {
-            // the next write replaces it with the defaults, so keep what was there
-            if (settingsFile.text() !== "") {
-                console.warn("settings file is unreadable, keeping a copy with the suffix .bad:", e);
-                brokenCopy.path = root.settingsPath + ".bad";
-                brokenCopy.setText(settingsFile.text());
-            }
+            raw = JSON.parse(text);
+        } catch (e) {}
+        if (!Layouts.isObject(raw)) {
+            // saving would replace the file with the defaults, so nothing is saved until it is valid or gone
+            if (text.trim() === "")
+                return;
+            settingsFile._loaded = false;
+            console.warn("settings file is invalid, not saving over it; a copy has the suffix .bad");
+            brokenCopy.path = root.settingsPath + ".bad";
+            brokenCopy.setText(text);
             return;
         }
-        if (Layouts.needsMigration(raw))
+        settingsFile._extra = Layouts.extraTop(raw);
+        if (Layouts.needsMigration(raw)) {
             root.layout = Layouts.migrate(raw);
+            return;
+        }
+        // JsonAdapter loads nested lists as QML sequences, which Array.isArray rejects, so Layouts would read every
+        // stored list as unset and the next edit would save the defaults. This is the file's content: no write.
+        settingsFile._loaded = false;
+        root.layout = raw.layout;
+        settingsFile._loaded = true;
+    }
+
+    property alias stored: settingsAdapter
+
+    // writeAdapter would drop the keys the adapter doesn't declare
+    function fileText(extra: var): string {
+        const props = JSON.parse(JSON.stringify(root.stored));
+        delete props.objectName;
+        return JSON.stringify(Object.assign({}, extra, props), null, 4);
     }
 
     Component.onDestruction: flush()
@@ -111,16 +135,20 @@ Singleton {
 
     FileView {
         id: settingsFile
-        path: root.settingsPath
+        path: _rereading ? "" : root.settingsPath
         blockLoading: true
-        atomicWrites: true
         watchChanges: true
         printErrors: false
 
         property bool _loaded: false
-        property bool _selfWrite: false
+        // the file's content as far as this process knows, to tell our own writes from outside changes
+        property string _known: ""
+        property bool _rereading: false
+        // top-level keys the adapter doesn't declare, written back so a newer or older version's keys survive
+        property var _extra: ({})
 
         onLoaded: {
+            _known = text();
             _loaded = true;
             root.migrate();
         }
@@ -130,13 +158,14 @@ Singleton {
             if (!_loaded)
                 console.warn("settings file won't load, not saving over it:", FileViewError.toString(error));
         }
-        onSaveFailed: error => console.warn("settings file couldn't be saved:", FileViewError.toString(error))
+        // Our own writes arrive here too, some of them twice. Passing through an empty path makes the adapter read
+        // the file even when it went back to what this view read last, which reload() would skip.
         onFileChanged: {
-            if (_selfWrite) {
-                _selfWrite = false;
+            settingsWriter.reload();
+            if (settingsWriter.text() === _known)
                 return;
-            }
-            reload();
+            _rereading = true;
+            _rereading = false;
         }
         onAdapterUpdated: {
             if (!_loaded)
@@ -145,12 +174,14 @@ Singleton {
         }
 
         function _write() {
-            _selfWrite = true;
-            writeAdapter();
+            if (!_loaded)
+                return;
+            _known = root.fileText(_extra);
+            settingsWriter.setText(_known);
         }
 
         JsonAdapter {
-            id: adapter
+            id: settingsAdapter
             property string themeMode: "auto"
             property string colorScheme: ""
             property string seedColor: "#6750a4"
@@ -183,6 +214,7 @@ Singleton {
             property var undoToast: ({})
             property string navStyle: "auto"
             property var shortcuts: ({})
+            property bool trackTileOpensAlbum: false
             property bool artColors: false
             property bool artColorsApp: false
             property bool followShell: true
@@ -200,6 +232,18 @@ Singleton {
             }
             stateFile.writeAdapter();
         }
+    }
+
+    // Writes go through their own view: a write on settingsFile would load its text back into the adapter, undoing
+    // an edit made meanwhile and turning the layout's lists into sequences that Layouts reads as unset.
+    FileView {
+        id: settingsWriter
+        path: root.settingsPath
+        blockAllReads: true
+        atomicWrites: true
+        printErrors: false
+
+        onSaveFailed: error => console.warn("settings file couldn't be saved:", FileViewError.toString(error))
     }
 
     FileView {

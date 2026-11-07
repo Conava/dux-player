@@ -78,7 +78,7 @@ WindowDialog {
 
     StyledText {
         width: parent.width
-        text: root.serverIndex >= 0 ? I18n.tr("Can hold tracks from this server only. Available on all your devices.", "new playlist dialog hint for a server playlist") : I18n.tr("Can hold tracks from any library.", "new playlist dialog hint for a local playlist")
+        text: root.serverIndex >= 0 ? I18n.tr("Holds tracks from this server only. Available on all devices.", "new playlist dialog hint for a server playlist") : I18n.tr("Holds tracks from any library.", "new playlist dialog hint for a local playlist")
         font.pixelSize: Theme.fontSizeSmall
         color: Theme.surfaceVariantText
         wrapMode: Text.WordWrap

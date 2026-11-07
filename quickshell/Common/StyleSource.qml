@@ -66,6 +66,8 @@ Singleton {
     readonly property real radiusStrength: fromShell.radius ? shell.value("radiusStrength", 50) : SettingsData.radiusStrength
     readonly property real fixedRadius: fromShell.radius && shell.value("radiusMode", "scale") === "fixed" ? shell.value("fixedRadius", 12) : -1
     readonly property string density: SettingsData.density
+    // the shell's Classic interface style has no pill controls and no press morph
+    readonly property bool classicShape: fromShell.radius && shell.value("interfaceStyle", "expressive") === "classic"
 
     readonly property int animationDuration: fromShell.motion ? shell.value("animationDuration", 250) : SettingsData.animationDuration
     readonly property bool reduceMotion: fromShell.motion ? shell.value("reduceMotion", false) : SettingsData.reduceMotion

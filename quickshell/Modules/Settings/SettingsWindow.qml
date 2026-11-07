@@ -117,7 +117,7 @@ DFloatingWindow {
             menuVisible = false;
         }
         visible = true;
-        if (!page && !isCompactMode)
+        if (!isCompactMode)
             searchField.forceActiveFocus();
     }
 
@@ -372,7 +372,7 @@ DFloatingWindow {
         Keys.onEscapePressed: window.visible = false
 
         Shortcut {
-            sequence: StandardKey.Find
+            sequences: [StandardKey.Find]
             onActivated: window.focusSearch()
         }
 

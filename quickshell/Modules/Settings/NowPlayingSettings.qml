@@ -20,10 +20,11 @@ Item {
     // sub-views the settings search opens
     readonly property var subViews: surfaces
     readonly property var starts: ["bar", "side", "full"]
-    readonly property var openPanes: ["last", "lyrics", "queue", "cover"]
+    // the Lyrics option is left out while lyrics are off
+    readonly property var openPanes: UiConfig.lyricsOn ? ["last", "lyrics", "queue", "cover"] : ["last", "queue", "cover"]
     readonly property var playerLooks: ["card", "attached"]
     readonly property var paneLooks: ["player", "card", "attached"]
-    readonly property bool twoColumns: overview.width >= SettingsMetrics.compactBreakpoint
+    readonly property bool twoColumns: overview.width >= SettingsMetrics.overviewTwoColumnWidth
 
     function surfaceLabel(id) {
         switch (id) {
@@ -98,7 +99,7 @@ Item {
         SettingsCard {
             SettingsButtonGroupRow {
                 text: I18n.tr("Start with", "now playing setting: where now playing shows at start")
-                description: I18n.tr("The view button in the header changes it only temporarily.", "now playing start description")
+                description: I18n.tr("Switching with the header button is temporary.", "now playing start description")
                 model: [I18n.tr("Bottom bar", "now playing placement option"), I18n.tr("Side panel", "now playing placement option"), I18n.tr("Full view", "now playing start option")]
                 currentIndex: root.starts.indexOf(UiConfig.nowPlaying.start)
                 onSelectionChanged: (index, selected) => {
@@ -137,8 +138,14 @@ Item {
 
             SettingsButtonGroupRow {
                 text: I18n.tr("Full view opens with", "now playing setting")
-                model: [I18n.tr("Last used", "full view opens with: the pane used last"), I18n.tr("Lyrics", "song lyrics: page, toggle, settings tab"), I18n.tr("Queue", "the play queue: panel, toggle"), I18n.tr("Cover only", "full view opens with: no lyrics or queue pane")]
-                currentIndex: root.openPanes.indexOf(UiConfig.nowPlaying.openPane)
+                model: root.openPanes.map(p => ({
+                            "last": I18n.tr("Last used", "full view opens with: the pane used last"),
+                            "lyrics": I18n.tr("Lyrics", "song lyrics: page, toggle, settings tab"),
+                            "queue": I18n.tr("Queue", "the play queue: panel, toggle"),
+                            "cover": I18n.tr("Cover only", "full view opens with: no lyrics or queue pane")
+                        })[p])
+                // lyrics off: the view opens with the cover, whatever is saved
+                currentIndex: root.openPanes.indexOf(UiConfig.nowPlaying.openPane === "lyrics" && !UiConfig.lyricsOn ? "cover" : UiConfig.nowPlaying.openPane)
                 onSelectionChanged: (index, selected) => {
                     if (selected)
                         UiConfig.setNowPlaying({
@@ -221,7 +228,7 @@ Item {
             SettingsRow {
                 title: I18n.tr("Reset all now playing", "now playing settings action")
                 keywords: "defaults"
-                subtitle: I18n.tr("Restores where it starts, the style and every surface.", "now playing reset description")
+                subtitle: I18n.tr("Resets start view, style and surfaces.", "now playing reset description")
                 iconName: "restart_alt"
                 clickable: true
                 onClicked: resetDialog.ask()
@@ -233,7 +240,7 @@ Item {
         id: resetDialog
         host: root
         title: I18n.tr("Reset now playing?", "reset now playing confirmation title")
-        supportingText: I18n.tr("The bar, the side panel and both full views return to their defaults.", "reset now playing confirmation")
+        supportingText: I18n.tr("Resets the bar, side panel and both full views.", "reset now playing confirmation")
         confirmText: I18n.tr("Reset", "button that restores the defaults")
         onConfirmed: root.resetAll()
     }

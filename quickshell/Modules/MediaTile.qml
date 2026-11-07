@@ -11,7 +11,8 @@ StyledButton {
     property string kind: "album"
     required property var item
     property var lines: []
-    readonly property string info: UiConfig.infoText(item, lines)
+    property var lineOptions: ({})
+    readonly property string info: UiConfig.infoText(item, lines, lineOptions)
     readonly property bool menuOpened: menu.opened || trackMenu.opened
     readonly property bool active: hovered || activeFocus || menuOpened
 
@@ -29,7 +30,15 @@ StyledButton {
     radius: Theme.cornerRadiusL
     color: "transparent"
     Accessible.name: Phrases.named(item?.title ?? item?.name ?? "", info)
-    onClicked: kind === "track" ? activated() : Router.openItem(kind, item)
+    // tracks without an album tag sit under the placeholder "Unknown Album", which isn't a page to open
+    onClicked: {
+        if (kind !== "track")
+            Router.openItem(kind, item);
+        else if (SettingsData.trackTileOpensAlbum && (item?.albumId ?? "") !== "" && item.album !== "Unknown Album")
+            Router.go("album", item.albumId);
+        else
+            activated();
+    }
 
     StateLayer {
         control: root

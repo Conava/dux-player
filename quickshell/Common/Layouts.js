@@ -22,7 +22,7 @@ const paneLooks = ["player", "card", "attached"];
 const paneTypes = ["cover", "lyrics", "queue"];
 
 const groups = dict({
-    "trackInfo": ["cover", "title", "artists", "album", "libraryBadge", "playingFrom", "castTarget"],
+    "trackInfo": ["cover", "title", "artists", "album", "text", "lyricLine", "libraryBadge", "playingFrom", "castTarget"],
     "transport": ["shuffle", "previous", "playPause", "next", "repeat"],
     "seek": ["elapsed", "seekbar", "duration"],
     "buttons": ["favorite", "rating", "volume", "device", "queue", "lyrics", "sleep", "speed", "expand", "dock"],
@@ -59,14 +59,14 @@ const surfaceIds = ["bar", "side", "fullBento", "fullM3e", "home"];
 const nowPlayingSurfaces = ["bar", "side", "fullBento", "fullM3e"];
 
 // Row and menu actions per media type. trailing: what End of row offers; menu: every action of the ⋮ menu
-// (On hover offers the same)
+// (On hover offers the same, except keepTrack: its label depends on a lookup the hover buttons don't make)
 const itemCatalog = dict({
     "track": {
-        "trailing": ["favorite", "rating", "library", "cloud", "duration", "more"],
-        "menu": ["playNext", "addToQueue", "addToPlaylist", "favorite", "goToAlbum", "goToArtist", "details", "removeFromPlaylist"],
+        "trailing": ["favorite", "rating", "library", "cloud", "duration", "addToPlaylist", "more"],
+        "menu": ["playNext", "addToQueue", "addToPlaylist", "favorite", "goToAlbum", "goToArtist", "details", "keepTrack", "removeFromPlaylist"],
         "trailingDefault": ["favorite", "library", "cloud", "duration", "more"],
         "hoverDefault": ["playNext", "addToQueue"],
-        "menuDefault": ["playNext", "addToQueue", "addToPlaylist", "favorite", "divider", "goToAlbum", "goToArtist", "details", "divider", "removeFromPlaylist"]
+        "menuDefault": ["playNext", "addToQueue", "addToPlaylist", "favorite", "divider", "goToAlbum", "goToArtist", "details", "keepTrack", "divider", "removeFromPlaylist"]
     },
     "album": {
         "trailing": ["favorite", "rating", "library", "cloud", "play", "more"],
@@ -97,11 +97,11 @@ const itemCatalog = dict({
         "menuDefault": ["shuffle", "pin", "addToHome"]
     },
     "queue": {
-        "trailing": ["addedByYou", "duration", "remove", "more"],
-        "menu": ["playAfter", "playNext", "addToQueue", "addToPlaylist", "favorite", "goToAlbum", "goToArtist", "details", "removeFromQueue"],
+        "trailing": ["addedByYou", "duration", "addToPlaylist", "remove", "more"],
+        "menu": ["playAfter", "stopAfter", "playNext", "addToQueue", "addToPlaylist", "favorite", "goToAlbum", "goToArtist", "details", "keepTrack", "removeFromQueue"],
         "trailingDefault": ["addedByYou", "remove", "more"],
         "hoverDefault": [],
-        "menuDefault": ["playAfter", "addToPlaylist", "favorite", "divider", "goToAlbum", "goToArtist", "details", "divider", "removeFromQueue"]
+        "menuDefault": ["playAfter", "stopAfter", "addToPlaylist", "favorite", "divider", "goToAlbum", "goToArtist", "details", "keepTrack", "divider", "removeFromQueue"]
     }
 });
 const itemTypes = ["track", "album", "artist", "playlist", "genre", "queue"];
@@ -316,7 +316,7 @@ function typesFor(id, zoneId) {
         case "trailing":
             return item.trailing.concat(["spacer"]);
         case "hover":
-            return item.menu;
+            return item.menu.filter(t => t !== "keepTrack");
         case "menu":
         case "context":
             return item.menu.concat(["divider"]);
@@ -335,6 +335,8 @@ function typesFor(id, zoneId) {
         return shelfTypes;
     }
     return elementTypes.filter(type => {
+        if (type === "lyricLine")
+            return id === "bar" && kind === "row" && zoneId !== "controls";
         if (type === "cover")
             return (id === "bar" && zoneId === "left") || (id === "side" && zoneId === "title");
         if (groups.seek.indexOf(type) >= 0)
@@ -345,6 +347,10 @@ function typesFor(id, zoneId) {
             return (id === "bar" || id === "side") && kind !== "column";
         return kind !== "column";
     });
+}
+
+function defaultTemplate() {
+    return "%album%[ \u00b7 %year%]";
 }
 
 // {key: {values: [..] | null (any short text), default?}}
@@ -417,6 +423,24 @@ function optionSchema(id, type) {
     if (type === "title" && id === "fullM3e")
         return {
             "favorite": titleFavorite
+        };
+    if (type === "text")
+        return {
+            "template": {
+                "values": null,
+                "default": defaultTemplate()
+            }
+        };
+    if (type === "lyricLine")
+        return {
+            "width": {
+                "values": ["s", "m", "l", "xl"],
+                "default": "m"
+            },
+            "smooth": {
+                "values": [true, false],
+                "default": false
+            }
         };
     if (type === "spacer")
         return {
@@ -648,13 +672,195 @@ function isTrackKind(kind) {
     return (kinds[kind] ?? {}).type === "tracks";
 }
 
+// A custom text column is the line "custom:<id>"; its title, template, sort and width live in lineOptions.
+const customLinePattern = /^custom:[A-Za-z0-9]{1,16}$/;
+const maxCustomLines = 8;
+// the id the one custom line of the old format gets
+const legacyCustomLine = "custom:c1";
+const maxRules = 32;
+const ruleTypes = ["tracks", "albums", "artists"];
+// a column's width multiplier: S, M, L as the Width row sets them; a drag writes any value between the bounds
+const columnSizes = {
+    "s": 0.7,
+    "m": 1,
+    "l": 1.5
+};
+const columnSizeRange = [0.4, 3];
+
+function isCustomLine(line) {
+    return typeof line === "string" && customLinePattern.test(line);
+}
+
 function cleanLines(kind, lines) {
     const out = [];
+    let custom = 0;
     for (const line of lines.slice(0, 16)) {
-        if (safeString(line, 32) && line !== "" && out.indexOf(line) < 0 && !(isTrackKind(kind) && rowFacts.indexOf(line) >= 0))
-            out.push(line);
+        if (!safeString(line, 32) || line === "" || out.indexOf(line) >= 0 || isTrackKind(kind) && rowFacts.indexOf(line) >= 0)
+            continue;
+        if (line.startsWith("custom:") && (!isCustomLine(line) || ++custom > maxCustomLines))
+            continue;
+        out.push(line);
     }
     return out;
+}
+
+function cleanLineOptions(stored) {
+    const out = {};
+    let custom = 0;
+    for (const key of Object.keys(stored).slice(0, 32)) {
+        const e = stored[key];
+        const isCustom = isCustomLine(key);
+        if (!isObject(e) || !isCustom && !typePattern.test(key) || isCustom && ++custom > maxCustomLines)
+            continue;
+        const entry = {};
+        if (isCustom && safeString(e.title, 64) && e.title !== "")
+            entry.title = e.title;
+        if (isCustom && safeString(e.template, 256))
+            entry.template = e.template;
+        if (safeString(e.sort, 32) && (typePattern.test(e.sort) || isCustomLine(e.sort)))
+            entry.sort = e.sort;
+        if (typeof e.size === "number" && isFinite(e.size))
+            entry.size = Math.min(columnSizeRange[1], Math.max(columnSizeRange[0], e.size));
+        if (Object.keys(entry).length > 0)
+            out[key] = entry;
+    }
+    return out;
+}
+
+// The one custom line of the old format (lines: ["custom"], lineTemplate, lineTitle, sort: "custom") as a stored
+// record of the new one.
+function upgradeCustomLine(stored) {
+    const hasLine = Array.isArray(stored.lines) && stored.lines.indexOf("custom") >= 0;
+    if (!hasLine && stored.lineTemplate === undefined && stored.lineTitle === undefined && stored.sort !== "custom")
+        return stored;
+    const out = Object.assign({}, stored);
+    delete out.lineTemplate;
+    delete out.lineTitle;
+    if (hasLine)
+        out.lines = stored.lines.map(l => l === "custom" ? legacyCustomLine : l);
+    if (stored.sort === "custom")
+        out.sort = legacyCustomLine;
+    if (safeString(stored.lineTemplate, 256) || safeString(stored.lineTitle, 64)) {
+        const entry = {};
+        if (safeString(stored.lineTemplate, 256))
+            entry.template = stored.lineTemplate;
+        if (safeString(stored.lineTitle, 64))
+            entry.title = stored.lineTitle;
+        out.lineOptions = Object.assign({}, isObject(stored.lineOptions) ? stored.lineOptions : {}, {
+            [legacyCustomLine]: entry
+        });
+    }
+    return out;
+}
+
+// A filter rule's value: a scalar, or a list of them with null for a blank end of a range. Anything else is
+// dropped and the rule stays, without a value.
+function cleanRuleValue(v) {
+    if (safeScalar(v))
+        return v;
+    if (Array.isArray(v) && v.length <= maxRules && v.every(e => e === null || safeScalar(e)))
+        return v.slice();
+    return undefined;
+}
+
+// What a rule means is checked in Rules.js against this version; a rule it doesn't know is kept here.
+function cleanRules(stored) {
+    const given = Array.isArray(stored.list) ? stored.list : [];
+    return {
+        "match": stored.match === "any" ? "any" : "all",
+        "list": given.filter(r => isObject(r) && safeString(r.field, 32) && typePattern.test(r.field) && safeString(r.op, 32) && typePattern.test(r.op)).slice(0, maxRules).map(r => {
+            const out = {
+                "field": r.field,
+                "op": r.op
+            };
+            const value = cleanRuleValue(r.value);
+            if (value !== undefined)
+                out.value = value;
+            return out;
+        })
+    };
+}
+
+function canAddRule(list) {
+    return list.length < maxRules;
+}
+
+// Filters from before rules, and the locked filters of a page saved as a view. They hold on top of the rules,
+// which a list matching any of two or more can't say, so there they stay filters.
+function upgradeFilters(kind, stored) {
+    const f = stored.filters;
+    if (!isObject(f) || ruleTypes.indexOf(kinds[kind].type) < 0)
+        return stored;
+    const added = [];
+    if (safeString(f.library, 256) && f.library !== "")
+        added.push({
+            "field": "library",
+            "op": "isAny",
+            "value": [f.library]
+        });
+    if (safeString(f.genre, 256) && f.genre !== "")
+        added.push({
+            "field": "genre",
+            "op": "isAny",
+            "value": [f.genre]
+        });
+    if (f.favorites === true)
+        added.push({
+            "field": "favorite",
+            "op": "is",
+            "value": true
+        });
+    const rules = cleanRules(isObject(stored.rules) ? stored.rules : {});
+    if (added.length > 0 && rules.match === "any" && rules.list.length > 1)
+        return stored;
+    const out = Object.assign({}, stored);
+    delete out.filters;
+    if (added.length > 0)
+        out.rules = {
+            "match": "all",
+            "list": added.concat(rules.list)
+        };
+    return out;
+}
+
+// what a click on a column's header sorts by: its own key unless Sort by says otherwise
+function columnSort(o, line) {
+    const sort = o.lineOptions?.[line]?.sort;
+    return typeof sort === "string" && !(isCustomLine(sort) && (o.lines ?? []).indexOf(sort) < 0) ? sort : line;
+}
+
+function columnSize(o, line) {
+    return o.lineOptions?.[line]?.size ?? 1;
+}
+
+// "s", "m" or "l" for a width the Width row sets, "" for a dragged one
+function sizeName(size) {
+    return Object.keys(columnSizes).find(k => columnSizes[k] === size) ?? "";
+}
+
+function sizeValue(name) {
+    return columnSizes[name];
+}
+
+// the template a custom sort key sorts by; null for any other key
+function sortTemplate(o, key) {
+    return isCustomLine(key) ? o.lineOptions?.[key]?.template ?? "" : null;
+}
+
+function canAddCustom(lines) {
+    return lines.filter(isCustomLine).length < maxCustomLines;
+}
+
+// a line key for a new custom column: the first one no column and no stored sort uses, so a removed column's sort doesn't come back
+function newCustomLine(lines, options) {
+    const used = lines.slice();
+    used.push(options?.sort);
+    for (const k of Object.keys(options?.lineOptions ?? {}))
+        used.push(k, options.lineOptions[k]?.sort);
+    let n = 1;
+    while (used.indexOf("custom:c" + n) >= 0)
+        n++;
+    return "custom:c" + n;
 }
 
 function cleanSections(kind, stored) {
@@ -674,9 +880,18 @@ function cleanListOptions(kind, stored) {
     const out = {};
     if (!isObject(stored) || !kinds[kind])
         return out;
+    stored = upgradeFilters(kind, upgradeCustomLine(stored));
     for (const key of Object.keys(stored).slice(0, 32)) {
         const v = stored[key];
         switch (key) {
+        case "lineOptions":
+            if (isObject(v))
+                out.lineOptions = cleanLineOptions(v);
+            break;
+        case "rules":
+            if (isObject(v))
+                out.rules = cleanRules(v);
+            break;
         case "layout":
             if (listLayouts.indexOf(v) >= 0)
                 out.layout = v;
@@ -890,8 +1105,13 @@ function builtinOptions(kind) {
         "layout": "list",
         "tileSize": "m",
         "lines": [],
+        "lineOptions": {},
         "sort": "name",
         "descending": false,
+        "rules": {
+            "match": "all",
+            "list": []
+        },
         "filters": {
             "library": "",
             "genre": "",
@@ -912,10 +1132,21 @@ function overrideKey(kind, itemId) {
     return itemId ? kind + ":" + itemId : "";
 }
 
+// a custom sort needs its custom line; without it the kind's own sort applies
+function validSort(kind, o) {
+    if (isCustomLine(o.sort) && (o.lines ?? []).indexOf(o.sort) < 0)
+        o.sort = builtinOptions(kind).sort;
+    return o;
+}
+
 function kindDefault(eff, kind) {
     if (!kinds[kind])
         return null;
-    return mergeOptions(builtinOptions(kind), eff.lists.defaults[kind] ?? {});
+    return validSort(kind, mergeOptions(builtinOptions(kind), eff.lists.defaults[kind] ?? {}));
+}
+
+function savedViewOptions(eff, view) {
+    return validSort(view.type, mergeOptions(kindDefault(eff, view.type), view.options ?? {}));
 }
 
 function pageOptions(eff, kind, itemId) {
@@ -923,7 +1154,7 @@ function pageOptions(eff, kind, itemId) {
     if (!base)
         return null;
     const key = overrideKey(kind, itemId);
-    return key === "" ? base : mergeOptions(base, eff.lists.overrides[key] ?? {});
+    return key === "" ? base : validSort(kind, mergeOptions(base, eff.lists.overrides[key] ?? {}));
 }
 
 // the keys of o that differ from base, filters one by one
@@ -1028,6 +1259,20 @@ function setPageOptions(stored, kind, itemId, options) {
     else
         overrides[key] = change;
     return out;
+}
+
+// patch over the options of a page, a kind's default (allScope) or a saved view ({kind, itemId, allScope, view}).
+// A saved view that is gone changes nothing.
+function setOptionsAt(stored, target, patch) {
+    const eff = effective(stored);
+    if (target.view) {
+        return setList(stored, "savedViews", eff.savedViews.map(v => v.id === target.view ? Object.assign({}, v, {
+                "options": Object.assign({}, savedViewOptions(eff, v), patch)
+            }) : v));
+    }
+    if (target.allScope)
+        return setKindDefault(stored, target.kind, Object.assign({}, kindDefault(eff, target.kind), patch));
+    return setPageOptions(stored, target.kind, target.itemId, Object.assign({}, pageOptions(eff, target.kind, target.itemId), patch));
 }
 
 function resetPageOptions(stored, kind, itemId) {
@@ -1181,6 +1426,23 @@ const oldQuickActions = dict({
 
 function needsMigration(raw) {
     return !isObject(raw) || !isObject(raw.layout) || typeof raw.layout.version !== "number";
+}
+
+// Top-level keys of files from before the layout object; migrate() folds them into it.
+const oldTopKeys = ["nowPlaying", "nowPlayingBar", "homeShelves", "trackQuickActions", "viewOptions", "artistView", "navigation", "savedViews"];
+
+// What a write must carry over besides the adapter's own keys: the file's other top-level keys.
+// A file still in the old format loses the keys migrate() consumed.
+function extraTop(raw) {
+    if (!isObject(raw))
+        return {};
+    const drop = needsMigration(raw) ? oldTopKeys : [];
+    const out = {};
+    for (const k of Object.keys(raw)) {
+        if (drop.indexOf(k) < 0)
+            out[k] = raw[k];
+    }
+    return out;
 }
 
 // the old cleanup: known ids, each once

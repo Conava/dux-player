@@ -33,8 +33,10 @@ RowLayout {
     property bool opensView: false
     // the width this zone may take before elements move into its ⋮ menu; below 0 it never overflows
     property real room: -1
+    // kept elements may move into the menu too, after the others, so the zone never outgrows its room
+    property bool keepMoves: false
 
-    readonly property var textTypes: ["title", "artists", "album", "libraryBadge", "playingFrom", "castTarget"]
+    readonly property var textTypes: ["title", "artists", "album", "text", "libraryBadge", "playingFrom", "castTarget"]
     readonly property var track: PlayerService.current
     readonly property var shown: instances.filter(i => !i.hidden && UiConfig.isKnown(i.type))
     // a string, so a resize that moves nothing doesn't rebuild the row
@@ -42,8 +44,8 @@ RowLayout {
                 "key": i.id,
                 "type": i.type,
                 "placement": i.placement,
-                "width": elementWidth(i)
-            })), room, moreButton.implicitWidth, spacing).join(" ")
+                "width": i.type === "lyricLine" ? 0 : elementWidth(i)
+            })), room, moreButton.implicitWidth, spacing, keepMoves).join(" ")
     readonly property var inMenu: overflowKeys === "" ? [] : shown.filter(i => overflowKeys.split(" ").indexOf(i.id) >= 0)
     // one entry per type; spacers and dividers just go
     readonly property var menuTypes: inMenu.map(i => i.type).filter((t, n, all) => all.indexOf(t) === n && t !== "spacer" && t !== "divider")
@@ -71,7 +73,7 @@ RowLayout {
             return ({});
         const out = {};
         const runs = [[]];
-        const keys = segments.filter(s => s.items.some(i => shows(i.type))).map(s => s.items[0].type === "spacer" || s.items[0].type === "divider" ? "" : s.key);
+        const keys = segments.filter(s => s.items.some(i => shows(i.type, i.options))).map(s => s.items[0].type === "spacer" || s.items[0].type === "divider" ? "" : s.key);
         for (const key of keys.concat(menuTypes.length > 0 ? ["more"] : [])) {
             if (key === "")
                 runs.push([]);
@@ -88,15 +90,32 @@ RowLayout {
     readonly property real infoTextWidth: Math.max(titleSize.implicitWidth + (titleOptions.favorite ? Theme.buttonHeightXS + Theme.spacingXS : 0), artistSize.implicitWidth)
     readonly property real infoWidth: titleOptions.adaptive === true ? Math.max(PlayerMetrics.barInfoMinWidth, Math.min(infoMaxWidth, infoTextWidth)) : infoMaxWidth
     // how much narrower the bar's track info blocks get before anything moves into the menu
-    readonly property real shrinkable: textLook === "bar" && !column ? segments.filter(s => s.stack).length * (infoWidth - PlayerMetrics.barInfoMinWidth) : 0
+    readonly property real shrinkable: textLook === "bar" && !column ? stackCount * (infoWidth - PlayerMetrics.barInfoMinWidth) + lyricShrinkable : 0
+    readonly property int stackCount: segments.filter(s => s.stack).length
+    // the lyric lines give way too, each from its width option down to nothing
+    readonly property real lyricShrinkable: inRow.filter(i => i.type === "lyricLine" && shows(i.type, i.options)).reduce((sum, i) => sum + PlayerMetrics.barInfoWidths[i.options?.width ?? "m"], 0)
+    // How far the bar's flexible blocks are cut, from this zone's own width: the lyric lines first, the track info
+    // only once they are gone. Their minimums follow these numbers, never a sibling's size, so the layout settles.
+    readonly property real cut: textLook === "bar" && !column ? Math.min(shrinkable, Math.max(0, implicitWidth - width)) : 0
+    readonly property real lyricCut: Math.min(cut, lyricShrinkable)
+    readonly property real infoCut: cut - lyricCut
+
+    // the least a lyric line of this preferred width may take right now
+    function lyricMinimum(preferred) {
+        return lyricShrinkable > 0 && textLook === "bar" && !column ? preferred * (1 - lyricCut / lyricShrinkable) : 0;
+    }
 
     // a cast target only while casting, an album only when the track has one
-    function shows(type) {
+    function shows(type, options) {
         switch (type) {
+        case "text":
+            return UiConfig.templateText(options?.template ?? "", track, true) !== "";
         case "castTarget":
             return PlayerService.casting;
         case "lyrics":
             return UiConfig.lyricsOn;
+        case "lyricLine":
+            return UiConfig.lyricsOn && track !== null;
         case "playingFrom":
         case "title":
             return track !== null;
@@ -111,8 +130,8 @@ RowLayout {
     }
 
     // what an element needs in a row, from the same tokens the elements size by
-    function elementWidth(inst) {
-        const button = size === "m" ? Theme.buttonHeightM : Theme.buttonHeightS;
+    function elementWidth(inst, buttonSize = size) {
+        const button = buttonSize === "m" ? Theme.buttonHeightM : Theme.buttonHeightS;
         switch (inst.type) {
         case "volume":
             return UiConfig.styleOf(context) === "m3e" ? button : Theme.buttonHeightXS + (Theme.outlineWidthFocused + Theme.dividerWidth + Theme.spacingXXS) * 2;
@@ -125,6 +144,7 @@ RowLayout {
         case "seekbar":
             return PlayerMetrics.barSeekMinWidth;
         case "title":
+        case "lyricLine":
             return PlayerMetrics.barInfoMinWidth;
         case "spacer":
             return ({
@@ -141,9 +161,18 @@ RowLayout {
             return Theme.iconSizeMedium + Theme.spacingXS * 2;
         if (look === "group")
             return groupProbe.width;
-        if (look === "transport" && inst.type === "playPause")
-            return Math.round(button * PlayerMetrics.mediaPlayWidthRatio);
+        if (inst.type === "playPause")
+            return look === "transport" ? Math.round(button * PlayerMetrics.mediaPlayWidthRatio) : (buttonSize === "m" ? playProbeM : playProbeS).width;
         return button;
+    }
+
+    // the width of the elements that sit in the row at a button size, plus the ⋮ when some only live in the menu.
+    // With `minimal` the "auto" ones count as in the menu too: the least this row can shrink to.
+    function naturalWidth(buttonSize, minimal = false) {
+        const menuOnly = i => Overflow.rank(i.type) >= 0 && (i.placement === "overflow" || (minimal && i.placement === "auto"));
+        const inRow = shown.filter(i => shows(i.type, i.options) && !menuOnly(i));
+        const more = shown.some(menuOnly);
+        return inRow.reduce((sum, i) => sum + elementWidth(i, buttonSize), 0) + Math.max(0, inRow.length - 1) * spacing + (more ? (buttonSize === "m" ? moreProbeM : moreProbeS).implicitWidth + spacing : 0);
     }
 
     function menuEntry(type) {
@@ -221,6 +250,39 @@ RowLayout {
         widthMode: "wide"
     }
 
+    // the ⋮ at each size, so measuring a size doesn't read the button at the current one
+    DIconButton {
+        id: moreProbeM
+        visible: false
+        size: "m"
+        buttonSize: root.buttonHeight > 0 ? root.buttonHeight : Theme.buttonHeightM
+        widthMode: root.look === "group" ? "wide" : "default"
+    }
+
+    DIconButton {
+        id: moreProbeS
+        visible: false
+        size: "s"
+        buttonSize: root.buttonHeight > 0 ? root.buttonHeight : Theme.buttonHeightS
+        widthMode: root.look === "group" ? "wide" : "default"
+    }
+
+    // the wide play button at each size, which the transport's other buttons are narrower than
+    DIconButton {
+        id: playProbeM
+        visible: false
+        size: "m"
+        iconSize: Theme.iconSizeLarge
+        widthMode: "wide"
+    }
+
+    DIconButton {
+        id: playProbeS
+        visible: false
+        size: "s"
+        widthMode: "wide"
+    }
+
     component Element: NowPlayingElement {
         context: root.context
         size: root.size
@@ -231,7 +293,7 @@ RowLayout {
         centered: root.centered
         fill: root.fill
         weight: elementId === "playPause" ? PlayerMetrics.mediaPlayWidthRatio : 1
-        shown: root.shows(elementId)
+        shown: root.shows(elementId, options)
         rowWidth: root.width
     }
 
@@ -241,9 +303,9 @@ RowLayout {
 
         property var items: []
         readonly property bool bar: root.textLook === "bar" && !root.column
-        readonly property bool shown: items.some(i => root.shows(i.type))
+        readonly property bool shown: items.some(i => root.shows(i.type, i.options))
         readonly property real preferredWidth: bar ? root.infoWidth : -1
-        readonly property real minimumWidth: bar ? PlayerMetrics.barInfoMinWidth : -1
+        readonly property real minimumWidth: bar ? root.infoWidth - root.infoCut / Math.max(1, root.stackCount) : -1
         readonly property real padding: root.opensView ? Theme.spacingS : 0
 
         implicitWidth: bar ? root.infoWidth : lines.implicitWidth
@@ -320,8 +382,8 @@ RowLayout {
             sourceComponent: modelData.stack ? stackComponent : elementComponent
             Layout.fillWidth: element ? element.fillsWidth : item !== null
             Layout.preferredWidth: element ? element.preferredWidth : stack ? stack.preferredWidth : -1
-            Layout.minimumWidth: element ? element.minimumWidth : stack ? stack.minimumWidth : -1
-            Layout.maximumWidth: stack && stack.preferredWidth > 0 ? stack.preferredWidth : Number.POSITIVE_INFINITY
+            Layout.minimumWidth: element ? (element.elementId === "lyricLine" ? root.lyricMinimum(element.preferredWidth) : element.minimumWidth) : stack ? stack.minimumWidth : -1
+            Layout.maximumWidth: stack && stack.preferredWidth > 0 ? stack.preferredWidth : element?.elementId === "lyricLine" ? element.preferredWidth : Number.POSITIVE_INFINITY
             Layout.alignment: Qt.AlignVCenter
 
             Component {

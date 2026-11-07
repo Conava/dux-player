@@ -44,6 +44,8 @@ SettingsPage {
             return I18n.tr("Title style", "element option: the title's typeface");
         case "width":
             return I18n.tr("Width", "element option: how wide the track info is");
+        case "smooth":
+            return I18n.tr("Smooth highlight", "element option: the sung lyric fills gradually instead of word by word");
         case "adaptive":
             return I18n.tr("Adaptive width", "element option: the track info fits the title instead of keeping a fixed width");
         }
@@ -59,6 +61,15 @@ SettingsPage {
     function blocker(key, options) {
         if (key === "rotate" && options?.shape !== "cookie")
             return I18n.tr("Only for the cookie shape", "why the rotate artwork option is unavailable");
+        if (key === "smooth" && !UiConfig.lyricsWordSync)
+            return I18n.tr("Turn on word by word in the lyrics settings", "why the smooth highlight option is unavailable");
+        return "";
+    }
+
+    // what an option does, when its name doesn't say
+    function hint(key) {
+        if (key === "smooth")
+            return I18n.tr("The sung line fills gradually instead of word by word.", "lyric line option description");
         return "";
     }
 
@@ -79,7 +90,7 @@ SettingsPage {
         SettingsRow {
             visible: root.placeable
             title: I18n.tr("Placement", "element option: where an element goes when its row runs short")
-            subtitle: I18n.tr("Auto moves it into ⋮ when the row runs out of space.", "element placement description")
+            subtitle: I18n.tr("Auto moves it to ⋮ when space runs out.", "element placement description")
 
             DDropdown {
                 id: placementDropdown
@@ -96,6 +107,17 @@ SettingsPage {
                 property: "currentValue"
                 value: root.instance?.placement ?? "auto"
             }
+        }
+
+        TemplateRow {
+            visible: root.schema.template !== undefined
+            nowPlaying: true
+            template: root.instance?.options?.template ?? ""
+            onEdited: value => root.edited(root.patched({
+                    "options": Object.assign({}, root.instance.options, {
+                        "template": value
+                    })
+                }))
         }
 
         Repeater {
@@ -129,7 +151,7 @@ SettingsPage {
                 required property string modelData
                 readonly property string blocker: root.blocker(modelData, root.instance?.options)
                 text: root.optionName(modelData)
-                description: blocker
+                description: blocker !== "" ? blocker : root.hint(modelData)
                 enabled: blocker === ""
                 checked: root.instance?.options?.[modelData] ?? root.schema[modelData]?.default ?? false
                 onToggled: value => {

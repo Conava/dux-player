@@ -155,8 +155,10 @@ Rectangle {
             id: rightZone
             Layout.fillWidth: false
             visible: !root.compact && rightZone.populated
+            Layout.maximumWidth: Math.max(0, root.rightRoom)
+            Layout.minimumWidth: Math.min(implicitWidth - shrinkable, Layout.maximumWidth)
             instances: root.zones.right
-            room: root.rightRoom
+            room: Math.max(0, root.rightRoom)
         }
     }
 }

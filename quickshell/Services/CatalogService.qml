@@ -5,6 +5,8 @@ import QtQuick
 import Quickshell
 import qs.Common
 import "Catalog.js" as Catalog
+import "Rules.js" as Rules
+import "../Common/Layouts.js" as Layouts
 
 // Libraries and what they hold: albums, artists, tracks (loaded on demand), covers, search, favorites and
 // ratings. Lists are replaced, never edited in place, so bindings see each change; `revision` moves when
@@ -46,31 +48,57 @@ Singleton {
     property var coverColors: ({})
     // artist id → the image browse.artistImage found (library, artist.jpg or online), "" when there is none
     property var artistImages: ({})
+    // filled from inside bindings, so it is changed in place: a new object would re-run them
+    readonly property var _sortedTracks: ({})
 
     readonly property var genres: {
         const byId = {};
         const on = _enabledSet();
-        for (const a of albums) {
-            if (!on[a.library] || !a.genreId)
-                continue;
-            const g = byId[a.genreId] ?? (byId[a.genreId] = {
-                    "id": a.genreId,
-                    "name": a.genre,
+        const entry = (id, name) => byId[id] ?? (byId[id] = {
+                    "id": id,
+                    "name": name,
                     "albumCount": 0,
                     "trackCount": 0,
                     "libraries": []
                 });
+        const albumGenre = {};
+        for (const a of albums) {
+            albumGenre[a.id] = a.genreId;
+            if (!on[a.library] || !a.genreId)
+                continue;
+            const g = entry(a.genreId, a.genre);
             g.albumCount++;
             g.trackCount += a.trackCount;
             if (g.libraries.indexOf(a.library) < 0)
                 g.libraries.push(a.library);
+        }
+        // a track whose genre differs from its album's adds to its own genre (the album's count stays as it was)
+        for (const t of tracks) {
+            if (!on[t.library] || !t.genreId || t.genreId === albumGenre[t.albumId])
+                continue;
+            const g = entry(t.genreId, t.genre);
+            g.trackCount++;
+            if (g.libraries.indexOf(t.library) < 0)
+                g.libraries.push(t.library);
         }
         return Object.keys(byId).map(id => byId[id]);
     }
     readonly property var albumsByArtist: Catalog.groupBy(albums, a => a.artistId)
     readonly property var tracksByAlbum: Catalog.groupBy(tracks, t => t.albumId)
 
-    signal serverTestFinished(bool ok, string message)
+    signal serverTestFinished(bool ok, string message, int ticket)
+
+    // Quick Connect, one request at a time. state: "" | "requesting" | "waiting" | "approved" | "done" | "expired"
+    // | "off" | "failed"; errorCode is the daemon's code behind "failed". The secret stays in the daemon.
+    property var quickConnect: ({
+            "state": "",
+            "session": "",
+            "code": "",
+            "library": "",
+            "errorCode": ""
+        })
+    // the kinds that sign in with Quick Connect
+    property var quickConnectKinds: []
     // a library's catalog was (re)loaded, or went away (disabled, removed)
     signal libraryLoaded(string id)
     signal libraryDropped(string id)
@@ -125,6 +153,12 @@ Singleton {
         return library(id)?.name ?? "";
     }
 
+    // a library that is gone has no name to show
+    function loadFailedText(id) {
+        const name = libraryName(id);
+        return name ? I18n.tr("Couldn't load %1", "toast when a library's albums or tracks can't be loaded, %1 is the library").arg(name) : I18n.tr("Couldn't load the library", "toast when a library that no longer exists can't be loaded");
+    }
+
     function hasCapability(libraryId, capability) {
         return (library(libraryId)?.capabilities ?? []).indexOf(capability) >= 0;
     }
@@ -148,7 +182,8 @@ Singleton {
 
     // What a server library supports, compactly: "Favorites · Playlists · Scrobbling · No star ratings"
     function featureSummary(libraryId) {
-        if (!isRemote(libraryId))
+        // a synced library that couldn't be built lists no "scan", and what it supports isn't known
+        if (!isRemote(libraryId) || !hasCapability(libraryId, "scan"))
             return "";
         const features = [["favorites", I18n.tr("Favorites", "favorite tracks: page, cache mode, library feature"), I18n.tr("No favorites", "library feature missing")], ["ratings", I18n.tr("Star ratings", "library feature"), I18n.tr("No star ratings", "library feature missing")], ["playlists", I18n.tr("Playlists", "playlists: page, section, library feature"), I18n.tr("No playlists", "library feature missing")], ["scrobble", I18n.tr("Scrobbling", "scrobbling: feature and settings tab"), I18n.tr("No scrobbling", "library feature missing")]];
         const have = features.filter(f => hasCapability(libraryId, f[0])).map(f => f[1]);
@@ -265,8 +300,19 @@ Singleton {
         return favoriteTrackList.map(t => track(t) ?? t).filter(t => t.favorite && on[t.library]);
     }
 
+    // the formats of the tracks loaded so far, for a filter rule's picker
+    function trackFormats() {
+        Qt.callLater(root._wantAllTracks);
+        const seen = new Set();
+        for (const t of visibleTracks()) {
+            if (t.format !== "")
+                seen.add(t.format);
+        }
+        return Array.from(seen).sort();
+    }
+
     // Browse query over the loaded catalog (albums, artists, tracks, genres): filters {library, genre,
-    // favorites}, a sort key, descending.
+    // favorites} for what a page is locked to, rules, a sort key, descending.
     function query(type, options) {
         const lib = options.filters?.library ?? "";
         let list;
@@ -277,29 +323,33 @@ Singleton {
         case "artists":
             {
                 const on = _enabledSet();
+                const wantGenres = Rules.uses(options.rules, type, "genre");
                 list = [];
                 for (const a of artists) {
                     const own = (albumsByArtist[a.id] ?? []).filter(al => on[al.library]);
                     if (own.length > 0)
                         list.push(Object.assign({}, a, {
                             "albumCount": own.length
-                        }));
+                        }, wantGenres ? {
+                            "genres": own.map(al => al.genreId)
+                        } : {}));
                 }
                 if (lib !== "")
                     list = list.filter(a => a.libraries.indexOf(lib) >= 0);
                 break;
             }
         case "tracks":
-            if (options.filters?.favorites)
+            if (options.filters?.favorites || Rules.onlyFavorites(options.rules, type))
                 list = favoriteTracks();
             else {
-                list = visibleTracks();
                 // later, so this binding doesn't depend on the flag it sets
                 Qt.callLater(root._wantAllTracks);
+                return _queryAllTracks(visibleTracks(), options);
             }
             break;
         case "genres":
-            list = genres.slice();
+            Qt.callLater(root._wantAllTracks);
+            list = genres.filter(g => g.albumCount > 0);
             if (lib !== "")
                 list = list.filter(g => g.libraries.indexOf(lib) >= 0);
             break;
@@ -309,8 +359,37 @@ Singleton {
         return refine(list, type, options);
     }
 
-    // The filters and sort of query() over a list from elsewhere (playlists, most played).
-    // Sorts use the values the list was loaded with; a new favorite or play shows on the row at
+    // Sorting 100k tracks takes about 300 ms, too slow for each edit of a rule that keeps most of them, so the
+    // last whole sorted list is kept and filtered instead. A rule that keeps few sorts what it keeps.
+    function _queryAllTracks(list, options) {
+        if (options.sort === "")
+            return refine(list, "tracks", options);
+        const sortKey = options.sort ?? "name";
+        const signature = Catalog.sortSignature(list.length, options, sortKey, Layouts.sortTemplate(options, sortKey), libraries);
+        const unruled = Object.assign({}, options, {
+            "rules": null
+        });
+        const memo = _sortedTracks;
+        const fresh = memo.source === tracks && memo.signature === signature;
+        const passes = Rules.compile(options.rules, "tracks", Date.now() / 1000);
+        if (fresh)
+            return passes ? memo.sorted.filter(passes) : memo.sorted.slice();
+        if (passes) {
+            const kept = refine(list, "tracks", Object.assign({}, options, {
+                "sort": ""
+            }));
+            if (kept.length * 2 < list.length)
+                return refine(kept, "tracks", unruled);
+        }
+        memo.source = tracks;
+        memo.signature = signature;
+        memo.sorted = refine(list, "tracks", unruled);
+        return passes ? memo.sorted.filter(passes) : memo.sorted.slice();
+    }
+
+    // The filters, rules and sort of query() over a list from elsewhere (playlists, most played). An empty
+    // sort leaves the order, for callers that only count.
+    // Sorts and rules use the values the list was loaded with; a new favorite or play shows on the row at
     // once (withMarks) and moves it on the next load, so a play doesn't re-sort a 100k-track list.
     function refine(list, type, options) {
         const filters = options.filters ?? {};
@@ -321,8 +400,14 @@ Singleton {
             list = list.filter(i => i.genreId === filters.genre);
         if (filters.favorites)
             list = list.filter(i => i.favorite);
+        const passes = Rules.compile(options.rules, type, Date.now() / 1000);
+        if (passes)
+            list = list.filter(passes);
         const sortKey = options.sort ?? "name";
-        const value = sortKey === "library" ? i => libraryName(i.library) : sortKey === "name" ? i => i.name ?? i.title : i => i[sortKey];
+        if (sortKey === "")
+            return list;
+        const template = Layouts.sortTemplate(options, sortKey);
+        const value = template !== null ? i => UiConfig.templateText(template, i) : sortKey === "library" ? i => libraryName(i.library) : sortKey === "name" ? i => i.name ?? i.title : i => i[sortKey];
         return Catalog.sortBy(list, value, i => String(i.title ?? i.name ?? ""), options.descending === true);
     }
 
@@ -406,7 +491,7 @@ Singleton {
             return;
         searchResults = _emptyResults();
         for (const l of libraries) {
-            if (!l.enabled || l.available === false || !hasCapability(l.id, "browse"))
+            if (!Catalog.browsable(l))
                 continue;
             const lib = l.id;
             DaemonBridge.call("browse.search", {
@@ -418,6 +503,7 @@ Singleton {
                     return;
                 if (result.error) {
                     root.log.warn("search failed in", lib, result.error);
+                    DaemonBridge.notice(root.libraryName(lib) ? I18n.tr("Couldn't search %1", "toast when searching a library fails, %1 is the library").arg(root.libraryName(lib)) : I18n.tr("Couldn't search the library", "toast when searching a library that no longer exists fails"));
                     return;
                 }
                 const r = root.searchResults;
@@ -441,13 +527,13 @@ Singleton {
     }
 
     // The password goes to the keyring in the daemon; it never lands in libraries or settings.
-    function testServer(kind, url, user, password) {
+    function testServer(kind, url, user, password, ticket) {
         DaemonBridge.call("libraries.test", {
             "kind": kind,
             "url": url,
             "username": user,
             "password": password
-        }, info => root.serverTestFinished(!info.error, info.error ? Phrases.reason(info.code, info.error) : ""));
+        }, info => root.serverTestFinished(!info.error, info.error ? Phrases.reason(info.code, info.error) : "", ticket));
     }
 
     function addServerLibrary(kind, name, url, user, password) {
@@ -460,7 +546,71 @@ Singleton {
         }, I18n.tr("Couldn't add the server", "toast when the daemon refuses a new server library"));
     }
 
-    // patch: name, folders (local), url, user, password (servers; empty keeps the saved one)
+    // counts requests and cancels; a reply of an older one is not the current request
+    property int _quickConnectTicket: 0
+
+    function _setQuickConnect(patch) {
+        root.quickConnect = Object.assign({}, root.quickConnect, patch);
+    }
+
+    // libraryId: sign in again to that library; otherwise a new library of `kind` at `url`
+    function startQuickConnect(libraryId, kind, name, url) {
+        cancelQuickConnect();
+        const ticket = ++_quickConnectTicket;
+        _setQuickConnect({
+            "state": "requesting",
+            "session": "",
+            "code": "",
+            "library": "",
+            "errorCode": ""
+        });
+        DaemonBridge.call("libraries.quickConnect", libraryId ? {
+            "library": libraryId
+        } : {
+            "kind": kind,
+            "name": name || url.replace(/^https?:\/\//, ""),
+            "url": url
+        }, r => {
+            if (ticket !== root._quickConnectTicket) {
+                if (!r.error)
+                    DaemonBridge.call("libraries.quickConnectCancel", {
+                        "session": r.session
+                    });
+                return;
+            }
+            if (r.error) {
+                _setQuickConnect({
+                    "state": r.code === "quickConnectOff" ? "off" : "failed",
+                    "errorCode": r.code
+                });
+                return;
+            }
+            _setQuickConnect({
+                "state": "waiting",
+                "session": r.session,
+                "code": r.code
+            });
+        });
+    }
+
+    // the user gave up or left the dialog; a request still being made is dropped when its answer arrives
+    function cancelQuickConnect() {
+        _quickConnectTicket++;
+        const session = root.quickConnect.session;
+        if (session !== "")
+            DaemonBridge.call("libraries.quickConnectCancel", {
+                "session": session
+            });
+        if (root.quickConnect.state !== "")
+            _setQuickConnect({
+                "state": "",
+                "session": "",
+                "code": ""
+            });
+    }
+
+    // patch: name, folders (local), url, user, password (servers; left out keeps the saved one, empty clears it),
+    // auth ("" signs in with the password again)
     function updateLibrary(id, patch) {
         const params = {
             "library": id,
@@ -472,8 +622,10 @@ Singleton {
             params.url = patch.url;
         if (patch.user !== undefined)
             params.username = patch.user;
-        if (patch.password)
+        if (patch.password !== undefined)
             params.password = patch.password;
+        if (patch.auth !== undefined)
+            params.auth = patch.auth;
         DaemonBridge.request("libraries.update", params, I18n.tr("Couldn't save the library", "toast when editing a library's name, folders or server fails"), () => {
             // a rename or a new url doesn't change what the daemon's libraries event compares
             root.refreshLibraries(false);
@@ -513,7 +665,7 @@ Singleton {
         }, null, () => root.refreshLibraries(false));
     }
 
-    // Local libraries rescan their folders; servers are fetched again.
+    // Local libraries rescan their folders; a server that keeps no catalog is fetched again.
     function rescanLibrary(id) {
         if (!hasCapability(id, "scan")) {
             _loadLibrary(id);
@@ -551,7 +703,7 @@ Singleton {
         DaemonBridge.request("browse.album", {
             "library": a.library,
             "id": a.rawId
-        }, I18n.tr("Couldn't load %1", "toast when a library's albums or tracks can't be loaded, %1 is the library").arg(libraryName(a.library)), result => {
+        }, root.loadFailedText(a.library), result => {
             const list = (result.tracks ?? []).map(t => Catalog.track(t));
             root._ingest(list);
             root._publishTracks();
@@ -584,6 +736,7 @@ Singleton {
             delete root._albumLoads[id];
             if (result.error) {
                 root.log.warn("album", id, result.error);
+                root._loadFailed(a.library);
                 return;
             }
             root._ingest((result.tracks ?? []).map(t => Catalog.track(t)));
@@ -593,6 +746,10 @@ Singleton {
 
     // Artist pages. Ids are "library:artistId". Each then() runs once; a failed lookup hands over the empty
     // value, since the page shows whatever it has.
+
+    function _loadFailed(library) {
+        DaemonBridge.notice(root.loadFailedText(library));
+    }
 
     function _splitId(id) {
         const at = id.indexOf(":");
@@ -607,6 +764,7 @@ Singleton {
         DaemonBridge.call("browse.artist", _splitId(id), a => {
             if (a.error) {
                 root.log.info("artist", id, a.error);
+                root._loadFailed(root._splitId(id).library);
                 then(null);
                 return;
             }
@@ -635,7 +793,13 @@ Singleton {
         DaemonBridge.call("browse.albums", {
             "library": _splitId(id).library,
             "artist": _splitId(id).id
-        }, list => then(list.error ? [] : list.map(a => Catalog.album(a)).sort((a, b) => b.year - a.year)));
+        }, list => {
+            if (list.error) {
+                root.log.info("artist albums", id, list.error);
+                root._loadFailed(root._splitId(id).library);
+            }
+            then(list.error ? [] : list.map(a => Catalog.album(a)).sort((a, b) => b.year - a.year));
+        });
     }
 
     // The first page (trackPage) of the artist's tracks; paging only if an artist outgrows it
@@ -647,6 +811,7 @@ Singleton {
         }, r => {
             if (r.error) {
                 root.log.info("artist tracks", id, r.error);
+                root._loadFailed(root._splitId(id).library);
                 then([]);
                 return;
             }
@@ -663,7 +828,13 @@ Singleton {
             "library": artist.library,
             "id": artist.rawId,
             "name": artist.name
-        }, list => then(list.error ? [] : list.slice().sort((a, b) => (b.matches ?? 0) - (a.matches ?? 0)).map(p => (p.library ?? "") + ":" + p.id)));
+        }, list => {
+            if (list.error) {
+                root.log.info("artist playlists", artist.id, list.error);
+                root._loadFailed(artist.library);
+            }
+            then(list.error ? [] : list.slice().sort((a, b) => (b.matches ?? 0) - (a.matches ?? 0)).map(p => (p.library ?? "") + ":" + p.id));
+        });
     }
 
     // Daemon link
@@ -835,6 +1006,15 @@ Singleton {
             _indexChanged[e.library] = true;
             indexSettle.restart();
             return;
+        case "quickConnect":
+            if (e.session === quickConnect.session)
+                _setQuickConnect({
+                    "state": e.state,
+                    "code": e.code ?? quickConnect.code,
+                    "library": e.library ?? "",
+                    "errorCode": e.errorCode ?? ""
+                });
+            return;
         case "scanProgress":
             {
                 _setScanning(e.library, true);
@@ -857,6 +1037,9 @@ Singleton {
             return;
         case "scanFailed":
             _setScanning(e.library, false);
+            // a sync the daemon started by itself tries again later
+            if (e.background)
+                return;
             _patchLibrary(e.library, {
                 "error": e.error ?? "",
                 "errorCode": e.code ?? ""
@@ -868,6 +1051,7 @@ Singleton {
 
     function _refreshAll() {
         DaemonBridge.request("libraries.kinds", null, null, kinds => root.libraryKinds = kinds);
+        DaemonBridge.request("libraries.quickConnectKinds", null, null, kinds => root.quickConnectKinds = kinds);
         // after a drop, events may have been missed: reload what is there
         refreshLibraries(true);
         _fetchFavorites();
@@ -904,12 +1088,12 @@ Singleton {
     // reloadAll), and drops what went away.
     function refreshLibraries(reloadAll) {
         DaemonBridge.request("libraries.list", null, null, list => {
-            const ready = l => l.enabled && l.available !== false;
-            const before = root.libraries.filter(ready).map(l => l.id);
+            const before = root.libraries.filter(Catalog.browsable).map(l => l.id);
+            const online = root.libraries.filter(l => l.available !== false).map(l => l.id);
             const wasEnabled = root.libraries.filter(l => l.enabled).map(l => l.id);
             root.libraries = list.map(l => Catalog.library(l, reloadAll ? null : root.library(l.id)));
             root.librariesLoaded = true;
-            const now = root.libraries.filter(ready).map(l => l.id);
+            const now = root.libraries.filter(Catalog.browsable).map(l => l.id);
             for (const id of wasEnabled) {
                 if (!root.enabledLibrary(id))
                     root._dropLibrary(id);
@@ -917,6 +1101,8 @@ Singleton {
             for (const id of now) {
                 if (reloadAll || before.indexOf(id) < 0) {
                     root._loadLibrary(id);
+                    root._retryCovers(id);
+                } else if (online.indexOf(id) < 0 && root.library(id).available) {
                     root._retryCovers(id);
                 }
             }
@@ -933,7 +1119,7 @@ Singleton {
         libraryLoaded(id);
         if (!hasCapability(id, "browse"))
             return;
-        const failText = I18n.tr("Couldn't load %1", "toast when a library's albums or tracks can't be loaded, %1 is the library").arg(libraryName(id));
+        const failText = root.loadFailedText(id);
         DaemonBridge.request("browse.artists", {
             "library": id
         }, failText, artistList => DaemonBridge.request("browse.albums", {
@@ -957,7 +1143,7 @@ Singleton {
             return;
         _allTracksWanted = true;
         for (const l of libraries) {
-            if (l.enabled && l.available !== false && hasCapability(l.id, "browse"))
+            if (Catalog.browsable(l))
                 _pageTracks(l.id);
         }
     }
@@ -994,7 +1180,7 @@ Singleton {
                 }
                 if (result.error) {
                     root.log.warn("browse.tracks", id, result.error);
-                    DaemonBridge.notice(I18n.tr("Couldn't load %1", "toast when a library's albums or tracks can't be loaded, %1 is the library").arg(root.libraryName(id)));
+                    root._loadFailed(id);
                 } else
                     // a full pass drops tracks the library no longer has
                     root._forget(t => t.library === id && !state.seen[t.id]);

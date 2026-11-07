@@ -5,7 +5,7 @@ import qs.Common
 import qs.DCommon.Widgets
 
 // The artists of a track or album, each its own link to that artist's page, on one line. An artist without a
-// page (empty id) shows as text. Too long for the width, each name gets an equal share and elides.
+// page (empty id) shows as text. Too long for the width, the line elides as one: names fill it in order and the one at the edge ends in an ellipsis.
 Item {
     id: root
 
@@ -18,7 +18,8 @@ Item {
 
     readonly property string separator: I18n.tr(", ", "between artist names")
     readonly property bool fits: metrics.advanceWidth <= width
-    readonly property real share: Math.max(0, width / Math.max(1, artists.length) - separatorMetrics.advanceWidth)
+    // the least a name needs to be worth showing at the edge
+    readonly property real minName: ellipsisMetrics.advanceWidth * 4
 
     // after a link was followed, e.g. to close the dialog it sits in
     signal activated
@@ -43,9 +44,46 @@ Item {
     }
 
     TextMetrics {
+        id: ellipsisMetrics
+        font: metrics.font
+        text: "…"
+    }
+
+    TextMetrics {
         id: separatorMetrics
         font: metrics.font
         text: root.separator
+    }
+
+    FontMetrics {
+        id: nameMetrics
+        font: metrics.font
+    }
+
+    // Per artist: the width its name may use, and whether the name, the separator after it, or a lone
+    // ellipsis (the rest is hidden) shows. Computed from text widths so it holds in a mirrored layout.
+    readonly property var slots: {
+        const out = [];
+        const sep = separatorMetrics.advanceWidth;
+        const ell = ellipsisMetrics.advanceWidth;
+        let start = 0;
+        let hidden = false;
+        for (let i = 0; i < artists.length; i++) {
+            const w = nameMetrics.advanceWidth(artists[i].name);
+            const room = fits ? Number.POSITIVE_INFINITY : Math.max(0, width - start);
+            const last = i === artists.length - 1;
+            hidden = hidden || (i > 0 && room < minName);
+            const sepShown = !hidden && !last && w + sep + minName <= room;
+            const trailing = !hidden && !last && !sepShown;
+            out.push({
+                "shown": !hidden,
+                "width": Math.min(w, room - (trailing ? ell : 0)),
+                "separator": sepShown,
+                "ellipsis": trailing && w <= room - ell
+            });
+            start += w + sep;
+        }
+        return out;
     }
 
     Row {
@@ -60,9 +98,17 @@ Item {
                 id: entry
                 required property var modelData
                 required property int index
+                readonly property var slot: root.slots[index] ?? {
+                    "shown": true,
+                    "width": 0,
+                    "separator": false,
+                    "ellipsis": false
+                }
+
+                visible: slot.shown
 
                 LinkText {
-                    width: root.fits ? implicitWidth : Math.min(implicitWidth, root.share)
+                    width: Math.min(implicitWidth, entry.slot.width)
                     text: entry.modelData.name
                     linked: entry.modelData.id !== ""
                     font.pixelSize: root.fontSize
@@ -75,8 +121,8 @@ Item {
                 }
 
                 StyledText {
-                    visible: entry.index < root.artists.length - 1
-                    text: root.separator
+                    visible: entry.slot.separator || entry.slot.ellipsis
+                    text: entry.slot.separator ? root.separator : "…"
                     font.pixelSize: root.fontSize
                     font.weight: root.fontWeight
                     color: root.color

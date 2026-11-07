@@ -19,14 +19,22 @@ Row {
     property bool added: false
     // in columns, the library badge takes a column's width
     property bool fixedLibrary: false
+    // the width of the duration slot; a track list's Length width
+    property real timeWidth: PlayerMetrics.columnTimeWidth
     // TrackList's header: every slot keeps its width, only this shows, in the duration's place
     property Component timeHeader: null
+    // a narrow row keeps only what can't be reached elsewhere, so the title gets the width: slots that just show
+    // information go, and actions go when the menu has them
+    property bool narrow: false
     // the row's supporting color (it changes with the selection)
     property color textColor: Theme.surfaceVariantText
 
+    readonly property var menuTypes: (UiConfig.item(actions.type)?.zones.menu ?? []).filter(i => !i.hidden).map(i => i.type)
+    readonly property var hoverEntries: narrow ? actions.hoverEntries.filter(e => menuTypes.indexOf(e.id) < 0) : actions.hoverEntries
     readonly property bool header: timeHeader !== null
     readonly property bool pointerInside: endHover.hovered
-    readonly property var slots: (UiConfig.item(actions.type)?.zones.trailing ?? []).filter(i => !i.hidden && UiConfig.isKnown(i.type))
+    readonly property var slots: (UiConfig.item(actions.type)?.zones.trailing ?? []).filter(i => !i.hidden && UiConfig.isKnown(i.type) && !(narrow && (infoSlots.indexOf(i.type) >= 0 || (i.type === "favorite" || i.type === "addToPlaylist") && menuTypes.indexOf(i.type) >= 0)))
+    readonly property var infoSlots: ["library", "cloud", "duration", "addedByYou"]
     readonly property string favoriteKind: actions.type === "queue" ? "track" : actions.type
     readonly property bool remote: PlayerService.isRemote(item?.library ?? "")
     readonly property bool serverDown: remote && PlayerService.library(item?.library ?? "")?.available === false
@@ -41,7 +49,7 @@ Row {
     }
 
     Repeater {
-        model: end.actions.hoverEntries
+        model: end.hoverEntries
 
         DActionButton {
             required property var modelData
@@ -59,13 +67,15 @@ Row {
     }
 
     Item {
-        width: end.actions.hoverEntries.length > 0 ? Theme.spacingM : 0
+        width: end.hoverEntries.length > 0 ? Theme.spacingM : 0
         height: 1
     }
 
     Repeater {
         model: end.slots
 
+        // a Loader deletes its item later than the row: a language change that rebuilds the rows still reaches the
+        // item's text bindings, with end already null
         Loader {
             id: slot
             required property var modelData
@@ -84,6 +94,8 @@ Row {
                     return cloudSlot;
                 case "duration":
                     return end.header ? end.timeHeader : durationSlot;
+                case "addToPlaylist":
+                    return addToPlaylistSlot;
                 case "play":
                     return playSlot;
                 case "addedByYou":
@@ -152,7 +164,7 @@ Row {
                         name: !end.serverDown ? "cloud" : PlayerService.isCached(end.item) ? "cloud_done" : "cloud_off"
                         size: Theme.iconSizeSmall
                         color: end.textColor
-                        Accessible.name: !end.serverDown ? I18n.tr("Streams from a server", "track row cloud icon") : PlayerService.isCached(end.item) ? I18n.tr("Available offline", "track row cloud icon while the server is down") : I18n.tr("Server unreachable", "track row cloud icon while the server is down")
+                        Accessible.name: !end?.serverDown ? I18n.tr("Streams from a server", "track row cloud icon") : PlayerService.isCached(end.item) ? I18n.tr("Available offline", "track row cloud icon while the server is down") : I18n.tr("Server unreachable", "track row cloud icon while the server is down")
                     }
                 }
             }
@@ -161,11 +173,22 @@ Row {
                 id: durationSlot
 
                 StyledText {
-                    width: PlayerMetrics.columnTimeWidth
+                    width: end.timeWidth
                     text: Format.duration(end.item?.duration ?? 0)
                     font.pixelSize: Theme.fontSizeSmall
                     color: end.textColor
                     horizontalAlignment: Text.AlignRight
+                }
+            }
+
+            Component {
+                id: addToPlaylistSlot
+
+                DActionButton {
+                    iconName: UiConfig.actionIcon(end?.actions.type, "addToPlaylist")
+                    tooltipText: UiConfig.actionLabel(end?.actions.type, "addToPlaylist")
+                    Accessible.name: tooltipText
+                    onClicked: end.actions.run("addToPlaylist", this)
                 }
             }
 
@@ -175,7 +198,7 @@ Row {
                 DIconButton {
                     iconName: "play_arrow"
                     iconFilled: true
-                    Accessible.name: I18n.tr("Play %1", "play button, %1 is the album or playlist").arg(end.item?.title ?? end.item?.name ?? "")
+                    Accessible.name: I18n.tr("Play %1", "play button, %1 is the album or playlist").arg(end?.item?.title ?? end?.item?.name ?? "")
                     onClicked: end.actions.run("play", this)
                 }
             }
@@ -204,7 +227,7 @@ Row {
 
                 DActionButton {
                     iconName: "close"
-                    tooltipText: UiConfig.actionLabel(end.actions.type, "removeFromQueue")
+                    tooltipText: UiConfig.actionLabel(end?.actions.type, "removeFromQueue")
                     Accessible.name: tooltipText
                     onClicked: end.actions.run("removeFromQueue", this)
                 }

@@ -12,13 +12,13 @@ SettingsPage {
     readonly property var providers: PlayerService.lyricsProviders
 
     SettingsPageIntro {
-        text: I18n.tr("Lyrics files next to your music are used first, then the providers below in order. Drag to reorder.", "lyrics settings intro")
+        text: I18n.tr("Lyrics files next to the music come first, then the providers in order. Drag to reorder.", "lyrics settings intro")
     }
 
     SettingsCard {
         SettingsToggleRow {
             text: I18n.tr("Show lyrics", "lyrics master setting")
-            description: I18n.tr("Finds lyrics online. Track title, artist, album and duration are sent to the providers below.", "lyrics master setting description")
+            description: I18n.tr("Looks up lyrics online. Title, artist, album and length are sent to the providers below.", "lyrics master setting description")
             checked: SettingsService.settings.lyrics
             onToggled: value => SettingsService.setSetting("lyrics", value)
         }
@@ -26,10 +26,19 @@ SettingsPage {
         SettingsToggleRow {
             text: I18n.tr("Lyrics for downloaded tracks", "lyrics setting")
             keywords: "offline cache"
-            description: I18n.tr("Finds lyrics when a track is downloaded. When off, only lyrics of tracks you play are kept.", "lyrics setting description")
+            description: I18n.tr("Looks up lyrics when a track is downloaded. When off, only lyrics of played tracks are kept.", "lyrics setting description")
             enabled: SettingsService.settings.lyrics
             checked: SettingsService.settings.lyricsForDownloads
             onToggled: value => SettingsService.setSetting("lyricsForDownloads", value)
+        }
+
+        SettingsToggleRow {
+            text: I18n.tr("Match timing to the audio", "lyrics setting")
+            keywords: "sync offset delay early late"
+            description: SettingsService.ffmpeg ? I18n.tr("Adjusts word-by-word lyrics to the singing in tracks stored on this device.", "lyrics setting description") : I18n.tr("Requires ffmpeg to read the audio.", "why the lyrics audio timing setting is unavailable")
+            enabled: SettingsService.settings.lyrics && SettingsService.ffmpeg
+            checked: SettingsService.settings.lyricsAudioTiming
+            onToggled: value => SettingsService.setSetting("lyricsAudioTiming", value)
         }
     }
 
@@ -53,7 +62,7 @@ SettingsPage {
         SettingsButtonGroupRow {
             text: I18n.tr("Alignment", "lyrics setting")
             keywords: "center left right"
-            description: I18n.tr("In duets, each singer keeps their own side.", "lyrics setting description")
+            description: I18n.tr("Duet singers keep their own side.", "lyrics setting description")
             model: [I18n.tr("Center", "lyrics alignment"), I18n.tr("Start", "lyrics alignment")]
             currentIndex: UiConfig.lyricsAlignment === "start" ? 1 : 0
             onSelectionChanged: (index, selected) => {

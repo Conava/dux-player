@@ -39,6 +39,7 @@ Item {
         showArt: false
         numbered: true
         lines: root.options.lines
+        lineOptions: root.options.lineOptions ?? ({})
 
         header: Component {
             Column {
@@ -104,15 +105,21 @@ Item {
                     }
 
                     Row {
+                        id: facts
+                        width: parent.width
                         spacing: Theme.spacingS
 
                         LibraryBadge {
+                            id: factsBadge
                             anchors.verticalCenter: parent.verticalCenter
                             libraryId: root.album?.library ?? ""
                         }
 
                         StyledText {
                             anchors.verticalCenter: parent.verticalCenter
+                            width: Math.min(implicitWidth, facts.width - (factsBadge.visible ? factsBadge.width + facts.spacing : 0))
+                            elide: Text.ElideRight
+                            wrapMode: Text.NoWrap
                             text: Phrases.joinAll([root.album?.year || "", root.album?.genre ?? "", Phrases.tracks(root.tracks.length), Format.duration(root.album?.duration ?? 0)])
                             font.pixelSize: Theme.fontSizeMedium
                             color: Theme.surfaceVariantText
@@ -140,7 +147,6 @@ Item {
                         onPlay: shuffle => PlayerService.playAlbum(root.album.id, shuffle)
 
                         DIconButton {
-                            anchors.verticalCenter: parent.verticalCenter
                             size: "m"
                             variant: "tonal"
                             iconName: "playlist_add"

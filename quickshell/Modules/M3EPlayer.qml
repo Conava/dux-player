@@ -17,6 +17,11 @@ Item {
     property var zones: UiConfig.surface("fullM3e").zones
     // shown in place of the art and title (lyrics or the queue in a narrow window), or null
     property Component inPlace: null
+    // shown over the art when it stands in for the pane
+    property string artNote: ""
+    readonly property bool paneShown: inPlace !== null && (artNote === "" || !showArt)
+    // from under the top row to the seekbar group; info.y would close a loop through the art's size
+    readonly property real paneHeight: Math.max(0, height - margin * 2 - topHeight - info.implicitHeight - Theme.spacingL)
     // a pane is open beside the player: stacked, and level with the pane at the top
     property bool beside: false
     // the view draws one card behind the player and the pane
@@ -32,30 +37,41 @@ Item {
         const room = Math.min(width, height);
         switch (cover?.options?.size) {
         case "s":
-            return PlayerMetrics.expandedArtMaxSmall;
+            return Math.max(PlayerMetrics.expandedArtMaxSmall, room * PlayerMetrics.expandedArtRatioS);
         case "l":
-            return Math.max(PlayerMetrics.expandedArtMaxLarge, room * PlayerMetrics.mediaArtColumnRatioL);
+            return Math.max(PlayerMetrics.expandedArtMaxLarge, room * PlayerMetrics.expandedArtRatioL);
         }
-        return Math.max(PlayerMetrics.expandedArtMax, room * PlayerMetrics.mediaArtColumnRatioM);
+        return Math.max(PlayerMetrics.expandedArtMax, room * PlayerMetrics.expandedArtRatioM);
     }
     readonly property bool showArt: cover !== null
     readonly property real margin: PlayerMetrics.mediaCardMargin
     readonly property real gap: Theme.spacingXL
     readonly property real wideWidth: Math.min(width, artMax * 2 + gap + margin * 2)
-    readonly property bool stacked: beside || inPlace !== null || !showArt || width < Theme.smallBreakpoint || (wideWidth - margin * 2 - gap) / 2 < PlayerMetrics.barInfoWidth
+    // the transport and the end buttons side by side, at a button size
+    function rowNeed(size, minimal = false) {
+        const both = playback.shown.length > 0 && modesRow.shown.length > 0;
+        // the overflow check counts one more gap than the zone has
+        return playback.naturalWidth(size, minimal) + modesRow.naturalWidth(size, minimal) + (both ? Theme.spacingM + modesRow.spacing : 0);
+    }
+
+    // stays stacked until the info column beside the art holds the transport and the kept buttons; the rest can go into the ⋮
+    readonly property bool stacked: beside || inPlace !== null || !showArt || width < Theme.smallBreakpoint || (wideWidth - margin * 2 - gap) / 2 < Math.max(PlayerMetrics.barInfoWidth, rowNeed("s", true))
     readonly property real cardWidth: inPlace ? width : stacked ? Math.min(width, Math.max(artMax, PlayerMetrics.expandedArtMax) + margin * 2) : wideWidth
     readonly property real innerWidth: cardWidth - margin * 2
     readonly property real topHeight: topRow.visible ? topRow.height + Theme.spacingL : 0
     readonly property real artSize: {
-        if (!showArt || inPlace)
+        if (!showArt || paneShown)
             return 0;
+        if (inPlace)
+            return Math.round(Math.min(innerWidth, paneHeight));
         if (stacked)
             return Math.round(Math.max(0, Math.min(innerWidth, artMax, height - margin * 2 - topHeight - info.implicitHeight - Theme.spacingL)));
         return Math.round(Math.max(0, Math.min(artMax, (innerWidth - gap) / 2, height - margin * 2 - topHeight)));
     }
     readonly property real heroHeight: stacked ? (artSize > 0 ? artSize + Theme.spacingL : 0) : Math.max(artSize, info.implicitHeight)
     readonly property real infoWidth: stacked ? innerWidth : innerWidth - artSize - gap
-    readonly property string buttonSize: innerWidth < Theme.smallBreakpoint ? "s" : "m"
+    // smaller buttons when the row doesn't fit at "m"
+    readonly property string buttonSize: innerWidth < Theme.smallBreakpoint || rowNeed("m") > infoWidth ? "s" : "m"
 
     readonly property var seekTypes: zones.seek.filter(i => !i.hidden).map(i => i.type)
     readonly property bool hasElapsed: seekTypes.indexOf("elapsed") >= 0
@@ -114,7 +130,7 @@ Item {
         PlayerArt {
             id: art
             x: root.stacked ? Math.round((card.width - width) / 2) : root.endX(width)
-            y: root.margin + root.topHeight + (root.stacked ? 0 : Math.round((root.heroHeight - height) / 2))
+            y: root.margin + root.topHeight + (root.inPlace ? Math.round((root.paneHeight - height) / 2) : root.stacked ? 0 : Math.round((root.heroHeight - height) / 2))
             width: root.artSize
             height: width
             visible: width > 0
@@ -123,15 +139,24 @@ Item {
             shape: root.cover?.options?.shape ?? "rounded"
             rotate: root.cover?.options?.rotate !== false
             still: root.preview
+
+            ArtNote {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: Theme.spacingL
+                text: root.inPlace && !root.paneShown ? root.artNote : ""
+            }
         }
 
-        // a pane in place: from under the top row down to the seekbar
+        // a pane in place: from under the top row down to the seekbar. It keeps running behind the art.
         Loader {
             x: root.margin
             y: root.margin + root.topHeight
             width: root.innerWidth
-            height: Math.max(0, info.y - y - Theme.spacingL)
+            height: root.paneHeight
             active: root.inPlace !== null
+            enabled: root.paneShown
+            opacity: root.paneShown ? 1 : 0
             sourceComponent: root.inPlace
         }
 
@@ -152,7 +177,7 @@ Item {
 
             NowPlayingZone {
                 width: parent.width
-                visible: !root.inPlace && populated
+                visible: (!root.inPlace || !root.paneShown) && populated
                 instances: root.zones.title
                 context: "view"
                 textLook: "m3e"
@@ -197,7 +222,8 @@ Item {
                 }
             }
 
-            // the transport at the start, the end zone at the far end
+            // the transport at the start, the end zone at the far end; what doesn't fit beside the transport goes
+            // into the end zone's ⋮ menu
             Item {
                 width: parent.width
                 height: Math.max(playback.implicitHeight, modesRow.implicitHeight)
@@ -223,6 +249,7 @@ Item {
                     size: playback.size
                     look: "m3e"
                     room: Math.max(0, root.infoWidth - playback.implicitWidth - Theme.spacingM)
+                    keepMoves: true
                 }
             }
         }

@@ -14,6 +14,9 @@ Item {
     property var zones: UiConfig.surface("fullBento").zones
     // shown in the art's place (lyrics or the queue), or null
     property Component inPlace: null
+    // shown over the art when it stands in for the pane
+    property string artNote: ""
+    readonly property bool paneShown: inPlace !== null && (artNote === "" || cover === null)
     // a Settings preview: nothing moves and the Play on sheet stays shut
     property bool preview: false
 
@@ -42,7 +45,7 @@ Item {
     // whole pixels: the art and the lyrics draw through layers, which resample when placed between pixels
     readonly property real artColumnWidth: !showArt ? 0 : compact ? width : Math.round((width - gap) * artRatio)
     readonly property real deckArea: !showArt || compact ? width : width - artColumnWidth - gap
-    readonly property real deckWidth: Math.round(Math.min(deckArea, PlayerMetrics.mediaDeckMaxWidth))
+    readonly property real deckWidth: Math.round(Math.min(deckArea, Math.max(PlayerMetrics.mediaDeckMaxWidth, width * PlayerMetrics.mediaDeckMaxRatio)))
     readonly property real artworkSize: {
         if (!showArt)
             return 0;
@@ -79,12 +82,12 @@ Item {
             width: root.artworkSize
             height: width
             visible: root.cover !== null && opacity > 0
-            opacity: root.inPlace ? 0 : 1
-            scale: root.inPlace ? PlayerMetrics.mediaArtLyricsScale : 1
+            opacity: root.paneShown ? 0 : 1
+            scale: root.paneShown ? PlayerMetrics.mediaArtLyricsScale : 1
             item: root.track
             shape: root.cover?.options?.shape ?? "cookie"
             rotate: root.cover?.options?.rotate !== false
-            still: root.preview || root.inPlace !== null
+            still: root.preview || root.paneShown
 
             Behavior on opacity {
                 enabled: Theme.animationsEnabled
@@ -109,8 +112,9 @@ Item {
             anchors.centerIn: parent
             width: parent.width
             height: root.paneHeight
-            active: opacity > 0
-            opacity: root.inPlace ? 1 : 0
+            active: opacity > 0 || root.inPlace !== null
+            enabled: root.paneShown
+            opacity: root.paneShown ? 1 : 0
             sourceComponent: root.shownPane
 
             Behavior on opacity {
@@ -122,6 +126,13 @@ Item {
                 }
             }
         }
+    }
+
+    ArtNote {
+        parent: artColumn
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: Math.round((parent.height + root.artworkSize) / 2) - height - Theme.spacingL
+        text: root.inPlace && !root.paneShown ? root.artNote : ""
     }
 
     Item {

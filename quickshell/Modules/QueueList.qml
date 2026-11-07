@@ -13,6 +13,8 @@ import "../Services/Catalog.js" as Catalog
 Item {
     id: root
 
+    // one frame at 60 Hz
+    readonly property int autoScrollInterval: 16
     readonly property var items: PlayerService.queue
     readonly property real remaining: Math.max(0, PlayerService.queueLeft - PlayerService.position)
     // the qids in the rows' order; during a drag the rows move ahead of the daemon's queue
@@ -22,6 +24,10 @@ Item {
     // where the pointer holds the dragged row, in the list's content
     property real dragY: 0
     property real dragGrab: 0
+    // folding the marker moved the rows below it up, while the pointer kept its place
+    property real dragShift: 0
+    // the marker is folded away during a drag: its extra height would make rows swap back and forth under the pointer
+    readonly property real stopMarkerHeight: Theme.spacingXL + Theme.spacingS
     property bool editing: false
     // by qid, so the selection survives reorders
     property var selectedQids: []
@@ -35,6 +41,8 @@ Item {
     // in queue order; entries that left the queue drop out
     readonly property var selectedIndexes: items.map((e, i) => selectedSet[e.qid] ? i : -1).filter(i => i >= 0)
     readonly property bool selecting: selectedIndexes.length > 0
+    // the entry playback stops after, 0 for none
+    readonly property var stopQid: PlayerService.sleepMode === "afterEntry" ? PlayerService.sleepEntry : PlayerService.sleepMode === "endOfTrack" ? PlayerService.queue[PlayerService.queueIndex]?.qid ?? 0 : 0
     readonly property var lines: UiConfig.pageOptions("queue", "").lines.filter(l => l !== "duration" && l !== "library")
 
     onItemsChanged: sync()
@@ -89,6 +97,10 @@ Item {
         selectionLayer.raise();
     }
 
+    function stopsBefore(index) {
+        return dragFrom < 0 && index > 0 && shown[index - 1] === stopQid;
+    }
+
     // modifiers: Qt.ShiftModifier extends from the last picked entry, anything else toggles
     function select(index, modifiers) {
         Router.selectionOwner = root;
@@ -112,6 +124,21 @@ Item {
         Router.removeFromQueue(indexes, () => root.selectedQids = root.selectedQids.filter(q => gone.indexOf(q) < 0));
     }
 
+    function edgeDirection() {
+        const edge = PlayerMetrics.listRowTwoLineHeight;
+        if (dragY - queueList.contentY < edge && queueList.contentY > queueList.originY)
+            return -1;
+        if (queueList.contentY + queueList.height - dragY < edge && queueList.contentY < queueList.maximumContentY)
+            return 1;
+        return 0;
+    }
+
+    // the row under the pointer; a pointer beyond the list counts as at its edge, so the dragged row stays built
+    function dragIndex() {
+        const y = Math.max(queueList.contentY, Math.min(queueList.contentY + queueList.height - 1, dragY - dragShift));
+        return queueList.indexAt(queueList.width / 2, y);
+    }
+
     function previewMove(to) {
         if (to < 0 || to === dragAt)
             return;
@@ -129,8 +156,14 @@ Item {
             previewMove(from);
         dragFrom = -1;
         dragAt = -1;
-        if (apply && from !== to)
-            PlayerService.queueMove(from, to, () => root.sync());
+        // sync() skipped queue changes during the drag; the order may also have changed under the dragged row
+        const now = items.findIndex(e => e.qid === shown[to]);
+        if (!apply || from === to || now < 0) {
+            sync();
+            return;
+        }
+        const target = shown.slice(0, to).filter(q => items.some(e => e.qid === q)).length;
+        PlayerService.queueMove(now, Math.min(target, items.length - 1), () => root.sync());
     }
 
     ListModel {
@@ -304,6 +337,21 @@ Item {
         }
     }
 
+    // near an edge during a drag the list keeps scrolling while the pointer rests
+    Timer {
+        interval: root.autoScrollInterval
+        repeat: true
+        running: root.dragFrom >= 0 && root.edgeDirection() !== 0
+        onTriggered: {
+            const before = queueList.contentY;
+            const step = PlayerMetrics.listRowTwoLineHeight / 8 * root.edgeDirection();
+            queueList.contentY = Math.max(queueList.originY, Math.min(queueList.maximumContentY, before + step));
+            // the pointer stays where it is on screen, so it moves along in the content
+            root.dragY += queueList.contentY - before;
+            root.previewMove(root.dragIndex());
+        }
+    }
+
     DListView {
         id: queueList
         anchors.left: parent.left
@@ -348,185 +396,245 @@ Item {
             }
         }
 
-        delegate: DListItem {
-            id: entry
+        delegate: Item {
+            id: slot
             required property int index
             required property var qid
-            readonly property var track: PlayerService.track(PlayerService.queueItem(qid))
-            readonly property bool current: PlayerService.queue[PlayerService.queueIndex]?.qid === qid
-            // put in by hand (play next, add to queue), not part of what the queue was started from
-            readonly property bool added: PlayerService.queueItem(qid)?.added === true
-            readonly property bool selected: root.selectedSet[qid] === true
-            // a selected row acts on the whole selection
-            readonly property var actionIndexes: selected && root.selectedIndexes.length > 1 ? root.selectedIndexes : [index]
-            readonly property bool hovering: hovered || leadHover.hovered || rowEnd.pointerInside || menu.opened
-            readonly property string info: UiConfig.infoText(track ?? {}, root.lines)
-            property int pressModifiers: Qt.NoModifier
+            readonly property bool stops: qid === root.stopQid && root.dragFrom < 0
+            readonly property bool dragged: handle.dragging
             width: queueList.width
-            implicitHeight: info !== "" ? PlayerMetrics.listRowTwoLineHeight : PlayerMetrics.listRowHeight
-            surfaceColor: PlayerMetrics.listRowColor
-            isSelected: root.selecting ? selected : current
-            isHovered: hovered || menu.opened
-            firstInGroup: index === 0
-            lastInGroup: index === queueList.count - 1
-            z: handle.dragging ? 1 : 0
+            height: entry.height + (stops ? root.stopMarkerHeight : 0)
+            z: dragged ? 1 : 0
+            // the view can release a far scrolled delegate, which would strand the drag
+            Component.onDestruction: {
+                if (dragged)
+                    root.endDrag(false);
+            }
             // the model only moves a row between slots; this keeps it under the pointer on the way
             transform: Translate {
-                y: handle.dragging ? root.dragY - root.dragGrab - entry.y : 0
+                y: slot.dragged ? root.dragY - root.dragGrab - slot.y : 0
             }
-            Accessible.name: Phrases.named(track?.title ?? "", track?.artist ?? "")
-            Accessible.description: added ? I18n.tr("Added by you", "queue row: a track put in with play next or add to queue") : ""
-            onClicked: {
-                const modifiers = pressModifiers & (Qt.ControlModifier | Qt.ShiftModifier);
-                if (modifiers || root.selecting)
-                    root.select(index, modifiers || Qt.ControlModifier);
-                else
-                    PlayerService.queueJump(index);
-            }
-            onContextMenuRequested: (x, y) => menu.open(entry, x, y)
 
-            TapHandler {
-                acceptedButtons: Qt.LeftButton
-                onPressedChanged: {
-                    if (pressed)
-                        entry.pressModifiers = point.modifiers;
+            DListItem {
+                id: entry
+                readonly property int index: slot.index
+                readonly property var qid: slot.qid
+                readonly property var track: PlayerService.track(PlayerService.queueItem(qid))
+                readonly property bool current: PlayerService.queue[PlayerService.queueIndex]?.qid === qid
+                // put in by hand (play next, add to queue), not part of what the queue was started from
+                readonly property bool added: PlayerService.queueItem(qid)?.byHand === true
+                readonly property bool selected: root.selectedSet[qid] === true
+                // a selected row acts on the whole selection
+                readonly property var actionIndexes: selected && root.selectedIndexes.length > 1 ? root.selectedIndexes : [index]
+                readonly property bool hovering: hovered || leadHover.hovered || rowEnd.pointerInside || menu.opened
+                readonly property string info: UiConfig.infoText(track ?? {}, root.lines, UiConfig.pageOptions("queue", "").lineOptions)
+                property int pressModifiers: Qt.NoModifier
+                width: queueList.width
+                implicitHeight: info !== "" ? PlayerMetrics.listRowTwoLineHeight : PlayerMetrics.listRowHeight
+                listView: queueList
+                surfaceColor: PlayerMetrics.listRowColor
+                isSelected: root.selecting ? selected : current
+                isHovered: hovered || menu.opened
+                firstInGroup: index === 0 || root.stopsBefore(index)
+                lastInGroup: index === queueList.count - 1 || slot.stops
+                Accessible.name: Phrases.named(track?.title ?? "", track?.artist ?? "")
+                Accessible.description: added ? I18n.tr("Added by you", "queue row: a track put in with play next or add to queue") : ""
+                onClicked: {
+                    const modifiers = pressModifiers & (Qt.ControlModifier | Qt.ShiftModifier);
+                    if (modifiers || root.selecting)
+                        root.select(index, modifiers || Qt.ControlModifier);
+                    else
+                        PlayerService.queueJump(index);
                 }
-            }
-
-            TrackMenu {
-                id: menu
-                type: "queue"
-                tracks: entry.actionIndexes.map(i => PlayerService.track(root.items[i])).filter(t => t)
-                queueIndexes: entry.actionIndexes
-                onQueueRemoveRequested: root.removeEntries(entry.actionIndexes)
-            }
-
-            DDragHandle {
-                id: handle
-                anchors.left: parent.left
-                anchors.leftMargin: Theme.spacingXS
-                anchors.verticalCenter: parent.verticalCenter
-                coordinateItem: queueList.contentItem
-                label: entry.track?.title ?? ""
-                dragging: root.dragFrom >= 0 && root.dragAt === entry.index
-                canMoveUp: entry.index > 0
-                canMoveDown: entry.index < queueList.count - 1
-                onStarted: position => {
-                    root.dragY = position.y;
-                    root.dragGrab = position.y - entry.y;
-                    root.dragFrom = entry.index;
-                    root.dragAt = entry.index;
-                }
-                onMoved: position => {
-                    root.dragY = position.y;
-                    // near an edge the list scrolls along
-                    const edge = PlayerMetrics.listRowTwoLineHeight;
-                    if (position.y - queueList.contentY < edge)
-                        queueList.contentY = Math.max(queueList.originY, queueList.contentY - edge / 4);
-                    else if (queueList.contentY + queueList.height - position.y < edge)
-                        queueList.contentY = Math.min(queueList.maximumContentY, queueList.contentY + edge / 4);
-                    root.previewMove(queueList.indexAt(queueList.width / 2, position.y));
-                }
-                onFinished: root.endDrag(true)
-                onDragCanceled: root.endDrag(false)
-                onMoveRequested: delta => PlayerService.queueMove(entry.index, entry.index + delta)
-            }
-
-            // the art turns into the selection checkbox on hover and while selecting
-            Item {
-                id: art
-                readonly property bool checkbox: root.selecting || leadHover.hovered
-                anchors.left: handle.right
-                anchors.leftMargin: Theme.spacingXS
-                anchors.verticalCenter: parent.verticalCenter
-                width: PlayerMetrics.rowArtSize
-                height: width
-
-                HoverHandler {
-                    id: leadHover
-                    cursorShape: Qt.PointingHandCursor
-                }
+                onContextMenuRequested: (x, y) => menu.open(entry, x, y)
 
                 TapHandler {
-                    onTapped: root.select(entry.index, Qt.NoModifier)
+                    acceptedButtons: Qt.LeftButton
+                    onPressedChanged: {
+                        if (pressed)
+                            entry.pressModifiers = point.modifiers;
+                    }
                 }
 
-                AlbumArt {
-                    anchors.fill: parent
-                    visible: !art.checkbox
-                    radius: Theme.cornerRadiusS
+                TrackMenu {
+                    id: menu
+                    type: "queue"
+                    tracks: entry.actionIndexes.map(i => PlayerService.track(root.items[i])).filter(t => t)
+                    queueIndexes: entry.actionIndexes
+                    onQueueRemoveRequested: root.removeEntries(entry.actionIndexes)
+                }
+
+                DDragHandle {
+                    id: handle
+                    anchors.left: parent.left
+                    anchors.leftMargin: Theme.spacingXS
+                    anchors.verticalCenter: parent.verticalCenter
+                    coordinateItem: queueList.contentItem
+                    label: entry.track?.title ?? ""
+                    dragging: root.dragFrom >= 0 && root.dragAt === entry.index
+                    canMoveUp: entry.index > 0
+                    canMoveDown: entry.index < queueList.count - 1
+                    onStarted: position => {
+                        root.dragY = position.y;
+                        root.dragGrab = position.y - slot.y;
+                        const before = slot.y;
+                        root.dragFrom = entry.index;
+                        root.dragAt = entry.index;
+                        // the marker folds away on drag start; its row may not be built, so measure the shift
+                        queueList.forceLayout();
+                        root.dragShift = before - slot.y;
+                    }
+                    onMoved: position => {
+                        root.dragY = position.y;
+                        root.previewMove(root.dragIndex());
+                    }
+                    onFinished: root.endDrag(true)
+                    onDragCanceled: root.endDrag(false)
+                    onMoveRequested: delta => PlayerService.queueMove(entry.index, entry.index + delta)
+                }
+
+                // the art turns into the selection checkbox on hover and while selecting
+                Item {
+                    id: art
+                    readonly property bool checkbox: root.selecting || leadHover.hovered
+                    anchors.left: handle.right
+                    anchors.leftMargin: Theme.spacingXS
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: PlayerMetrics.rowArtSize
+                    height: width
+
+                    HoverHandler {
+                        id: leadHover
+                        cursorShape: Qt.PointingHandCursor
+                    }
+
+                    TapHandler {
+                        onTapped: root.select(entry.index, Qt.NoModifier)
+                    }
+
+                    AlbumArt {
+                        anchors.fill: parent
+                        visible: !art.checkbox
+                        radius: Theme.cornerRadiusS
+                        item: entry.track
+                    }
+
+                    DIcon {
+                        anchors.centerIn: parent
+                        visible: art.checkbox
+                        name: entry.selected ? "check_box" : "check_box_outline_blank"
+                        filled: entry.selected
+                        size: Theme.iconSize
+                        color: entry.selected ? Theme.primary : entry.supportingContentColor
+                        Accessible.role: Accessible.CheckBox
+                        Accessible.name: I18n.tr("Select", "track row checkbox")
+                        Accessible.checked: entry.selected
+                    }
+                }
+
+                Column {
+                    anchors.left: art.right
+                    anchors.leftMargin: Theme.spacingM
+                    anchors.right: rowEnd.left
+                    anchors.rightMargin: Theme.spacingS
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.spacingXXS
+
+                    StyledText {
+                        width: parent.width
+                        text: entry.track?.title ?? ""
+                        font.pixelSize: Theme.fontSizeMedium
+                        font.weight: Theme.fontWeightMedium
+                        color: entry.current ? Theme.primary : entry.contentColor
+                        elide: Text.ElideRight
+                        wrapMode: Text.NoWrap
+                        horizontalAlignment: Text.AlignLeft
+                    }
+
+                    StyledText {
+                        width: parent.width
+                        visible: entry.info !== ""
+                        text: entry.info
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: entry.supportingContentColor
+                        elide: Text.ElideRight
+                        wrapMode: Text.NoWrap
+                        horizontalAlignment: Text.AlignLeft
+                    }
+                }
+
+                RowEnd {
+                    id: rowEnd
+                    anchors.right: parent.right
+                    anchors.rightMargin: Theme.spacingS
+                    anchors.verticalCenter: parent.verticalCenter
+                    actions: menu
                     item: entry.track
+                    hovering: entry.hovering
+                    added: entry.added
+                    textColor: entry.supportingContentColor
                 }
 
-                DIcon {
+                Keys.onDeletePressed: root.removeEntries(entry.actionIndexes)
+                Keys.onPressed: event => {
+                    switch (event.key) {
+                    case Qt.Key_Backspace:
+                        root.removeEntries(entry.actionIndexes);
+                        break;
+                    case Qt.Key_Menu:
+                        menu.open(rowEnd.moreButton ?? entry);
+                        break;
+                    default:
+                        return;
+                    }
+                    event.accepted = true;
+                }
+            }
+
+            Item {
+                id: stopMarker
+                anchors.bottom: parent.bottom
+                width: parent.width
+                height: root.stopMarkerHeight
+                visible: slot.stops
+
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: stopLabel.left
+                    anchors.rightMargin: Theme.spacingS
+                    anchors.verticalCenter: parent.verticalCenter
+                    height: Theme.dividerWidth
+                    color: Theme.primary
+                }
+
+                StyledText {
+                    id: stopLabel
                     anchors.centerIn: parent
-                    visible: art.checkbox
-                    name: entry.selected ? "check_box" : "check_box_outline_blank"
-                    filled: entry.selected
-                    size: Theme.iconSize
-                    color: entry.selected ? Theme.primary : entry.supportingContentColor
-                    Accessible.role: Accessible.CheckBox
-                    Accessible.name: I18n.tr("Select", "track row checkbox")
-                    Accessible.checked: entry.selected
-                }
-            }
-
-            Column {
-                anchors.left: art.right
-                anchors.leftMargin: Theme.spacingM
-                anchors.right: rowEnd.left
-                anchors.rightMargin: Theme.spacingS
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: Theme.spacingXXS
-
-                StyledText {
-                    width: parent.width
-                    text: entry.track?.title ?? ""
-                    font.pixelSize: Theme.fontSizeMedium
-                    font.weight: Theme.fontWeightMedium
-                    color: entry.current ? Theme.primary : entry.contentColor
-                    elide: Text.ElideRight
-                    wrapMode: Text.NoWrap
-                    horizontalAlignment: Text.AlignLeft
-                }
-
-                StyledText {
-                    width: parent.width
-                    visible: entry.info !== ""
-                    text: entry.info
+                    text: I18n.tr("Stops here", "queue divider after the track playback stops at")
                     font.pixelSize: Theme.fontSizeSmall
-                    color: entry.supportingContentColor
-                    elide: Text.ElideRight
+                    color: Theme.primary
                     wrapMode: Text.NoWrap
-                    horizontalAlignment: Text.AlignLeft
                 }
-            }
 
-            RowEnd {
-                id: rowEnd
-                anchors.right: parent.right
-                anchors.rightMargin: Theme.spacingS
-                anchors.verticalCenter: parent.verticalCenter
-                actions: menu
-                item: entry.track
-                hovering: entry.hovering
-                added: entry.added
-                textColor: entry.supportingContentColor
-            }
-
-            Keys.onDeletePressed: root.removeEntries(entry.actionIndexes)
-            Keys.onPressed: event => {
-                switch (event.key) {
-                case Qt.Key_Backspace:
-                    root.removeEntries(entry.actionIndexes);
-                    break;
-                case Qt.Key_Menu:
-                    menu.open(rowEnd.moreButton ?? entry);
-                    break;
-                default:
-                    return;
+                Rectangle {
+                    anchors.left: stopLabel.right
+                    anchors.right: stopClear.left
+                    anchors.leftMargin: Theme.spacingS
+                    anchors.rightMargin: Theme.spacingXS
+                    anchors.verticalCenter: parent.verticalCenter
+                    height: Theme.dividerWidth
+                    color: Theme.primary
                 }
-                event.accepted = true;
+
+                DActionButton {
+                    id: stopClear
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    iconName: "close"
+                    tooltipText: I18n.tr("Don't stop", "queue row action that clears stop after this track")
+                    Accessible.name: tooltipText
+                    onClicked: PlayerService.cancelSleepTimer()
+                }
             }
         }
     }
@@ -543,7 +651,8 @@ Item {
 
         anchors.horizontalCenter: queueList.horizontalCenter
         anchors.bottom: queueList.bottom
-        anchors.bottomMargin: Theme.spacingL
+        // lifts clear of the footer button when the list's end is in view
+        anchors.bottomMargin: Theme.spacingL + (queueList.footerItem ? Math.max(0, Math.min(queueList.footerItem.height, queueList.contentY + queueList.height - queueList.footerItem.y)) : 0)
         buttonHeight: Theme.buttonHeightXS
         visible: current >= 0 && current < queueList.count && !onScreen && root.dragFrom < 0
         text: I18n.tr("Now playing", "Now playing")

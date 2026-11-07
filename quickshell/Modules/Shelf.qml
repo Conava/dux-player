@@ -72,11 +72,12 @@ Column {
                 }
             });
         case "view":
-            return savedView ? PlayerService.query(savedView.type, savedView.options) : [];
+            return savedView ? PlayerService.query(savedView.type, UiConfig.savedViewOptions(savedView)) : [];
         }
         return [];
     }
-    readonly property var lines: savedView?.options?.lines ?? UiConfig.pageOptions(kind + "s", "").lines
+    readonly property var lines: (savedView ? UiConfig.savedViewOptions(savedView) : UiConfig.pageOptions(kind + "s", "")).lines
+    readonly property var lineOptions: (savedView ? UiConfig.savedViewOptions(savedView) : UiConfig.pageOptions(kind + "s", "")).lineOptions ?? ({})
     readonly property string layout: shelf.options.layout ?? "carousel"
     readonly property string size: shelf.options.size ?? "m"
     readonly property real tileWidth: size === "s" ? PlayerMetrics.tileSizeS : size === "l" ? PlayerMetrics.tileSizeL : PlayerMetrics.shelfArtSize
@@ -307,6 +308,7 @@ Column {
             kind: root.kind
             item: modelData
             lines: root.lines
+            lineOptions: root.lineOptions
             onActivated: root.play(index)
         }
     }
@@ -328,6 +330,7 @@ Column {
                 kind: root.kind
                 item: modelData
                 lines: root.lines
+                lineOptions: root.lineOptions
                 onActivated: root.play(index)
             }
         }
@@ -355,6 +358,7 @@ Column {
                         track: rowLoader.modelData
                         showArt: true
                         lines: root.lines
+                        lineOptions: root.lineOptions
                         firstInGroup: rowLoader.index === 0
                         lastInGroup: rowLoader.index === rows.count - 1
                         onActivated: root.play(rowLoader.index)
@@ -367,6 +371,7 @@ Column {
                         kind: root.kind
                         item: rowLoader.modelData
                         lines: root.lines
+                        lineOptions: root.lineOptions
                         firstInGroup: rowLoader.index === 0
                         lastInGroup: rowLoader.index === rows.count - 1
                     }

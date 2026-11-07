@@ -13,8 +13,10 @@ FocusScope {
     id: root
 
     property color cardColor: "transparent"
-    // the list's edge fade paints this; without a card of its own it looks further up for the surface
-    readonly property var surfaceColor: cardColor.a > 0 ? cardColor : undefined
+    // what lies behind a view with no card of its own
+    property color backdropColor: "transparent"
+    // the list's edge fade paints this; with nothing behind it, it looks further up for the surface
+    readonly property var surfaceColor: cardColor.a > 0 ? cardColor : backdropColor.a > 0 ? backdropColor : undefined
     property var artScheme: null
     property real radius: 0
     property bool following: true
@@ -57,17 +59,7 @@ FocusScope {
     // the ends leave room for half a single row line, so scrolling stops with the first or last line centred
     readonly property real endPadding: controller.synced ? Math.max(0, transcript.height / 2 - (leadFontMetrics.lineHeight + Theme.spacingS * 2) / 2) : Theme.spacingS
     readonly property real leadFontSize: Math.round(textScale * Math.max(Theme.fontSizeXLarge, Math.min(Theme.fontSizeDisplay, transcript.height / PlayerMetrics.lyricsLeadHeightDivisor, transcript.width / PlayerMetrics.lyricsLeadWidthDivisor)))
-    readonly property string message: {
-        switch (controller.state) {
-        case "instrumental":
-            return I18n.tr("Instrumental", "track has no lyrics because it is instrumental");
-        case "error":
-            return I18n.tr("Lyrics unavailable", "lyrics lookup failed");
-        case "none":
-            return I18n.tr("No lyrics found", "lyrics lookup found nothing");
-        }
-        return "";
-    }
+    readonly property string message: PlayerService.lyricsMessage
 
     activeFocusOnTab: true
     Accessible.role: Accessible.Pane
@@ -435,14 +427,12 @@ FocusScope {
                 {
                     "id": "",
                     "text": I18n.tr("Automatic", "Automatic"),
-                    "icon": auto ? "check" : "",
-                    "active": auto
+                    "checked": auto
                 }
             ].concat(list.map(c => ({
                         "id": c.source,
                         "text": I18n.tr("%1 · %2", "lyrics source and its timing").arg(c.source === "sidecar" ? I18n.tr("Lyrics file", "lyrics source: a file next to the track") : c.name).arg(c.timing === "word" ? I18n.tr("Word by word", "Word by word") : c.timing === "line" ? I18n.tr("Line by line", "lyrics timing of a source") : I18n.tr("Not synced", "lyrics timing of a source")),
-                        "icon": !auto && c.source === shown ? "check" : "",
-                        "active": !auto && c.source === shown
+                        "checked": !auto && c.source === shown
                     })));
             sourceMenu.open(sourceButton);
         })

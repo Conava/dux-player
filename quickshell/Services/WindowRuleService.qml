@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import qs.Common
 
 // "Open floating": the daemon keeps a compositor window rule for the player's windows through Dux Shell's
 // `dms config windowrules`, or hands out the rule to add by hand when the shell isn't there.
@@ -25,6 +26,7 @@ Singleton {
         }, result => {
             if (result.error) {
                 root.log.warn("winrules.set", result.error);
+                DaemonBridge.notice(I18n.tr("Couldn't change the window rule", "toast when setting the floating window rule fails"));
                 return;
             }
             root.status = result;

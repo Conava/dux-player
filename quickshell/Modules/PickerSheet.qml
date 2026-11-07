@@ -5,12 +5,15 @@ import qs.Common
 import qs.DCommon.Widgets
 
 // A bottom sheet of grouped choices. sections: [{title, items: [{label, icon, value, done}]}]; "done" items
-// are already in place and say so through doneFormat (%1 is the label).
+// are already in place and say so through doneFormat (%1 is the label). With multiple set, rows are checkboxes
+// over `chosen` and the sheet stays open.
 DBottomSheet {
     id: root
 
     property var sections: []
     property string doneFormat: "%1"
+    property bool multiple: false
+    property var chosen: []
 
     signal picked(var value)
 
@@ -41,6 +44,7 @@ DBottomSheet {
                 font.pixelSize: Theme.fontSizeMedium
                 font.weight: Theme.fontWeightMedium
                 color: Theme.primary
+                horizontalAlignment: Text.AlignLeft
             }
 
             Repeater {
@@ -50,15 +54,20 @@ DBottomSheet {
                     id: row
                     required property var modelData
                     required property int index
+                    readonly property bool ticked: root.chosen.indexOf(modelData.value) >= 0
                     width: section.width
                     enabled: !modelData.done
                     surfaceColor: SettingsMetrics.rowColor
                     firstInGroup: index === 0
                     lastInGroup: index === section.modelData.items.length - 1
                     Accessible.name: modelData.label
+                    Accessible.role: root.multiple ? Accessible.CheckBox : Accessible.ListItem
+                    Accessible.checkable: root.multiple
+                    Accessible.checked: ticked
                     onClicked: {
                         root.picked(modelData.value);
-                        root.opened = false;
+                        if (!root.multiple)
+                            root.opened = false;
                     }
 
                     DIcon {
@@ -66,9 +75,10 @@ DBottomSheet {
                         anchors.left: parent.left
                         anchors.leftMargin: Theme.spacingL
                         anchors.verticalCenter: parent.verticalCenter
-                        name: row.modelData.icon ?? "add"
+                        name: root.multiple ? row.ticked ? "check_box" : "check_box_outline_blank" : row.modelData.icon ?? "add"
+                        filled: row.ticked
                         size: Theme.iconSize
-                        color: row.contentColor
+                        color: row.ticked ? Theme.primary : row.contentColor
                     }
 
                     StyledText {

@@ -161,7 +161,7 @@ SettingsPage {
 
     SettingsPageIntro {
         visible: root.syncPage
-        text: I18n.tr("Bluetooth outputs play later than wired ones. Delay the faster outputs until the test tone plays in sync.", "playback device sync intro")
+        text: I18n.tr("Bluetooth outputs play later than wired ones. Delay the others until the test tone is in sync.", "playback device sync intro")
     }
 
     SettingsCard {

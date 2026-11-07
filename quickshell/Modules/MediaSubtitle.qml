@@ -18,7 +18,7 @@ Item {
     function alignedX(itemWidth) {
         if (centered)
             return (width - itemWidth) / 2;
-        return I18n.isRtl ? width - itemWidth : 0;
+        return LayoutMirroring.enabled ? width - itemWidth : 0;
     }
 
     visible: line === "album" ? (track?.album ?? "") !== "" : (track?.artists ?? []).length > 0

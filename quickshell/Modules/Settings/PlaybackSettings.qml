@@ -4,6 +4,8 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Modules
+import qs.Widgets
 
 SettingsPage {
     id: root
@@ -11,6 +13,36 @@ SettingsPage {
     readonly property var settings: PlayerService.settings
     readonly property var replayGainModes: ["off", "track", "album"]
     readonly property var continueModes: ["off", "random", "similar"]
+    readonly property var shuffleModes: ["tracks", "albums"]
+    // skip changes the daemon hasn't answered yet, so quick ticks in a sheet build on each other
+    property var skipGenres: []
+    property var skipLibraries: []
+    // chosen values the catalog no longer lists (a library that is off or gone) stay in the sheets, so they can be unticked
+    readonly property var genreItems: {
+        const names = PlayerService.genres.map(g => g.name);
+        for (const g of skipGenres) {
+            if (names.indexOf(g) < 0)
+                names.push(g);
+        }
+        return names.sort((a, b) => a.localeCompare(b)).map(name => ({
+                    "label": name,
+                    "value": name
+                }));
+    }
+    readonly property var libraryItems: {
+        const items = CatalogService.libraries.map(l => ({
+                    "label": l.name,
+                    "value": l.id
+                }));
+        for (const id of skipLibraries) {
+            if (!items.some(i => i.value === id))
+                items.push({
+                    "label": PlayerService.libraryName(id) || id,
+                    "value": id
+                });
+        }
+        return items;
+    }
     readonly property var speeds: PlayerMetrics.playbackSpeeds
     readonly property string ffmpegNote: I18n.tr("Requires ffmpeg to measure the silence.", "why the skip silence settings are unavailable")
     readonly property string mpvNote: I18n.tr("Requires mpv.", "why a playback setting is unavailable")
@@ -23,6 +55,37 @@ SettingsPage {
             return PlayerService.devicesError !== "" ? I18n.tr("The equalizer couldn't start: %1", "equalizer state, %1 is the daemon's reason").arg(PlayerService.devicesError) : I18n.tr("Requires PipeWire (pipewire, pw-cli and pw-play)", "why several outputs and the equalizer are unavailable");
         }
         return "";
+    }
+
+    function syncSkipRules() {
+        skipGenres = settings.skipRules?.genres ?? [];
+        skipLibraries = settings.skipRules?.libraries ?? [];
+    }
+
+    onSettingsChanged: syncSkipRules()
+    Component.onCompleted: syncSkipRules()
+
+    function setSkipRule(patch) {
+        if (patch.genres)
+            skipGenres = patch.genres;
+        if (patch.libraries)
+            skipLibraries = patch.libraries;
+        PlayerService.setSetting("skipRules", Object.assign({}, settings.skipRules, {
+            "genres": skipGenres,
+            "libraries": skipLibraries
+        }, patch));
+    }
+
+    function toggleSkipLibrary(id) {
+        setSkipRule({
+            "libraries": skipLibraries.indexOf(id) >= 0 ? skipLibraries.filter(l => l !== id) : skipLibraries.concat([id])
+        });
+    }
+
+    function toggleSkipGenre(genre) {
+        setSkipRule({
+            "genres": skipGenres.indexOf(genre) >= 0 ? skipGenres.filter(g => g !== genre) : skipGenres.concat([genre])
+        });
     }
 
     function presetLabel(id) {
@@ -106,7 +169,7 @@ SettingsPage {
         SettingsToggleRow {
             text: I18n.tr("Keep albums gapless", "playback setting")
             keywords: "crossfade"
-            description: I18n.tr("No crossfade or skipped silence between tracks of one album.", "playback setting description")
+            description: I18n.tr("No crossfade or silence skipping within an album.", "playback setting description")
             checked: root.settings.crossfade.albumGapless
             onToggled: value => PlayerService.setSetting("crossfade", {
                     "albumGapless": value
@@ -120,7 +183,7 @@ SettingsPage {
         SettingsButtonGroupRow {
             text: I18n.tr("Normalize volume", "playback setting: ReplayGain mode")
             keywords: "replaygain loudness"
-            description: I18n.tr("Uses the ReplayGain values in the files.", "playback setting description")
+            description: I18n.tr("Uses ReplayGain tags.", "playback setting description")
             model: [I18n.tr("Off", "option that turns something off"), I18n.tr("Track", "replaygain mode"), I18n.tr("Album", "an album: page label, list column, ReplayGain mode")]
             currentIndex: root.replayGainModes.indexOf(root.settings.replayGain)
             onSelectionChanged: (index, selected) => {
@@ -289,6 +352,18 @@ SettingsPage {
             }
         }
 
+        SettingsButtonGroupRow {
+            text: I18n.tr("Shuffle by", "playback setting")
+            keywords: "random album"
+            description: I18n.tr("Albums mixes the order of whole albums instead of single tracks.", "playback setting description")
+            model: [I18n.tr("Tracks", "navigation destination"), I18n.tr("Albums", "navigation destination")]
+            currentIndex: root.shuffleModes.indexOf(root.settings.shuffleMode)
+            onSelectionChanged: (index, selected) => {
+                if (selected)
+                    PlayerService.setSetting("shuffleMode", root.shuffleModes[index]);
+            }
+        }
+
         SettingsSliderRow {
             text: I18n.tr("Previous restarts the track after", "playback setting")
             keywords: "back rewind"
@@ -299,5 +374,88 @@ SettingsPage {
             value: root.settings.previousThreshold
             onSliderDragFinished: finalValue => PlayerService.setSetting("previousThreshold", finalValue)
         }
+    }
+
+    SettingsCard {
+        title: I18n.tr("Automatic picks", "playback settings section label")
+
+        SettingsRow {
+            title: I18n.tr("Skip tracks rated below", "playback setting")
+            keywords: "stars rating exclude"
+
+            DRatingBar {
+                anchors.verticalCenter: parent?.verticalCenter
+                rating: root.settings.skipRules?.minRating ?? 0
+                onRated: stars => root.setSkipRule({
+                        "minRating": stars
+                    })
+            }
+        }
+
+        SettingsRow {
+            title: I18n.tr("Skip genres", "playback setting")
+            subtitle: root.skipGenres.join(", ")
+            keywords: "exclude"
+            clickable: true
+            showChevron: true
+            onClicked: genreSheet.opened = true
+        }
+
+        SettingsRow {
+            visible: CatalogService.libraries.length > 1 || root.skipLibraries.length > 0
+            title: I18n.tr("Skip libraries", "playback setting")
+            subtitle: root.libraryItems.filter(i => root.skipLibraries.indexOf(i.value) >= 0).map(i => i.label).join(", ")
+            keywords: "exclude"
+            clickable: true
+            showChevron: true
+            onClicked: librarySheet.opened = true
+        }
+
+        SettingsSliderRow {
+            text: I18n.tr("Skip tracks shorter than", "playback setting")
+            keywords: "exclude length interlude"
+            minimum: 0
+            maximum: 300
+            unit: I18n.tr("s", "unit suffix for seconds")
+            value: root.settings.skipRules?.shorterThan ?? 0
+            onSliderDragFinished: finalValue => root.setSkipRule({
+                    "shorterThan": finalValue
+                })
+        }
+    }
+
+    SettingsPageIntro {
+        text: I18n.tr("Applies to Shuffle all and to playback after the queue ends.", "playback settings section description")
+    }
+
+    PickerSheet {
+        id: genreSheet
+        // over the page, not in its scrolling column
+        parent: root.parent
+        title: I18n.tr("Skip genres", "playback setting")
+        sections: [
+            {
+                "title": I18n.tr("Genres", "navigation destination"),
+                "items": root.genreItems
+            }
+        ]
+        multiple: true
+        chosen: root.skipGenres
+        onPicked: value => root.toggleSkipGenre(value)
+    }
+
+    PickerSheet {
+        id: librarySheet
+        parent: root.parent
+        title: I18n.tr("Skip libraries", "playback setting")
+        sections: [
+            {
+                "title": I18n.tr("Libraries", "navigation destination"),
+                "items": root.libraryItems
+            }
+        ]
+        multiple: true
+        chosen: root.skipLibraries
+        onPicked: value => root.toggleSkipLibrary(value)
     }
 }

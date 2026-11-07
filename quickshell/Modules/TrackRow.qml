@@ -19,6 +19,11 @@ DListItem {
     property bool columns: false
     property bool compact: false
     property var lines: ["artist", "album"]
+    property var lineOptions: ({})
+    // the wide layout's columns, widths and title share, worked out once by the list
+    property var columnSpecs: []
+    property real titleWeight: PlayerMetrics.titleColumnWeight
+    property real timeWidth: PlayerMetrics.columnTimeWidth
     property bool selecting: false
     property bool selected: false
     // tracks a drag or the menu acts on; the selection when this row is part of it
@@ -30,14 +35,13 @@ DListItem {
     readonly property bool hovering: root.hovered || leadHover.hovered || rowEnd.pointerInside || menu.opened
     // the end of the row shows duration and library
     readonly property var infoLines: lines.filter(l => l !== "duration" && l !== "library")
-    readonly property var columnSpecs: columns ? UiConfig.trackColumns(infoLines) : []
-    readonly property string info: UiConfig.infoText(track ?? {}, infoLines)
+    readonly property string info: UiConfig.infoText(track ?? {}, infoLines, lineOptions)
     // why it can't play right now; the row stays, greyed, and the queue passes over it
     readonly property string unavailable: PlayerService.unavailableReason(track)
     readonly property string subtitle: unavailable !== "" ? unavailable : info
     // the subtitle as artist links plus the other facts
     readonly property bool artistLinks: !compact && !columns && unavailable === "" && infoLines.indexOf("artist") >= 0 && (track?.artists?.length ?? 0) > 0
-    readonly property string otherInfo: UiConfig.infoText(track ?? {}, infoLines.filter(l => l !== "artist"))
+    readonly property string otherInfo: UiConfig.infoText(track ?? {}, infoLines.filter(l => l !== "artist"), lineOptions)
     property int pressModifiers: Qt.NoModifier
 
     signal activated
@@ -185,7 +189,8 @@ DListItem {
 
         Column {
             Layout.fillWidth: true
-            Layout.preferredWidth: PlayerMetrics.titleColumnWeight
+            Layout.preferredWidth: root.titleWeight
+            Layout.minimumWidth: PlayerMetrics.columnTitleMinWidth
             Layout.alignment: Qt.AlignVCenter
             spacing: Theme.spacingXXS
 
@@ -205,6 +210,7 @@ DListItem {
                 visible: root.artistLinks
 
                 ArtistLinks {
+                    id: subtitleArtists
                     width: Math.min(implicitWidth, parent.width - Math.min(otherText.implicitWidth, parent.width / 2))
                     artists: root.track?.artists ?? []
                     color: root.supportingContentColor
@@ -212,7 +218,8 @@ DListItem {
 
                 StyledText {
                     id: otherText
-                    width: parent.width - x
+                    // not parent.width - x: a mirrored Row sets x from the width, which never settles
+                    width: parent.width - subtitleArtists.width
                     visible: root.otherInfo !== ""
                     text: Phrases.join("", root.otherInfo)
                     font.pixelSize: Theme.fontSizeSmall
@@ -242,7 +249,7 @@ DListItem {
                 required property var modelData
                 Layout.fillWidth: modelData.fill !== undefined
                 Layout.preferredWidth: modelData.fill ?? modelData.width
-                text: modelData.line === "artist" && (root.track?.artists?.length ?? 0) > 0 ? "" : UiConfig.infoText(root.track ?? {}, [modelData.line])
+                text: modelData.line === "artist" && (root.track?.artists?.length ?? 0) > 0 ? "" : UiConfig.infoText(root.track ?? {}, [modelData.line], root.lineOptions)
                 font.pixelSize: Theme.fontSizeMedium
                 color: root.supportingContentColor
                 elide: Text.ElideRight
@@ -250,6 +257,7 @@ DListItem {
                 horizontalAlignment: Text.AlignLeft
 
                 ArtistLinks {
+                    anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     width: Math.min(implicitWidth, parent.width)
                     visible: parent.modelData.line === "artist" && parent.text === ""
@@ -267,6 +275,8 @@ DListItem {
             item: root.track
             hovering: root.hovering
             fixedLibrary: root.columns
+            timeWidth: root.timeWidth
+            narrow: !root.columns && root.width < PlayerMetrics.fullRowWidth
             textColor: root.supportingContentColor
         }
     }

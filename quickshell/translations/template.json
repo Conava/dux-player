@@ -268,7 +268,7 @@
   {
     "term": "%1 of %2",
     "translation": "",
-    "context": "offline rule progress: cached of all, %2 is a track count | storage usage: used of limit",
+    "context": "browse page count on a filtered page, %2 is the whole count with its noun: 312 of 1105 tracks | offline rule progress: cached of all, %2 is a track count | storage usage: used of limit",
     "reference": "",
     "comment": ""
   },
@@ -483,14 +483,7 @@
     "comment": ""
   },
   {
-    "term": "A Dux Shell theme file with light and dark palettes. Export the current colors to use as a starting point.",
-    "translation": "",
-    "context": "custom theme description",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "A play is scrobbled after half the track or four minutes, whichever comes first. Server libraries scrobble to their server, which may forward the play. Local libraries scrobble to the accounts below. No play is scrobbled twice.",
+    "term": "A play is scrobbled after half the track or four minutes, whichever comes first. Server libraries scrobble to their server, local libraries to the accounts below.",
     "translation": "",
     "context": "scrobbling settings intro",
     "reference": "",
@@ -521,6 +514,13 @@
     "term": "Account",
     "translation": "",
     "context": "scrobbling settings row",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Account has no password",
+    "translation": "",
+    "context": "edit server dialog toggle",
     "reference": "",
     "comment": ""
   },
@@ -574,6 +574,13 @@
     "comment": ""
   },
   {
+    "term": "Add column",
+    "translation": "",
+    "context": "button under the columns in a page's edit mode",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Add element",
     "translation": "",
     "context": "button under a zone in a layout editor",
@@ -618,7 +625,7 @@
   {
     "term": "Add rule",
     "translation": "",
-    "context": "offline action that keeps more of a library on this device",
+    "context": "button under the filter rules in a page's edit mode | offline action that keeps more of a library on this device",
     "reference": "",
     "comment": ""
   },
@@ -679,7 +686,7 @@
     "comment": ""
   },
   {
-    "term": "Add tracks from their menu or drag them here.",
+    "term": "Add tracks from the track menu or drag them here.",
     "translation": "",
     "context": "empty playlist hint",
     "reference": "",
@@ -703,6 +710,13 @@
     "term": "Adjust the delay of each output",
     "translation": "",
     "context": "playback device sync row",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Adjusts word-by-word lyrics to the singing in tracks stored on this device.",
+    "translation": "",
+    "context": "lyrics setting description",
     "reference": "",
     "comment": ""
   },
@@ -735,9 +749,23 @@
     "comment": ""
   },
   {
+    "term": "Album rows and menus",
+    "translation": "",
+    "context": "page edit mode section shared by every page of the type",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Albums",
     "translation": "",
     "context": "navigation destination",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Albums mixes the order of whole albums instead of single tracks.",
+    "translation": "",
+    "context": "playback setting description",
     "reference": "",
     "comment": ""
   },
@@ -772,7 +800,7 @@
   {
     "term": "All genres",
     "translation": "",
-    "context": "genre filter option | page edit scope",
+    "context": "page edit scope",
     "reference": "",
     "comment": ""
   },
@@ -798,16 +826,16 @@
     "comment": ""
   },
   {
-    "term": "All style settings come from Dux Shell.",
+    "term": "All rules",
     "translation": "",
-    "context": "appearance note while following the shell",
+    "context": "filter rules: every rule must hold",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "Allow access on the Last.fm page in your browser, then select Finish sign-in.",
+    "term": "All style settings come from Dux Shell.",
     "translation": "",
-    "context": "Last.fm sign-in step description",
+    "context": "appearance note while following the shell",
     "reference": "",
     "comment": ""
   },
@@ -826,9 +854,23 @@
     "comment": ""
   },
   {
+    "term": "Already played",
+    "translation": "",
+    "context": "why stop after this track is unavailable for a track before the current one",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Already used by %1",
     "translation": "",
     "context": "why a keyboard shortcut can't be used, %1 is the other shortcut",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Also removes its navigation entry and home shelf. No music is deleted.",
+    "translation": "",
+    "context": "delete saved view confirmation",
     "reference": "",
     "comment": ""
   },
@@ -868,6 +910,13 @@
     "comment": ""
   },
   {
+    "term": "Any rule",
+    "translation": "",
+    "context": "filter rules: one rule is enough",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "App volume",
     "translation": "",
     "context": "volume controls option",
@@ -878,6 +927,13 @@
     "term": "Appearance",
     "translation": "",
     "context": "settings sidebar tab label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Applies to Shuffle all and to playback after the queue ends.",
+    "translation": "",
+    "context": "playback settings section description",
     "reference": "",
     "comment": ""
   },
@@ -899,6 +955,20 @@
     "term": "Approve Dux Player on Last.fm",
     "translation": "",
     "context": "Last.fm sign-in step",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Approve access in your browser, then select Finish sign-in.",
+    "translation": "",
+    "context": "Last.fm sign-in step description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Approved. Signing in…",
+    "translation": "",
+    "context": "Quick Connect state",
     "reference": "",
     "comment": ""
   },
@@ -938,6 +1008,13 @@
     "comment": ""
   },
   {
+    "term": "Artist rows and menus",
+    "translation": "",
+    "context": "page edit mode section shared by every page of the type",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Artists",
     "translation": "",
     "context": "navigation destination",
@@ -966,9 +1043,23 @@
     "comment": ""
   },
   {
+    "term": "At least",
+    "translation": "",
+    "context": "filter rule condition",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "At least one entry must stay visible",
     "translation": "",
     "context": "why the last shown navigation entry can't be turned off",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "At most",
+    "translation": "",
+    "context": "filter rule condition",
     "reference": "",
     "comment": ""
   },
@@ -994,7 +1085,7 @@
     "comment": ""
   },
   {
-    "term": "Auto moves it into ⋮ when the row runs out of space.",
+    "term": "Auto moves it to ⋮ when space runs out.",
     "translation": "",
     "context": "element placement description",
     "reference": "",
@@ -1008,9 +1099,9 @@
     "comment": ""
   },
   {
-    "term": "Automatic shows a rail in wide windows and a bar in narrow ones.",
+    "term": "Automatic picks",
     "translation": "",
-    "context": "navigation style description",
+    "context": "playback settings section label",
     "reference": "",
     "comment": ""
   },
@@ -1127,6 +1218,20 @@
     "comment": ""
   },
   {
+    "term": "Between",
+    "translation": "",
+    "context": "filter rule condition",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Bitrate",
+    "translation": "",
+    "context": "view info line and sort key",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Blue",
     "translation": "",
     "context": "color palette name",
@@ -1134,7 +1239,7 @@
     "comment": ""
   },
   {
-    "term": "Bluetooth outputs play later than wired ones. Delay the faster outputs until the test tone plays in sync.",
+    "term": "Bluetooth outputs play later than wired ones. Delay the others until the test tone is in sync.",
     "translation": "",
     "context": "playback device sync intro",
     "reference": "",
@@ -1200,27 +1305,6 @@
     "term": "By Marlon Kranz",
     "translation": "",
     "context": "about page author row",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Can hold tracks from any library.",
-    "translation": "",
-    "context": "new playlist dialog hint for a local playlist",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Can hold tracks from this server only. Available on all your devices.",
-    "translation": "",
-    "context": "new playlist dialog hint for a server playlist",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Can't search for cast devices: discovery is unavailable",
-    "translation": "",
-    "context": "cast error",
     "reference": "",
     "comment": ""
   },
@@ -1340,6 +1424,13 @@
     "term": "Choose the outputs to play on at the same time.",
     "translation": "",
     "context": "playback device setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Choose…",
+    "translation": "",
+    "context": "filter rule: opens the list of values",
     "reference": "",
     "comment": ""
   },
@@ -1470,6 +1561,20 @@
     "comment": ""
   },
   {
+    "term": "Column title",
+    "translation": "",
+    "context": "page edit mode: the header of the custom text column",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Columns",
+    "translation": "",
+    "context": "page edit mode section: the columns of a track list",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Comment",
     "translation": "",
     "context": "details field: the comment tag",
@@ -1491,9 +1596,23 @@
     "comment": ""
   },
   {
+    "term": "Composer",
+    "translation": "",
+    "context": "view info line and sort key",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Connected",
     "translation": "",
     "context": "add server dialog, connection test passed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Contains",
+    "translation": "",
+    "context": "filter rule condition",
     "reference": "",
     "comment": ""
   },
@@ -1582,9 +1701,30 @@
     "comment": ""
   },
   {
+    "term": "Couldn't cancel the sleep timer",
+    "translation": "",
+    "context": "toast when cancelling the sleep timer fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Couldn't change playback",
     "translation": "",
     "context": "snackbar when play, pause, skip or seek fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't change repeat",
+    "translation": "",
+    "context": "toast when the repeat command fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't change shuffle",
+    "translation": "",
+    "context": "toast when the shuffle command fails",
     "reference": "",
     "comment": ""
   },
@@ -1610,6 +1750,20 @@
     "comment": ""
   },
   {
+    "term": "Couldn't change the volume",
+    "translation": "",
+    "context": "toast when the volume or mute command fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't change the window rule",
+    "translation": "",
+    "context": "toast when setting the floating window rule fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Couldn't clear downloads",
     "translation": "",
     "context": "toast when emptying the offline cache fails",
@@ -1620,6 +1774,13 @@
     "term": "Couldn't clear the history",
     "translation": "",
     "context": "toast when clearing the play history fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't clear the queue",
+    "translation": "",
+    "context": "toast when clearing the play queue fails",
     "reference": "",
     "comment": ""
   },
@@ -1680,6 +1841,13 @@
     "comment": ""
   },
   {
+    "term": "Couldn't finish the sign-in",
+    "translation": "",
+    "context": "snackbar when finishing the Last.fm sign-in fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Couldn't import the layout: %1",
     "translation": "",
     "context": "layout import failed, %1 is the reason",
@@ -1729,9 +1897,37 @@
     "comment": ""
   },
   {
+    "term": "Couldn't load the history",
+    "translation": "",
+    "context": "toast when the play history can't be loaded",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't load the library",
+    "translation": "",
+    "context": "toast when a library that no longer exists can't be loaded",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't load the most played tracks",
+    "translation": "",
+    "context": "toast when the most played tracks can't be loaded",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Couldn't load the playlist",
     "translation": "",
     "context": "toast when a playlist's tracks can't be loaded",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't move the track",
+    "translation": "",
+    "context": "toast when moving a queue entry fails",
     "reference": "",
     "comment": ""
   },
@@ -1792,6 +1988,13 @@
     "comment": ""
   },
   {
+    "term": "Couldn't remove from the queue",
+    "translation": "",
+    "context": "toast when removing a queue entry fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Couldn't remove it from this device",
     "translation": "",
     "context": "toast when removing an offline rule fails",
@@ -1802,6 +2005,13 @@
     "term": "Couldn't remove the library",
     "translation": "",
     "context": "toast when removing a library fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't restore the queue order",
+    "translation": "",
+    "context": "toast when undoing a queue removal can't put a track back in place",
     "reference": "",
     "comment": ""
   },
@@ -1869,9 +2079,44 @@
     "comment": ""
   },
   {
+    "term": "Couldn't search %1",
+    "translation": "",
+    "context": "toast when searching a library fails, %1 is the library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't search for cast devices",
+    "translation": "",
+    "context": "cast error",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't search the library",
+    "translation": "",
+    "context": "toast when searching a library that no longer exists fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't set the stop point",
+    "translation": "",
+    "context": "toast when setting where playback stops fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Couldn't sign in",
     "translation": "",
     "context": "toast when connecting a scrobbling account fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't sign in with Quick Connect",
+    "translation": "",
+    "context": "Quick Connect state",
     "reference": "",
     "comment": ""
   },
@@ -1960,7 +2205,7 @@
     "comment": ""
   },
   {
-    "term": "Create an API account at last.fm/api and enter its key and shared secret. Stored in the system keyring.",
+    "term": "Create an API account at last.fm/api. The key and secret are stored in the system keyring.",
     "translation": "",
     "context": "Last.fm sign-in hint",
     "reference": "",
@@ -1991,6 +2236,13 @@
     "term": "Custom",
     "translation": "",
     "context": "option for your own values",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Custom text",
+    "translation": "",
+    "context": "view info line built from a template",
     "reference": "",
     "comment": ""
   },
@@ -2121,6 +2373,13 @@
     "comment": ""
   },
   {
+    "term": "Deletes the playlist from %1 on all devices. Tracks stay in their libraries.",
+    "translation": "",
+    "context": "delete server playlist confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Density",
     "translation": "",
     "context": "appearance setting for the height of list rows",
@@ -2156,6 +2415,13 @@
     "comment": ""
   },
   {
+    "term": "Disc number",
+    "translation": "",
+    "context": "template field",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Display",
     "translation": "",
     "context": "lyrics settings section label | title style option: the display caps face",
@@ -2166,6 +2432,20 @@
     "term": "Divider",
     "translation": "",
     "context": "layout element: a separating line",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Doesn't contain",
+    "translation": "",
+    "context": "filter rule condition",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Don't stop",
+    "translation": "",
+    "context": "queue row action that clears stop after this track",
     "reference": "",
     "comment": ""
   },
@@ -2212,14 +2492,7 @@
     "comment": ""
   },
   {
-    "term": "Downloads the next tracks of the queue while one plays.",
-    "translation": "",
-    "context": "offline setting description",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Drag the handle to reorder or move between zones. Click an element for its options.",
+    "term": "Drag to reorder or move between zones. Select an element for its options.",
     "translation": "",
     "context": "now playing editor hint",
     "reference": "",
@@ -2228,14 +2501,7 @@
   {
     "term": "Drag to reorder.",
     "translation": "",
-    "context": "playlist reorder hint",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Drag to reorder. Each shelf has its own layout and size.",
-    "translation": "",
-    "context": "home edit mode hint",
+    "context": "home edit mode hint | playlist reorder hint",
     "reference": "",
     "comment": ""
   },
@@ -2247,7 +2513,7 @@
     "comment": ""
   },
   {
-    "term": "Drag to set the navigation order; the eye shows or hides a page there. Select an entry to rename it. Edit opens the page in its edit mode.",
+    "term": "Drag to reorder. Use the pencil to rename an entry.",
     "translation": "",
     "context": "settings pages intro",
     "reference": "",
@@ -2261,16 +2527,16 @@
     "comment": ""
   },
   {
-    "term": "Duplicate",
+    "term": "Duet singers keep their own side.",
     "translation": "",
-    "context": "playlist menu action",
+    "context": "lyrics setting description",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "Duration",
+    "term": "Duplicate",
     "translation": "",
-    "context": "now playing element | view info line",
+    "context": "playlist menu action",
     "reference": "",
     "comment": ""
   },
@@ -2299,6 +2565,13 @@
     "term": "Dux Shell",
     "translation": "",
     "context": "appearance settings section label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Dux Shell theme file with light and dark palettes.",
+    "translation": "",
+    "context": "custom theme description",
     "reference": "",
     "comment": ""
   },
@@ -2450,9 +2723,37 @@
     "comment": ""
   },
   {
+    "term": "Enter the password again for a new server address.",
+    "translation": "",
+    "context": "edit server dialog, why save is disabled",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Enter the password.",
+    "translation": "",
+    "context": "edit server dialog, why save is disabled",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Enter the server address and user name.",
     "translation": "",
     "context": "add server dialog, why add is disabled",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Enter the server address.",
+    "translation": "",
+    "context": "Quick Connect state before a code can be asked for",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Enter the user name and password in their own fields, not in the server address",
+    "translation": "",
+    "context": "why a server connection test failed",
     "reference": "",
     "comment": ""
   },
@@ -2474,13 +2775,6 @@
     "term": "Equalizer, crossfade, speed",
     "translation": "",
     "context": "settings sidebar tab hint",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Every customization is replaced by the one in the file.",
-    "translation": "",
-    "context": "layout import confirmation",
     "reference": "",
     "comment": ""
   },
@@ -2597,13 +2891,6 @@
     "comment": ""
   },
   {
-    "term": "Favorites only",
-    "translation": "",
-    "context": "view filter",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Fetches missing artist images and biographies. Artist names are sent to %1.",
     "translation": "",
     "context": "general setting description, %1 lists online services",
@@ -2660,23 +2947,23 @@
     "comment": ""
   },
   {
+    "term": "Filters cleared",
+    "translation": "",
+    "context": "toast after clearing a page's filter rules",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Filters, sort and display options are reset.",
+    "translation": "",
+    "context": "reset saved view confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Find it in your ListenBrainz profile settings. Stored in the system keyring.",
     "translation": "",
     "context": "ListenBrainz sign-in hint",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Finds lyrics online. Track title, artist, album and duration are sent to the providers below.",
-    "translation": "",
-    "context": "lyrics master setting description",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Finds lyrics when a track is downloaded. When off, only lyrics of tracks you play are kept.",
-    "translation": "",
-    "context": "lyrics setting description",
     "reference": "",
     "comment": ""
   },
@@ -2891,9 +3178,37 @@
     "comment": ""
   },
   {
+    "term": "Genre rows and menus",
+    "translation": "",
+    "context": "page edit mode section shared by every page of the type",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Genres",
     "translation": "",
     "context": "navigation destination",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Get a code",
+    "translation": "",
+    "context": "Quick Connect action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Get a new code",
+    "translation": "",
+    "context": "Quick Connect action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Getting a code…",
+    "translation": "",
+    "context": "Quick Connect state",
     "reference": "",
     "comment": ""
   },
@@ -3003,16 +3318,23 @@
     "comment": ""
   },
   {
-    "term": "Highlights the focused control when using the keyboard.",
+    "term": "History",
     "translation": "",
-    "context": "appearance setting description",
+    "context": "navigation destination",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "History",
+    "term": "Holds tracks from any library.",
     "translation": "",
-    "context": "navigation destination",
+    "context": "new playlist dialog hint for a local playlist",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Holds tracks from this server only. Available on all devices.",
+    "translation": "",
+    "context": "new playlist dialog hint for a server playlist",
     "reference": "",
     "comment": ""
   },
@@ -3031,7 +3353,7 @@
     "comment": ""
   },
   {
-    "term": "Home shelves return to the defaults.",
+    "term": "Home shelves are reset.",
     "translation": "",
     "context": "reset home confirmation",
     "reference": "",
@@ -3087,9 +3409,9 @@
     "comment": ""
   },
   {
-    "term": "In duets, each singer keeps their own side.",
+    "term": "In the last",
     "translation": "",
-    "context": "lyrics setting description",
+    "context": "filter rule condition, followed by a number of days",
     "reference": "",
     "comment": ""
   },
@@ -3108,6 +3430,13 @@
     "comment": ""
   },
   {
+    "term": "Incorrect user name or password",
+    "translation": "",
+    "context": "why a server connection test failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Increase",
     "translation": "",
     "context": "slider row step up button",
@@ -3118,6 +3447,13 @@
     "term": "Info lines",
     "translation": "",
     "context": "page edit mode section: the facts shown under an item",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Insert field",
+    "translation": "",
+    "context": "template field: menu of track fields",
     "reference": "",
     "comment": ""
   },
@@ -3136,7 +3472,7 @@
     "comment": ""
   },
   {
-    "term": "Installed, but doesn't start. Playback uses the built-in player, which plays fewer formats.",
+    "term": "Installed, but doesn't start. The built-in player is used, with fewer formats.",
     "translation": "",
     "context": "about page: mpv is installed but broken",
     "reference": "",
@@ -3157,6 +3493,69 @@
     "comment": ""
   },
   {
+    "term": "Is",
+    "translation": "",
+    "context": "filter rule condition",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Is empty",
+    "translation": "",
+    "context": "filter rule condition",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Is none of",
+    "translation": "",
+    "context": "filter rule condition",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Is not",
+    "translation": "",
+    "context": "filter rule condition",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Is not empty",
+    "translation": "",
+    "context": "filter rule condition",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Is one of",
+    "translation": "",
+    "context": "filter rule condition",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "It can be added again with Add entry.",
+    "translation": "",
+    "context": "remove navigation entry confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "It can be added again with Add shelf.",
+    "translation": "",
+    "context": "remove home shelf confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "It wasn't approved in time.",
+    "translation": "",
+    "context": "Quick Connect state",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Its downloaded tracks are deleted unless another rule keeps them.",
     "translation": "",
     "context": "remove offline rule confirmation",
@@ -3164,30 +3563,16 @@
     "comment": ""
   },
   {
-    "term": "Its elements return to their defaults.",
-    "translation": "",
-    "context": "reset a now-playing surface confirmation",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Its filters, sort and display options go back to the defaults.",
-    "translation": "",
-    "context": "reset saved view confirmation",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Its navigation entry and home shelf are also removed. No music is deleted.",
-    "translation": "",
-    "context": "delete saved view confirmation",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Its own options and every change made on its pages go back to the defaults.",
+    "term": "Its options and page changes are reset.",
     "translation": "",
     "context": "settings pages: reset confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Its text",
+    "translation": "",
+    "context": "page edit mode: a custom column sorts by what it shows",
     "reference": "",
     "comment": ""
   },
@@ -3255,9 +3640,30 @@
     "comment": ""
   },
   {
+    "term": "Kept by an offline rule",
+    "translation": "",
+    "context": "why a track can't be removed from this device",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Kept on this device",
+    "translation": "",
+    "context": "offline song row for a song kept on its own",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Kept tracks exceed the size limit",
     "translation": "",
     "context": "offline warning title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Kept tracks use %1, over the %2 limit. Downloads are paused.",
+    "translation": "",
+    "context": "offline warning: pinned songs exceed the size limit",
     "reference": "",
     "comment": ""
   },
@@ -3339,6 +3745,13 @@
     "comment": ""
   },
   {
+    "term": "Leave empty if the account has none. Stored in the system keyring.",
+    "translation": "",
+    "context": "add server dialog password hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Leave empty to keep the saved password. Stored in the system keyring.",
     "translation": "",
     "context": "edit server dialog password hint",
@@ -3353,9 +3766,16 @@
     "comment": ""
   },
   {
+    "term": "Length",
+    "translation": "",
+    "context": "now playing element: how long the track is | track list column and sort key: how long a track is",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Libraries",
     "translation": "",
-    "context": "the music libraries: page, settings tab, section",
+    "context": "navigation destination | the music libraries: page, settings tab, section",
     "reference": "",
     "comment": ""
   },
@@ -3479,6 +3899,20 @@
     "comment": ""
   },
   {
+    "term": "Looks up lyrics online. Title, artist, album and length are sent to the providers below.",
+    "translation": "",
+    "context": "lyrics master setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Looks up lyrics when a track is downloaded. When off, only lyrics of played tracks are kept.",
+    "translation": "",
+    "context": "lyrics setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Lost the connection to the cast device",
     "translation": "",
     "context": "cast error",
@@ -3496,6 +3930,13 @@
     "term": "Loudness and silence measurement",
     "translation": "",
     "context": "about page: what ffmpeg is used for",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Lyric line",
+    "translation": "",
+    "context": "now playing bar element: the sung line of the lyrics",
     "reference": "",
     "comment": ""
   },
@@ -3521,7 +3962,7 @@
     "comment": ""
   },
   {
-    "term": "Lyrics files next to your music are used first, then the providers below in order. Drag to reorder.",
+    "term": "Lyrics files next to the music come first, then the providers in order. Drag to reorder.",
     "translation": "",
     "context": "lyrics settings intro",
     "reference": "",
@@ -3559,6 +4000,20 @@
     "term": "Manage",
     "translation": "",
     "context": "libraries page button opening library settings",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Match",
+    "translation": "",
+    "context": "filter rules: whether all rules or any rule must hold",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Match timing to the audio",
+    "translation": "",
+    "context": "lyrics setting",
     "reference": "",
     "comment": ""
   },
@@ -3745,6 +4200,13 @@
     "comment": ""
   },
   {
+    "term": "Never",
+    "translation": "",
+    "context": "filter rule condition: a track that was never played",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "New playlist",
     "translation": "",
     "context": "action and dialog that create a playlist",
@@ -3794,7 +4256,7 @@
     "comment": ""
   },
   {
-    "term": "No crossfade or skipped silence between tracks of one album.",
+    "term": "No crossfade or silence skipping within an album.",
     "translation": "",
     "context": "playback setting description",
     "reference": "",
@@ -3822,7 +4284,7 @@
     "comment": ""
   },
   {
-    "term": "No favorites. Mark tracks, albums and artists with the heart.",
+    "term": "No favorites. Use the heart to add some.",
     "translation": "",
     "context": "favorites empty state",
     "reference": "",
@@ -3857,7 +4319,7 @@
     "comment": ""
   },
   {
-    "term": "No lyrics found",
+    "term": "No lyrics available",
     "translation": "",
     "context": "lyrics lookup found nothing",
     "reference": "",
@@ -4011,6 +4473,13 @@
     "comment": ""
   },
   {
+    "term": "Not in the last",
+    "translation": "",
+    "context": "filter rule condition, followed by a number of days",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Not installed",
     "translation": "",
     "context": "about page: a component is missing",
@@ -4039,16 +4508,16 @@
     "comment": ""
   },
   {
-    "term": "Not installed. Playback uses the built-in player, which plays fewer formats.",
+    "term": "Not installed. System volume is unavailable.",
     "translation": "",
-    "context": "about page: mpv is missing",
+    "context": "about page: wpctl is missing",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "Not installed. System volume is unavailable.",
+    "term": "Not installed. The built-in player is used, with fewer formats.",
     "translation": "",
-    "context": "about page: wpctl is missing",
+    "context": "about page: mpv is missing",
     "reference": "",
     "comment": ""
   },
@@ -4109,14 +4578,7 @@
     "comment": ""
   },
   {
-    "term": "Now playing, pages, rows and menus, home and navigation go back to the defaults. Saved views are kept.",
-    "translation": "",
-    "context": "reset all customization confirmation",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Now playing, pages, rows and menus, home and navigation, as one file.",
+    "term": "Now playing, pages, rows and menus, home and navigation in one file.",
     "translation": "",
     "context": "general setting description",
     "reference": "",
@@ -4179,6 +4641,13 @@
     "comment": ""
   },
   {
+    "term": "On a signed-in device, open Settings, then Quick Connect, and enter this code.",
+    "translation": "",
+    "context": "Quick Connect instructions",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "On hover",
     "translation": "",
     "context": "row actions zone",
@@ -4231,6 +4700,13 @@
     "term": "Only tracks from %1 can be added",
     "translation": "",
     "context": "why a server playlist cannot take the picked tracks, %1 is the server library",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Open album on track tile click",
+    "translation": "",
+    "context": "pages setting",
     "reference": "",
     "comment": ""
   },
@@ -4392,6 +4868,13 @@
     "term": "Pitch is preserved.",
     "translation": "",
     "context": "playback speed note",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Placed by the style. They can be shown or hidden.",
+    "translation": "",
+    "context": "layout editor note on the seekbar row",
     "reference": "",
     "comment": ""
   },
@@ -4592,6 +5075,13 @@
     "comment": ""
   },
   {
+    "term": "Playlist rows and menus",
+    "translation": "",
+    "context": "page edit mode section shared by every page of the type",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Playlists",
     "translation": "",
     "context": "playlists: page, section, library feature",
@@ -4676,6 +5166,13 @@
     "comment": ""
   },
   {
+    "term": "Preview: %1",
+    "translation": "",
+    "context": "template field: the text on the current track",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Previous",
     "translation": "",
     "context": "transport button",
@@ -4711,16 +5208,30 @@
     "comment": ""
   },
   {
-    "term": "Put the username and password in their own fields, not in the server address",
+    "term": "Queue",
     "translation": "",
-    "context": "why a server connection test failed",
+    "context": "the play queue: panel, toggle",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "Queue",
+    "term": "Queue rows and menus",
     "translation": "",
-    "context": "the play queue: panel, toggle",
+    "context": "page edit mode section shared by every page of the type",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Quick Connect",
+    "translation": "",
+    "context": "add server dialog sign-in method",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Quick Connect is turned off on this server",
+    "translation": "",
+    "context": "why Quick Connect can't sign in",
     "reference": "",
     "comment": ""
   },
@@ -4767,7 +5278,7 @@
     "comment": ""
   },
   {
-    "term": "Ratings are being written already",
+    "term": "Ratings are already being written",
     "translation": "",
     "context": "why writing ratings to files couldn't start",
     "reference": "",
@@ -4930,7 +5441,7 @@
   {
     "term": "Remove from this device",
     "translation": "",
-    "context": "menu action that stops keeping an item offline",
+    "context": "menu action that stops keeping an item offline | track menu action that lets go of a kept copy",
     "reference": "",
     "comment": ""
   },
@@ -5000,7 +5511,14 @@
   {
     "term": "Rename",
     "translation": "",
-    "context": "menu action that renames an item",
+    "context": "menu action that renames an item | settings pages: renames a navigation entry",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rename %1",
+    "translation": "",
+    "context": "settings pages: renames a navigation entry, %1 is its name",
     "reference": "",
     "comment": ""
   },
@@ -5075,6 +5593,13 @@
     "comment": ""
   },
   {
+    "term": "Replaces all customization with the file's layout.",
+    "translation": "",
+    "context": "layout import confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "ReplayGain (album)",
     "translation": "",
     "context": "details field",
@@ -5134,6 +5659,13 @@
     "term": "Requires ffmpeg to measure the silence.",
     "translation": "",
     "context": "why the skip silence settings are unavailable",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Requires ffmpeg to read the audio.",
+    "translation": "",
+    "context": "why the lyrics audio timing setting is unavailable",
     "reference": "",
     "comment": ""
   },
@@ -5250,16 +5782,37 @@
     "comment": ""
   },
   {
-    "term": "Restores the default entries, names and order.",
+    "term": "Resets its elements.",
     "translation": "",
-    "context": "navigation reset description",
+    "context": "reset a now-playing surface confirmation",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "Restores where it starts, the style and every surface.",
+    "term": "Resets now playing, pages, rows and menus, home and navigation. Saved views are kept.",
+    "translation": "",
+    "context": "reset all customization confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Resets start view, style and surfaces.",
     "translation": "",
     "context": "now playing reset description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Resets the bar, side panel and both full views.",
+    "translation": "",
+    "context": "reset now playing confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Restores the default entries, names and order.",
+    "translation": "",
+    "context": "navigation reset description",
     "reference": "",
     "comment": ""
   },
@@ -5278,7 +5831,7 @@
     "comment": ""
   },
   {
-    "term": "Right-click menu same as ⋮ menu",
+    "term": "Right-click shows the ⋮ menu",
     "translation": "",
     "context": "page edit mode: the right-click menu follows the ⋮ menu",
     "reference": "",
@@ -5327,55 +5880,6 @@
     "comment": ""
   },
   {
-    "term": "Rows and menus · for all albums",
-    "translation": "",
-    "context": "page edit mode section shared by every page of the type",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Rows and menus · for all artists",
-    "translation": "",
-    "context": "page edit mode section shared by every page of the type",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Rows and menus · for all genres",
-    "translation": "",
-    "context": "page edit mode section shared by every page of the type",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Rows and menus · for all playlists",
-    "translation": "",
-    "context": "page edit mode section shared by every page of the type",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Rows and menus · for all tracks",
-    "translation": "",
-    "context": "page edit mode section shared by every page of the type",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Rows and menus · for the queue",
-    "translation": "",
-    "context": "page edit mode section shared by every page of the type",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Rules other than Recently played and Most played keep %1, over the %2 size limit. Downloads are paused.",
-    "translation": "",
-    "context": "offline warning: pinned songs exceed the size limit",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Same as player",
     "translation": "",
     "context": "lyrics and queue look option",
@@ -5383,7 +5887,7 @@
     "comment": ""
   },
   {
-    "term": "Same as the ⋮ menu. Turn off the switch above to change it.",
+    "term": "Same as the ⋮ menu",
     "translation": "",
     "context": "page edit mode: the right-click menu zone while it follows",
     "reference": "",
@@ -5733,7 +6237,7 @@
     "comment": ""
   },
   {
-    "term": "Set in Dux Shell settings. Choose Custom to override.",
+    "term": "Set by Dux Shell. Choose Custom to override.",
     "translation": "",
     "context": "appearance group following the shell",
     "reference": "",
@@ -5754,9 +6258,9 @@
     "comment": ""
   },
   {
-    "term": "Shared by every page that shows them.",
+    "term": "Shared by all pages.",
     "translation": "",
-    "context": "page edit mode: rows and menus are the same everywhere",
+    "context": "page edit mode: rows and menus are the same on every page of the type",
     "reference": "",
     "comment": ""
   },
@@ -5824,6 +6328,13 @@
     "comment": ""
   },
   {
+    "term": "Shown on keyboard focus.",
+    "translation": "",
+    "context": "appearance setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Shuffle",
     "translation": "",
     "context": "button or mode that plays in random order",
@@ -5834,6 +6345,13 @@
     "term": "Shuffle all",
     "translation": "",
     "context": "tracks page action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Shuffle by",
+    "translation": "",
+    "context": "playback setting",
     "reference": "",
     "comment": ""
   },
@@ -5852,9 +6370,23 @@
     "comment": ""
   },
   {
+    "term": "Sign in with a password instead.",
+    "translation": "",
+    "context": "Quick Connect state",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Sign out",
     "translation": "",
     "context": "scrobbling account action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sign-in expired. Sign in again.",
+    "translation": "",
+    "context": "why a server library can't be used",
     "reference": "",
     "comment": ""
   },
@@ -5873,14 +6405,14 @@
     "comment": ""
   },
   {
-    "term": "Signing in with the password itself needs an https server address",
+    "term": "Signing in with the password requires an https server address",
     "translation": "",
     "context": "why a server connection test failed",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "Signs in with the password itself; this server doesn't accept token sign-in.",
+    "term": "Signs in with the password because this server doesn't accept token sign-in.",
     "translation": "",
     "context": "library notice",
     "reference": "",
@@ -5929,6 +6461,20 @@
     "comment": ""
   },
   {
+    "term": "Skip genres",
+    "translation": "",
+    "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Skip libraries",
+    "translation": "",
+    "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Skip silence at the end",
     "translation": "",
     "context": "playback setting",
@@ -5937,6 +6483,20 @@
   },
   {
     "term": "Skip silence at the start",
+    "translation": "",
+    "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Skip tracks rated below",
+    "translation": "",
+    "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Skip tracks shorter than",
     "translation": "",
     "context": "playback setting",
     "reference": "",
@@ -6006,6 +6566,13 @@
     "comment": ""
   },
   {
+    "term": "Smooth highlight",
+    "translation": "",
+    "context": "element option: the sung lyric fills gradually instead of word by word",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Sort by",
     "translation": "",
     "context": "view options section",
@@ -6023,6 +6590,13 @@
     "term": "Sorted descending",
     "translation": "",
     "context": "State of a sortable column header",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sorts by %1",
+    "translation": "",
+    "context": "page edit mode: what a click on the column header sorts by",
     "reference": "",
     "comment": ""
   },
@@ -6090,6 +6664,13 @@
     "comment": ""
   },
   {
+    "term": "Starts with",
+    "translation": "",
+    "context": "filter rule condition",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Stop",
     "translation": "",
     "context": "auto-continue option",
@@ -6097,14 +6678,28 @@
     "comment": ""
   },
   {
-    "term": "Stored in the system keyring.",
+    "term": "Stop after this track",
     "translation": "",
-    "context": "add server dialog password hint",
+    "context": "queue row action",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "Stores ratings and favorites in the tags of your music files.",
+    "term": "Stops after %1",
+    "translation": "",
+    "context": "sleep timer status, %1 is a track title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Stops here",
+    "translation": "",
+    "context": "queue divider after the track playback stops at",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Stores ratings and favorites in the tags of the music files.",
     "translation": "",
     "context": "local library setting description",
     "reference": "",
@@ -6149,6 +6744,13 @@
     "term": "Surfaces",
     "translation": "",
     "context": "now playing settings section: bar, side panel and full views",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Switching with the header button is temporary.",
+    "translation": "",
+    "context": "now playing start description",
     "reference": "",
     "comment": ""
   },
@@ -6230,16 +6832,16 @@
     "comment": ""
   },
   {
-    "term": "Takes the title, controls and buttons from the bar, and the tabs in the order of their buttons there.",
+    "term": "Teal",
     "translation": "",
-    "context": "side panel editor setting description",
+    "context": "color palette name",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "Teal",
+    "term": "Template",
     "translation": "",
-    "context": "color palette name",
+    "context": "template field: the text with its %field% placeholders",
     "reference": "",
     "comment": ""
   },
@@ -6258,16 +6860,16 @@
     "comment": ""
   },
   {
-    "term": "Test the connection first.",
+    "term": "Test tone",
     "translation": "",
-    "context": "add server dialog, why add is disabled",
+    "context": "playback device sync action",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "Test tone",
+    "term": "Text",
     "translation": "",
-    "context": "playback device sync action",
+    "context": "now playing element: a line built from track fields",
     "reference": "",
     "comment": ""
   },
@@ -6282,13 +6884,6 @@
     "term": "That isn't an http(s) server address",
     "translation": "",
     "context": "why a server connection test failed",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "The bar, the side panel and both full views return to their defaults.",
-    "translation": "",
-    "context": "reset now playing confirmation",
     "reference": "",
     "comment": ""
   },
@@ -6321,7 +6916,21 @@
     "comment": ""
   },
   {
-    "term": "The connection isn't encrypted: sign-in tokens and what you play are readable on the network. Use an https address.",
+    "term": "The code expired",
+    "translation": "",
+    "context": "Quick Connect state",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The code expires after 10 minutes.",
+    "translation": "",
+    "context": "Quick Connect hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The connection isn't encrypted. Sign-in tokens and playback can be read on the network. Use an https address.",
     "translation": "",
     "context": "library notice",
     "reference": "",
@@ -6391,13 +7000,6 @@
     "comment": ""
   },
   {
-    "term": "The playlist is deleted from %1 and every device that uses it. The tracks stay in their libraries.",
-    "translation": "",
-    "context": "delete server playlist confirmation",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "The port for casting files is already in use",
     "translation": "",
     "context": "cast error",
@@ -6412,14 +7014,7 @@
     "comment": ""
   },
   {
-    "term": "The server redirected to another address; use that address as the server",
-    "translation": "",
-    "context": "why a server connection test failed",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "The server refused the username or password",
+    "term": "The server redirected to another address. Use that address instead.",
     "translation": "",
     "context": "why a server connection test failed",
     "reference": "",
@@ -6429,6 +7024,13 @@
     "term": "The server's certificate isn't trusted",
     "translation": "",
     "context": "why a server connection test failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "The sung line fills gradually instead of word by word.",
+    "translation": "",
+    "context": "lyric line option description",
     "reference": "",
     "comment": ""
   },
@@ -6443,13 +7045,6 @@
     "term": "The tracks stay in their libraries.",
     "translation": "",
     "context": "delete local playlist confirmation",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "The view button in the header changes it only temporarily.",
-    "translation": "",
-    "context": "now playing start description",
     "reference": "",
     "comment": ""
   },
@@ -6545,23 +7140,9 @@
     "comment": ""
   },
   {
-    "term": "This style places these itself; you can show or hide them.",
-    "translation": "",
-    "context": "layout editor note on the seekbar row",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Tile size",
     "translation": "",
     "context": "view options section",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Time",
-    "translation": "",
-    "context": "track list column",
     "reference": "",
     "comment": ""
   },
@@ -6636,6 +7217,20 @@
     "comment": ""
   },
   {
+    "term": "Track number",
+    "translation": "",
+    "context": "template field",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Track rows and menus",
+    "translation": "",
+    "context": "page edit mode section shared by every page of the type",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Tracks",
     "translation": "",
     "context": "navigation destination",
@@ -6695,6 +7290,13 @@
     "term": "Turn off",
     "translation": "",
     "context": "sleep timer action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Turn on word by word in the lyrics settings",
+    "translation": "",
+    "context": "why the smooth highlight option is unavailable",
     "reference": "",
     "comment": ""
   },
@@ -6797,23 +7399,23 @@
     "comment": ""
   },
   {
-    "term": "Uses Dux Shell colors until you choose one.",
+    "term": "Uses Dux Shell colors by default.",
     "translation": "",
     "context": "appearance palette fallback note",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "Uses all style settings from Dux Shell. Turn off to set each group separately.",
+    "term": "Uses ReplayGain tags.",
     "translation": "",
-    "context": "appearance setting description",
+    "context": "playback setting description",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "Uses the ReplayGain values in the files.",
+    "term": "Uses the bar's title, controls and buttons. Tabs follow the button order.",
     "translation": "",
-    "context": "playback setting description",
+    "context": "side panel editor setting description",
     "reference": "",
     "comment": ""
   },
@@ -6821,6 +7423,13 @@
     "term": "Uses the server address",
     "translation": "",
     "context": "library dialog name placeholder for a server",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Uses the style settings of Dux Shell.",
+    "translation": "",
+    "context": "appearance setting description",
     "reference": "",
     "comment": ""
   },
@@ -6863,6 +7472,13 @@
     "term": "Volume controls",
     "translation": "",
     "context": "playback setting: what the volume slider changes",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Waiting for approval",
+    "translation": "",
+    "context": "Quick Connect state",
     "reference": "",
     "comment": ""
   },
@@ -6958,7 +7574,7 @@
     "comment": ""
   },
   {
-    "term": "Writes ratings and favorites set before this was turned on.",
+    "term": "Writes ratings and favorites set earlier.",
     "translation": "",
     "context": "local library action description",
     "reference": "",
@@ -7000,20 +7616,6 @@
     "comment": ""
   },
   {
-    "term": "You can add it again with Add entry.",
-    "translation": "",
-    "context": "remove navigation entry confirmation",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "You can add it again with Add shelf.",
-    "translation": "",
-    "context": "remove home shelf confirmation",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Your server",
     "translation": "",
     "context": "lyrics provider row for a server library's own lyrics",
@@ -7028,7 +7630,14 @@
     "comment": ""
   },
   {
-    "term": "ffmpeg is not installed, so tracks without ReplayGain tags play without loudness correction",
+    "term": "days",
+    "translation": "",
+    "context": "filter rule value unit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "ffmpeg is not installed. Tracks without ReplayGain tags play without loudness correction.",
     "translation": "",
     "context": "library notice",
     "reference": "",
@@ -7045,6 +7654,13 @@
     "term": "https://music.example.net",
     "translation": "",
     "context": "example server address in the add server dialog",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "minutes",
+    "translation": "",
+    "context": "filter rule value unit",
     "reference": "",
     "comment": ""
   },

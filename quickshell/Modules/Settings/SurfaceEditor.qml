@@ -50,7 +50,7 @@ Item {
     }
 
     function hasOptions(zone, entry) {
-        return placeable(zone, entry) || Object.keys(entry?.options ?? {}).some(k => Array.isArray(entry.options[k].values));
+        return placeable(zone, entry) || Object.keys(entry?.options ?? {}).some(k => k === "template" || Array.isArray(entry.options[k].values));
     }
 
     function summary(zone, entry, inst) {
@@ -63,6 +63,8 @@ Item {
                     parts.push(optionsPage.optionName(key));
             } else if (Array.isArray(entry?.options?.[key]?.values)) {
                 parts.push(UiConfig.optionLabel(inst.options[key]));
+            } else if (key === "template") {
+                parts.push(inst.options.template);
             }
         }
         return parts.join(" · ");
@@ -115,7 +117,7 @@ Item {
         return {
             "id": zone.id,
             "label": zone.label,
-            "note": followed ? I18n.tr("Follows the bottom bar", "side panel editor: a zone taken from the bar") : fixed ? I18n.tr("This style places these itself; you can show or hide them.", "layout editor note on the seekbar row") : "",
+            "note": followed ? I18n.tr("Follows the bottom bar", "side panel editor: a zone taken from the bar") : fixed ? I18n.tr("Placed by the style. They can be shown or hidden.", "layout editor note on the seekbar row") : "",
             "disabled": followed,
             "addable": !followed && !fixed,
             "rows": (surface.zones[zone.id] ?? []).map(inst => Object.assign(rowOf(zone, types, inst), fixed ? {
@@ -308,14 +310,14 @@ Item {
 
             SettingsToggleRow {
                 text: I18n.tr("Follow the bottom bar", "side panel editor setting")
-                description: I18n.tr("Takes the title, controls and buttons from the bar, and the tabs in the order of their buttons there.", "side panel editor setting description")
+                description: I18n.tr("Uses the bar's title, controls and buttons. Tabs follow the button order.", "side panel editor setting description")
                 checked: root.following
                 onToggled: value => root.write(root.zonesCopy(), value)
             }
         }
 
         SettingsPageIntro {
-            text: I18n.tr("Drag the handle to reorder or move between zones. Click an element for its options.", "now playing editor hint")
+            text: I18n.tr("Drag to reorder or move between zones. Select an element for its options.", "now playing editor hint")
         }
 
         DZoneEditor {
@@ -342,7 +344,7 @@ Item {
         id: resetDialog
         host: root
         title: I18n.tr("Reset %1?", "reset one now-playing surface confirmation title, %1 is the surface").arg(root.title)
-        supportingText: I18n.tr("Its elements return to their defaults.", "reset a now-playing surface confirmation")
+        supportingText: I18n.tr("Resets its elements.", "reset a now-playing surface confirmation")
         confirmText: I18n.tr("Reset", "button that restores the defaults")
         onConfirmed: UiConfig.resetSurface(root.surfaceId)
     }

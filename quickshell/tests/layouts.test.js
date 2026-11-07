@@ -4,7 +4,7 @@ const path = require("path");
 const assert = require("assert");
 
 const source = fs.readFileSync(path.join(__dirname, "../Common/Layouts.js"), "utf8").replace(".pragma library", "");
-const L = new Function(source + "; return { migrate, needsMigration, effective, problems, setSurface, setItem, setPageOptions, setKindDefault, resetKind, pageOptions, kindDefault, changedPages, parseImport, cleanSurface, resetAll, resetKindDefault, accepts, keepUnchanged, setNowPlaying };")();
+const L = new Function(source + "; return { migrate, needsMigration, effective, problems, setSurface, setItem, setPageOptions, setKindDefault, resetKind, pageOptions, savedViewOptions, kindDefault, changedPages, parseImport, cleanSurface, resetAll, resetKindDefault, accepts, keepUnchanged, setNowPlaying, extraTop, columnSort, columnSize, sizeName, sizeValue, canAddCustom, sortTemplate, newCustomLine, setOptionsAt };")();
 
 const types = (list) => list.filter(i => !i.hidden).map(i => i.type);
 const zoneTypes = (eff, id, zone) => types(eff.surfaces[id].zones[zone]);
@@ -162,7 +162,11 @@ const edited = {
         }
     }
     assert.strictEqual(L.pageOptions(eff, "playlist", "p1").sort, "position");
-    assert.deepStrictEqual(L.pageOptions(eff, "albums", "").filters.library, "lib1");
+    assert.deepStrictEqual(L.pageOptions(eff, "albums", "").rules.list, [{
+            "field": "library",
+            "op": "isAny",
+            "value": ["lib1"]
+        }]);
     assert.deepStrictEqual(L.pageOptions(eff, "albums", "").lines, ["artist", "year"]);
     assert.deepStrictEqual(eff.surfaces.home.zones.shelves.slice(1).map(s => [s.id, s.type, s.options.source, s.options.layout, s.options.size]), edited.homeShelves.map(s => [s.id, s.source.type, s.source.id, s.layout, s.size]));
 
@@ -476,8 +480,13 @@ for (const [name, raw, check] of migrations) {
     }).lists;
     assert.deepStrictEqual(lists.overrides.tracks, {
         "lines": ["artist"],
-        "filters": {
-            "favorites": true
+        "rules": {
+            "match": "all",
+            "list": [{
+                    "field": "favorite",
+                    "op": "is",
+                    "value": true
+                }]
         },
         "extra": "kept"
     });
@@ -740,10 +749,21 @@ const acceptCases = [
     ["dividers repeat", "track", "menu", one("divider"), "divider", true],
     ["wrong zone", "track", "hover", [], "spacer", false],
     ["a pane once", "side", "panes", one("cover"), "cover", false],
-    ["bar buttons repeat", "bar", "right", one("volume"), "volume", true]
+    ["bar buttons repeat", "bar", "right", one("volume"), "volume", true],
+    ["add to playlist at the end of a track row", "track", "trailing", [], "addToPlaylist", true],
+    ["add to playlist at the end of a queue row", "queue", "trailing", [], "addToPlaylist", true],
+    ["add to playlist at the end of an artist row", "artist", "trailing", [], "addToPlaylist", false],
+    ["lyric line in a bar row", "bar", "left", [], "lyricLine", true],
+    ["no lyric line in the bar's centre zone", "bar", "controls", [], "lyricLine", false],
+    ["no lyric line in the seek line", "bar", "seek", [], "lyricLine", false],
+    ["no lyric line in a full view", "fullM3e", "end", [], "lyricLine", false]
 ];
 for (const [name, id, zone, list, type, expected] of acceptCases)
     assert.strictEqual(L.accepts(id, zone, list, type), expected, name);
+
+// The bar's lyric line is off until it is added
+for (const zone of ["left", "controls", "right"])
+    assert.ok(!zoneTypes(L.effective({}), "bar", zone).includes("lyricLine"), "not in the default bar: " + zone);
 
 // Lines a page shows when nothing changed them
 const lineCases = [
@@ -963,4 +983,249 @@ for (const [name, text, problem] of imports)
     assert.strictEqual(L.parseImport(text).problem, problem, name);
 assert.deepStrictEqual(L.effective(L.parseImport(JSON.stringify(L.migrate(edited))).layout).surfaces.bar, L.effective(L.migrate(edited)).surfaces.bar, "an export imports to the same layout");
 
+{
+    const withCustom = L.setKindDefault({}, "tracks", Object.assign(L.kindDefault(L.effective({}), "tracks"), {
+        "lines": ["custom:k1"]
+    }));
+    const stored = L.setPageOptions(withCustom, "playlist", "p1", Object.assign(L.pageOptions(L.effective(withCustom), "playlist", "p1"), {
+        "sort": "custom:k1",
+        "lines": ["custom:k1"]
+    }));
+    assert.strictEqual(L.pageOptions(L.effective(stored), "playlist", "p1").sort, "custom:k1");
+    const gone = L.setPageOptions(stored, "playlist", "p1", Object.assign(L.pageOptions(L.effective(stored), "playlist", "p1"), {
+        "lines": []
+    }));
+    assert.strictEqual(L.pageOptions(L.effective(gone), "playlist", "p1").sort, "position", "custom sort without the line falls back to the kind's sort");
+    const view = {
+        "type": "tracks",
+        "options": {
+            "sort": "custom:k1"
+        }
+    };
+    assert.strictEqual(L.savedViewOptions(L.effective({}), view).sort, L.kindDefault(L.effective({}), "tracks").sort, "saved view");
+}
+
+// Several custom text columns, each with its own template, sort and width
+{
+    const read = record => L.kindDefault(L.effective(L.setKindDefault({}, "tracks", record)), "tracks");
+    const record = {
+        "lines": ["artist", "custom:k1", "custom:p9", "year"],
+        "sort": "custom:p9",
+        "lineOptions": {
+            "title": {"size": 1.5},
+            "custom:k1": {"title": "Release", "template": "%album% (%year%)", "sort": "year", "size": 1},
+            "custom:p9": {"title": "Quality", "template": "%format%", "size": 0.7}
+        }
+    };
+    const got = read(record);
+    assert.deepStrictEqual(got.lines, record.lines, "two custom columns are kept");
+    assert.deepStrictEqual(got.lineOptions, record.lineOptions, "each keeps its own template, sort and size");
+    assert.strictEqual(got.sort, "custom:p9");
+
+    const nine = Array.from({length: 10}, (_, i) => "custom:c" + i);
+    assert.strictEqual(read({"lines": nine}).lines.length, 8, "custom columns are capped");
+    assert.deepStrictEqual(read({"lines": ["custom:a b", "custom:", "custom:ok"]}).lines, ["custom:ok"], "bad custom keys are dropped");
+
+    const hostile = read({
+        "lineOptions": {
+            "custom:k1": {"title": "x".repeat(65), "template": "a\u0000b", "sort": "bad sort!", "size": 99},
+            "artist": {"title": "no title on a built-in column", "template": "%x%", "size": 0.01},
+            "bad key": {"size": 1},
+            "year": "text"
+        }
+    }).lineOptions;
+    assert.deepStrictEqual(hostile, {"custom:k1": {"size": 3}, "artist": {"size": 0.4}}, "hostile values are rejected or clamped");
+
+    // the old format: lines ["custom"], lineTemplate, lineTitle, sort "custom"
+    const old = read({"lines": ["artist", "custom"], "lineTemplate": "%year%", "lineTitle": "Y", "sort": "custom"});
+    assert.deepStrictEqual(old.lines, ["artist", "custom:c1"]);
+    assert.deepStrictEqual(old.lineOptions, {"custom:c1": {"title": "Y", "template": "%year%"}}, "the old template and title carry over");
+    assert.strictEqual(old.sort, "custom:c1");
+    assert.strictEqual(old.lineTemplate, undefined);
+
+    const o = {"lines": ["artist", "custom:k1"], "lineOptions": {"artist": {"sort": "albumArtist"}, "custom:k1": {"template": "%year%", "sort": "custom:zz"}}};
+    assert.strictEqual(L.columnSort(o, "artist"), "albumArtist", "Sort by changes what a header sorts");
+    assert.strictEqual(L.columnSort(o, "album"), "album", "no Sort by means its own key");
+    assert.strictEqual(L.columnSort(o, "custom:k1"), "custom:k1", "a sort on a column that is gone falls back to the column's text");
+    assert.strictEqual(L.sortTemplate(o, "custom:k1"), "%year%");
+    assert.strictEqual(L.sortTemplate(o, "custom:k2"), "", "a custom sort without options sorts by empty text");
+    assert.strictEqual(L.sortTemplate(o, "year"), null);
+    assert.strictEqual(L.columnSize(o, "artist"), 1);
+    assert.deepStrictEqual(["s", "m", "l"].map(k => L.sizeName(({"s": 0.7, "m": 1, "l": 1.5})[k])), ["s", "m", "l"]);
+    assert.strictEqual(L.sizeName(1.2), "", "a dragged width lights no preset");
+    assert.strictEqual(L.newCustomLine(["custom:c1", "custom:c3"]), "custom:c2");
+    assert.strictEqual(L.newCustomLine(["custom:c1"], {"sort": "custom:c2"}), "custom:c3", "a stored page sort keeps its id taken");
+    assert.strictEqual(L.newCustomLine(["custom:c1"], {"lineOptions": {"artist": {"sort": "custom:c2"}}}), "custom:c3", "a column's Sort by keeps its id taken");
+    assert.deepStrictEqual(["s", "m", "l"].map(L.sizeValue), [0.7, 1, 1.5]);
+    assert.strictEqual(L.canAddCustom(nine.slice(0, 7)), true);
+    assert.strictEqual(L.canAddCustom(nine.slice(0, 8)), false, "the eighth custom column is the last");
+}
+
+// Filter rules
+{
+    const rule = (field, op, value) => ({ field, op, value });
+    const genre = rule("genre", "isAny", ["Rock", "Metal"]);
+    const stored = rules => ({
+        "lists": {
+            "overrides": {
+                "tracks": { rules }
+            }
+        }
+    });
+    const clean = rules => L.effective(stored(rules)).lists.overrides.tracks.rules;
+
+    // the file's round trip through a page edit
+    const written = L.setPageOptions({}, "tracks", "", Object.assign({}, L.pageOptions(L.effective({}), "tracks", ""), {
+        "rules": {
+            "match": "any",
+            "list": [genre, rule("year", "between", [1990, null])]
+        }
+    }));
+    const read = L.pageOptions(L.effective(JSON.parse(JSON.stringify(written))), "tracks", "");
+    assert.strictEqual(read.rules.match, "any");
+    assert.deepStrictEqual(read.rules.list, [genre, rule("year", "between", [1990, null])], "a blank end of a range is kept");
+    assert.deepStrictEqual(Object.keys(L.setPageOptions({}, "tracks", "", L.pageOptions(L.effective({}), "tracks", "")).lists?.overrides ?? {}), [], "no rules is no change");
+
+    // a page's rules replace the kind's
+    const withDefault = L.setKindDefault({}, "albums", Object.assign({}, L.kindDefault(L.effective({}), "albums"), {
+        "rules": {
+            "match": "all",
+            "list": [genre]
+        }
+    }));
+    const onPage = L.setPageOptions(withDefault, "genre", "Rock", Object.assign({}, L.pageOptions(L.effective(withDefault), "genre", "Rock"), {
+        "rules": {
+            "match": "all",
+            "list": [rule("year", "is", 1)]
+        }
+    }));
+    assert.strictEqual(L.pageOptions(L.effective(withDefault), "albums", "").rules.list.length, 1, "the kind default holds rules");
+    assert.deepStrictEqual(L.pageOptions(L.effective(onPage), "genre", "Rock").rules.list, [rule("year", "is", 1)]);
+
+    // a saved view: the same cleaning, on the view's own rules
+    const view = L.effective({
+        "savedViews": [{
+                "id": "v",
+                "name": "V",
+                "type": "tracks",
+                "options": {
+                    "rules": {
+                        "match": "any",
+                        "list": [genre, "junk"]
+                    }
+                }
+            }]
+    }).savedViews[0];
+    assert.deepStrictEqual(view.options.rules, {
+        "match": "any",
+        "list": [genre]
+    });
+
+    // hostile and broken input: nothing throws, what can't be trusted goes
+    assert.deepStrictEqual(clean({
+        "match": "some",
+        "list": [null, 3, "x", {}, {
+                "field": "bad field",
+                "op": "is"
+            }, {
+                "field": 5,
+                "op": "is"
+            }, {
+                "op": "is"
+            }, {
+                "field": "a".repeat(33),
+                "op": "is"
+            }]
+    }), {
+        "match": "all",
+        "list": []
+    });
+    assert.deepStrictEqual(clean({ "list": "genre" }), { "match": "all", "list": [] }, "a list that isn't one");
+    assert.strictEqual(L.effective(stored("junk")).lists.overrides.tracks.rules, undefined, "rules that aren't an object");
+    const values = v => clean({
+        "list": [rule("genre", "isAny", v)]
+    }).list[0].value;
+    assert.strictEqual(values("a\u0007"), undefined, "control characters");
+    assert.strictEqual(values("a".repeat(257)), undefined, "a long value");
+    assert.strictEqual(values(Infinity), undefined, "an infinite number");
+    assert.strictEqual(values({ "a": 1 }), undefined, "an object");
+    assert.strictEqual(values(["ok", "a\u0007"]), undefined, "a bad entry in a list");
+    assert.strictEqual(values([["nested"]]), undefined, "a nested list");
+    assert.strictEqual(values(new Array(33).fill("a")), undefined, "33 values");
+    assert.strictEqual(values(new Array(32).fill("a")).length, 32, "32 values");
+    assert.strictEqual(clean({
+        "list": new Array(40).fill(genre)
+    }).list.length, 32, "at most 32 rules");
+    assert.deepStrictEqual(clean({
+        "list": [{ "field": "mood", "op": "soundsLike", "value": "sad" }]
+    }).list, [{ "field": "mood", "op": "soundsLike", "value": "sad" }], "a rule from a newer version is kept");
+
+    // old filters become rules once, on the kinds that have rules
+    const filters = (kind, f, more) => L.effective({
+        "lists": {
+            "overrides": {
+                [kind]: Object.assign({ "filters": f }, more)
+            }
+        }
+    }).lists.overrides[kind];
+    const old = filters("tracks", { "library": "l1", "genre": "Rock", "favorites": true });
+    assert.deepStrictEqual(old, {
+        "rules": {
+            "match": "all",
+            "list": [rule("library", "isAny", ["l1"]), rule("genre", "isAny", ["Rock"]), rule("favorite", "is", true)]
+        }
+    });
+    assert.deepStrictEqual(filters("tracks", { "library": "", "genre": "", "favorites": false }), {}, "empty filters leave nothing");
+    assert.deepStrictEqual(filters("playlists", { "library": "l1" }).filters, { "library": "l1" }, "playlists keep their library filter");
+    assert.strictEqual(filters("playlists", { "library": "l1" }).rules, undefined);
+
+    // saving a page as a view turns its locked filter into a rule next to the page's rules
+    const locked = filters("albums", { "genre": "Rock" }, {
+        "rules": {
+            "match": "all",
+            "list": [rule("year", "is", 1)]
+        }
+    });
+    assert.deepStrictEqual(locked.rules.list, [rule("genre", "isAny", ["Rock"]), rule("year", "is", 1)]);
+    const anyOfTwo = filters("albums", { "genre": "Rock" }, {
+        "rules": {
+            "match": "any",
+            "list": [rule("year", "is", 1), rule("year", "is", 2)]
+        }
+    });
+    assert.strictEqual(anyOfTwo.filters.genre, "Rock", "a filter over any of two rules stays a filter");
+    assert.strictEqual(anyOfTwo.rules.list.length, 2);
+    assert.strictEqual(filters("albums", { "genre": "Rock" }, {
+        "rules": {
+            "match": "any",
+            "list": [rule("year", "is", 1)]
+        }
+    }).rules.match, "all", "any of one rule joins the filter");
+}
+
 console.log("layouts: ok");
+
+// Unknown top-level keys survive a write; only the old-format keys that migrate() consumed go.
+assert.deepStrictEqual(L.extraTop({ "layout": { "version": 1 }, "future": { "a": 1 }, "nowPlaying": {} }), { "layout": { "version": 1 }, "future": { "a": 1 }, "nowPlaying": {} });
+assert.deepStrictEqual(L.extraTop({ "themeMode": "dark", "future": 2, "nowPlaying": {}, "savedViews": [] }), { "themeMode": "dark", "future": 2 });
+assert.deepStrictEqual(L.extraTop("junk"), {});
+
+// setOptionsAt writes to the captured target, whatever page is current
+{
+    const list = [{ "field": "year", "op": "is", "value": 2000 }];
+    const rules = { "match": "all", "list": list };
+    let s = L.setOptionsAt({}, { kind: "tracks", itemId: "", allScope: false }, { rules });
+    assert.deepStrictEqual(L.pageOptions(L.effective(s), "tracks", "").rules.list.length, 1);
+    assert.strictEqual(L.pageOptions(L.effective(s), "albums", "").rules.list.length, 0, "other pages are untouched");
+    const sorted = L.setPageOptions({}, "tracks", "", Object.assign(L.pageOptions(L.effective({}), "tracks", ""), { "sort": "year" }));
+    assert.strictEqual(L.pageOptions(L.effective(L.setOptionsAt(sorted, { kind: "tracks", itemId: "", allScope: false }, { rules })), "tracks", "").sort, "year", "other options stay");
+    s = L.setOptionsAt({}, { kind: "playlist", itemId: "p1", allScope: true }, { rules });
+    assert.strictEqual(L.kindDefault(L.effective(s), "playlist").rules.list.length, 1, "all pages: the kind's default");
+    assert.strictEqual(L.pageOptions(L.effective(s), "playlist", "p1").rules.list.length, 1);
+    const view = { id: "v1", name: "V", type: "tracks", options: {} };
+    const withView = { savedViews: [view] };
+    s = L.setOptionsAt(withView, { view: "v1" }, { rules });
+    assert.strictEqual(L.savedViewOptions(L.effective(s), L.effective(s).savedViews[0]).rules.list.length, 1);
+    assert.deepStrictEqual(L.effective(L.setOptionsAt({}, { view: "gone" }, { rules })).savedViews, [], "a deleted view is not recreated");
+    assert.strictEqual(L.effective(L.setOptionsAt(withView, { view: "gone" }, { rules })).savedViews[0].options.rules, undefined, "another view is not touched");
+}

@@ -6,6 +6,7 @@ import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
 import qs.Widgets
+import "../Common/Layouts.js" as Layouts
 
 // The track list every view shares: rows, multi-select with a selection bar, drag to queue or playlist,
 // per-track menu, and on wide windows sortable columns.
@@ -14,6 +15,8 @@ Item {
 
     property var tracks: []
     property var lines: ["artist", "album"]
+    // each custom line's title, template, sort and width, and the other columns' sort and width
+    property var lineOptions: ({})
     // "list" | "compact"
     property string layout: "list"
     property bool showArt: true
@@ -42,6 +45,16 @@ Item {
     property int anchorIndex: -1
 
     readonly property bool columns: sortable && layout === "list" && width >= PlayerMetrics.compactBreakpoint
+    readonly property var columnOptions: ({
+            "lines": lines,
+            "lineOptions": lineOptions
+        })
+    readonly property var columnList: columns ? UiConfig.trackColumns(columnOptions) : []
+    readonly property real titleWeight: columns ? UiConfig.titleWeight(columnOptions) : PlayerMetrics.titleColumnWeight
+    readonly property real timeWidth: columns ? UiConfig.timeWidth(columnOptions) : PlayerMetrics.columnTimeWidth
+    readonly property string titleSort: Layouts.columnSort(columnOptions, "title")
+    // the sort has no header cell (Plays, Last played, ...), so it gets one of its own to show and flip it
+    readonly property bool sortHidden: columns && sortKey !== "" && sortKey !== titleSort && sortKey !== "duration" && sortKey !== orderKey && !columnList.some(c => c.sort === sortKey)
     readonly property var selectedSet: {
         const set = {};
         for (const i of selectedIndexes)
@@ -167,20 +180,21 @@ Item {
 
                 SortCell {
                     Layout.fillWidth: true
-                    Layout.preferredWidth: 3
+                    Layout.preferredWidth: root.titleWeight
+                    Layout.minimumWidth: PlayerMetrics.columnTitleMinWidth
                     label: UiConfig.sortLabel("title")
-                    key: "title"
+                    key: root.titleSort
                 }
 
                 Repeater {
-                    model: root.columns ? UiConfig.trackColumns(root.lines.filter(l => l !== "duration" && l !== "library")) : []
+                    model: root.columnList
 
                     SortCell {
                         required property var modelData
                         Layout.fillWidth: modelData.fill !== undefined
                         Layout.preferredWidth: modelData.fill ?? modelData.width
-                        label: UiConfig.lineLabel(modelData.line)
-                        key: modelData.line
+                        label: modelData.label
+                        key: modelData.sort
                     }
                 }
 
@@ -189,15 +203,36 @@ Item {
                     actions: headerActions
                     item: root.tracks[0] ?? null
                     fixedLibrary: true
+                    timeWidth: root.timeWidth
                     timeHeader: Component {
                         SortCell {
-                            width: PlayerMetrics.columnTimeWidth
+                            width: root.timeWidth
                             label: UiConfig.sortLabel("duration")
                             key: "duration"
                             align: Text.AlignRight
                         }
                     }
                 }
+            }
+
+            Item {
+                width: parent.width
+                height: root.sortHidden ? hiddenSort.height + Theme.spacingXS : 0
+                visible: root.sortHidden
+
+                SortCell {
+                    id: hiddenSort
+                    anchors.right: parent.right
+                    anchors.rightMargin: Theme.spacingL
+                    label: UiConfig.sortLabel(root.sortKey, root.lineOptions)
+                    key: root.sortKey
+                }
+            }
+
+            // keeps the first row off the header
+            Item {
+                width: 1
+                height: root.columns && root.tracks.length > 0 ? Theme.spacingXS : 0
             }
         }
 
@@ -232,6 +267,10 @@ Item {
             columns: root.columns
             compact: root.layout === "compact"
             lines: root.lines
+            lineOptions: root.lineOptions
+            columnSpecs: root.columnList
+            titleWeight: root.titleWeight
+            timeWidth: root.timeWidth
             selecting: root.selecting
             selected: inSelection
             actionTracks: inSelection && root.selectedIndexes.length > 1 ? root.selectedTracks : [modelData]

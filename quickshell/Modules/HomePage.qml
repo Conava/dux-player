@@ -49,7 +49,7 @@ Item {
             setShelves(shelves.filter((s, i) => i !== index));
             Router.offerUndo(I18n.tr("Removed \"%1\" from home", "toast after removing a home shelf").arg(name), () => UiConfig.setSurface("home", before));
         };
-        Router.askRemove(I18n.tr("Remove \"%1\" from home?", "remove home shelf confirmation title").arg(name), I18n.tr("You can add it again with Add shelf.", "remove home shelf confirmation"), run);
+        Router.askRemove(I18n.tr("Remove \"%1\" from home?", "remove home shelf confirmation title").arg(name), I18n.tr("It can be added again with Add shelf.", "remove home shelf confirmation"), run);
     }
 
     DFlickable {
@@ -69,7 +69,7 @@ Item {
 
             PageHeader {
                 title: I18n.tr("Home", "navigation destination")
-                subtitle: root.editing ? I18n.tr("Drag to reorder. Each shelf has its own layout and size.", "home edit mode hint") : ""
+                subtitle: root.editing ? I18n.tr("Drag to reorder.", "home edit mode hint") : ""
                 editable: true
                 editing: root.editing
                 onEditRequested: Router.editing = true
@@ -252,7 +252,7 @@ Item {
         id: resetDialog
         host: root
         title: I18n.tr("Reset home?", "reset home confirmation title")
-        supportingText: I18n.tr("Home shelves return to the defaults.", "reset home confirmation")
+        supportingText: I18n.tr("Home shelves are reset.", "reset home confirmation")
         confirmText: I18n.tr("Reset", "button that restores the defaults")
         onConfirmed: UiConfig.resetSurface("home")
     }

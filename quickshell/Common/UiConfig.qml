@@ -7,6 +7,7 @@ import qs.Common
 import qs.Services
 import "Format.js" as Format
 import "Layouts.js" as Layouts
+import "Template.js" as Template
 import "../Services/Catalog.js" as Catalog
 
 // Effective customization and the labels and choices the editors offer. Other shapes (plain JSON in
@@ -88,7 +89,7 @@ Singleton {
         case "albumCount":
             return I18n.tr("Album count", "view info line");
         case "duration":
-            return I18n.tr("Duration", "view info line");
+            return I18n.tr("Length", "track list column and sort key: how long a track is");
         case "library":
             return I18n.tr("Library", "track list column");
         case "libraries":
@@ -99,6 +100,16 @@ Singleton {
             return I18n.tr("Plays", "view info line and sort key");
         case "favorite":
             return I18n.tr("Favorite", "view info line");
+        case "custom":
+            return I18n.tr("Custom text", "view info line built from a template");
+        case "composer":
+            return I18n.tr("Composer", "view info line and sort key");
+        case "format":
+            return I18n.tr("Format", "details field: codec or file type");
+        case "bitrate":
+            return I18n.tr("Bitrate", "view info line and sort key");
+        case "added":
+            return I18n.tr("Date added", "sort key");
         }
         return line;
     }
@@ -110,7 +121,7 @@ Singleton {
         case "artists":
             return ["albumCount", "trackCount", "library"];
         case "tracks":
-            return ["artist", "album", "year", "genre", "duration", "library", "rating", "playCount"];
+            return ["artist", "album", "year", "genre", "duration", "library", "rating", "playCount", "composer", "format", "bitrate", "added", "custom"];
         case "playlists":
             return ["trackCount", "duration", "libraries"];
         case "genres":
@@ -133,16 +144,108 @@ Singleton {
         return "\u2605".repeat(rating) + "\u2606".repeat(5 - rating);
     }
 
-    // The secondary text of a browse item, from the info lines a view shows.
-    function infoText(item, lines) {
+    readonly property string defaultTemplate: Layouts.defaultTemplate()
+    readonly property var templateFieldNames: ["title", "artist", "artists", "album", "albumartist", "composer", "genre", "year", "tracknumber", "discnumber", "duration", "rating", "playcount", "library", "format", "bitrate", "added", "playingfrom"]
+
+    function templateFieldLabel(field) {
+        switch (field) {
+        case "title":
+            return sortLabel("title");
+        case "artist":
+            return lineLabel("artist");
+        case "artists":
+            return elementLabel("artists");
+        case "album":
+            return lineLabel("album");
+        case "albumartist":
+            return I18n.tr("Album artist", "details field");
+        case "composer":
+        case "genre":
+        case "year":
+        case "duration":
+        case "rating":
+        case "library":
+        case "format":
+        case "bitrate":
+        case "added":
+            return lineLabel(field);
+        case "tracknumber":
+            return I18n.tr("Track number", "template field");
+        case "discnumber":
+            return I18n.tr("Disc number", "template field");
+        case "playcount":
+            return lineLabel("playCount");
+        case "playingfrom":
+            return elementLabel("playingFrom");
+        }
+        return field;
+    }
+
+    // A template over a track; nowPlaying adds what only the playing track has.
+    function templateText(template, track, nowPlaying) {
+        if (!track)
+            return "";
+        // 0 means unknown for these; the play count keeps its 0
+        const count = n => n > 0 ? String(n) : "";
+        return Template.format(template, {
+            "title": track.title ?? "",
+            "artist": track.artist ?? "",
+            "artists": (track.artists ?? []).map(a => a.name).join(", "),
+            "album": track.album ?? "",
+            "albumartist": track.albumArtist ?? "",
+            "composer": track.composer ?? "",
+            "genre": track.genre ?? "",
+            "year": count(track.year),
+            "tracknumber": count(track.number),
+            "discnumber": count(track.discTag),
+            "duration": track.duration > 0 ? Format.duration(track.duration) : "",
+            "rating": track.rating > 0 ? stars(track.rating) : "",
+            "playcount": String(track.playCount ?? 0),
+            "library": PlayerService.libraryName(track.library),
+            "format": track.format ?? "",
+            "bitrate": count(track.bitrate),
+            "added": template.indexOf("added") >= 0 ? infoText(track, ["added"]) : "",
+            "playingfrom": nowPlaying ? contextLabel(PlayerService.playContext) : ""
+        });
+    }
+
+    // A column's name: a custom column's own title when it has one.
+    function lineName(line, lineOptions) {
+        if (!Layouts.isCustomLine(line))
+            return lineLabel(line);
+        const o = lineOptions?.[line];
+        if ((o?.title ?? "") !== "")
+            return o.title;
+        const t = o?.template ?? "";
+        return t === "" ? lineLabel("custom") : t.length > 24 ? t.slice(0, 24) + "…" : t;
+    }
+
+    // The secondary text of a browse item, from the info lines a view shows; lineOptions holds the custom lines' templates.
+    function infoText(item, lines, lineOptions) {
         const parts = [];
         for (const line of lines) {
+            if (Layouts.isCustomLine(line)) {
+                const text = templateText(lineOptions?.[line]?.template ?? "", item, false);
+                if (text !== "")
+                    parts.push(text);
+                continue;
+            }
             switch (line) {
             case "artist":
             case "album":
             case "genre":
+            case "composer":
+            case "format":
                 if (item[line])
                     parts.push(item[line]);
+                break;
+            case "bitrate":
+                if (item.bitrate > 0)
+                    parts.push(I18n.tr("%1 kbps", "bitrate").arg(item.bitrate));
+                break;
+            case "added":
+                if (item.added > 0)
+                    parts.push(new Date(item.added * 1000).toLocaleDateString(Qt.locale(), Locale.ShortFormat));
                 break;
             case "year":
                 if (item.year)
@@ -176,9 +279,9 @@ Singleton {
         return parts.join(" \u00b7 ");
     }
 
-    // Track list columns for the wide layout, shared by the rows and the sortable header.
-    // fill: share of the leftover width; width: fixed width instead.
-    function trackColumns(lines) {
+    // Track list columns for the wide layout from a page's options, computed once by the list for the header and
+    // every row. fill: share of the leftover width; width: fixed width instead.
+    function trackColumns(options) {
         const specs = {
             "artist": {
                 "fill": 2
@@ -200,15 +303,53 @@ Singleton {
             },
             "playCount": {
                 "width": PlayerMetrics.columnYearWidth
+            },
+            "composer": {
+                "fill": 2
+            },
+            "custom": {
+                "fill": 2
+            },
+            "format": {
+                "width": PlayerMetrics.columnYearWidth
+            },
+            "bitrate": {
+                "width": PlayerMetrics.columnRatingWidth
+            },
+            "added": {
+                "width": PlayerMetrics.columnRatingWidth
             }
         };
-        return lines.filter(line => specs[line] !== undefined).map(line => Object.assign({
-                "line": line
-            }, specs[line]));
+        const specOf = line => Layouts.isCustomLine(line) ? specs.custom : specs[line];
+        // each column's own Width multiplies its fill share or fixed width
+        const sized = (line, base) => base * Layouts.columnSize(options, line);
+        return (options.lines ?? []).filter(line => line !== "duration" && line !== "library" && specOf(line) !== undefined).map(line => {
+            const spec = specOf(line);
+            return {
+                "line": line,
+                "label": lineName(line, options.lineOptions),
+                "sort": Layouts.columnSort(options, line),
+                "fill": spec.fill !== undefined ? sized(line, spec.fill) : undefined,
+                "width": spec.width !== undefined ? sized(line, spec.width) : undefined
+            };
+        });
     }
 
-    function sortLabel(key) {
+    // the title column's fill share and the length slot's width, with their Width multipliers
+    function titleWeight(options) {
+        return PlayerMetrics.titleColumnWeight * Layouts.columnSize(options, "title");
+    }
+
+    function timeWidth(options) {
+        return PlayerMetrics.columnTimeWidth * Layouts.columnSize(options, "duration");
+    }
+
+    function sortLabel(key, lineOptions) {
+        if (Layouts.isCustomLine(key))
+            return lineName(key, lineOptions);
         switch (key) {
+        case "albumArtist":
+            return templateFieldLabel("albumartist");
         case "title":
             return I18n.tr("Title", "track list column");
         case "name":
@@ -222,7 +363,7 @@ Singleton {
         case "added":
             return I18n.tr("Date added", "sort key");
         case "duration":
-            return I18n.tr("Time", "track list column");
+            return I18n.tr("Length", "track list column and sort key: how long a track is");
         case "library":
             return I18n.tr("Library", "track list column");
         case "albumCount":
@@ -235,6 +376,11 @@ Singleton {
             return I18n.tr("Plays", "view info line and sort key");
         case "lastPlayed":
             return I18n.tr("Last played", "sort key");
+        case "composer":
+        case "genre":
+        case "format":
+        case "bitrate":
+            return lineLabel(key);
         case "position":
             return I18n.tr("Playlist order", "sort key: the order a playlist keeps");
         }
@@ -248,24 +394,13 @@ Singleton {
         case "artists":
             return ["name", "albumCount", "trackCount"];
         case "tracks":
-            return ["title", "artist", "album", "year", "duration", "library", "playCount", "rating", "lastPlayed"];
+            return ["title", "artist", "album", "year", "duration", "library", "playCount", "rating", "lastPlayed", "composer", "genre", "albumArtist", "format", "bitrate", "added"];
         case "playlists":
             return ["name", "trackCount", "duration"];
         case "genres":
             return ["name", "albumCount", "trackCount"];
         }
         return [];
-    }
-
-    function filterKinds(type) {
-        switch (type) {
-        case "albums":
-        case "tracks":
-            return ["library", "genre", "favorites"];
-        case "artists":
-            return ["library", "favorites"];
-        }
-        return ["library"];
     }
 
     // Customization: the stored `layout` (SettingsData.layout) with the defaults applied. Shapes and rules are
@@ -339,8 +474,19 @@ Singleton {
         SettingsData.layout = Layouts.setPageOptions(SettingsData.layout, kind, itemId ?? "", options);
     }
 
+    // an undo that outlives the page: writes patch onto the target captured now, wherever the user is by then
+    function optionsUndo(target, patch) {
+        return () => {
+            SettingsData.layout = Layouts.setOptionsAt(SettingsData.layout, target, patch);
+        };
+    }
+
     function resetPageOptions(kind, itemId) {
         SettingsData.layout = Layouts.resetPageOptions(SettingsData.layout, kind, itemId ?? "");
+    }
+
+    function savedViewOptions(view) {
+        return Layouts.savedViewOptions(effective, view);
     }
 
     function kindDefault(kind) {
@@ -871,6 +1017,10 @@ Singleton {
             return I18n.tr("Artists", "navigation destination");
         case "album":
             return I18n.tr("Album", "an album: page label, list column, ReplayGain mode");
+        case "text":
+            return I18n.tr("Text", "now playing element: a line built from track fields");
+        case "lyricLine":
+            return I18n.tr("Lyric line", "now playing bar element: the sung line of the lyrics");
         case "libraryBadge":
             return I18n.tr("Library badge", "now playing element");
         case "playingFrom":
@@ -900,7 +1050,7 @@ Singleton {
         case "seekbar":
             return I18n.tr("Seekbar", "bar setting");
         case "duration":
-            return I18n.tr("Duration", "now playing element");
+            return I18n.tr("Length", "now playing element: how long the track is");
         case "volume":
             return I18n.tr("Volume", "audio volume: settings section, slider");
         case "queue":
@@ -939,6 +1089,10 @@ Singleton {
             return "person";
         case "album":
             return "album";
+        case "text":
+            return "text_fields";
+        case "lyricLine":
+            return "lyrics";
         case "libraryBadge":
             return "library_music";
         case "playingFrom":
@@ -1008,6 +1162,8 @@ Singleton {
             return I18n.tr("Play next", "track row action");
         case "playAfter":
             return I18n.tr("Play after this one", "queue row action");
+        case "stopAfter":
+            return I18n.tr("Stop after this track", "queue row action");
         case "addToQueue":
             return I18n.tr("Add to queue", "track row action");
         case "addToPlaylist":
@@ -1028,6 +1184,7 @@ Singleton {
         case "removeFromQueue":
             return I18n.tr("Remove from queue", "queue row action");
         case "keepOffline":
+        case "keepTrack":
             return I18n.tr("Keep on this device", "toggle that caches an item's tracks for offline play");
         case "rename":
             return I18n.tr("Rename", "menu action that renames an item");
@@ -1046,7 +1203,7 @@ Singleton {
         case "cloud":
             return I18n.tr("Server status", "row element: the cloud icon of a track from a server");
         case "duration":
-            return I18n.tr("Duration", "view info line");
+            return I18n.tr("Length", "track list column and sort key: how long a track is");
         case "addedByYou":
             return I18n.tr("Added by you", "queue row: a track put in with play next or add to queue");
         case "more":
@@ -1068,6 +1225,8 @@ Singleton {
             return "queue_play_next";
         case "playAfter":
             return "low_priority";
+        case "stopAfter":
+            return "stop_circle";
         case "addToQueue":
             return "add_to_queue";
         case "favorite":
@@ -1079,6 +1238,7 @@ Singleton {
         case "remove":
             return "remove_circle_outline";
         case "keepOffline":
+        case "keepTrack":
             return "download_for_offline";
         case "rename":
             return "edit";

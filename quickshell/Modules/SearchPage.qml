@@ -324,6 +324,7 @@ Item {
                         track: modelData
                         showArt: true
                         lines: root.options.lines
+                        lineOptions: root.options.lineOptions ?? ({})
                         selecting: root.selecting
                         selected: inSelection
                         actionTracks: inSelection && root.selectedIndexes.length > 1 ? root.selectedTracks : [modelData]

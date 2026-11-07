@@ -86,13 +86,13 @@ SettingsPage {
                 visible: group.shellOwned
                 title: I18n.tr("From Dux Shell", "appearance group following the shell")
                 searchable: false
-                subtitle: I18n.tr("Set in Dux Shell settings. Choose Custom to override.", "appearance group following the shell")
+                subtitle: I18n.tr("Set by Dux Shell. Choose Custom to override.", "appearance group following the shell")
                 iconName: "link"
             },
             Column {
                 id: body
                 // the settings search reads it
-                property string unavailableReason: I18n.tr("Set in Dux Shell settings. Choose Custom to override.", "appearance group following the shell")
+                property string unavailableReason: I18n.tr("Set by Dux Shell. Choose Custom to override.", "appearance group following the shell")
                 visible: !group.shellOwned
                 width: parent?.width ?? 0
                 spacing: Theme.groupedListGap
@@ -108,7 +108,7 @@ SettingsPage {
         SettingsToggleRow {
             text: I18n.tr("Follow Dux Shell", "appearance setting")
             keywords: "theme"
-            description: I18n.tr("Uses all style settings from Dux Shell. Turn off to set each group separately.", "appearance setting description")
+            description: I18n.tr("Uses the style settings of Dux Shell.", "appearance setting description")
             checked: SettingsData.followShell
             onToggled: value => SettingsData.followShell = value
         }
@@ -128,7 +128,7 @@ SettingsPage {
             text: I18n.tr("Palette", "color source option")
             keywords: "theme"
             model: [I18n.tr("Preset", "color scheme option"), I18n.tr("From a color", "color scheme option"), I18n.tr("Custom theme", "color scheme option")]
-            description: SettingsData.colorScheme === "" && StyleSource.detected ? I18n.tr("Uses Dux Shell colors until you choose one.", "appearance palette fallback note") : ""
+            description: SettingsData.colorScheme === "" && StyleSource.detected ? I18n.tr("Uses Dux Shell colors by default.", "appearance palette fallback note") : ""
             currentIndex: SettingsData.colorScheme === "" && !StyleSource.detected ? 0 : root.colorSchemes.indexOf(SettingsData.colorScheme)
             onSelectionChanged: (index, selected) => {
                 if (selected)
@@ -226,7 +226,7 @@ SettingsPage {
             visible: SettingsData.colorScheme === "custom"
             unavailableReason: root.paletteReason(I18n.tr("Custom theme", "color scheme option"))
             title: SettingsData.customTheme ? I18n.tr("Theme: %1", "loaded custom theme name").arg(SettingsData.customTheme.name || I18n.tr("Unnamed", "custom theme without a name")) : I18n.tr("No custom theme loaded", "custom theme state")
-            subtitle: I18n.tr("A Dux Shell theme file with light and dark palettes. Export the current colors to use as a starting point.", "custom theme description")
+            subtitle: I18n.tr("Dux Shell theme file with light and dark palettes.", "custom theme description")
 
             body: Column {
                 width: parent.width
@@ -397,7 +397,7 @@ SettingsPage {
         SettingsToggleRow {
             text: I18n.tr("Focus ring", "appearance setting")
             keywords: "keyboard outline"
-            description: I18n.tr("Highlights the focused control when using the keyboard.", "appearance setting description")
+            description: I18n.tr("Shown on keyboard focus.", "appearance setting description")
             checked: SettingsData.focusRingEnabled
             onToggled: value => SettingsData.focusRingEnabled = value
         }

@@ -361,7 +361,7 @@ Singleton {
                             DaemonBridge.request("queue.move", {
                                 "from": start + k,
                                 "to": to
-                            });
+                            }, I18n.tr("Couldn't restore the queue order", "toast when undoing a queue removal can't put a track back in place"));
                     });
                 }));
         });
@@ -382,7 +382,7 @@ Singleton {
             });
         };
         const server = p.kind === "server";
-        askRemove(I18n.tr("Delete \"%1\"?", "delete playlist confirmation title").arg(p.name), server ? I18n.tr("The playlist is deleted from %1 and every device that uses it. The tracks stay in their libraries.", "delete server playlist confirmation").arg(CatalogService.libraryName(p.library)) : I18n.tr("The tracks stay in their libraries.", "delete local playlist confirmation"), run, I18n.tr("Delete", "confirm button that deletes an item"));
+        askRemove(I18n.tr("Delete \"%1\"?", "delete playlist confirmation title").arg(p.name), server ? I18n.tr("Deletes the playlist from %1 on all devices. Tracks stay in their libraries.", "delete server playlist confirmation").arg(CatalogService.libraryName(p.library)) : I18n.tr("The tracks stay in their libraries.", "delete local playlist confirmation"), run, I18n.tr("Delete", "confirm button that deletes an item"));
     }
 
     function addLibrary() {

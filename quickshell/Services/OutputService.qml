@@ -118,7 +118,7 @@ Singleton {
         case "busy":
             return I18n.tr("Another app is already casting", "cast error");
         case "avahi":
-            return I18n.tr("Can't search for cast devices: discovery is unavailable", "cast error");
+            return I18n.tr("Couldn't search for cast devices", "cast error");
         case "insecureServer":
             return I18n.tr("This server's tracks can only be cast over https", "cast error");
         }

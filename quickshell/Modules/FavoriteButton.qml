@@ -26,7 +26,7 @@ DActionButton {
         if (blocker !== "")
             return blocker;
         if (synced)
-            return favorite ? I18n.tr("Remove from favorites on %1", "favorite button tooltip, %1 is the server library").arg(PlayerService.libraryName(item.library)) : I18n.tr("Add to favorites on %1", "favorite button tooltip, %1 is the server library").arg(PlayerService.libraryName(item.library));
+            return favorite ? I18n.tr("Remove from favorites on %1", "favorite button tooltip, %1 is the server library").arg(PlayerService.libraryName(item?.library)) : I18n.tr("Add to favorites on %1", "favorite button tooltip, %1 is the server library").arg(PlayerService.libraryName(item?.library));
         return favorite ? I18n.tr("Remove from favorites", "track menu action") : I18n.tr("Add to favorites", "track menu action");
     }
     Accessible.role: Accessible.CheckBox

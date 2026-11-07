@@ -62,7 +62,7 @@ Loader {
     function alignedX(itemWidth, total) {
         if (centered)
             return (total - itemWidth) / 2;
-        return I18n.isRtl ? total - itemWidth : 0;
+        return LayoutMirroring.enabled ? total - itemWidth : 0;
     }
 
     // a group member's corner: the run's outer ends fully round, the rest as the button's own radius
@@ -76,9 +76,9 @@ Loader {
 
     // what the zone lays out by: a row's layout reads these, since the element sits in a wrapper
     readonly property bool fills: fill && (sourceComponent === button || sourceComponent === playPause)
-    readonly property bool fillsWidth: elementId === "seekbar" || fills || elementId === "spacer" && options.size === "fill"
-    readonly property real preferredWidth: fills ? Theme.minimumTouchTargetSize * liveWeight : -1
-    readonly property real minimumWidth: elementId === "seekbar" ? PlayerMetrics.barSeekMinWidth : fills ? Theme.iconSizeMedium + Theme.spacingXS * 2 : -1
+    readonly property bool fillsWidth: elementId === "seekbar" || elementId === "lyricLine" || fills || elementId === "spacer" && options.size === "fill"
+    readonly property real preferredWidth: elementId === "lyricLine" ? PlayerMetrics.barInfoWidths[options.width ?? "m"] : fills ? Theme.minimumTouchTargetSize * liveWeight : -1
+    readonly property real minimumWidth: elementId === "seekbar" ? PlayerMetrics.barSeekMinWidth : elementId === "lyricLine" ? 0 : fills ? Theme.iconSizeMedium + Theme.spacingXS * 2 : -1
     // the zone decides (NowPlayingZone.shows): a cast target only while casting, an album only when there is one
     property bool shown: true
     // the row's width, for the device chip's share of it
@@ -95,6 +95,10 @@ Loader {
         case "artists":
         case "album":
             return subtitle;
+        case "text":
+            return templateText;
+        case "lyricLine":
+            return lyricLine;
         case "libraryBadge":
             return badge;
         case "playingFrom":
@@ -364,6 +368,25 @@ Loader {
             font.pixelSize: root.textLook === "m3e" ? Theme.fontSizeMedium : Theme.fontSizeSmall
             font.weight: root.textLook === "m3e" ? Theme.fontWeightMedium : Font.Normal
             horizontalAlignment: root.centered ? Text.AlignHCenter : Text.AlignLeft
+        }
+    }
+
+    Component {
+        id: templateText
+        StyledText {
+            text: UiConfig.templateText(root.options.template ?? "", root.track, true)
+            font.pixelSize: Theme.fontSizeSmall
+            color: ArtColors.textVariant
+            elide: Text.ElideRight
+            wrapMode: Text.NoWrap
+            horizontalAlignment: root.centered ? Text.AlignHCenter : Text.AlignLeft
+        }
+    }
+
+    Component {
+        id: lyricLine
+        BarLyricLine {
+            sweep: root.options.smooth === true
         }
     }
 
@@ -731,6 +754,8 @@ Loader {
             tooltipText: {
                 if (id_ === "sleep" && PlayerService.sleepMode === "minutes")
                     return I18n.tr("Sleep in %1", "sleep timer button tooltip, %1 is the remaining time").arg(Format.duration(PlayerService.sleepRemaining));
+                if (id_ === "sleep" && PlayerService.sleepMode === "afterEntry")
+                    return I18n.tr("Stops after %1", "sleep timer status, %1 is a track title").arg(PlayerService.queueItem(PlayerService.sleepEntry)?.title ?? "");
                 if (id_ === "sleep" && PlayerService.sleepMode === "endOfTrack")
                     return I18n.tr("Sleep after this track", "sleep timer button tooltip");
                 if (id_ === "speed")

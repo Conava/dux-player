@@ -7,6 +7,8 @@ import qs.Services
 import qs.DCommon.Widgets
 import qs.Widgets
 import qs.Modules.Settings
+import "../Common/Layouts.js" as Layouts
+import "../Services/Rules.js" as Rules
 
 // Edit page: the block at the top of a page in edit mode. It edits this page's change or, for kinds with many
 // pages, the kind's default; the list below reads the same options, so it follows every edit live.
@@ -25,7 +27,6 @@ Item {
     property var layouts: []
     // sort keys offered; none means the page keeps its own order
     property var sorts: []
-    property var filterKinds: []
     property bool linesEditable: true
     // the media type whose rows and menus every page of it shares; "" for none
     property string itemType: ""
@@ -47,13 +48,8 @@ Item {
     readonly property int scope: Router.editScope
     readonly property bool allScope: scopeThis !== "" && scope === 1
     readonly property var options: {
-        if (savedView) {
-            const base = UiConfig.kindDefault(savedView.type);
-            const own = savedView.options ?? {};
-            return Object.assign({}, base, own, {
-                "filters": Object.assign({}, base.filters, own.filters ?? {})
-            });
-        }
+        if (savedView)
+            return UiConfig.savedViewOptions(savedView);
         return (allScope ? UiConfig.kindDefault(kind) : UiConfig.pageOptions(kind, itemId)) ?? {};
     }
     readonly property var sectionsOptions: sectionsKind === kind ? options : UiConfig.pageOptions(sectionsKind, "") ?? {}
@@ -63,6 +59,9 @@ Item {
     readonly property var lineChoices: UiConfig.lineChoices(type).filter(l => type !== "tracks" || ["duration", "library"].indexOf(l) < 0)
     readonly property var item: itemType !== "" ? UiConfig.item(itemType) : null
     readonly property var itemZoneMeta: itemType !== "" ? UiConfig.zonesOf(itemType) : []
+
+    // whether the page applies filter rules; only the browse pages do
+    property bool filterable: false
 
     signal tabPicked(string tab)
     signal saveAsRequested
@@ -100,10 +99,11 @@ Item {
 
     // clears what the scope shows: this page's change, or the kind's default
     function reset() {
+        ruleEditor.discard();
         if (savedView) {
             const id = savedView.id;
             // the options are the view's whole definition
-            Router.confirm(I18n.tr("Reset %1?", "settings pages: reset confirmation title, %1 is the page").arg(savedView.name), I18n.tr("Its filters, sort and display options go back to the defaults.", "reset saved view confirmation"), I18n.tr("Reset", "button that restores the defaults"), () => UiConfig.updateSavedView(id, {
+            Router.confirm(I18n.tr("Reset %1?", "settings pages: reset confirmation title, %1 is the page").arg(savedView.name), I18n.tr("Filters, sort and display options are reset.", "reset saved view confirmation"), I18n.tr("Reset", "button that restores the defaults"), () => UiConfig.updateSavedView(id, {
                     "options": {}
                 }));
             return;
@@ -116,8 +116,85 @@ Item {
             UiConfig.resetPageOptions(sectionsKind, "");
     }
 
+    // a custom column is a sort only while it is shown
+    readonly property var sortList: type === "tracks" && sorts.length > 0 ? sorts.concat((options.lines ?? []).filter(Layouts.isCustomLine)) : sorts
+    // track pages edit their info lines as the list's columns, between the fixed Title and Length
+    readonly property bool columnsEditor: type === "tracks"
+    readonly property var lineOptions: options.lineOptions ?? ({})
+    readonly property var columnKeys: columnsEditor ? ["title"].concat(options.lines ?? [], ["duration"]) : options.lines ?? []
+    // the column whose card is open
+    property string openColumn: ""
+    readonly property bool columnOpen: columnsEditor && openColumn !== "" && columnKeys.indexOf(openColumn) >= 0
+    readonly property bool openIsCustom: Layouts.isCustomLine(openColumn)
+    readonly property string linesTitle: columnsEditor ? I18n.tr("Columns", "page edit mode section: the columns of a track list") : I18n.tr("Info lines", "page edit mode section: the facts shown under an item")
+    readonly property string addColumnText: I18n.tr("Add column", "button under the columns in a page's edit mode")
+    readonly property var columnSortChoices: (openIsCustom ? [openColumn] : []).concat(UiConfig.sortChoices("tracks"))
+
     function sortText(key) {
-        return UiConfig.sortLabel(key);
+        return UiConfig.sortLabel(key, lineOptions);
+    }
+
+    // one column's options: undefined removes a key, an empty record removes the column's entry
+    function applyColumn(key, patch) {
+        const next = Object.assign({}, lineOptions);
+        const entry = Object.assign({}, next[key], patch);
+        for (const k of Object.keys(entry)) {
+            if (entry[k] === undefined)
+                delete entry[k];
+        }
+        if (Object.keys(entry).length > 0)
+            next[key] = entry;
+        else
+            delete next[key];
+        apply({
+            "lineOptions": next
+        });
+    }
+
+    function sizeText(name) {
+        return {
+            "s": I18n.tr("Small", "size option"),
+            "m": I18n.tr("Medium", "size option"),
+            "l": I18n.tr("Large", "size option")
+        }[name] ?? "";
+    }
+
+    function columnSummary(key) {
+        const parts = [];
+        if (Layouts.isCustomLine(key))
+            parts.push(lineOptions[key]?.template ?? "");
+        const sort = Layouts.columnSort(options, key);
+        if (key !== "duration" && sort !== key)
+            parts.push(I18n.tr("Sorts by %1", "page edit mode: what a click on the column header sorts by").arg(sortText(sort)));
+        parts.push(sizeText(Layouts.sizeName(Layouts.columnSize(options, key))));
+        return parts.filter(p => p !== "").join(" · ");
+    }
+
+    function columnRow(key) {
+        const fixed = key === "title" || key === "duration";
+        return {
+            "title": UiConfig.sortLabel(key, lineOptions),
+            "subtitle": columnSummary(key),
+            "hideable": false,
+            "hasOptions": true,
+            "movable": !fixed,
+            "removable": !fixed
+        };
+    }
+
+    // the zone editor counts the fixed Title row; lines don't
+    function lineIndex(index) {
+        return index - (columnsEditor ? 1 : 0);
+    }
+
+    function removeLine(index) {
+        const key = options.lines[index];
+        const next = Object.assign({}, lineOptions);
+        delete next[key];
+        apply({
+            "lines": options.lines.filter((_, i) => i !== index),
+            "lineOptions": next
+        });
     }
 
     function moved(list, fromIndex, toIndex) {
@@ -219,15 +296,15 @@ Item {
 
     function pickLine() {
         addSheet.target = "line";
-        addSheet.title = I18n.tr("Add line", "button under the info lines in a page's edit mode");
+        addSheet.title = columnsEditor ? addColumnText : I18n.tr("Add line", "button under the info lines in a page's edit mode");
         addSheet.sections = [
             {
-                "title": I18n.tr("Info lines", "page edit mode section: the facts shown under an item"),
+                "title": linesTitle,
                 "items": lineChoices.map(l => ({
                             "label": UiConfig.lineLabel(l),
                             "value": l,
                             "icon": "add",
-                            "done": root.options.lines.indexOf(l) >= 0
+                            "done": l === "custom" ? !Layouts.canAddCustom(root.options.lines) : root.options.lines.indexOf(l) >= 0
                         }))
             }
         ];
@@ -236,9 +313,22 @@ Item {
 
     function picked(value) {
         if (addSheet.target === "line") {
+            if (value !== "custom") {
+                apply({
+                    "lines": options.lines.concat([value])
+                });
+                return;
+            }
+            const line = Layouts.newCustomLine(options.lines, options);
             apply({
-                "lines": options.lines.concat([value])
+                "lines": options.lines.concat([line]),
+                "lineOptions": Object.assign({}, lineOptions, {
+                    [line]: {
+                        "template": UiConfig.defaultTemplate
+                    }
+                })
             });
+            openColumn = line;
             return;
         }
         const zone = addSheet.target.slice(7);
@@ -257,17 +347,17 @@ Item {
     function itemNoun(type) {
         switch (type) {
         case "track":
-            return I18n.tr("Rows and menus · for all tracks", "page edit mode section shared by every page of the type");
+            return I18n.tr("Track rows and menus", "page edit mode section shared by every page of the type");
         case "album":
-            return I18n.tr("Rows and menus · for all albums", "page edit mode section shared by every page of the type");
+            return I18n.tr("Album rows and menus", "page edit mode section shared by every page of the type");
         case "artist":
-            return I18n.tr("Rows and menus · for all artists", "page edit mode section shared by every page of the type");
+            return I18n.tr("Artist rows and menus", "page edit mode section shared by every page of the type");
         case "playlist":
-            return I18n.tr("Rows and menus · for all playlists", "page edit mode section shared by every page of the type");
+            return I18n.tr("Playlist rows and menus", "page edit mode section shared by every page of the type");
         case "genre":
-            return I18n.tr("Rows and menus · for all genres", "page edit mode section shared by every page of the type");
+            return I18n.tr("Genre rows and menus", "page edit mode section shared by every page of the type");
         case "queue":
-            return I18n.tr("Rows and menus · for the queue", "page edit mode section shared by every page of the type");
+            return I18n.tr("Queue rows and menus", "page edit mode section shared by every page of the type");
         }
         return "";
     }
@@ -375,8 +465,8 @@ Item {
                             id: sortDropdown
                             anchors.verticalCenter: parent?.verticalCenter
                             dropdownWidth: SettingsMetrics.dropdownWidth
-                            options: root.sorts.map(k => root.sortText(k))
-                            optionValues: root.sorts
+                            options: root.sortList.map(k => root.sortText(k))
+                            optionValues: root.sortList
                             onValueChanged: value => root.apply({
                                     "sort": value
                                 })
@@ -414,15 +504,33 @@ Item {
                 }
 
                 SectionLabel {
-                    visible: filterGroup.firstRow !== null
+                    visible: filterGroup.firstRow !== null || ruleEditor.visible
                     text: I18n.tr("Filter", "view options section")
+                }
+
+                RuleEditor {
+                    id: ruleEditor
+                    visible: root.filterable && Rules.fields(root.type).length > 0
+                    target: JSON.stringify({
+                        "kind": root.kind,
+                        "itemId": root.itemId,
+                        "allScope": root.allScope,
+                        "view": root.savedView?.id ?? ""
+                    })
+                    width: parent.width
+                    type: root.type
+                    rules: root.options.rules ?? ({})
+                    sheetHost: root.sheetHost ?? root
+                    apply: rules => root.apply({
+                            "rules": rules
+                        })
                 }
 
                 SettingsGroup {
                     id: filterGroup
 
                     SettingsRow {
-                        visible: root.filterKinds.indexOf("library") >= 0 && root.libraries.length > 1
+                        visible: root.type === "playlists" && root.libraries.length > 1
                         title: I18n.tr("Library", "track list column")
 
                         DDropdown {
@@ -444,38 +552,6 @@ Item {
                             value: root.options.filters?.library ?? ""
                         }
                     }
-
-                    SettingsRow {
-                        visible: root.filterKinds.indexOf("genre") >= 0
-                        title: I18n.tr("Genre", "view info line")
-
-                        DDropdown {
-                            id: genreDropdown
-                            anchors.verticalCenter: parent?.verticalCenter
-                            dropdownWidth: SettingsMetrics.dropdownWidth
-                            emptyText: I18n.tr("All genres", "genre filter option")
-                            options: [I18n.tr("All genres", "genre filter option")].concat(PlayerService.genres.map(g => g.name))
-                            optionValues: [""].concat(PlayerService.genres.map(g => g.id))
-                            onValueChanged: value => root.applyFilters({
-                                    "genre": value
-                                })
-                        }
-
-                        Binding {
-                            target: genreDropdown
-                            property: "currentValue"
-                            value: root.options.filters?.genre ?? ""
-                        }
-                    }
-
-                    SettingsToggleRow {
-                        visible: root.filterKinds.indexOf("favorites") >= 0
-                        text: I18n.tr("Favorites only", "view filter")
-                        checked: root.options.filters?.favorites === true
-                        onToggled: value => root.applyFilters({
-                                "favorites": value
-                            })
-                    }
                 }
 
                 Loader {
@@ -489,26 +565,112 @@ Item {
                     visible: root.linesEditable
                     flickable: flick
                     rowColor: SettingsMetrics.rowColor
-                    addText: I18n.tr("Add line", "button under the info lines in a page's edit mode")
+                    addText: root.columnsEditor ? root.addColumnText : I18n.tr("Add line", "button under the info lines in a page's edit mode")
                     emptyText: I18n.tr("No info lines", "page edit mode: the info lines zone is empty")
                     zones: [
                         {
                             "id": "lines",
-                            "label": I18n.tr("Info lines", "page edit mode section: the facts shown under an item"),
-                            "addable": root.lineChoices.some(l => (root.options.lines ?? []).indexOf(l) < 0),
-                            "rows": (root.options.lines ?? []).map(l => ({
-                                        "title": UiConfig.lineLabel(l),
+                            "label": root.linesTitle,
+                            "addable": root.lineChoices.some(l => l === "custom" ? Layouts.canAddCustom(root.options.lines ?? []) : (root.options.lines ?? []).indexOf(l) < 0),
+                            "rows": root.columnKeys.map(k => root.columnsEditor ? root.columnRow(k) : ({
+                                        "title": UiConfig.lineLabel(k),
                                         "hideable": false
                                     }))
                         }
                     ]
-                    onMoved: (fromZone, fromIndex, toZone, toIndex) => root.apply({
-                            "lines": root.moved(root.options.lines, fromIndex, toIndex)
-                        })
-                    onRemoved: (zone, index) => root.apply({
-                            "lines": root.options.lines.filter((_, i) => i !== index)
-                        })
+                    onMoved: (fromZone, fromIndex, toZone, toIndex) => {
+                        const from = root.lineIndex(fromIndex);
+                        const to = Math.max(0, Math.min(root.options.lines.length - 1, root.lineIndex(toIndex)));
+                        if (from >= 0 && from < root.options.lines.length)
+                            root.apply({
+                                "lines": root.moved(root.options.lines, from, to)
+                            });
+                    }
+                    onRemoved: (zone, index) => {
+                        if (root.options.lines[root.lineIndex(index)] === root.openColumn)
+                            root.openColumn = "";
+                        root.removeLine(root.lineIndex(index));
+                    }
+                    onOptionsRequested: (zone, index) => {
+                        const key = root.columnKeys[index];
+                        root.openColumn = root.openColumn === key ? "" : key;
+                    }
                     onAddRequested: root.pickLine()
+                }
+
+                SectionLabel {
+                    visible: root.linesEditable && root.columnOpen
+                    text: UiConfig.sortLabel(root.openColumn, root.lineOptions)
+                }
+
+                SettingsGroup {
+                    visible: root.linesEditable && root.columnOpen
+
+                    SettingsFieldRow {
+                        id: lineTitleRow
+                        visible: root.openIsCustom
+                        title: I18n.tr("Column title", "page edit mode: the header of the custom text column")
+                        field.placeholderText: UiConfig.lineLabel("custom")
+                        field.maximumLength: 64
+                        field.onTextEdited: {
+                            if (field.text !== (root.lineOptions[root.openColumn]?.title ?? ""))
+                                root.applyColumn(root.openColumn, {
+                                    "title": field.text === "" ? undefined : field.text
+                                });
+                        }
+
+                        Binding {
+                            target: lineTitleRow.field
+                            property: "text"
+                            value: root.lineOptions[root.openColumn]?.title ?? ""
+                            when: !lineTitleRow.field.inputFocused
+                            restoreMode: Binding.RestoreNone
+                        }
+                    }
+
+                    TemplateRow {
+                        visible: root.openIsCustom
+                        template: root.lineOptions[root.openColumn]?.template ?? ""
+                        onEdited: value => root.applyColumn(root.openColumn, {
+                                "template": value
+                            })
+                    }
+
+                    SettingsRow {
+                        visible: root.openColumn !== "duration"
+                        title: I18n.tr("Sort by", "view options section")
+
+                        DDropdown {
+                            id: columnSortDropdown
+                            anchors.verticalCenter: parent?.verticalCenter
+                            dropdownWidth: SettingsMetrics.dropdownWidth
+                            options: root.columnSortChoices.map(k => root.openIsCustom && k === root.openColumn ? I18n.tr("Its text", "page edit mode: a custom column sorts by what it shows") : root.sortText(k))
+                            optionValues: root.columnSortChoices
+                            onValueChanged: value => root.applyColumn(root.openColumn, {
+                                    "sort": value === root.openColumn ? undefined : value
+                                })
+                        }
+
+                        Binding {
+                            target: columnSortDropdown
+                            property: "currentValue"
+                            value: Layouts.columnSort(root.options, root.openColumn)
+                        }
+                    }
+
+                    SettingsButtonGroupRow {
+                        text: I18n.tr("Width", "element option: how wide the track info is")
+                        model: [root.sizeText("s"), root.sizeText("m"), root.sizeText("l")]
+                        currentIndex: ["s", "m", "l"].indexOf(Layouts.sizeName(Layouts.columnSize(root.options, root.openColumn)))
+                        onSelectionChanged: (index, selected) => {
+                            if (!selected)
+                                return;
+                            const size = Layouts.sizeValue(["s", "m", "l"][index]);
+                            root.applyColumn(root.openColumn, {
+                                "size": size === 1 ? undefined : size
+                            });
+                        }
+                    }
                 }
 
                 Row {
@@ -548,7 +710,7 @@ Item {
                     width: parent.width
                     visible: root.item !== null
                     title: root.itemNoun(root.itemType)
-                    description: I18n.tr("Shared by every page that shows them.", "page edit mode: rows and menus are the same everywhere")
+                    description: I18n.tr("Shared by all pages.", "page edit mode: rows and menus are the same on every page of the type")
 
                     Column {
                         Layout.fillWidth: true
@@ -570,7 +732,7 @@ Item {
 
                         SettingsGroup {
                             SettingsToggleRow {
-                                text: I18n.tr("Right-click menu same as ⋮ menu", "page edit mode: the right-click menu follows the ⋮ menu")
+                                text: I18n.tr("Right-click shows the ⋮ menu", "page edit mode: the right-click menu follows the ⋮ menu")
                                 checked: root.item?.contextSameAsMenu ?? true
                                 onToggled: value => UiConfig.setItem(root.itemType, {
                                         "contextSameAsMenu": value
@@ -593,7 +755,7 @@ Item {
                                     return {
                                         "id": z.id,
                                         "label": z.label,
-                                        "note": following ? I18n.tr("Same as the ⋮ menu. Turn off the switch above to change it.", "page edit mode: the right-click menu zone while it follows") : "",
+                                        "note": following ? I18n.tr("Same as the ⋮ menu", "page edit mode: the right-click menu zone while it follows") : "",
                                         "disabled": following,
                                         "addable": !following,
                                         "rows": (it.zones[z.id] ?? []).map(inst => root.actionRow(inst))
@@ -663,7 +825,7 @@ Item {
         id: deleteDialog
         host: root.sheetHost ?? root
         title: I18n.tr("Delete this view?", "delete saved view confirmation title")
-        supportingText: I18n.tr("Its navigation entry and home shelf are also removed. No music is deleted.", "delete saved view confirmation")
+        supportingText: I18n.tr("Also removes its navigation entry and home shelf. No music is deleted.", "delete saved view confirmation")
         confirmText: I18n.tr("Delete", "confirm button that deletes an item")
         onConfirmed: root.deleteRequested()
     }

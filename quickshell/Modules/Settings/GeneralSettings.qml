@@ -190,7 +190,7 @@ SettingsPage {
         SettingsRow {
             title: I18n.tr("Layout", "general setting: every customization as one file")
             keywords: "export import backup"
-            subtitle: I18n.tr("Now playing, pages, rows and menus, home and navigation, as one file.", "general setting description")
+            subtitle: I18n.tr("Now playing, pages, rows and menus, home and navigation in one file.", "general setting description")
 
             body: Column {
                 width: parent.width
@@ -358,7 +358,7 @@ SettingsPage {
         id: importDialog
         host: root
         title: I18n.tr("Replace your layout?", "layout import confirmation title")
-        supportingText: I18n.tr("Every customization is replaced by the one in the file.", "layout import confirmation")
+        supportingText: I18n.tr("Replaces all customization with the file's layout.", "layout import confirmation")
         confirmText: I18n.tr("Replace", "layout import confirm button")
         onConfirmed: {
             const problem = UiConfig.importLayout(root.pendingLayout);
@@ -375,7 +375,7 @@ SettingsPage {
         id: resetAllDialog
         host: root
         title: I18n.tr("Reset all customization?", "reset all customization confirmation title")
-        supportingText: I18n.tr("Now playing, pages, rows and menus, home and navigation go back to the defaults. Saved views are kept.", "reset all customization confirmation")
+        supportingText: I18n.tr("Resets now playing, pages, rows and menus, home and navigation. Saved views are kept.", "reset all customization confirmation")
         confirmText: I18n.tr("Reset", "button that restores the defaults")
         onConfirmed: {
             UiConfig.resetAll();

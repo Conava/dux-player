@@ -37,6 +37,7 @@ Singleton {
             root._historyBusy = false;
             if (result.error) {
                 root.log.warn("history.list", result.error);
+                DaemonBridge.notice(I18n.tr("Couldn't load the history", "toast when the play history can't be loaded"));
                 return;
             }
             const seen = {};
@@ -122,6 +123,7 @@ Singleton {
             root._topState = list.error ? "wanted" : "done";
             if (list.error) {
                 root.log.warn("history.top", list.error);
+                DaemonBridge.notice(I18n.tr("Couldn't load the most played tracks", "toast when the most played tracks can't be loaded"));
                 return;
             }
             root.topTracks = list.map(h => Object.assign(Catalog.track(h.track), {

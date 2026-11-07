@@ -25,6 +25,14 @@ Singleton {
             },
             // "off" | "random" | "similar"
             "autoContinue": "off",
+            // "tracks" | "albums"
+            "shuffleMode": "tracks",
+            // what the daemon leaves out of its own picks
+            "skipRules": {
+                "minRating": 0,
+                "genres": [],
+                "shorterThan": 0
+            },
             // albumGapless: tracks of one album play gapless instead
             "crossfade": {
                 "enabled": false,
@@ -44,7 +52,8 @@ Singleton {
             "prefetchTracks": 1,
             "prefetchOnMetered": false,
             "lyrics": true,
-            "lyricsForDownloads": true
+            "lyricsForDownloads": true,
+            "lyricsAudioTiming": true
         })
     property var eqBands: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
     property var eqPresets: ({})
@@ -131,6 +140,8 @@ Singleton {
             return;
         case "speed":
         case "autoContinue":
+        case "shuffleMode":
+        case "skipRules":
         case "crossfade":
         case "previousThreshold":
         case "allowVolumeBoost":
@@ -143,6 +154,7 @@ Singleton {
         case "prefetchOnMetered":
         case "lyrics":
         case "lyricsForDownloads":
+        case "lyricsAudioTiming":
             params[name] = value;
             break;
         default:
@@ -200,7 +212,8 @@ Singleton {
         DaemonBridge.call("scrobble.finishAuth", null, result => {
             if (result.error) {
                 root.log.warn("scrobble.finishAuth", result.error);
-                DaemonBridge.notice(I18n.tr("Not approved on Last.fm yet", "snackbar when the Last.fm sign-in isn't approved"));
+                // Last.fm answers error 14 until the token is approved in the browser
+                DaemonBridge.notice(/\(14\)/.test(result.error) ? I18n.tr("Not approved on Last.fm yet", "snackbar when the Last.fm sign-in isn't approved") : I18n.tr("Couldn't finish the sign-in", "snackbar when finishing the Last.fm sign-in fails"));
                 return;
             }
             root._applyScrobble(result);
@@ -287,6 +300,19 @@ Singleton {
                 root.cache = st;
                 done?.();
             }, () => done?.()), () => done?.());
+    }
+
+    function keepTracks(tracks, keep, then) {
+        DaemonBridge.request("cache.keep", {
+            "tracks": Catalog.refsOf(tracks),
+            "keep": keep
+        }, keep ? I18n.tr("Couldn't keep it on this device", "toast when adding an offline rule fails") : I18n.tr("Couldn't remove it from this device", "toast when removing an offline rule fails"), then);
+    }
+
+    function askKeepState(tracks, then) {
+        DaemonBridge.request("cache.keepState", {
+            "tracks": Catalog.refsOf(tracks)
+        }, "", then);
     }
 
     // hidden while an Undo toast holds the removal back
@@ -449,6 +475,8 @@ Singleton {
             "speed": s.speed ?? 1,
             "equalizer": s.equalizer ?? settings.equalizer,
             "autoContinue": s.autoContinue ?? "off",
+            "shuffleMode": s.shuffleMode ?? "tracks",
+            "skipRules": s.skipRules ?? settings.skipRules,
             "crossfade": s.crossfade ?? settings.crossfade,
             "previousThreshold": s.previousThreshold ?? 5,
             "allowVolumeBoost": s.allowVolumeBoost === true,
@@ -460,7 +488,8 @@ Singleton {
             "prefetchTracks": s.prefetchTracks ?? 1,
             "prefetchOnMetered": s.prefetchOnMetered === true,
             "lyrics": s.lyrics !== false,
-            "lyricsForDownloads": s.lyricsForDownloads !== false
+            "lyricsForDownloads": s.lyricsForDownloads !== false,
+            "lyricsAudioTiming": s.lyricsAudioTiming !== false
         });
         artistInfoKnown = s.artistInfoOnline !== undefined;
         trayKnown = s.showTrayIcon !== undefined;

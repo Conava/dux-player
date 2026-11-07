@@ -11,19 +11,24 @@ Rectangle {
     readonly property var track: PlayerService.current
 
     width: parent?.width ?? 0
-    implicitHeight: row.implicitHeight + Theme.spacingL * 2
+    // the narrowest text column worth showing beside the art; below it the text goes under the art
+    readonly property real minTextWidth: 220
+    readonly property real besideWidth: row.width - art.width - Theme.spacingXL
+    readonly property bool stacked: besideWidth < minTextWidth
+
+    implicitHeight: row.height + Theme.spacingL * 2
     radius: Theme.cornerRadiusXL
     color: Theme.primaryContainer
     visible: track !== null
     Accessible.role: Accessible.Grouping
     Accessible.name: I18n.tr("Continue listening", "home shelf with the last queue")
 
-    Row {
+    Item {
         id: row
         x: Theme.spacingL
         y: Theme.spacingL
         width: parent.width - Theme.spacingL * 2
-        spacing: Theme.spacingXL
+        height: root.stacked ? art.height + Theme.spacingXL + info.height : Math.max(art.height, info.height)
 
         AlbumArt {
             id: art
@@ -34,8 +39,12 @@ Rectangle {
         }
 
         Column {
-            width: parent.width - art.width - parent.spacing
-            anchors.verticalCenter: art.verticalCenter
+            id: info
+            anchors.left: root.stacked ? parent.left : art.right
+            anchors.leftMargin: root.stacked ? 0 : Theme.spacingXL
+            width: root.stacked ? parent.width : root.besideWidth
+            // beside the art: centered on it, but a taller column grows downwards, never above the card
+            y: root.stacked ? art.height + Theme.spacingXL : Math.max(0, (art.height - height) / 2)
             spacing: Theme.spacingS
 
             StyledText {
@@ -75,7 +84,8 @@ Rectangle {
                 trackColor: Theme.withAlpha(Theme.onPrimaryContainer, Theme.stateLayerDrag)
             }
 
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.spacingS
                 topPadding: Theme.spacingXS
 

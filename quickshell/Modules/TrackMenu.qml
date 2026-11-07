@@ -26,14 +26,41 @@ Item {
     readonly property var favorable: PlayerService.partition("favorite", tracks)
     readonly property bool allFavorite: favorable.ok.length > 0 && favorable.ok.every(t => CatalogService.withMarks(t).favorite)
     readonly property string removeBlocker: playlistId !== "" ? PlayerService.whyNot("playlistEdit", PlayerService.playlist(playlistId)) : ""
+    readonly property bool stopsHere: queueIndexes.length === 1 && (PlayerService.sleepMode === "afterEntry" && PlayerService.queue[queueIndexes[0]]?.qid === PlayerService.sleepEntry || PlayerService.sleepMode === "endOfTrack" && queueIndexes[0] === PlayerService.queueIndex)
     readonly property var linkedArtists: (first?.artists ?? []).filter(a => a.id !== "")
+    // only server tracks have a copy to keep
+    readonly property var keepable: tracks.filter(t => CatalogService.isRemote(t.library))
+    // {kept, held} of keepable, asked when a menu opens
+    property var keepState: ({
+            "kept": 0,
+            "held": 0
+        })
+    readonly property bool allKept: keepable.length > 0 && keepState.kept + keepState.held >= keepable.length
 
     // removing queue entries is the list's job (one undo for many)
     signal queueRemoveRequested
 
+    // only the newest reply counts
+    property int keepAsked: 0
+
+    function askKeepState() {
+        if (keepable.length === 0)
+            return;
+        const asked = ++keepAsked;
+        SettingsService.askKeepState(keepable, state => {
+            if (asked === keepAsked)
+                keepState = state;
+        });
+    }
+
     // without x, y: the ⋮ menu under anchor; with them: the right-click menu at that point
     function open(anchor, x, y) {
         zone = x === undefined ? "menu" : "context";
+        keepState = {
+            "kept": 0,
+            "held": 0
+        };
+        askKeepState();
         if (x === undefined)
             menu.open(anchor);
         else
@@ -65,6 +92,16 @@ Item {
         case "details":
             entry.inert = tracks.length !== 1;
             return entry;
+        case "keepTrack":
+            if (keepable.length === 0)
+                return null;
+            if (!allKept)
+                return entry;
+            return Object.assign(entry, {
+                "text": I18n.tr("Remove from this device", "track menu action that lets go of a kept copy"),
+                "enabled": keepState.kept > 0,
+                "description": keepState.kept > 0 ? "" : I18n.tr("Kept by an offline rule", "why a track can't be removed from this device")
+            });
         case "removeFromPlaylist":
             if (playlistId === "")
                 return null;
@@ -76,6 +113,18 @@ Item {
             if (type !== "queue")
                 return null;
             entry.inert = queueIndexes.length !== 1 || queueIndexes[0] === PlayerService.queueIndex;
+            return entry;
+        case "stopAfter":
+            if (type !== "queue")
+                return null;
+            entry.inert = queueIndexes.length !== 1;
+            if (!stopsHere && queueIndexes.length === 1 && queueIndexes[0] < PlayerService.queueIndex && PlayerService.repeat !== "all")
+                return Object.assign(entry, {
+                    "enabled": false,
+                    "description": I18n.tr("Already played", "why stop after this track is unavailable for a track before the current one")
+                });
+            if (stopsHere)
+                entry.text = I18n.tr("Don't stop", "queue row action that clears stop after this track");
             return entry;
         case "removeFromQueue":
             return queueIndexes.length > 0 ? entry : null;
@@ -138,6 +187,9 @@ Item {
         case "details":
             Router.showDetails("track", first);
             break;
+        case "keepTrack":
+            SettingsService.keepTracks(keepable, !allKept, () => root.askKeepState());
+            break;
         case "removeFromPlaylist":
             Router.removeFromPlaylist(playlistId, playlistIndexes);
             break;
@@ -148,6 +200,12 @@ Item {
                 PlayerService.queueMove(from, from < current ? current : current + 1);
                 break;
             }
+        case "stopAfter":
+            if (stopsHere)
+                PlayerService.cancelSleepTimer();
+            else
+                PlayerService.setSleepAfter(queueIndexes[0]);
+            break;
         case "removeFromQueue":
             queueRemoveRequested();
             break;

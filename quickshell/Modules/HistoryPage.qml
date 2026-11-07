@@ -42,6 +42,7 @@ Item {
                 "type": "history"
             })
         lines: root.options.lines
+        lineOptions: root.options.lineOptions ?? ({})
         sectionProperty: "day"
         onEndReached: PlayerService.loadHistory(true)
         header: Component {
