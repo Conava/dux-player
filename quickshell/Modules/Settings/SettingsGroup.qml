@@ -5,10 +5,11 @@ Column {
     id: root
 
     readonly property bool isSettingsGroup: true
-    // found once per change here, not by every row: rows scanning their siblings made a group of n rows cost
-    // n³ while a Repeater filled it (a minute for 500 cached songs)
-    readonly property Item firstRow: edgeRow(true)
-    readonly property Item lastRow: edgeRow(false)
+    // found once per layout here, not by every row: rows scanning their siblings made a group of n rows cost
+    // n³ while a Repeater filled it (a minute for 500 cached songs). Not a binding on visibleChildren: a Repeater
+    // moves its new row into place after adding it at the end, and that move doesn't notify.
+    property Item firstRow: null
+    property Item lastRow: null
 
     function edgeRow(first) {
         const kids = visibleChildren;
@@ -25,4 +26,8 @@ Column {
 
     width: parent?.width ?? 0
     spacing: Theme.groupedListGap
+    onPositioningComplete: {
+        firstRow = edgeRow(true);
+        lastRow = edgeRow(false);
+    }
 }

@@ -89,13 +89,11 @@ SettingsPage {
                 subtitle: I18n.tr("Set by Dux Shell. Choose Custom to override.", "appearance group following the shell")
                 iconName: "link"
             },
-            Column {
+            SettingsGroup {
                 id: body
                 // the settings search reads it
                 property string unavailableReason: I18n.tr("Set by Dux Shell. Choose Custom to override.", "appearance group following the shell")
                 visible: !group.shellOwned
-                width: parent?.width ?? 0
-                spacing: Theme.groupedListGap
             }
         ]
     }

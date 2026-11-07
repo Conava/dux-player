@@ -44,8 +44,8 @@ T.Control {
     readonly property bool hasBody: bodySlot.visibleChildren.length > 0
     readonly property bool hasText: title !== "" || subtitle !== ""
     readonly property SettingsGroup parentGroup: parent as SettingsGroup
-    readonly property bool isFirstInGroup: (parentGroup ? parentGroup.firstRow : edgeRow(true)) === root
-    readonly property bool isLastInGroup: (parentGroup ? parentGroup.lastRow : edgeRow(false)) === root
+    readonly property bool isFirstInGroup: parentGroup?.firstRow === root
+    readonly property bool isLastInGroup: parentGroup?.lastRow === root
     property real topRadius: isFirstInGroup ? Theme.groupedListOuterRadius : Theme.groupedListInnerRadius
     property real bottomRadius: isLastInGroup ? Theme.groupedListOuterRadius : Theme.groupedListInnerRadius
     readonly property real minHeight: subtitle !== "" ? Theme.listItemTwoLineHeight : Theme.listItemHeight
@@ -72,22 +72,6 @@ T.Control {
             event.accepted = true;
             break;
         }
-    }
-
-    function edgeRow(first) {
-        const siblings = parent?.visibleChildren;
-        if (!siblings)
-            return root;
-        let last = null;
-        for (let i = 0; i < siblings.length; i++) {
-            const sibling = siblings[i];
-            if (sibling.isSettingsRow !== true)
-                continue;
-            if (first)
-                return sibling;
-            last = sibling;
-        }
-        return last;
     }
 
     width: parent?.width ?? 0
