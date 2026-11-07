@@ -227,6 +227,11 @@ func runDaemon() error {
 	cancel()
 	srv.Close()
 	<-playerDone
+	for _, f := range features {
+		if f.stop != nil {
+			f.stop()
+		}
+	}
 	return nil
 }
 

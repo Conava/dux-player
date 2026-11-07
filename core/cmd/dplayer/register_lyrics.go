@@ -60,5 +60,6 @@ func init() {
 			d.Bus.On(d.Ctx, func(string, any) { svc.SettingsChanged() }, ipc.TopicSettings)
 			return nil
 		},
+		stop: func() { svc.Close() },
 	})
 }

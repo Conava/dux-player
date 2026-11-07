@@ -34,7 +34,7 @@ Features are specified by the maintainer and mostly implemented with AI agents. 
 
 ### Definition of done
 
-1. `make check` (lint, test and build) passes.
+1. `make check` (lint, test, test-race and build) passes.
 2. **The developer has tried it by hand.** Hand over one command, say what to look at and what working looks like. A green test suite is not the end.
 3. `make run` exercises the change end to end with no extra env vars, flags or wrappers. If it doesn't, fix your code or the script if really necessary.
 4. No dead code, no leftover old path, comments pass the comment rules.
@@ -95,6 +95,7 @@ The whole Dux suite follows Google's Material 3 Expressive (M3E). The app must l
 ## Go
 
 - `CGO_ENABLED=0`, always. No cgo and no GPL-3 dependencies. Something that needs C is an external binary.
+- The one exception is `make test-race`, which needs cgo for the race detector; nothing built ships with cgo.
 - Guard clauses and early returns; switch over if/else chains.
 - Every exec and network call has a timeout and bounded output, and none runs while holding a lock. Processes run with argv, never `sh -c` with data in it. Clamp server-supplied delays and sizes.
 - Every failure path returns a readable error, including quiet ones (a clean EOF, a peer that hangs up).
@@ -160,7 +161,7 @@ Comment only what the code can't say: a non-obvious why, a trap, a workaround. A
 
 `make` is the interface for everything, locally and in CI:
 
-- `make check`: the gate before calling work done, and what CI runs. It is `make lint` (gofmt, `go vet`, `go mod tidy`, golangci-lint, qmllint with warnings, qmlformat, a stale settings search index; it only reports and never changes files), `make test` (sandboxed Go tests and the QML logic tests) and `make build` (the release binary with the UI embedded).
+- `make check`: the gate before calling work done, and what CI runs. It is `make lint` (gofmt, `go vet`, `go mod tidy`, golangci-lint, qmllint with warnings, qmlformat, a stale settings search index; it only reports and never changes files), `make test` (sandboxed Go tests in a new order each run, and the QML logic tests), `make test-race` (the Go tests under the race detector; needs gcc) and `make build` (the release binary with the UI embedded).
 - `make run`: a fast dev build, then the window from the in-repo QML with hot reload.
 - `make fmt`: format the Go code (gofmt) and the QML (qmlformat, options in `.qmlformat.ini`).
 - `make settings-index`: regenerate the settings search index after changing a settings page.

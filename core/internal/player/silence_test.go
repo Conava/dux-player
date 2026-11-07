@@ -92,7 +92,7 @@ func TestSkipSilenceInMPV(t *testing.T) {
 				Resolver: res, Options: opts, Publish: rec.publish})
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			go p.Run(ctx)
+			run(t, ctx, p)
 			q := []source.Track{
 				{Library: "l", ID: "a", Title: "a", Album: "x", Duration: 8},
 				{Library: "l", ID: "b", Title: "b", Album: "y", Duration: 4},
@@ -101,7 +101,10 @@ func TestSkipSilenceInMPV(t *testing.T) {
 			require.NoError(t, p.Play(ctx, q, 0, Origin{Kind: "adhoc"}))
 
 			var fadeAt float64
-			var changed time.Duration
+			// The music's playing time, from its first position: mpv's start
+			// takes longer on a busy machine and isn't part of it.
+			var started time.Time
+			var played time.Duration
 			maxPos := map[int]float64{}
 			minPos := map[int]float64{0: 99, 1: 99}
 			for time.Since(begin) < 25*time.Second {
@@ -116,8 +119,11 @@ func TestSkipSilenceInMPV(t *testing.T) {
 				if st.State == StateStopped {
 					break
 				}
-				if st.Index == 1 && changed == 0 {
-					changed = time.Since(begin)
+				if st.Index == 0 && st.Position > 0 && started.IsZero() {
+					started = time.Now().Add(-time.Duration((st.Position - 1) * float64(time.Second)))
+				}
+				if st.Index == 1 && played == 0 {
+					played = time.Since(started)
 				}
 				if st.Position > 0 {
 					maxPos[st.Index] = max(maxPos[st.Index], st.Position)
@@ -129,7 +135,7 @@ func TestSkipSilenceInMPV(t *testing.T) {
 			assert.GreaterOrEqual(t, minPos[1], 0.99, "the next track starts after its leading silence")
 			assert.LessOrEqual(t, maxPos[1], 2.6, "the last track ends at its trailing silence")
 			if crossfade == 0 {
-				assert.InDelta(t, 5.5, changed.Seconds(), 0.4, "the change of track comes at the first track's trailing silence")
+				assert.InDelta(t, 5.5, played.Seconds(), 0.4, "the change of track comes at the first track's trailing silence")
 			} else {
 				assert.InDelta(t, 5.5, fadeAt, 0.01, "the fade ends where the music ends")
 			}
