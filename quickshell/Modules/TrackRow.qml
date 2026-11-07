@@ -249,8 +249,7 @@ DListItem {
             StyledText {
                 required property int index
                 readonly property var modelData: root.columnSpecs[index] ?? ({})
-                Layout.fillWidth: modelData.fill !== undefined
-                Layout.preferredWidth: modelData.fill ?? modelData.width
+                Layout.preferredWidth: modelData.width ?? 0
                 text: modelData.line === "artist" && (root.track?.artists?.length ?? 0) > 0 ? "" : UiConfig.infoText(root.track ?? {}, [modelData.line], root.lineOptions)
                 font.pixelSize: Theme.fontSizeMedium
                 color: root.supportingContentColor

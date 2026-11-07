@@ -79,7 +79,6 @@ Item {
     // fill columns carry their weight and the pixels it comes to, as a width
     readonly property var columnList: baseColumns.map(c => Object.assign({}, c, {
             "weight": c.fill,
-            "fill": undefined,
             "width": c.fill !== undefined ? c.fill * pixelsPerWeight : c.width
         }))
     readonly property real timeWidth: columns ? UiConfig.timeWidth(columnOptions) : PlayerMetrics.columnTimeWidth
@@ -336,9 +335,9 @@ Item {
                     SortCell {
                         required property int index
                         readonly property var modelData: root.columnList[index] ?? ({})
-                        Layout.preferredWidth: modelData.width
-                        label: modelData.label
-                        key: modelData.sort
+                        Layout.preferredWidth: modelData.width ?? 0
+                        label: modelData.label ?? ""
+                        key: modelData.sort ?? ""
 
                         // the last column borders the length slot, which has no handle
                         ColumnHandle {
