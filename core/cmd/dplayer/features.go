@@ -26,10 +26,12 @@ type daemon struct {
 // feature is one register_<name>.go file's contribution. register also runs
 // in the CLI with an empty daemon (`dplayer ipc list`, completion), so it may
 // store d but never read it. start runs once the core services are up;
-// requests wait until every start has returned.
+// requests wait until every start has returned. stop runs at shutdown, before
+// the library closes, and returns within a few seconds.
 type feature struct {
 	register func(r *ipc.Registry, d *daemon)
 	start    func(d *daemon) error
+	stop     func()
 }
 
 var features []feature
