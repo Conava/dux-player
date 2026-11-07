@@ -14,7 +14,7 @@ StyledButton {
     property var lineOptions: ({})
     readonly property string info: UiConfig.infoText(item, lines, lineOptions)
     readonly property bool menuOpened: menu.opened || trackMenu.opened
-    readonly property bool active: hovered || activeFocus || menuOpened
+    readonly property bool active: hovered || visualFocus || playButton.visualFocus || moreButton.visualFocus || menuOpened
 
     function openMenu(anchor, x, y) {
         if (kind === "track")
@@ -81,6 +81,7 @@ StyledButton {
         radius: Theme.cornerRadiusL
 
         DIconButton {
+            id: playButton
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.margins: Theme.spacingS
@@ -88,7 +89,7 @@ StyledButton {
             variant: "filled"
             iconName: "play_arrow"
             iconFilled: true
-            visible: (root.active || activeFocus) && root.kind !== "artist" && root.kind !== "genre"
+            visible: root.active && root.kind !== "artist" && root.kind !== "genre"
             Accessible.name: I18n.tr("Play %1", "play button, %1 is the album or playlist").arg(root.item?.title ?? root.item?.name ?? "")
             onClicked: {
                 if (root.kind === "album")
@@ -105,7 +106,7 @@ StyledButton {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: Theme.spacingS
-            visible: root.active || activeFocus
+            visible: root.active
             variant: "tonal"
             iconName: "more_vert"
             tooltipText: I18n.tr("More", "track row menu button")
