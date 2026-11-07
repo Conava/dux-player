@@ -36,6 +36,9 @@ Singleton {
     readonly property real barInfoWidth: 280
     // the bar's info block and seekbar shrink to these before buttons move into the overflow menu
     readonly property real barInfoMinWidth: 160
+    // the most of the bar, beside the right zone, the left zone may take: the rest is the seekbar's
+    readonly property real barLeftShare: 0.4
+    readonly property real barLyricMinWidth: 80
     readonly property var barInfoWidths: ({
             "s": 200,
             "m": barInfoWidth,
@@ -100,7 +103,7 @@ Singleton {
     readonly property real expandedArtMaxSmall: 200
     readonly property real expandedArtMax: 480
     readonly property real columnNumberWidth: Theme.iconButtonSize
-    readonly property real columnTimeWidth: Theme.buttonMinWidth
+    readonly property real columnTimeWidth: Theme.buttonMinWidth + Theme.spacingXL
     readonly property real columnLibraryWidth: 140
     // a track row narrower than this drops favorite, rating, library, cloud and duration from its end: they would leave the title under 170
     readonly property real fullRowWidth: 480

@@ -5,6 +5,7 @@ import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
 import qs.Widgets
+import "../Services/Catalog.js" as Catalog
 
 // One home shelf: a source of items shown as a carousel row, a grid or a list. The title is the link to the
 // full page; "Continue listening" is a single card. Items show the info lines of their page kind.
@@ -21,6 +22,8 @@ Column {
     readonly property var savedView: source.type === "view" ? UiConfig.effective.savedViews.find(v => v.id === source.id) ?? null : null
     // fixed per shelf so the row doesn't reshuffle on every change
     property var randomOrder: []
+    // the order of a custom page set to Random, fixed per shelf
+    readonly property int seed: Date.now() % 1000000007
     readonly property string kind: {
         switch (source.type) {
         case "favoriteTracks":
@@ -72,7 +75,14 @@ Column {
                 }
             });
         case "view":
-            return savedView ? PlayerService.query(savedView.type, UiConfig.savedViewOptions(savedView)) : [];
+            {
+                if (!savedView)
+                    return [];
+                const options = UiConfig.savedViewOptions(savedView);
+                return Catalog.shape(PlayerService.query(savedView.type, options.sort === "random" ? Object.assign({}, options, {
+                    "sort": ""
+                }) : options), options, seed, "");
+            }
         }
         return [];
     }
@@ -131,7 +141,10 @@ Column {
     readonly property bool shuffleable: source.type !== "continue" && (kind === "track" || kind === "album")
 
     function play(index) {
-        PlayerService.playTracks(PlayerService.refsOf(items), index, playContext);
+        if (kind === "track" && savedView && UiConfig.savedViewOptions(savedView).click === "one")
+            PlayerService.playTracks(PlayerService.refsOf([items[index]]), 0, playContext);
+        else
+            PlayerService.playTracks(PlayerService.refsOf(items), index, playContext);
     }
 
     // An album shelf shuffles the tracks of the albums it shows (up to shelfLimit), one

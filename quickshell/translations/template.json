@@ -65,7 +65,7 @@
   {
     "term": "%1 (copy)",
     "translation": "",
-    "context": "name of a duplicated playlist",
+    "context": "name of a duplicated custom page | name of a duplicated playlist",
     "reference": "",
     "comment": ""
   },
@@ -483,7 +483,7 @@
     "comment": ""
   },
   {
-    "term": "A play is scrobbled after half the track or four minutes, whichever comes first. Server libraries scrobble to their server, local libraries to the accounts below.",
+    "term": "A play is scrobbled after half the track or four minutes, whichever comes first. Plays go to the accounts below, and server libraries report them to their server too.",
     "translation": "",
     "context": "scrobbling settings intro",
     "reference": "",
@@ -507,6 +507,13 @@
     "term": "About",
     "translation": "",
     "context": "settings sidebar tab label",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Above the seekbar",
+    "translation": "",
+    "context": "now playing zone",
     "reference": "",
     "comment": ""
   },
@@ -870,7 +877,7 @@
   {
     "term": "Also removes its navigation entry and home shelf. No music is deleted.",
     "translation": "",
-    "context": "delete saved view confirmation",
+    "context": "delete custom page confirmation",
     "reference": "",
     "comment": ""
   },
@@ -1260,6 +1267,13 @@
     "comment": ""
   },
   {
+    "term": "Bookmark",
+    "translation": "",
+    "context": "custom page icon choice",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Bottom bar",
     "translation": "",
     "context": "now playing placement option",
@@ -1270,6 +1284,13 @@
     "term": "Bottom row",
     "translation": "",
     "context": "now playing zone",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Built-in key in use",
+    "translation": "",
+    "context": "artist info API key state",
     "reference": "",
     "comment": ""
   },
@@ -1368,6 +1389,13 @@
     "term": "Center",
     "translation": "",
     "context": "lyrics alignment",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Center title and artist",
+    "translation": "",
+    "context": "now playing editor setting",
     "reference": "",
     "comment": ""
   },
@@ -1505,6 +1533,13 @@
     "comment": ""
   },
   {
+    "term": "Click plays",
+    "translation": "",
+    "context": "custom page option: what a click on a track plays",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Close",
     "translation": "",
     "context": "dialog dismiss button",
@@ -1599,6 +1634,13 @@
     "term": "Composer",
     "translation": "",
     "context": "view info line and sort key",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Connect",
+    "translation": "",
+    "context": "Last.fm sign-in action",
     "reference": "",
     "comment": ""
   },
@@ -2240,6 +2282,27 @@
     "comment": ""
   },
   {
+    "term": "Custom page",
+    "translation": "",
+    "context": "a custom page: page label, playback context",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Custom pages",
+    "translation": "",
+    "context": "add shelf section",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Custom pages are kept.",
+    "translation": "",
+    "context": "general setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Custom text",
     "translation": "",
     "context": "view info line built from a template",
@@ -2345,16 +2408,16 @@
     "comment": ""
   },
   {
-    "term": "Delete this view?",
+    "term": "Delete page",
     "translation": "",
-    "context": "delete saved view confirmation title",
+    "context": "custom page action",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "Delete view",
+    "term": "Delete this page?",
     "translation": "",
-    "context": "saved view action",
+    "context": "delete custom page confirmation title",
     "reference": "",
     "comment": ""
   },
@@ -2956,7 +3019,7 @@
   {
     "term": "Filters, sort and display options are reset.",
     "translation": "",
-    "context": "reset saved view confirmation",
+    "context": "reset custom page confirmation",
     "reference": "",
     "comment": ""
   },
@@ -2971,6 +3034,20 @@
     "term": "Finish sign-in",
     "translation": "",
     "context": "Last.fm sign-in action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "First %1",
+    "translation": "",
+    "context": "limit choice on a custom page: keeps the first N items",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "First letter",
+    "translation": "",
+    "context": "group by choice: the first letter of the name",
     "reference": "",
     "comment": ""
   },
@@ -3248,6 +3325,13 @@
     "comment": ""
   },
   {
+    "term": "Group by",
+    "translation": "",
+    "context": "custom page option: section headers in the list",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Group by disc",
     "translation": "",
     "context": "page edit mode: a header per disc on an album page",
@@ -3283,6 +3367,20 @@
     "comment": ""
   },
   {
+    "term": "Headphones",
+    "translation": "",
+    "context": "custom page icon choice",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Heart",
+    "translation": "",
+    "context": "custom page icon choice",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Height of the rows in track lists and the queue.",
     "translation": "",
     "context": "appearance density description",
@@ -3307,6 +3405,13 @@
     "term": "Hide",
     "translation": "",
     "context": "eye button on an editor row",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Hide while lyrics are open",
+    "translation": "",
+    "context": "element option: the lyric line goes while the lyrics pane shows",
     "reference": "",
     "comment": ""
   },
@@ -3356,6 +3461,13 @@
     "term": "Home shelves are reset.",
     "translation": "",
     "context": "reset home confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Icon",
+    "translation": "",
+    "context": "custom page option: the icon in the navigation",
     "reference": "",
     "comment": ""
   },
@@ -3822,6 +3934,20 @@
     "comment": ""
   },
   {
+    "term": "Lightning",
+    "translation": "",
+    "context": "custom page icon choice",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Limit",
+    "translation": "",
+    "context": "custom page option: how many items the page keeps",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Limit %1",
     "translation": "",
     "context": "dynamic offline rule, %1 is its limit",
@@ -4046,9 +4172,23 @@
     "comment": ""
   },
   {
+    "term": "Microphone",
+    "translation": "",
+    "context": "custom page icon choice",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Monochrome",
     "translation": "",
     "context": "color palette name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Moon",
+    "translation": "",
+    "context": "custom page icon choice",
     "reference": "",
     "comment": ""
   },
@@ -4130,6 +4270,13 @@
     "comment": ""
   },
   {
+    "term": "Music note",
+    "translation": "",
+    "context": "custom page icon choice",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "MusicBrainz album",
     "translation": "",
     "context": "details field",
@@ -4203,6 +4350,13 @@
     "term": "Never",
     "translation": "",
     "context": "filter rule condition: a track that was never played",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "New custom page",
+    "translation": "",
+    "context": "action and dialog that create a custom page",
     "reference": "",
     "comment": ""
   },
@@ -4319,6 +4473,13 @@
     "comment": ""
   },
   {
+    "term": "No limit",
+    "translation": "",
+    "context": "limit choice on a custom page: keeps every item",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "No lyrics available",
     "translation": "",
     "context": "lyrics lookup found nothing",
@@ -4398,7 +4559,7 @@
   {
     "term": "None",
     "translation": "",
-    "context": "removal mode option",
+    "context": "group by choice: no grouping | removal mode option",
     "reference": "",
     "comment": ""
   },
@@ -4592,6 +4753,13 @@
     "comment": ""
   },
   {
+    "term": "Number the rows",
+    "translation": "",
+    "context": "custom page option: rank numbers in place of covers",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Off",
     "translation": "",
     "context": "option that turns something off",
@@ -4697,6 +4865,13 @@
     "comment": ""
   },
   {
+    "term": "Only the track",
+    "translation": "",
+    "context": "custom page option: a click plays just that track",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Only tracks from %1 can be added",
     "translation": "",
     "context": "why a server playlist cannot take the picked tracks, %1 is the server library",
@@ -4718,9 +4893,23 @@
     "comment": ""
   },
   {
+    "term": "Options",
+    "translation": "",
+    "context": "button opening an element's options under its row",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Orange",
     "translation": "",
     "context": "color palette name",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Other",
+    "translation": "",
+    "context": "custom page group of the items that have no value to group by",
     "reference": "",
     "comment": ""
   },
@@ -5259,7 +5448,7 @@
   {
     "term": "Random",
     "translation": "",
-    "context": "auto-continue option",
+    "context": "auto-continue option | sort key: a new order each time the page opens",
     "reference": "",
     "comment": ""
   },
@@ -5330,6 +5519,13 @@
     "term": "Recently played limit",
     "translation": "",
     "context": "offline rule limit dialog title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Record",
+    "translation": "",
+    "context": "custom page icon choice",
     "reference": "",
     "comment": ""
   },
@@ -5530,16 +5726,16 @@
     "comment": ""
   },
   {
-    "term": "Rename playlist",
+    "term": "Rename page",
     "translation": "",
-    "context": "playlist menu action",
+    "context": "custom page action",
     "reference": "",
     "comment": ""
   },
   {
-    "term": "Rename view",
+    "term": "Rename playlist",
     "translation": "",
-    "context": "saved view action",
+    "context": "playlist menu action",
     "reference": "",
     "comment": ""
   },
@@ -5789,7 +5985,7 @@
     "comment": ""
   },
   {
-    "term": "Resets now playing, pages, rows and menus, home and navigation. Saved views are kept.",
+    "term": "Resets now playing, pages, rows and menus, home and navigation. Custom pages are kept.",
     "translation": "",
     "context": "reset all customization confirmation",
     "reference": "",
@@ -5806,6 +6002,13 @@
     "term": "Resets the bar, side panel and both full views.",
     "translation": "",
     "context": "reset now playing confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Resize column",
+    "translation": "",
+    "context": "track list column border handle",
     "reference": "",
     "comment": ""
   },
@@ -5901,51 +6104,9 @@
     "comment": ""
   },
   {
-    "term": "Save as view…",
-    "translation": "",
-    "context": "view options action",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Save to",
     "translation": "",
     "context": "new playlist dialog location label",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Save view",
-    "translation": "",
-    "context": "save view dialog title",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Saved view",
-    "translation": "",
-    "context": "a saved view: page label, playback context",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Saved view · %1",
-    "translation": "",
-    "context": "saved view page subtitle, %1 is the view type",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Saved views",
-    "translation": "",
-    "context": "add shelf section",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Saved views are kept.",
-    "translation": "",
-    "context": "general setting description",
     "reference": "",
     "comment": ""
   },
@@ -6002,6 +6163,13 @@
     "term": "Scrobbling (requires sign-in)",
     "translation": "",
     "context": "about page credit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Scrobbling is off for this library.",
+    "translation": "",
+    "context": "why a scrobbling setting is unavailable",
     "reference": "",
     "comment": ""
   },
@@ -6209,6 +6377,13 @@
     "comment": ""
   },
   {
+    "term": "Server libraries on your accounts",
+    "translation": "",
+    "context": "scrobbling settings section: whether a server's plays also go to the accounts",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Server passwords and service keys",
     "translation": "",
     "context": "about page: what the keyring is used for",
@@ -6345,6 +6520,13 @@
     "term": "Shuffle all",
     "translation": "",
     "context": "tracks page action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Shuffle button",
+    "translation": "",
+    "context": "custom page option: the Shuffle all button above the list",
     "reference": "",
     "comment": ""
   },
@@ -6639,6 +6821,13 @@
     "term": "Square",
     "translation": "",
     "context": "artwork shape option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Star",
+    "translation": "",
+    "context": "custom page icon choice",
     "reference": "",
     "comment": ""
   },
@@ -6986,6 +7175,13 @@
     "comment": ""
   },
   {
+    "term": "The list",
+    "translation": "",
+    "context": "custom page option: a click plays the whole list from the track",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "The page opens on the first one shown.",
     "translation": "",
     "context": "page edit mode: the artist page's sections",
@@ -7273,6 +7469,13 @@
     "comment": ""
   },
   {
+    "term": "Trending",
+    "translation": "",
+    "context": "custom page icon choice",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Try again",
     "translation": "",
     "context": "library action that checks an unavailable library again",
@@ -7294,6 +7497,13 @@
     "comment": ""
   },
   {
+    "term": "Turn off when the server sends its plays to the same accounts.",
+    "translation": "",
+    "context": "scrobbling server library row",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Turn on word by word in the lyrics settings",
     "translation": "",
     "context": "why the smooth highlight option is unavailable",
@@ -7311,6 +7521,13 @@
     "term": "Turning a library off hides its music without removing it.",
     "translation": "",
     "context": "libraries settings page intro",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Type",
+    "translation": "",
+    "context": "custom page dialog: what the page lists",
     "reference": "",
     "comment": ""
   },
@@ -7381,6 +7598,13 @@
     "term": "Use the system default output at startup",
     "translation": "",
     "context": "playback device setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Use your own API key",
+    "translation": "",
+    "context": "Last.fm sign-in action",
     "reference": "",
     "comment": ""
   },

@@ -16,6 +16,8 @@ Item {
     readonly property var cover: zones.cover.find(i => i.type === "cover" && !i.hidden) ?? null
     readonly property var views: UiConfig.sidePanes
     readonly property bool m3e: UiConfig.styleOf("side") === "m3e"
+    // what the lines above and below the seekbar may take; the panes keep the art's least height
+    readonly property real lineSpare: height - (switcher.visible ? switcher.height + Theme.spacingL : 0) - Theme.spacingM - content.anchors.bottomMargin - controls.anchors.margins - PlayerMetrics.mediaArtMinSize - [titleZone, seekZone, controlsZone, buttonsZone].reduce((sum, block) => sum + (block.populated && block.visible ? block.height + controls.spacing : 0), -controls.spacing)
     readonly property var labels: ({
             "cover": {
                 "text": I18n.tr("Playing", "side panel view: cover art"),
@@ -92,13 +94,11 @@ Item {
         anchors.top: switcher.visible ? switcher.bottom : parent.top
         anchors.bottom: controls.top
         anchors.topMargin: Theme.spacingM
-        anchors.bottomMargin: root.m3e ? Theme.spacingL + PlayerMetrics.mediaCardMargin : Theme.spacingL
+        anchors.bottomMargin: Theme.spacingL
 
-        // sits on the title, so the free height gathers under the tabs instead of between art and title
         PlayerArt {
             visible: Router.sideTab === "cover" && root.track !== null && root.cover !== null
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.bottom: parent.bottom
+            anchors.centerIn: parent
             width: Math.max(0, Math.min(parent.width - Theme.spacingL * 2, parent.height))
             height: width
             item: root.track
@@ -127,29 +127,13 @@ Item {
         }
     }
 
-    // Material: one card behind the title and the controls
-    Rectangle {
-        anchors.fill: controls
-        anchors.margins: -PlayerMetrics.mediaCardMargin
-        visible: root.m3e && !UiConfig.attachedPanes
-        radius: Theme.cornerRadiusXL
-        color: ArtColors.chipColor
-
-        Behavior on color {
-            enabled: Theme.animationsEnabled
-            ColorAnimation {
-                duration: Theme.expressiveDurations.expressiveEffects
-            }
-        }
-    }
-
-    // the title, the seek block, the transport, then the top and bottom zones (Bento: one button group, no card)
+    // the title, the seek line, the transport, then the top and bottom zones
     Column {
         id: controls
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        anchors.margins: root.m3e ? Theme.spacingL + PlayerMetrics.mediaCardMargin : Theme.spacingL
+        anchors.margins: Theme.spacingL
         spacing: Theme.spacingL
 
         NowPlayingZone {
@@ -158,23 +142,46 @@ Item {
             instances: root.zones.title
             context: "side"
             textLook: root.m3e ? "m3e" : "side"
-            centered: !root.m3e
+            centered: UiConfig.titleCentered("side")
             column: true
             opensView: true
         }
 
-        SeekBlock {
-            width: parent.width
-            visible: populated && !root.m3e
-            instances: root.zones.seek
+        NowPlayingLine {
+            id: lineAbove
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: lineWidth
+            available: parent.width
+            spare: root.lineSpare
+            gap: controls.spacing
+            other: lineBelow
+            instances: root.zones.seekAbove
             context: "side"
+            centered: true
         }
 
         NowPlayingZone {
+            id: seekZone
             width: parent.width
-            visible: populated && root.m3e
+            visible: populated
             instances: root.zones.seek
             context: "side"
+            room: parent.width
+            keepMoves: true
+        }
+
+        NowPlayingLine {
+            id: lineBelow
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: lineWidth
+            available: parent.width
+            spare: root.lineSpare
+            gap: controls.spacing
+            other: lineAbove
+            lower: true
+            instances: root.zones.seekBelow
+            context: "side"
+            centered: true
         }
 
         NowPlayingZone {
@@ -182,18 +189,19 @@ Item {
             width: parent.width
             instances: root.zones.controls
             context: "side"
+            size: "m"
             look: root.m3e ? "m3e" : "transport"
-            fill: !root.m3e
+            fill: true
             room: width
         }
 
         NowPlayingZone {
-            readonly property bool spreads: instances.some(i => !i.hidden && i.type === "spacer" && i.options?.size === "fill")
+            id: buttonsZone
+            readonly property bool spread: instances.some(i => !i.hidden && i.type === "spacer" && i.options?.size === "fill")
             anchors.horizontalCenter: parent.horizontalCenter
-            width: spreads ? parent.width : implicitWidth
+            width: spread ? parent.width : fitWidth
             instances: root.zones.top.concat(root.zones.bottom)
             context: "side"
-            look: root.m3e ? "m3e" : "group"
             room: parent.width
         }
     }

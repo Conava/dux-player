@@ -34,8 +34,12 @@ Item {
     }
     readonly property bool showArt: cover !== null || inPlace !== null
     readonly property real gap: Theme.spacingXL
+    // the deck's own blocks, which the lines above and below the seekbar don't count in: they go by what these leave
+    readonly property var ownBlocks: [header, titleZone, topZone, seekBlock, bottomZone]
+    // at the tight gaps, with the art at its least when it can't move beside the deck
+    readonly property real lineSpare: height - ownBlocks.reduce((sum, block) => sum + (block.populated ? block.height + Theme.spacingS : 0), 0) - Theme.buttonHeightM - Theme.spacingS - gap - (showArt && width < Theme.smallBreakpoint ? PlayerMetrics.mediaArtMinSize : 0)
     // the deck's blocks without the transport and the gaps between them
-    readonly property real blocksHeight: [header, titleZone, topZone, seekBlock, bottomZone].reduce((sum, block) => sum + (block.populated ? block.height : 0), 0)
+    readonly property real blocksHeight: ownBlocks.concat([lineAbove, lineBelow]).reduce((sum, block) => sum + (block.populated ? block.height : 0), 0)
     // a short window tightens the deck's gaps before anything is cut off
     readonly property bool roomy: height >= blocksHeight + Theme.buttonHeightM + Theme.spacingXL * 2 + Theme.spacingL * 3
     readonly property real outerSpacing: roomy ? Theme.spacingXL : Theme.spacingS
@@ -55,7 +59,7 @@ Item {
     }
     readonly property real paneHeight: compact ? artworkSize : Math.round(Math.min(height, Math.max(artworkSize, deck.height)))
     // the transport takes what the deck's other blocks leave of the art's height, so both columns end about level
-    readonly property real deckFixedHeight: blocksHeight + [header, titleZone].filter(b => b.populated).length * outerSpacing + [topZone, seekBlock, bottomZone].filter(b => b.populated).length * innerSpacing
+    readonly property real deckFixedHeight: blocksHeight + [header, titleZone].filter(b => b.populated).length * outerSpacing + [topZone, lineAbove, seekBlock, lineBelow, bottomZone].filter(b => b.populated).length * innerSpacing
     readonly property real transportSize: compact ? Theme.buttonHeightM : Math.round(Math.max(Theme.buttonHeightM, Math.min(PlayerMetrics.mediaTransportMaxHeight, artworkSize - deckFixedHeight)))
     readonly property real stackHeight: compact ? artworkSize + gap + deck.height : Math.max(artworkSize, deck.height)
     readonly property real stackY: Math.round((height - stackHeight) / 2)
@@ -175,7 +179,7 @@ Item {
                 instances: root.zones.title
                 context: "view"
                 textLook: "bento"
-                centered: true
+                centered: UiConfig.titleCentered("fullBento")
                 column: true
             }
 
@@ -186,16 +190,46 @@ Item {
                 NowPlayingZone {
                     id: topZone
                     anchors.horizontalCenter: parent.horizontalCenter
+                    width: fitWidth
                     instances: root.zones.top
                     context: "view"
                     look: "group"
                     room: parent.width
                 }
 
+                NowPlayingLine {
+                    id: lineAbove
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: lineWidth
+                    available: parent.width
+                    spare: root.lineSpare
+                    gap: Theme.spacingS
+                    other: lineBelow
+                    instances: root.zones.seekAbove
+                    context: "view"
+                    look: "group"
+                    centered: true
+                }
+
                 SeekBlock {
                     id: seekBlock
                     width: parent.width
                     instances: root.zones.seek
+                }
+
+                NowPlayingLine {
+                    id: lineBelow
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: lineWidth
+                    available: parent.width
+                    spare: root.lineSpare
+                    gap: Theme.spacingS
+                    other: lineAbove
+                    lower: true
+                    instances: root.zones.seekBelow
+                    context: "view"
+                    look: "group"
+                    centered: true
                 }
 
                 NowPlayingZone {
@@ -213,6 +247,7 @@ Item {
                 NowPlayingZone {
                     id: bottomZone
                     anchors.horizontalCenter: parent.horizontalCenter
+                    width: fitWidth
                     instances: root.zones.bottom
                     context: "view"
                     look: "group"

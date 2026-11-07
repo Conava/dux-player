@@ -25,6 +25,9 @@ DListItem {
     // false for elements with a fixed place; the handle's space is kept so columns line up
     property bool movable: true
     property bool hasOptions: false
+    // the options open under the row: only the chevron toggles them, and it points down while they are open
+    property bool expandable: false
+    property bool expanded: false
     // extra controls before the chevron (buttons that act on the element)
     property alias actions: extra.data
     // the title and icon in the supporting color: hidden, or not available in this version
@@ -185,6 +188,25 @@ DListItem {
             size: Style.iconSize
             color: root.supportingContentColor
             rotation: I18n.isRtl ? 180 : 0
+        }
+
+        DIconButton {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.expandable
+            iconName: "chevron_right"
+            iconColor: root.supportingContentColor
+            backgroundColor: "transparent"
+            rotation: root.expanded ? 90 : I18n.isRtl ? 180 : 0
+            tooltipText: I18n.tr("Options", "button opening an element's options under its row")
+            Accessible.name: tooltipText
+            onClicked: root.optionsRequested()
+
+            Behavior on rotation {
+                enabled: !Style.reduceMotion
+                NumberAnimation {
+                    duration: Style.shortDuration
+                }
+            }
         }
 
         Item {

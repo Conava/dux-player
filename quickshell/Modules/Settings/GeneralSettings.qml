@@ -93,7 +93,7 @@ SettingsPage {
                 width: parent?.width ?? 0
                 enabled: SettingsService.settings.artistInfoOnline
                 title: modelData.name
-                subtitle: modelData.hasKey ? I18n.tr("Key stored in the system keyring", "artist info API key state") : I18n.tr("No key set", "artist info API key state")
+                subtitle: modelData.hasKey ? I18n.tr("Key stored in the system keyring", "artist info API key state") : modelData.id === "lastfm" && PlayerService.scrobble.lastfmBuiltIn === true ? I18n.tr("Built-in key in use", "artist info API key state") : I18n.tr("No key set", "artist info API key state")
                 field.echoMode: TextInput.Password
                 field.showPasswordToggle: true
                 field.placeholderText: I18n.tr("API key", "API key field")
@@ -230,7 +230,7 @@ SettingsPage {
         SettingsRow {
             title: I18n.tr("Reset all customization", "general setting")
             keywords: "defaults"
-            subtitle: I18n.tr("Saved views are kept.", "general setting description")
+            subtitle: I18n.tr("Custom pages are kept.", "general setting description")
 
             DButton {
                 anchors.verticalCenter: parent?.verticalCenter
@@ -375,7 +375,7 @@ SettingsPage {
         id: resetAllDialog
         host: root
         title: I18n.tr("Reset all customization?", "reset all customization confirmation title")
-        supportingText: I18n.tr("Resets now playing, pages, rows and menus, home and navigation. Saved views are kept.", "reset all customization confirmation")
+        supportingText: I18n.tr("Resets now playing, pages, rows and menus, home and navigation. Custom pages are kept.", "reset all customization confirmation")
         confirmText: I18n.tr("Reset", "button that restores the defaults")
         onConfirmed: {
             UiConfig.resetAll();

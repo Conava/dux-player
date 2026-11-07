@@ -210,6 +210,7 @@ Item {
         sortKey: root.sortKey
         descending: root.sortDescending
         onSortRequested: key => root.sortBy(key)
+        onColumnsResized: sizes => UiConfig.setColumnSizes(sizes, "playlist", root.playlistId, null, root.editing && Router.editScope === 1)
         header: Component {
             Header {}
         }

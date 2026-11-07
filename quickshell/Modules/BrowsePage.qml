@@ -112,8 +112,12 @@ Item {
     readonly property var queryOptions: Object.assign({}, options, {
         "filters": Object.assign({}, options.filters, context.locked ?? {}),
         "base": context.kind === "mostPlayed" ? "mostPlayed" : options.base ?? ""
-    })
+    }, savedView && options.sort === "random" ? {
+        "sort": ""
+    } : {})
     readonly property bool editing: Router.editing
+    // the page loader keeps this page between routes that share it
+    readonly property string route: Router.page + "/" + Router.itemId
     // a page that lists things searches those things; a page of one item searches in it
     readonly property string searchPlaceholder: {
         if (Router.page === "favorites") {
@@ -143,13 +147,26 @@ Item {
     // what the header's search field holds; a new page starts unfiltered
     property string filterText: ""
     readonly property string pageKey: Router.page + ":" + Router.itemId
-    onPageKeyChanged: filterText = ""
+    // a custom page's random order holds until it is opened again
+    property int shuffleSeed: Date.now() % 1000000007
+    onPageKeyChanged: {
+        filterText = "";
+        shuffleSeed = Date.now() % 1000000007;
+    }
     readonly property var items: Catalog.filterText(allItems, filterText)
     // playlists: grouped by where they live, in the order of the page's sections; a hidden section's are left out
     readonly property bool grouped: type === "playlists" && options.group === "location" && options.layout !== "grid"
+    // a custom page's Group by; a grid has no section headers
+    readonly property string groupKey: savedView && options.layout !== "grid" && UiConfig.groupChoices(type).indexOf(options.group ?? "") > 0 ? options.group : ""
+    // the section of each shown item; empty when the list has none
+    readonly property var groupNames: {
+        if (groupKey !== "")
+            return items.map(i => Catalog.groupLabel(groupKey, i) || I18n.tr("Other", "custom page group of the items that have no value to group by"));
+        return grouped ? items.map(i => String(i.location ?? "")) : [];
+    }
     readonly property var locationOrder: (options.sections ?? []).filter(s => !s.hidden).map(s => s.type)
     readonly property var allItems: {
-        const list = PlayerService.query(type, queryOptions);
+        const list = savedView ? Catalog.shape(PlayerService.query(type, queryOptions), options, shuffleSeed, groupKey) : PlayerService.query(type, queryOptions);
         if (type !== "playlists" || !grouped)
             return list;
         const where = p => p.kind === "server" ? "server" : "local";
@@ -267,8 +284,6 @@ Item {
             onDone: Router.editing = false
             onResetRequested: (editorLoader.item as PageEditor)?.reset()
             subtitle: {
-                if (root.savedView && !root.ruled)
-                    return I18n.tr("Saved view · %1", "saved view page subtitle, %1 is the view type").arg(UiConfig.typeLabel(root.type));
                 const count = root.ruled ? I18n.tr("%1 of %2", "browse page count on a filtered page, %2 is the whole count with its noun: 312 of 1105 tracks").arg(root.items.length).arg(Phrases.count(root.type, root.unruledCount)) : Phrases.count(root.type, root.items.length);
                 return root.type === "tracks" && CatalogService.tracksLoading ? I18n.tr("%1, loading more…", "browse page item count while tracks still load").arg(count) : count;
             }
@@ -326,15 +341,23 @@ Item {
                 sorts: root.context.sort ? [] : UiConfig.sortChoices(root.type)
                 itemType: root.kind
                 savedView: root.savedView
-                savable: root.savedView === null
                 sectionsKind: Router.page === "favorites" ? "favorites" : root.context.kind
                 tabs: Router.page === "favorites" ? UiConfig.pageOptions("favorites", "").sections.map(s => s.type) : []
                 currentTab: root.favoritesType
                 onTabPicked: tab => root.pickedFavorites = tab
-                onSaveAsRequested: Router.prompt(I18n.tr("Save view", "save view dialog title"), root.context.title, I18n.tr("Save", "dialog confirm button"), name => Router.go("view", UiConfig.saveView(name, root.type, root.queryOptions)))
-                onRenameRequested: Router.prompt(I18n.tr("Rename view", "saved view action"), root.savedView.name, I18n.tr("Save", "dialog confirm button"), name => UiConfig.updateSavedView(root.savedView.id, {
+                onRenameRequested: Router.prompt(I18n.tr("Rename page", "custom page action"), root.savedView.name, I18n.tr("Save", "dialog confirm button"), name => UiConfig.updateSavedView(root.savedView.id, {
                         "name": name
                     }))
+                onDuplicateRequested: {
+                    const view = root.savedView;
+                    const id = UiConfig.saveView(I18n.tr("%1 (copy)", "name of a duplicated custom page").arg(view.name), view.type, UiConfig.savedViewOptions(view));
+                    if (view.icon)
+                        UiConfig.updateSavedView(id, {
+                            "icon": view.icon
+                        });
+                    UiConfig.pin("view", id);
+                    Router.editPage("view", id);
+                }
                 onDeleteRequested: {
                     const id = root.savedView.id;
                     Router.leave();
@@ -353,7 +376,7 @@ Item {
         }
 
         DButton {
-            visible: root.type === "tracks" && root.items.length > 0 && !root.editing
+            visible: root.type === "tracks" && root.items.length > 0 && !root.editing && root.options.shuffleButton !== false
             text: I18n.tr("Shuffle all", "tracks page action")
             iconName: "shuffle"
             onClicked: PlayerService.shuffleTracks(root.items, root.playContext, root.filtered)
@@ -410,16 +433,22 @@ Item {
         TrackList {
             tracks: root.items
             context: root.playContext
+            route: root.route
             lines: root.options.lines
             lineOptions: root.options.lineOptions ?? ({})
             layout: root.options.layout
             sortable: true
-            sortKey: root.options.sort
+            sortKey: root.savedView && root.options.sort === "random" ? "" : root.options.sort
             descending: root.options.descending
+            sectionNames: root.groupNames
+            ranked: root.savedView !== null && root.options.ranked === true
+            showArt: !ranked
+            playsOne: root.savedView !== null && root.options.click === "one"
             header: Component {
                 Header {}
             }
             onSortRequested: key => root.sortBy(key)
+            onColumnsResized: sizes => UiConfig.setColumnSizes(sizes, root.context.kind, root.pageItem, root.savedView, root.editing && Router.editScope === 1 && (root.context.scope?.[0] ?? "") !== "")
         }
     }
 
@@ -428,14 +457,21 @@ Item {
 
         DListView {
             id: list
+            // unset, the view makes the first item current as items arrive, and that item takes the focus
+            currentIndex: -1
+            readonly property string route: root.route
+            onRouteChanged: contentY = originY
             clip: true
             spacing: Theme.groupedListGap
             bottomMargin: PlayerMetrics.pagePadding + (root.isPlaylists ? fab.height + Theme.spacingL : 0)
-            model: root.items
+            model: RowModel {
+                rows: root.items.length
+                groups: root.groupNames
+            }
             header: Header {
                 width: list.width
             }
-            section.property: root.grouped ? "location" : ""
+            section.property: root.groupNames.length > 0 ? "group" : ""
             section.delegate: StyledText {
                 required property string section
                 width: list.width
@@ -448,15 +484,16 @@ Item {
             }
 
             delegate: MediaRow {
-                required property var modelData
                 required property int index
+                // a shorter list reaches the rows a moment before the count drops
+                readonly property var modelData: root.items[index] ?? ({})
                 width: list.width
                 kind: root.kind
                 item: modelData
                 lines: root.options.lines
                 compact: root.options.layout === "compact"
-                firstInGroup: index === 0 || (root.grouped && root.items[index - 1]?.location !== modelData.location)
-                lastInGroup: index === root.items.length - 1 || (root.grouped && root.items[index + 1]?.location !== modelData.location)
+                firstInGroup: index === 0 || root.groupNames[index - 1] !== root.groupNames[index]
+                lastInGroup: index === root.items.length - 1 || root.groupNames[index + 1] !== root.groupNames[index]
             }
         }
     }
@@ -466,19 +503,26 @@ Item {
 
         DGridView {
             id: grid
+            // unset, the view makes the first item current as items arrive, and that item takes the focus
+            currentIndex: -1
+            readonly property string route: root.route
+            onRouteChanged: contentY = originY
             readonly property int columnCount: Math.max(1, Math.floor(width / root.tileWidth))
             clip: true
             cellWidth: Math.floor(width / columnCount)
             cellHeight: cellWidth + PlayerMetrics.gridCaptionHeight
             bottomMargin: root.isPlaylists ? fab.height + Theme.spacingL : 0
-            model: root.items
+            model: RowModel {
+                rows: root.items.length
+            }
             header: Header {
                 width: grid.width
             }
 
             delegate: MediaTile {
-                required property var modelData
                 required property int index
+                // a shorter list reaches the tiles a moment before the count drops
+                readonly property var modelData: root.items[index] ?? ({})
                 width: grid.cellWidth
                 height: grid.cellHeight
                 kind: root.kind

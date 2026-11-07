@@ -4,7 +4,7 @@ const path = require("path");
 const assert = require("assert");
 
 const source = fs.readFileSync(path.join(__dirname, "../Services/Catalog.js"), "utf8").replace(".pragma library", "");
-const C = new Function(source + "; return { trackPositions, sortBy, suffixDurations, diff, singleMove, navEntries, pageTargets, setPinned, track, filterText, browsable, sortSignature };")();
+const C = new Function(source + "; return { trackPositions, sortBy, suffixDurations, diff, singleMove, navEntries, pageTargets, setPinned, track, filterText, browsable, sortSignature, shape, groupLabel };")();
 
 function apply(list, edit) {
     const out = list.slice();
@@ -120,4 +120,21 @@ console.log("catalog.test.js: ok");
     const b = [{ id: "l1", name: "New" }];
     assert.notStrictEqual(C.sortSignature(3, opts, "library", "", a), C.sortSignature(3, opts, "library", "", b));
     assert.strictEqual(C.sortSignature(3, opts, "name", "", a), C.sortSignature(3, opts, "name", "", b));
+}
+
+// shape: random order holds for a seed, the limit cuts after the order, groups run A to Z and the unnamed last
+{
+    const tracks = [["Bee", 2001], ["Ant", 1999], ["Cat", 0], ["Ape", 1999], ["dog", 2001]].map(([artist, year], i) => ({ "library": "l", "id": String(i), "title": "t" + i, "artist": artist, "year": year }));
+    const ids = list => list.map(t => t.id).join("");
+    assert.strictEqual(ids(C.shape(tracks, {}, 1, "")), "01234", "no options leave the order");
+    assert.strictEqual(ids(C.shape(tracks, { "limit": 2 }, 1, "")), "01");
+    const random = C.shape(tracks, { "sort": "random" }, 7, "");
+    assert.strictEqual(ids(random), ids(C.shape(tracks, { "sort": "random" }, 7, "")), "same seed, same order");
+    assert.strictEqual(ids(random.slice().sort((a, b) => a.id - b.id)), "01234");
+    assert.ok([1, 2, 3, 4, 5, 6].some(s => ids(C.shape(tracks, { "sort": "random" }, s, "")) !== ids(random)), "another seed can differ");
+    assert.strictEqual(ids(C.shape(tracks, { "limit": 3 }, 1, "artist")), "102", "limit first, then group A to Z");
+    assert.strictEqual(ids(C.shape(tracks, {}, 1, "year")), "13042", "years ascending, no year last, ties keep the order");
+    assert.strictEqual(C.groupLabel("initial", { "title": "dog" }), "D");
+    assert.strictEqual(C.groupLabel("initial", { "name": "9 Lives" }), "#");
+    assert.strictEqual(C.groupLabel("year", { "year": 0 }), "");
 }

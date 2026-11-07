@@ -35,8 +35,15 @@ RowLayout {
     property real room: -1
     // kept elements may move into the menu too, after the others, so the zone never outgrows its room
     property bool keepMoves: false
+    // a line of its own (NowPlayingLine): a lyric line fills it, and it takes no height with nothing to show
+    property bool line: false
+    // a line the surface has no height for
+    property bool fits: true
+    readonly property bool lyricsPaneOpen: context === "side" ? Router.sideTab === "lyrics" : context === "view" ? Router.viewPane === "lyrics" : Router.panel === "lyrics"
 
     readonly property var textTypes: ["title", "artists", "album", "text", "libraryBadge", "playingFrom", "castTarget"]
+    // what takes a column's whole width; anything else keeps its own size
+    readonly property var columnWide: textTypes.concat(["cover", "lyricLine", "seekbar", "spacer", "divider"])
     readonly property var track: PlayerService.current
     readonly property var shown: instances.filter(i => !i.hidden && UiConfig.isKnown(i.type))
     // a string, so a resize that moves nothing doesn't rebuild the row
@@ -44,12 +51,26 @@ RowLayout {
                 "key": i.id,
                 "type": i.type,
                 "placement": i.placement,
-                "width": i.type === "lyricLine" ? 0 : elementWidth(i)
+                "stack": textTypes.indexOf(i.type) >= 0,
+                "showing": shows(i.type, i.options),
+                // the lyric line gives way before anything moves
+                "width": i.type === "lyricLine" ? 0 : textTypes.indexOf(i.type) < 0 ? elementWidth(i) : PlayerMetrics.barInfoMinWidth
             })), room, moreButton.implicitWidth, spacing, keepMoves).join(" ")
     readonly property var inMenu: overflowKeys === "" ? [] : shown.filter(i => overflowKeys.split(" ").indexOf(i.id) >= 0)
     // one entry per type; spacers and dividers just go
     readonly property var menuTypes: inMenu.map(i => i.type).filter((t, n, all) => all.indexOf(t) === n && t !== "spacer" && t !== "divider")
     readonly property var inRow: inMenu.length === 0 ? shown : shown.filter(i => inMenu.indexOf(i) < 0)
+    // a line: takes its whole width for what stretches
+    readonly property bool spreads: line && inRow.some(i => i.type === "seekbar" || i.type === "lyricLine" || i.type === "spacer" && i.options?.size === "fill")
+    // the least this line can be, read from everything in it so it doesn't follow what the room moved
+    readonly property real leastWidth: !populated ? 0 : Overflow.least(shown.map(i => ({
+                "type": i.type,
+                "stack": textTypes.indexOf(i.type) >= 0,
+                "showing": shows(i.type, i.options),
+                "width": textTypes.indexOf(i.type) >= 0 ? PlayerMetrics.barInfoMinWidth : elementWidth(i)
+            })), moreButton.implicitWidth, spacing)
+    // the width to set on a row that sizes to its content: within its room as far as its flexible blocks can give
+    readonly property real fitWidth: room < 0 ? implicitWidth : Math.max(implicitWidth - shrinkable, Math.min(implicitWidth, room))
     // [{key, stack, items}]
     readonly property var segments: {
         const out = [];
@@ -105,6 +126,11 @@ RowLayout {
         return lyricShrinkable > 0 && textLook === "bar" && !column ? preferred * (1 - lyricCut / lyricShrinkable) : 0;
     }
 
+    // a lyric line with nothing to add keeps its place, so nothing around it moves
+    function lyricBlank(options) {
+        return track === null || options?.hideInLyrics !== false && lyricsPaneOpen;
+    }
+
     // a cast target only while casting, an album only when the track has one
     function shows(type, options) {
         switch (type) {
@@ -115,7 +141,7 @@ RowLayout {
         case "lyrics":
             return UiConfig.lyricsOn;
         case "lyricLine":
-            return UiConfig.lyricsOn && track !== null;
+            return UiConfig.lyricsOn;
         case "playingFrom":
         case "title":
             return track !== null;
@@ -227,7 +253,8 @@ RowLayout {
     }
 
     // has something to show; read this rather than visible, which also follows the parents
-    readonly property bool populated: segments.length > 0 || menuTypes.length > 0
+    readonly property bool populated: fits && hasContent
+    readonly property bool hasContent: menuTypes.length > 0 || (line ? inRow.some(i => shows(i.type, i.options)) : segments.length > 0)
 
     spacing: look === "group" ? Theme.groupedListGap : Theme.spacingS
     visible: populated
@@ -237,7 +264,7 @@ RowLayout {
     // Left and Right move along a button group; Tab leaves it
     Keys.enabled: look === "group"
     Keys.onPressed: event => {
-        const buttons = Array.from(children).filter(c => c.visible && (c === moreButton || c.element)).sort((a, b) => a.x - b.x);
+        const buttons = Array.from(children).filter(c => c.visible && (c === moreButton || c.element && c.element.elementId !== "lyricLine")).sort((a, b) => a.x - b.x);
         event.accepted = FocusNavigation.handleHorizontalKey(event, buttons.map(c => c === moreButton ? c : c.element.item), false);
     }
 
@@ -292,6 +319,9 @@ RowLayout {
         textLook: root.textLook
         centered: root.centered
         fill: root.fill
+        // the line over or under the seekbar, and a title block, sit by a title already: an empty lyric stays empty
+        lyricFallback: !root.line && !(root.column && root.shown.some(i => i.type === "title"))
+        lyricBlank: root.lyricBlank(options)
         weight: elementId === "playPause" ? PlayerMetrics.mediaPlayWidthRatio : 1
         shown: root.shows(elementId, options)
         rowWidth: root.width
@@ -337,11 +367,19 @@ RowLayout {
                 model: stack.items
 
                 Element {
+                    id: stacked
                     required property var modelData
-                    width: lines.width
+                    readonly property bool wide: root.columnWide.indexOf(modelData.type) >= 0
+                    x: wide || !root.centered ? 0 : Math.round((lines.width - width) / 2)
                     elementId: modelData.type
                     options: modelData.options ?? {}
                     inColumn: true
+
+                    // a width given to a Loader sizes its item, which would stretch a button across the column
+                    Binding on width {
+                        when: stacked.wide
+                        value: lines.width
+                    }
                 }
             }
         }
@@ -383,7 +421,7 @@ RowLayout {
             Layout.fillWidth: element ? element.fillsWidth : item !== null
             Layout.preferredWidth: element ? element.preferredWidth : stack ? stack.preferredWidth : -1
             Layout.minimumWidth: element ? (element.elementId === "lyricLine" ? root.lyricMinimum(element.preferredWidth) : element.minimumWidth) : stack ? stack.minimumWidth : -1
-            Layout.maximumWidth: stack && stack.preferredWidth > 0 ? stack.preferredWidth : element?.elementId === "lyricLine" ? element.preferredWidth : Number.POSITIVE_INFINITY
+            Layout.maximumWidth: stack && stack.preferredWidth > 0 ? stack.preferredWidth : element?.elementId === "lyricLine" && !root.line ? element.preferredWidth : Number.POSITIVE_INFINITY
             Layout.alignment: Qt.AlignVCenter
 
             Component {

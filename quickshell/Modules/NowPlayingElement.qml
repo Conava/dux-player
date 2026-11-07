@@ -30,6 +30,10 @@ Loader {
     // track info: "bar" | "side" | "bento" | "m3e"
     property string textLook: "bar"
     property bool centered: false
+    // a lyric line without a synced line shows the title and artist
+    property bool lyricFallback: true
+    // a lyric line that keeps its place but shows nothing
+    property bool lyricBlank: false
     // in a column (a title card): dividers run across, spacers go down
     property bool inColumn: false
     // the transport fills its row, the play button wider (Bento)
@@ -211,7 +215,7 @@ Loader {
 
             Loader {
                 id: titleLoader
-                x: root.centered && titleBox.hasHeart ? Math.round((parent.width - width - titleBox.heartSpace) / 2) : 0
+                x: root.centered && titleBox.hasHeart ? Math.round(Math.min((parent.width - width) / 2, parent.width - width - titleBox.heartSpace)) : 0
                 width: titleBox.hasHeart ? Math.min(parent.width - titleBox.heartSpace, titleBox.textWidth) : parent.width
                 sourceComponent: {
                     switch (root.textLook) {
@@ -273,6 +277,7 @@ Loader {
                     text: root.track?.title ?? ""
                     color: ArtColors.text
                     font.pixelSize: root.context === "side" ? Theme.fontSizeXLarge : Theme.fontSizeXXLarge
+                    font.weight: root.context === "side" ? Theme.fontWeightMedium : Font.Normal
                     elide: Text.ElideRight
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     maximumLineCount: 2
@@ -284,6 +289,7 @@ Loader {
                         visible: false
                         text: m3eText.text
                         font.pixelSize: m3eText.font.pixelSize
+                        font.weight: m3eText.font.weight
                         wrapMode: Text.NoWrap
                         elide: Text.ElideNone
                     }
@@ -387,6 +393,9 @@ Loader {
         id: lyricLine
         BarLyricLine {
             sweep: root.options.smooth === true
+            centered: root.centered
+            fallback: root.lyricFallback
+            blank: root.lyricBlank
         }
     }
 
@@ -476,7 +485,8 @@ Loader {
         id: seekbar
         MediaSeekbar {
             flat: UiConfig.styleOf(root.context) === "m3e"
-            thin: root.context === "bar"
+            expressive: !flat
+            thin: root.context !== "view"
         }
     }
 

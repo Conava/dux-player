@@ -1053,6 +1053,9 @@ Singleton {
     function setScrobbleEnabled(service, enabled) {
         SettingsService.setScrobbleEnabled(service, enabled);
     }
+    function setScrobbleLibraryAccounts(libraryId, enabled) {
+        SettingsService.setScrobbleLibraryAccounts(libraryId, enabled);
+    }
     function setScrobbleLibrary(libraryId, enabled) {
         SettingsService.setScrobbleLibrary(libraryId, enabled);
     }

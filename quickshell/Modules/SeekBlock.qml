@@ -69,8 +69,10 @@ Column {
 
     NowPlayingZone {
         anchors.horizontalCenter: parent.horizontalCenter
+        width: fitWidth
         instances: root.instances.filter(i => ["elapsed", "seekbar", "duration"].indexOf(i.type) < 0)
         context: root.context
         room: parent.width
+        keepMoves: true
     }
 }

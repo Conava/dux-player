@@ -4,7 +4,7 @@ const path = require("path");
 const assert = require("assert");
 
 const source = fs.readFileSync(path.join(__dirname, "../Common/Layouts.js"), "utf8").replace(".pragma library", "");
-const L = new Function(source + "; return { migrate, needsMigration, effective, problems, setSurface, setItem, setPageOptions, setKindDefault, resetKind, pageOptions, savedViewOptions, kindDefault, changedPages, parseImport, cleanSurface, resetAll, resetKindDefault, accepts, keepUnchanged, setNowPlaying, extraTop, columnSort, columnSize, sizeName, sizeValue, canAddCustom, sortTemplate, newCustomLine, setOptionsAt };")();
+const L = new Function(source + "; return { migrate, needsMigration, effective, problems, setSurface, setItem, setPageOptions, setKindDefault, resetKind, pageOptions, savedViewOptions, kindDefault, changedPages, parseImport, cleanSurface, resetAll, resetKindDefault, accepts, keepUnchanged, setNowPlaying, extraTop, columnSort, columnSize, withColumnSizes, sizeName, sizeValue, canAddCustom, sortTemplate, newCustomLine, setOptionsAt };")();
 
 const types = (list) => list.filter(i => !i.hidden).map(i => i.type);
 const zoneTypes = (eff, id, zone) => types(eff.surfaces[id].zones[zone]);
@@ -151,6 +151,20 @@ const edited = {
     assert.deepStrictEqual(zoneTypes(layout, "side", "bottom"), ["favorite", "speed", "dock"]);
     assert.strictEqual(eff.surfaces.side.panesFollowBar, true);
     assert.deepStrictEqual(eff.sidePanes, ["cover", "queue", "lyrics"]);
+
+    const lined = L.effective({
+        "surfaces": {
+            "bar": {
+                "zones": {
+                    "seekAbove": [{
+                            "type": "lyricLine"
+                        }]
+                }
+            }
+        }
+    });
+    assert.deepStrictEqual(zoneTypes(lined, "side", "seekAbove"), ["lyricLine"], "a seek line stays one in the side panel");
+    assert.ok(zoneTypes(lined, "side", "title").indexOf("lyricLine") < 0);
 
     assert.deepStrictEqual(types(L.pageOptions(eff, "artist", "").sections), ["tracks", "albums"]);
     assert.deepStrictEqual(eff.navigation, edited.navigation);
@@ -754,9 +768,23 @@ const acceptCases = [
     ["add to playlist at the end of a queue row", "queue", "trailing", [], "addToPlaylist", true],
     ["add to playlist at the end of an artist row", "artist", "trailing", [], "addToPlaylist", false],
     ["lyric line in a bar row", "bar", "left", [], "lyricLine", true],
-    ["no lyric line in the bar's centre zone", "bar", "controls", [], "lyricLine", false],
-    ["no lyric line in the seek line", "bar", "seek", [], "lyricLine", false],
-    ["no lyric line in a full view", "fullM3e", "end", [], "lyricLine", false]
+    ["lyric line in the transport row", "bar", "controls", [], "lyricLine", true],
+    ["lyric line in the seek line", "bar", "seek", [], "lyricLine", true],
+    ["lyric line in a full view's row", "fullM3e", "end", [], "lyricLine", true],
+    ["lyric line in a title column", "fullBento", "title", [], "lyricLine", true],
+    ["a button in a title column", "side", "title", [], "volume", true],
+    ["transport in a title column", "fullM3e", "title", [], "playPause", true],
+    ["a small cover in a full view's row", "fullBento", "bottom", [], "cover", true],
+    ["a cover in the bar's right zone", "bar", "right", [], "cover", true],
+    ["times outside the seek line", "bar", "right", [], "elapsed", true],
+    ["the dock button in a full view", "fullM3e", "end", [], "dock", true],
+    ["the seekbar on a line of its own", "side", "seekBelow", [], "seekbar", true],
+    ["the seekbar in a title column", "fullBento", "title", [], "seekbar", true],
+    ["no seekbar in a row it shares", "bar", "right", [], "seekbar", false],
+    ["no seekbar beside the transport", "fullM3e", "controls", [], "seekbar", false],
+    ["expand has nothing to open in a full view", "fullBento", "seekAbove", [], "expand", false],
+    ["expand in the bar", "bar", "seekBelow", [], "expand", true],
+    ["only the art in the art's place", "fullM3e", "cover", [], "lyricLine", false]
 ];
 for (const [name, id, zone, list, type, expected] of acceptCases)
     assert.strictEqual(L.accepts(id, zone, list, type), expected, name);
@@ -764,6 +792,127 @@ for (const [name, id, zone, list, type, expected] of acceptCases)
 // The bar's lyric line is off until it is added
 for (const zone of ["left", "controls", "right"])
     assert.ok(!zoneTypes(L.effective({}), "bar", zone).includes("lyricLine"), "not in the default bar: " + zone);
+
+// Every now-playing surface has a zone above and below the seekbar, taking every element but the ones it can't show
+const nowPlayingIds = ["bar", "side", "fullBento", "fullM3e"];
+for (const id of nowPlayingIds) {
+    for (const zone of ["seekAbove", "seekBelow"]) {
+        for (const type of ["lyricLine", "title", "text", "cover", "elapsed", "seekbar", "playPause", "volume", "details", "spacer", "divider", "dock"])
+            assert.ok(L.accepts(id, zone, [], type), type + " in " + id + " " + zone);
+    }
+}
+
+// A layout from before these zones reads as empty new zones, with every old zone as it was
+const oldBar = {
+    "surfaces": {
+        "bar": {
+            "zones": {
+                "left": [{
+                        "id": "cover",
+                        "type": "cover"
+                    }]
+            }
+        }
+    }
+};
+for (const stored of [{}, oldBar, edited]) {
+    const eff = L.effective(L.migrate(stored));
+    for (const id of nowPlayingIds) {
+        assert.deepStrictEqual(eff.surfaces[id].zones.seekAbove, [], id + " above");
+        assert.deepStrictEqual(eff.surfaces[id].zones.seekBelow, [], id + " below");
+    }
+}
+assert.deepStrictEqual(zoneTypes(L.effective({}), "bar", "seek"), ["elapsed", "seekbar", "duration"]);
+
+// The new zones survive a write and a read; the rest of the surface stays
+const withZone = (id, zone, list) => {
+    const zones = JSON.parse(JSON.stringify(L.effective({}).surfaces[id].zones));
+    zones[zone] = list;
+    return L.setSurface({}, id, {
+        "zones": zones
+    });
+};
+{
+    const stored = JSON.parse(JSON.stringify(withZone("fullBento", "seekBelow", [{
+                        "type": "lyricLine"
+                    }, {
+                        "type": "volume"
+                    }])));
+    const eff = L.effective(stored);
+    assert.deepStrictEqual(zoneTypes(eff, "fullBento", "seekBelow"), ["lyricLine", "volume"]);
+    assert.deepStrictEqual(zoneTypes(eff, "fullBento", "bottom"), zoneTypes(L.effective({}), "fullBento", "bottom"));
+}
+
+// The width option of a lyric line only means something in the bar's left and right zones, and the art's options in the art's place
+{
+    const options = (id, zone, type) => L.effective(withZone(id, zone, [{
+                    "type": type
+                }])).surfaces[id].zones[zone][0].options;
+    assert.strictEqual(options("bar", "right", "lyricLine").width, "m");
+    assert.strictEqual(options("bar", "seekAbove", "lyricLine").width, undefined);
+    assert.strictEqual(options("fullBento", "seekBelow", "lyricLine").width, undefined);
+    assert.strictEqual(options("fullM3e", "title", "lyricLine").smooth, false);
+    assert.strictEqual(options("fullBento", "cover", "cover").size, "m");
+    assert.strictEqual(options("fullBento", "bottom", "cover").size, undefined);
+}
+
+// The title's alignment stays unset until it is chosen, and later edits of the surface keep it
+{
+    assert.strictEqual(L.effective({}).surfaces.side.centerTitle, undefined);
+    const centered = L.setSurface({}, "fullM3e", {
+        "zones": {},
+        "centerTitle": true
+    });
+    const moved = L.setSurface(centered, "fullM3e", {
+        "zones": L.effective(centered).surfaces.fullM3e.zones
+    });
+    assert.strictEqual(L.effective(moved).surfaces.fullM3e.centerTitle, true);
+}
+
+// While the side panel follows, the bar's lines stay lines there, and the side's own lines win
+{
+    const stored = withZone("bar", "seekAbove", [{
+                "type": "lyricLine"
+            }, {
+                "type": "sleep"
+            }, {
+                "type": "spacer"
+            }]);
+    const side = L.effective(stored).surfaces.side;
+    assert.ok(!types(side.zones.title).includes("lyricLine"));
+    assert.ok(!types(side.zones.top).includes("sleep"));
+    assert.deepStrictEqual(types(side.zones.seekAbove), ["lyricLine", "sleep", "spacer"]);
+    const own = L.setSurface(stored, "side", Object.assign({}, side, {
+        "zones": Object.assign({}, side.zones, {
+            "seekBelow": [{
+                    "type": "rating"
+                }]
+        })
+    }));
+    assert.deepStrictEqual(zoneTypes(L.effective(own), "side", "seekBelow"), ["rating"]);
+    assert.strictEqual(L.effective(own).surfaces.side.panesFollowBar, true);
+}
+
+// What the side panel takes from the bar keeps the old reading order: transport row before the seek line
+{
+    const zones = JSON.parse(JSON.stringify(L.effective({}).surfaces.bar.zones));
+    zones.seek.push({
+        "type": "sleep"
+    }, {
+        "type": "lyrics"
+    });
+    zones.controls.push({
+        "type": "speed"
+    }, {
+        "type": "queue"
+    });
+    const eff = L.effective(L.setSurface({}, "bar", {
+        "zones": zones
+    }));
+    const top = types(eff.surfaces.side.zones.top);
+    assert.ok(top.indexOf("speed") < top.indexOf("sleep"), "transport row first");
+    assert.deepStrictEqual(eff.sidePanes, ["cover", "queue", "lyrics"]);
+}
 
 // Lines a page shows when nothing changed them
 const lineCases = [
@@ -1228,4 +1377,32 @@ assert.deepStrictEqual(L.extraTop("junk"), {});
     assert.strictEqual(L.savedViewOptions(L.effective(s), L.effective(s).savedViews[0]).rules.list.length, 1);
     assert.deepStrictEqual(L.effective(L.setOptionsAt({}, { view: "gone" }, { rules })).savedViews, [], "a deleted view is not recreated");
     assert.strictEqual(L.effective(L.setOptionsAt(withView, { view: "gone" }, { rules })).savedViews[0].options.rules, undefined, "another view is not touched");
+}
+
+// a column drag stores both sizes at once; 1 removes the size and an emptied entry
+{
+    const o = { "lineOptions": { "artist": { "size": 2, "sort": "album" }, "album": { "size": 0.5 }, "year": { "size": 1.5 } } };
+    const r = L.withColumnSizes(o, { "artist": 1, "album": 1, "genre": 0.8 });
+    assert.deepStrictEqual(r.lineOptions, { "artist": { "sort": "album" }, "year": { "size": 1.5 }, "genre": { "size": 0.8 } });
+    assert.strictEqual(o.lineOptions.album.size, 0.5);
+}
+
+// a custom page's own options are checked on load: a bad value is dropped, a good one survives
+{
+    const view = (options, icon) => ({ "savedViews": [{ "id": "v1", "name": "V", "type": "tracks", "options": options, "icon": icon }] });
+    const read = (options, icon) => L.effective(view(options, icon)).savedViews[0];
+    const good = read({ "limit": 50, "click": "one", "ranked": true, "shuffleButton": false, "sort": "random", "group": "artist" }, "star");
+    assert.deepStrictEqual([good.options.limit, good.options.click, good.options.ranked, good.options.shuffleButton, good.options.sort, good.options.group, good.icon], [50, "one", true, false, "random", "artist", "star"]);
+    const bad = read({ "limit": 7, "click": "all", "ranked": "yes", "shuffleButton": 0 }, "../x");
+    assert.deepStrictEqual([bad.options.limit, bad.options.click, bad.options.ranked, bad.options.shuffleButton, bad.icon], [undefined, undefined, undefined, undefined, undefined]);
+    assert.strictEqual(read({ "limit": "50" }).options.limit, undefined, "a number as text");
+    assert.strictEqual(read({}, "x".repeat(49)).icon, undefined, "an icon name has a bound");
+    assert.strictEqual(L.savedViewOptions(L.effective({}), read({})).limit, undefined, "no limit unless set");
+}
+
+// editing a custom page keeps its icon and the new options
+{
+    const s = { "savedViews": [{ "id": "v1", "name": "V", "type": "tracks", "options": {}, "icon": "bolt" }] };
+    const next = L.effective(L.setOptionsAt(s, { view: "v1" }, { "limit": 25, "ranked": true })).savedViews[0];
+    assert.deepStrictEqual([next.icon, next.options.limit, next.options.ranked], ["bolt", 25, true]);
 }

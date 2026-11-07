@@ -389,14 +389,38 @@ Item {
     PinTargetSheet {
         id: addSheet
         title: I18n.tr("Add entry", "navigation settings action")
+        // closing, the sheet hands focus back; with the dialog open that would take it from the name field
+        returnFocusItem: newPageDialog.opened ? newPageDialog.field : null
         doneFormat: I18n.tr("%1 (already pinned)", "picker item that is already in the navigation")
         isDone: (kind, id) => UiConfig.isPinned(kind, id)
         leading: [
             {
                 "title": I18n.tr("Pages", "add entry section"),
-                "items": UiConfig.pageTargets.map(p => addSheet.item("page", p, UiConfig.pageLabel(p)))
+                "items": [
+                    {
+                        "label": I18n.tr("New custom page", "action and dialog that create a custom page"),
+                        "icon": "add",
+                        "value": ["new", ""],
+                        "done": false
+                    }
+                ].concat(UiConfig.pageTargets.map(p => addSheet.item("page", p, UiConfig.pageLabel(p))))
             }
         ]
-        onPicked: value => UiConfig.pin(value[0], value[1])
+        onPicked: value => {
+            if (value[0] === "new")
+                newPageDialog.show();
+            else
+                UiConfig.pin(value[0], value[1]);
+        }
+    }
+
+    NewPageDialog {
+        id: newPageDialog
+        host: root
+        onCreated: (name, type) => {
+            const id = UiConfig.saveView(name, type, {});
+            UiConfig.pin("view", id);
+            root.edit("view", id);
+        }
     }
 }

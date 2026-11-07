@@ -68,6 +68,8 @@ Item {
             return Math.round(Math.max(0, Math.min(innerWidth, artMax, height - margin * 2 - topHeight - info.implicitHeight - Theme.spacingL)));
         return Math.round(Math.max(0, Math.min(artMax, (innerWidth - gap) / 2, height - margin * 2 - topHeight)));
     }
+    // what the lines above and below the seekbar may take; stacked, the art keeps its least size
+    readonly property real lineSpare: height - margin * 2 - topHeight - (stacked && showArt ? PlayerMetrics.mediaArtMinSize + Theme.spacingL : 0) - [infoHeader, infoTitle, seekRow, transportRow].reduce((sum, block) => sum + (block.visible ? block.height + info.spacing : 0), -info.spacing)
     readonly property real heroHeight: stacked ? (artSize > 0 ? artSize + Theme.spacingL : 0) : Math.max(artSize, info.implicitHeight)
     readonly property real infoWidth: stacked ? innerWidth : innerWidth - artSize - gap
     // smaller buttons when the row doesn't fit at "m"
@@ -119,6 +121,7 @@ Item {
             NowPlayingZone {
                 id: buttons
                 x: I18n.isRtl ? 0 : parent.width - width
+                width: fitWidth
                 anchors.verticalCenter: parent.verticalCenter
                 instances: root.zones.buttons
                 context: "view"
@@ -168,6 +171,7 @@ Item {
             spacing: Theme.spacingM
 
             NowPlayingZone {
+                id: infoHeader
                 width: parent.width
                 visible: !root.stacked && populated
                 instances: root.zones.header
@@ -176,16 +180,32 @@ Item {
             }
 
             NowPlayingZone {
+                id: infoTitle
                 width: parent.width
                 visible: (!root.inPlace || !root.paneShown) && populated
                 instances: root.zones.title
                 context: "view"
                 textLook: "m3e"
+                centered: UiConfig.titleCentered("fullM3e")
                 column: true
+            }
+
+            NowPlayingLine {
+                id: lineAbove
+                x: I18n.isRtl ? parent.width - width : 0
+                width: lineWidth
+                available: parent.width
+                spare: root.lineSpare
+                gap: info.spacing
+                other: lineBelow
+                instances: root.zones.seekAbove
+                context: "view"
+                look: "m3e"
             }
 
             // the seek zone: the seekbar, then "elapsed / length" in one readout, then anything else placed there
             Row {
+                id: seekRow
                 width: parent.width
                 height: Math.max(seekbar.implicitHeight, readout.implicitHeight)
                 visible: root.seekTypes.length > 0
@@ -217,14 +237,33 @@ Item {
                 NowPlayingZone {
                     id: extra
                     anchors.verticalCenter: parent.verticalCenter
+                    width: fitWidth
                     instances: root.zones.seek.filter(i => ["elapsed", "seekbar", "duration"].indexOf(i.type) < 0)
                     context: "view"
+                    // the seekbar and the readout stay
+                    room: Math.max(0, parent.width - PlayerMetrics.barSeekMinWidth - (readout.visible ? readout.width + parent.spacing : 0) - parent.spacing)
+                    keepMoves: true
                 }
+            }
+
+            NowPlayingLine {
+                id: lineBelow
+                x: I18n.isRtl ? parent.width - width : 0
+                width: lineWidth
+                available: parent.width
+                spare: root.lineSpare
+                gap: info.spacing
+                other: lineAbove
+                lower: true
+                instances: root.zones.seekBelow
+                context: "view"
+                look: "m3e"
             }
 
             // the transport at the start, the end zone at the far end; what doesn't fit beside the transport goes
             // into the end zone's ⋮ menu
             Item {
+                id: transportRow
                 width: parent.width
                 height: Math.max(playback.implicitHeight, modesRow.implicitHeight)
                 visible: playback.populated || modesRow.populated
@@ -232,6 +271,7 @@ Item {
                 NowPlayingZone {
                     id: playback
                     x: I18n.isRtl ? parent.width - width : 0
+                    width: Math.max(implicitWidth - shrinkable, Math.min(implicitWidth, root.infoWidth - (modesRow.populated ? modesRow.width + Theme.spacingM : 0)))
                     anchors.verticalCenter: parent.verticalCenter
                     instances: root.zones.controls
                     context: "view"
@@ -243,12 +283,13 @@ Item {
                 NowPlayingZone {
                     id: modesRow
                     x: I18n.isRtl ? 0 : parent.width - width
+                    width: fitWidth
                     anchors.verticalCenter: parent.verticalCenter
                     instances: root.zones.end
                     context: "view"
                     size: playback.size
                     look: "m3e"
-                    room: Math.max(0, root.infoWidth - playback.implicitWidth - Theme.spacingM)
+                    room: Math.max(0, root.infoWidth - playback.implicitWidth + playback.shrinkable - Theme.spacingM)
                     keepMoves: true
                 }
             }

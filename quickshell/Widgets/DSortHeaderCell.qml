@@ -2,8 +2,8 @@ import QtQuick
 import qs.DCommon.Common
 import qs.DCommon.Widgets
 
-// A clickable column header for a sortable list. The cell is the click target; the active sort and the hover
-// show as a pill around the label and its arrow.
+// A clickable column header for a sortable list. The cell is the click target; the active sort shows in the label's
+// color and its arrow.
 StyledButton {
     id: root
 
@@ -11,14 +11,12 @@ StyledButton {
     property bool active: false
     property bool descending: false
     property int align: Text.AlignLeft
-    // how far the pill reaches past the label, so the label stays in line with the rows below
-    property real highlightPadding: Style.spacingS
+    readonly property color labelColor: active ? Style.primary : hovered ? Style.onSurface : Style.surfaceVariantText
 
     signal sortRequested
 
     implicitHeight: Style.buttonHeightXXS
-    // the pill hugs the label, but never reaches past the cell's own width
-    implicitWidth: content.implicitWidth + highlightPadding * 2
+    implicitWidth: content.implicitWidth
     radius: Style.cornerRadiusS
     color: "transparent"
     Accessible.role: Accessible.ColumnHeader
@@ -26,34 +24,8 @@ StyledButton {
     Accessible.description: active ? (descending ? I18n.tr("Sorted descending", "State of a sortable column header") : I18n.tr("Sorted ascending", "State of a sortable column header")) : ""
     onClicked: sortRequested()
 
-    Rectangle {
-        id: pill
-        readonly property bool rightAligned: root.align === Text.AlignRight
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        anchors.left: rightAligned ? undefined : parent.left
-        anchors.right: rightAligned ? parent.right : undefined
-        anchors.leftMargin: -root.highlightPadding
-        anchors.rightMargin: -root.highlightPadding
-        width: Math.min(content.implicitWidth + root.highlightPadding * 2, root.width + root.highlightPadding * 2)
-        radius: Style.fullRadius(width, height)
-        color: root.active ? Style.secondaryContainer : "transparent"
-
-        Behavior on color {
-            ColorAnimation {
-                duration: Style.reduceMotion ? 0 : Style.shortDuration
-            }
-        }
-
-        StateLayer {
-            control: root
-            cornerRadius: pill.radius
-            stateColor: root.active ? Style.onSecondaryContainer : Style.onSurface
-        }
-
-        FocusRing {
-            visible: root.visualFocus
-        }
+    FocusRing {
+        visible: root.visualFocus
     }
 
     Row {
@@ -71,15 +43,15 @@ StyledButton {
             elide: Text.ElideRight
             font.pixelSize: Style.fontSizeSmall
             font.weight: Style.fontWeightMedium
-            color: root.active ? Style.onSecondaryContainer : Style.surfaceVariantText
+            color: root.labelColor
         }
 
-        // always takes its room, so the pill doesn't change width when the arrow appears
+        // always takes its room, so the label doesn't move when the arrow appears
         DIcon {
             anchors.verticalCenter: parent.verticalCenter
             name: "arrow_upward"
             size: Style.iconSizeSmall
-            color: root.active ? Style.onSecondaryContainer : Style.surfaceVariantText
+            color: root.labelColor
             opacity: root.active ? 1 : root.hovered || root.visualFocus ? Style.pendingOpacity : 0
             rotation: root.active && root.descending ? 180 : 0
 

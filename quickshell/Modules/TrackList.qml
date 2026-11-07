@@ -7,6 +7,7 @@ import qs.Services
 import qs.DCommon.Widgets
 import qs.Widgets
 import "../Common/Layouts.js" as Layouts
+import "../Common/ColumnDrag.js" as ColumnDrag
 
 // The track list every view shares: rows, multi-select with a selection bar, drag to queue or playlist,
 // per-track menu, and on wide windows sortable columns.
@@ -39,18 +40,50 @@ Item {
     property Component header: null
     // a ListView section property such as "day", or ""
     property string sectionProperty: ""
+    // or one section name per track
+    property var sectionNames: []
+    readonly property bool sectioned: sectionProperty !== "" || sectionNames.length > 0
+    // rank numbers (1, 2, 3 in list order) in place of covers
+    property bool ranked: false
+    // a click plays that track alone, not the list from there
+    property bool playsOne: false
+    // a page sharing this list with others; a new one starts at the top
+    property string route: ""
     property real bottomInset: 0
 
     property var selectedIndexes: []
     property int anchorIndex: -1
 
     readonly property bool columns: sortable && layout === "list" && width >= PlayerMetrics.compactBreakpoint
+    // widths of the columns being dragged, by line; only written to the settings on release
+    property var draft: ({})
     readonly property var columnOptions: ({
             "lines": lines,
-            "lineOptions": lineOptions
+            "lineOptions": sizedLineOptions
         })
-    readonly property var columnList: columns ? UiConfig.trackColumns(columnOptions) : []
+    readonly property var sizedLineOptions: {
+        const out = Object.assign({}, lineOptions);
+        for (const line of Object.keys(draft))
+            out[line] = Object.assign({}, out[line], {
+                "size": draft[line]
+            });
+        return out;
+    }
+    readonly property var baseColumns: columns ? UiConfig.trackColumns(columnOptions) : []
     readonly property real titleWeight: columns ? UiConfig.titleWeight(columnOptions) : PlayerMetrics.titleColumnWeight
+    // The width the title and the fill columns share: the row less everything of fixed width. The layout's own
+    // stretch factors don't split it by weight, so each fill column gets its pixels here and the title takes the rest.
+    property real endWidth: 0
+    readonly property real fillTotal: view.width - Theme.spacingL - (orderKey === "" && showArt ? PlayerMetrics.rowArtSize : PlayerMetrics.columnNumberWidth) - Theme.spacingS - endWidth - Theme.spacingM * (baseColumns.length + 2) - baseColumns.reduce((n, c) => n + (c.width ?? 0), 0)
+    readonly property real weightTotal: baseColumns.reduce((n, c) => n + (c.fill ?? 0), titleWeight)
+    // pixels per unit of weight; the title never goes under its minimum
+    readonly property real pixelsPerWeight: Math.max(fillTotal, PlayerMetrics.columnTitleMinWidth * weightTotal / titleWeight) / weightTotal
+    // fill columns carry their weight and the pixels it comes to, as a width
+    readonly property var columnList: baseColumns.map(c => Object.assign({}, c, {
+            "weight": c.fill,
+            "fill": undefined,
+            "width": c.fill !== undefined ? c.fill * pixelsPerWeight : c.width
+        }))
     readonly property real timeWidth: columns ? UiConfig.timeWidth(columnOptions) : PlayerMetrics.columnTimeWidth
     readonly property string titleSort: Layouts.columnSort(columnOptions, "title")
     // the sort has no header cell (Plays, Last played, ...), so it gets one of its own to show and flip it
@@ -72,11 +105,30 @@ Item {
     readonly property alias view: list
 
     signal sortRequested(string key)
+    // a drag or reset changed these columns' widths: line key to the stored size (1 is Medium)
+    signal columnsResized(var sizes)
     // scrolled to the last row, for lists that load more on demand
     signal endReached
 
     function positionsOf(indexes) {
         return indexes.map(i => root.tracks[i]?.position ?? i);
+    }
+
+    function dragTo(cols, index, dx) {
+        const r = ColumnDrag.resize(cols, index, dx);
+        const next = {};
+        next[cols[index].line] = r.left;
+        next[cols[index + 1].line] = r.right;
+        draft = next;
+    }
+
+    function endDrag() {
+        const sizes = {};
+        for (const line of Object.keys(draft))
+            sizes[line] = ColumnDrag.stored(draft[line]);
+        if (Object.keys(sizes).length > 0)
+            columnsResized(sizes);
+        draft = {};
     }
 
     function clearSelection() {
@@ -137,15 +189,70 @@ Item {
         onSortRequested: root.sortRequested(key)
     }
 
+    // the grip between a header cell and the next one; its parent is the cell
+    component ColumnHandle: MouseArea {
+        id: handle
+        // the header row, which knows the cells
+        required property var strip
+        // index of the column on its start side
+        property int column: 0
+        property real startX: 0
+        property var cols: []
+        readonly property real dir: I18n.isRtl ? -1 : 1
+
+        anchors.left: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: Theme.spacingM
+        hoverEnabled: true
+        preventStealing: true
+        cursorShape: Qt.SplitHCursor
+        Accessible.role: Accessible.Grip
+        Accessible.name: I18n.tr("Resize column", "track list column border handle")
+        onPressed: mouse => {
+            cols = strip.measure();
+            startX = mapToItem(root.view, mouse.x, 0).x;
+        }
+        onPositionChanged: mouse => {
+            if (pressed)
+                root.dragTo(cols, column, (mapToItem(root.view, mouse.x, 0).x - startX) * dir);
+        }
+        onReleased: root.endDrag()
+        onCanceled: root.endDrag()
+        onDoubleClicked: {
+            root.draft = {};
+            const sizes = {};
+            sizes[strip.lineAt(column)] = 1;
+            sizes[strip.lineAt(column + 1)] = 1;
+            root.columnsResized(sizes);
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: Theme.groupedListGap
+            height: parent.height
+            radius: Theme.fullRadius(width, height)
+            color: Theme.primary
+            visible: handle.pressed || handle.containsMouse
+        }
+    }
+
     DListView {
         id: list
         anchors.fill: parent
         clip: true
         spacing: Theme.groupedListGap
         bottomMargin: PlayerMetrics.pagePadding + root.bottomInset + (root.selecting ? selectionBar.height + Theme.spacingL : 0)
-        // a count, not the array: Qt copies an array model item by item (a quarter second at 100k tracks), and
-        // a re-sorted list of the same length keeps its rows. Sections need roles, so they take the array.
-        model: root.sectionProperty === "" ? root.tracks.length : root.tracks
+        // not the array: Qt copies an array model item by item (a quarter second at 100k tracks), and a re-sorted
+        // list of the same length keeps its rows
+        model: RowModel {
+            rows: root.tracks.length
+            groups: root.sectionNames.length > 0 ? root.sectionNames : root.sectionProperty === "" ? [] : root.tracks.map(t => String(t[root.sectionProperty] ?? ""))
+        }
+        // unset, the view makes the first row current as rows arrive, and that row takes the focus
+        currentIndex: -1
+        readonly property string route: root.route
+        onRouteChanged: contentY = originY
         onAtYEndChanged: {
             if (atYEnd && count > 0)
                 root.endReached();
@@ -160,9 +267,38 @@ Item {
 
             // mirrors TrackRow's wide layout
             RowLayout {
+                id: header
                 width: parent?.width ?? 0
                 visible: root.columns && root.tracks.length > 0
                 spacing: Theme.spacingM
+
+                Binding {
+                    target: root
+                    property: "endWidth"
+                    value: headerEnd.implicitWidth
+                }
+
+                // the resizable columns, title first, as the drag math wants them
+                function lineAt(k) {
+                    return k === 0 ? "title" : root.columnList[k - 1].line;
+                }
+
+                function measure() {
+                    const cells = [titleCell].concat(root.columnList.map((_, i) => columnRepeater.itemAt(i)));
+                    return cells.map((cell, k) => {
+                        const line = lineAt(k);
+                        const spec = k === 0 ? null : root.columnList[k - 1];
+                        const size = Layouts.columnSize(root.columnOptions, line);
+                        return {
+                            "line": line,
+                            "fill": k === 0 || spec.weight !== undefined,
+                            "size": size,
+                            "base": (k === 0 ? root.titleWeight : spec.weight ?? spec.width) / size,
+                            "px": cell.width,
+                            "min": k === 0 ? PlayerMetrics.columnTitleMinWidth : 0
+                        };
+                    });
+                }
 
                 Item {
                     visible: root.orderKey === ""
@@ -179,26 +315,43 @@ Item {
                 }
 
                 SortCell {
+                    id: titleCell
                     Layout.fillWidth: true
                     Layout.preferredWidth: root.titleWeight
                     Layout.minimumWidth: PlayerMetrics.columnTitleMinWidth
                     label: UiConfig.sortLabel("title")
                     key: root.titleSort
+
+                    ColumnHandle {
+                        strip: header
+                        visible: root.columnList.length > 0
+                        column: 0
+                    }
                 }
 
                 Repeater {
-                    model: root.columnList
+                    id: columnRepeater
+                    // a count, so a drag that changes the widths keeps the cells (and the handle being dragged)
+                    model: root.columnList.length
 
                     SortCell {
-                        required property var modelData
-                        Layout.fillWidth: modelData.fill !== undefined
-                        Layout.preferredWidth: modelData.fill ?? modelData.width
+                        required property int index
+                        readonly property var modelData: root.columnList[index] ?? ({})
+                        Layout.preferredWidth: modelData.width
                         label: modelData.label
                         key: modelData.sort
+
+                        // the last column borders the length slot, which has no handle
+                        ColumnHandle {
+                            strip: header
+                            visible: parent.index < root.columnList.length - 1
+                            column: parent.index + 1
+                        }
                     }
                 }
 
                 RowEnd {
+                    id: headerEnd
                     Layout.rightMargin: Theme.spacingS
                     actions: headerActions
                     item: root.tracks[0] ?? null
@@ -236,9 +389,9 @@ Item {
             }
         }
 
-        section.property: root.sectionProperty
+        section.property: root.sectioned ? "group" : ""
         // without a section property a count model would still get a header per row
-        section.delegate: root.sectionProperty !== "" ? sectionHeader : null
+        section.delegate: root.sectioned ? sectionHeader : null
 
         Component {
             id: sectionHeader
@@ -262,7 +415,7 @@ Item {
             readonly property bool inSelection: root.selectedSet[index] === true
             width: list.width
             track: CatalogService.withMarks(modelData)
-            number: root.numbered ? (modelData.position !== undefined ? modelData.position + 1 : modelData.number ?? index + 1) : 0
+            number: root.ranked ? index + 1 : root.numbered ? (modelData.position !== undefined ? modelData.position + 1 : modelData.number ?? index + 1) : 0
             showArt: root.showArt
             columns: root.columns
             compact: root.layout === "compact"
@@ -279,7 +432,7 @@ Item {
             // sections (discs, days) each start a group of their own
             firstInGroup: index === 0 || ListView.section !== ListView.previousSection
             lastInGroup: index === root.tracks.length - 1 || ListView.section !== ListView.nextSection
-            onActivated: PlayerService.playTracks(root.tracks, index, root.context)
+            onActivated: root.playsOne ? PlayerService.playTracks([modelData], 0, root.context) : PlayerService.playTracks(root.tracks, index, root.context)
             onSelectRequested: modifiers => root.select(index, modifiers)
         }
     }

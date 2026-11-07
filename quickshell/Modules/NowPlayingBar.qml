@@ -7,9 +7,9 @@ import qs.Services
 import qs.DCommon.Widgets
 import qs.Widgets
 
-// The now-playing bar: the user's elements in left, center (the seekbar line over the transport) and right zones.
-// When the width runs short the track info and the seekbar shrink first, then right-zone elements move into its
-// ⋮ menu (Overflow.js). Narrow windows keep the left zone and the core transport.
+// The now-playing bar: the user's elements in left, center (the seekbar line, with a line above and below it in use,
+// over the transport) and right zones. When the width runs short the track info and the seekbar shrink first, then
+// right-zone elements move into its ⋮ menu (Overflow.js). Narrow windows keep the left zone and the core transport.
 Rectangle {
     id: root
 
@@ -19,9 +19,10 @@ Rectangle {
     readonly property var artScheme: ArtColors.nowPlaying
     readonly property bool attached: UiConfig.attachedLook
     readonly property string transportLook: UiConfig.styleOf("bar") === "m3e" ? "m3e" : "transport"
-    readonly property bool hasSeekbar: zones.seek.some(i => i.type === "seekbar" && !i.hidden)
+    // the center column at its smallest: the transport keeps its size, the lines lose elements to their ⋮ first
+    readonly property real centerLeast: Math.max(controlsZone.implicitWidth - controlsZone.shrinkable, seekZone.leastWidth, lineAbove.leastWidth, lineBelow.leastWidth)
     // the width the right zone may take: the rest once the other zones are at their smallest
-    readonly property real rightRoom: width - Theme.spacingM * 2 - Theme.spacingL * 2 - (leftZone.implicitWidth - leftZone.shrinkable) - Math.max(controlsZone.implicitWidth, hasSeekbar ? PlayerMetrics.barSeekMinWidth : 0)
+    readonly property real rightRoom: width - Theme.spacingM * 2 - Theme.spacingL * 2 - (leftZone.implicitWidth - leftZone.shrinkable) - centerLeast
 
     implicitHeight: Math.max(PlayerMetrics.barHeight, layout.implicitHeight + Theme.spacingS * 2)
     // attached: no card, the bar sits on the window surface like the navigation rail
@@ -91,27 +92,58 @@ Rectangle {
         NowPlayingZone {
             id: leftZone
             Layout.fillWidth: true
-            Layout.maximumWidth: implicitWidth
+            Layout.maximumWidth: Math.min(implicitWidth, Math.max(Layout.minimumWidth, (root.width - (rightZone.visible ? rightZone.implicitWidth : 0)) * PlayerMetrics.barLeftShare))
             Layout.minimumWidth: implicitWidth - shrinkable
             instances: root.zones.left
             opensView: true
         }
 
         ColumnLayout {
+            id: center
             Layout.fillWidth: true
-            Layout.minimumWidth: controlsZone.implicitWidth
+            Layout.minimumWidth: root.centerLeast
+            // not from the lines: they follow this column's width, and it would follow them
+            Layout.preferredWidth: Math.max(seekZone.implicitWidth, controlsZone.implicitWidth)
             Layout.alignment: Qt.AlignVCenter
             visible: !root.compact
             spacing: Theme.spacingS
 
+            // each zone states its least width: a column takes the widest minimum of its children, whatever its own size
+            NowPlayingLine {
+                id: lineAbove
+                Layout.fillWidth: spreads
+                Layout.preferredWidth: fitWidth
+                Layout.minimumWidth: leastWidth
+                Layout.alignment: Qt.AlignHCenter
+                available: center.width
+                instances: root.zones.seekAbove
+                centered: true
+            }
+
             NowPlayingZone {
+                id: seekZone
                 Layout.fillWidth: true
+                Layout.minimumWidth: leastWidth
                 instances: root.zones.seek
+                room: center.width
+                keepMoves: true
+            }
+
+            NowPlayingLine {
+                id: lineBelow
+                Layout.fillWidth: spreads
+                Layout.preferredWidth: fitWidth
+                Layout.minimumWidth: leastWidth
+                Layout.alignment: Qt.AlignHCenter
+                available: center.width
+                instances: root.zones.seekBelow
+                centered: true
             }
 
             NowPlayingZone {
                 id: controlsZone
                 Layout.alignment: Qt.AlignHCenter
+                Layout.minimumWidth: implicitWidth - shrinkable
                 instances: root.zones.controls
                 size: "m"
                 look: root.transportLook
@@ -119,14 +151,9 @@ Rectangle {
             }
         }
 
-        Item {
-            Layout.fillWidth: true
-            visible: root.compact
-        }
-
         // no room for the seek line: the progress stays as a line above the core transport
         ColumnLayout {
-            Layout.fillWidth: false
+            Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter
             visible: root.compact
             spacing: Theme.spacingS
@@ -135,10 +162,12 @@ Rectangle {
                 Layout.fillWidth: true
                 interactive: false
                 flat: root.transportLook === "m3e"
+                expressive: !flat
                 thin: true
             }
 
             NowPlayingZone {
+                Layout.alignment: Qt.AlignHCenter
                 instances: ["previous", "playPause", "next"].map(type => ({
                             "id": type.toLowerCase(),
                             "type": type,
@@ -154,6 +183,7 @@ Rectangle {
         NowPlayingZone {
             id: rightZone
             Layout.fillWidth: false
+            keepMoves: root.rightRoom < rightZone.naturalWidth(rightZone.size, true)
             visible: !root.compact && rightZone.populated
             Layout.maximumWidth: Math.max(0, root.rightRoom)
             Layout.minimumWidth: Math.min(implicitWidth - shrinkable, Layout.maximumWidth)

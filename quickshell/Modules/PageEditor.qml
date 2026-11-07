@@ -35,9 +35,8 @@ Item {
     // the sections that pick which list is edited below them (the Favorites tabs), and the one picked
     property var tabs: []
     property string currentTab: ""
-    // a saved view's record: edits go into it, and it can be renamed and deleted here
+    // a custom page's record: edits go into it, and it can be renamed and deleted here
     property var savedView: null
-    property bool savable: false
     // where the add pickers open: the page
     property Item sheetHost: null
     // the block takes at most this share of the page and scrolls on its own, so the list stays in view
@@ -64,8 +63,8 @@ Item {
     property bool filterable: false
 
     signal tabPicked(string tab)
-    signal saveAsRequested
     signal renameRequested
+    signal duplicateRequested
     signal deleteRequested
 
     function apply(patch) {
@@ -103,7 +102,7 @@ Item {
         if (savedView) {
             const id = savedView.id;
             // the options are the view's whole definition
-            Router.confirm(I18n.tr("Reset %1?", "settings pages: reset confirmation title, %1 is the page").arg(savedView.name), I18n.tr("Filters, sort and display options are reset.", "reset saved view confirmation"), I18n.tr("Reset", "button that restores the defaults"), () => UiConfig.updateSavedView(id, {
+            Router.confirm(I18n.tr("Reset %1?", "settings pages: reset confirmation title, %1 is the page").arg(savedView.name), I18n.tr("Filters, sort and display options are reset.", "reset custom page confirmation"), I18n.tr("Reset", "button that restores the defaults"), () => UiConfig.updateSavedView(id, {
                     "options": {}
                 }));
             return;
@@ -117,7 +116,10 @@ Item {
     }
 
     // a custom column is a sort only while it is shown
-    readonly property var sortList: type === "tracks" && sorts.length > 0 ? sorts.concat((options.lines ?? []).filter(Layouts.isCustomLine)) : sorts
+    readonly property var sortList: (type === "tracks" && sorts.length > 0 ? sorts.concat((options.lines ?? []).filter(Layouts.isCustomLine)) : sorts).concat(savedView && sorts.length > 0 ? ["random"] : [])
+    readonly property var groupList: savedView ? UiConfig.groupChoices(type) : []
+    readonly property bool tracksView: savedView !== null && type === "tracks"
+    readonly property var iconChoice: UiConfig.pageIcons.find(i => i.value === (savedView?.icon ?? "bookmark")) ?? UiConfig.pageIcons[0]
     // track pages edit their info lines as the list's columns, between the fixed Title and Length
     readonly property bool columnsEditor: type === "tracks"
     readonly property var lineOptions: options.lineOptions ?? ({})
@@ -176,7 +178,8 @@ Item {
             "title": UiConfig.sortLabel(key, lineOptions),
             "subtitle": columnSummary(key),
             "hideable": false,
-            "hasOptions": true,
+            "expandable": true,
+            "expanded": key === openColumn,
             "movable": !fixed,
             "removable": !fixed
         };
@@ -311,7 +314,30 @@ Item {
         addSheet.opened = true;
     }
 
+    function pickIcon() {
+        addSheet.target = "icon";
+        addSheet.title = I18n.tr("Icon", "custom page option: the icon in the navigation");
+        addSheet.sections = [
+            {
+                "title": "",
+                "items": UiConfig.pageIcons.map(i => ({
+                            "label": i.label,
+                            "icon": i.value,
+                            "value": i.value,
+                            "done": false
+                        }))
+            }
+        ];
+        addSheet.opened = true;
+    }
+
     function picked(value) {
+        if (addSheet.target === "icon") {
+            UiConfig.updateSavedView(savedView.id, {
+                "icon": value
+            });
+            return;
+        }
         if (addSheet.target === "line") {
             if (value !== "custom") {
                 apply({
@@ -504,6 +530,101 @@ Item {
                 }
 
                 SectionLabel {
+                    visible: pageGroup.firstRow !== null
+                    text: I18n.tr("Custom page", "a custom page: page label, playback context")
+                }
+
+                SettingsGroup {
+                    id: pageGroup
+
+                    SettingsRow {
+                        visible: root.savedView !== null
+                        title: I18n.tr("Icon", "custom page option: the icon in the navigation")
+                        iconName: root.iconChoice.value
+                        trailingBadge: root.iconChoice.label
+                        clickable: true
+                        showChevron: true
+                        onClicked: root.pickIcon()
+                    }
+
+                    SettingsRow {
+                        visible: root.savedView !== null
+                        title: I18n.tr("Limit", "custom page option: how many items the page keeps")
+
+                        DDropdown {
+                            id: limitDropdown
+                            anchors.verticalCenter: parent?.verticalCenter
+                            dropdownWidth: SettingsMetrics.dropdownWidth
+                            options: [0].concat(UiConfig.pageLimits).map(n => UiConfig.limitLabel(n))
+                            optionValues: [0].concat(UiConfig.pageLimits).map(n => String(n))
+                            onValueChanged: value => root.apply({
+                                    "limit": Number(value) > 0 ? Number(value) : undefined
+                                })
+                        }
+
+                        Binding {
+                            target: limitDropdown
+                            property: "currentValue"
+                            value: String(root.options.limit ?? 0)
+                        }
+                    }
+
+                    SettingsRow {
+                        visible: root.groupList.length > 1 && root.options.layout !== "grid"
+                        title: I18n.tr("Group by", "custom page option: section headers in the list")
+
+                        DDropdown {
+                            id: groupDropdown
+                            anchors.verticalCenter: parent?.verticalCenter
+                            dropdownWidth: SettingsMetrics.dropdownWidth
+                            emptyText: UiConfig.groupLabel("")
+                            options: root.groupList.map(g => UiConfig.groupLabel(g))
+                            optionValues: root.groupList
+                            onValueChanged: value => root.apply({
+                                    "group": value === "" ? undefined : value
+                                })
+                        }
+
+                        Binding {
+                            target: groupDropdown
+                            property: "currentValue"
+                            value: root.groupList.indexOf(root.options.group ?? "") >= 0 ? root.options.group ?? "" : ""
+                        }
+                    }
+
+                    SettingsButtonGroupRow {
+                        visible: root.tracksView
+                        text: I18n.tr("Click plays", "custom page option: what a click on a track plays")
+                        model: [I18n.tr("The list", "custom page option: a click plays the whole list from the track"), I18n.tr("Only the track", "custom page option: a click plays just that track")]
+                        currentIndex: root.options.click === "one" ? 1 : 0
+                        onSelectionChanged: (index, selected) => {
+                            if (selected)
+                                root.apply({
+                                    "click": index === 1 ? "one" : undefined
+                                });
+                        }
+                    }
+
+                    SettingsToggleRow {
+                        visible: root.tracksView
+                        text: I18n.tr("Number the rows", "custom page option: rank numbers in place of covers")
+                        checked: root.options.ranked === true
+                        onToggled: value => root.apply({
+                                "ranked": value ? true : undefined
+                            })
+                    }
+
+                    SettingsToggleRow {
+                        visible: root.tracksView
+                        text: I18n.tr("Shuffle button", "custom page option: the Shuffle all button above the list")
+                        checked: root.options.shuffleButton !== false
+                        onToggled: value => root.apply({
+                                "shuffleButton": value ? undefined : false
+                            })
+                    }
+                }
+
+                SectionLabel {
                     visible: filterGroup.firstRow !== null || ruleEditor.visible
                     text: I18n.tr("Filter", "view options section")
                 }
@@ -596,99 +717,83 @@ Item {
                         root.openColumn = root.openColumn === key ? "" : key;
                     }
                     onAddRequested: root.pickLine()
-                }
+                    expandedPanel: Component {
+                        SettingsGroup {
+                            SettingsFieldRow {
+                                id: lineTitleRow
+                                visible: root.openIsCustom
+                                title: I18n.tr("Column title", "page edit mode: the header of the custom text column")
+                                field.placeholderText: UiConfig.lineLabel("custom")
+                                field.maximumLength: 64
+                                field.onTextEdited: {
+                                    if (field.text !== (root.lineOptions[root.openColumn]?.title ?? ""))
+                                        root.applyColumn(root.openColumn, {
+                                            "title": field.text === "" ? undefined : field.text
+                                        });
+                                }
 
-                SectionLabel {
-                    visible: root.linesEditable && root.columnOpen
-                    text: UiConfig.sortLabel(root.openColumn, root.lineOptions)
-                }
+                                Binding {
+                                    target: lineTitleRow.field
+                                    property: "text"
+                                    value: root.lineOptions[root.openColumn]?.title ?? ""
+                                    when: !lineTitleRow.field.inputFocused
+                                    restoreMode: Binding.RestoreNone
+                                }
+                            }
 
-                SettingsGroup {
-                    visible: root.linesEditable && root.columnOpen
+                            TemplateRow {
+                                visible: root.openIsCustom
+                                template: root.lineOptions[root.openColumn]?.template ?? ""
+                                onEdited: value => root.applyColumn(root.openColumn, {
+                                        "template": value
+                                    })
+                            }
 
-                    SettingsFieldRow {
-                        id: lineTitleRow
-                        visible: root.openIsCustom
-                        title: I18n.tr("Column title", "page edit mode: the header of the custom text column")
-                        field.placeholderText: UiConfig.lineLabel("custom")
-                        field.maximumLength: 64
-                        field.onTextEdited: {
-                            if (field.text !== (root.lineOptions[root.openColumn]?.title ?? ""))
-                                root.applyColumn(root.openColumn, {
-                                    "title": field.text === "" ? undefined : field.text
-                                });
-                        }
+                            SettingsRow {
+                                visible: root.openColumn !== "duration"
+                                title: I18n.tr("Sort by", "view options section")
 
-                        Binding {
-                            target: lineTitleRow.field
-                            property: "text"
-                            value: root.lineOptions[root.openColumn]?.title ?? ""
-                            when: !lineTitleRow.field.inputFocused
-                            restoreMode: Binding.RestoreNone
-                        }
-                    }
+                                DDropdown {
+                                    id: columnSortDropdown
+                                    anchors.verticalCenter: parent?.verticalCenter
+                                    dropdownWidth: SettingsMetrics.dropdownWidth
+                                    options: root.columnSortChoices.map(k => root.openIsCustom && k === root.openColumn ? I18n.tr("Its text", "page edit mode: a custom column sorts by what it shows") : root.sortText(k))
+                                    optionValues: root.columnSortChoices
+                                    onValueChanged: value => root.applyColumn(root.openColumn, {
+                                            "sort": value === root.openColumn ? undefined : value
+                                        })
+                                }
 
-                    TemplateRow {
-                        visible: root.openIsCustom
-                        template: root.lineOptions[root.openColumn]?.template ?? ""
-                        onEdited: value => root.applyColumn(root.openColumn, {
-                                "template": value
-                            })
-                    }
+                                Binding {
+                                    target: columnSortDropdown
+                                    property: "currentValue"
+                                    value: Layouts.columnSort(root.options, root.openColumn)
+                                }
+                            }
 
-                    SettingsRow {
-                        visible: root.openColumn !== "duration"
-                        title: I18n.tr("Sort by", "view options section")
-
-                        DDropdown {
-                            id: columnSortDropdown
-                            anchors.verticalCenter: parent?.verticalCenter
-                            dropdownWidth: SettingsMetrics.dropdownWidth
-                            options: root.columnSortChoices.map(k => root.openIsCustom && k === root.openColumn ? I18n.tr("Its text", "page edit mode: a custom column sorts by what it shows") : root.sortText(k))
-                            optionValues: root.columnSortChoices
-                            onValueChanged: value => root.applyColumn(root.openColumn, {
-                                    "sort": value === root.openColumn ? undefined : value
-                                })
-                        }
-
-                        Binding {
-                            target: columnSortDropdown
-                            property: "currentValue"
-                            value: Layouts.columnSort(root.options, root.openColumn)
-                        }
-                    }
-
-                    SettingsButtonGroupRow {
-                        text: I18n.tr("Width", "element option: how wide the track info is")
-                        model: [root.sizeText("s"), root.sizeText("m"), root.sizeText("l")]
-                        currentIndex: ["s", "m", "l"].indexOf(Layouts.sizeName(Layouts.columnSize(root.options, root.openColumn)))
-                        onSelectionChanged: (index, selected) => {
-                            if (!selected)
-                                return;
-                            const size = Layouts.sizeValue(["s", "m", "l"][index]);
-                            root.applyColumn(root.openColumn, {
-                                "size": size === 1 ? undefined : size
-                            });
+                            SettingsButtonGroupRow {
+                                text: I18n.tr("Width", "element option: how wide the track info is")
+                                model: [root.sizeText("s"), root.sizeText("m"), root.sizeText("l")]
+                                currentIndex: ["s", "m", "l"].indexOf(Layouts.sizeName(Layouts.columnSize(root.options, root.openColumn)))
+                                onSelectionChanged: (index, selected) => {
+                                    if (!selected)
+                                        return;
+                                    const size = Layouts.sizeValue(["s", "m", "l"][index]);
+                                    root.applyColumn(root.openColumn, {
+                                        "size": size === 1 ? undefined : size
+                                    });
+                                }
+                            }
                         }
                     }
                 }
 
                 Row {
-                    visible: root.savable || root.savedView !== null
+                    visible: root.savedView !== null
                     spacing: Theme.spacingS
 
                     DButton {
-                        visible: root.savedView === null
-                        text: I18n.tr("Save as view…", "view options action")
-                        iconName: "bookmark_add"
-                        backgroundColor: Theme.secondaryContainer
-                        textColor: Theme.onSecondaryContainer
-                        onClicked: root.saveAsRequested()
-                    }
-
-                    DButton {
-                        visible: root.savedView !== null
-                        text: I18n.tr("Rename view", "saved view action")
+                        text: I18n.tr("Rename page", "custom page action")
                         iconName: "edit"
                         backgroundColor: Theme.secondaryContainer
                         textColor: Theme.onSecondaryContainer
@@ -696,8 +801,15 @@ Item {
                     }
 
                     DButton {
-                        visible: root.savedView !== null
-                        text: I18n.tr("Delete view", "saved view action")
+                        text: I18n.tr("Duplicate", "playlist menu action")
+                        iconName: "content_copy"
+                        backgroundColor: Theme.secondaryContainer
+                        textColor: Theme.onSecondaryContainer
+                        onClicked: root.duplicateRequested()
+                    }
+
+                    DButton {
+                        text: I18n.tr("Delete page", "custom page action")
                         iconName: "delete"
                         backgroundColor: "transparent"
                         textColor: Theme.error
@@ -824,8 +936,8 @@ Item {
     ConfirmDialog {
         id: deleteDialog
         host: root.sheetHost ?? root
-        title: I18n.tr("Delete this view?", "delete saved view confirmation title")
-        supportingText: I18n.tr("Also removes its navigation entry and home shelf. No music is deleted.", "delete saved view confirmation")
+        title: I18n.tr("Delete this page?", "delete custom page confirmation title")
+        supportingText: I18n.tr("Also removes its navigation entry and home shelf. No music is deleted.", "delete custom page confirmation")
         confirmText: I18n.tr("Delete", "confirm button that deletes an item")
         onConfirmed: root.deleteRequested()
     }

@@ -120,7 +120,9 @@ Item {
             "note": followed ? I18n.tr("Follows the bottom bar", "side panel editor: a zone taken from the bar") : fixed ? I18n.tr("Placed by the style. They can be shown or hidden.", "layout editor note on the seekbar row") : "",
             "disabled": followed,
             "addable": !followed && !fixed,
-            "rows": (surface.zones[zone.id] ?? []).map(inst => Object.assign(rowOf(zone, types, inst), fixed ? {
+            "closed": fixed,
+            // anything else in that row, from an older layout, can still leave it
+            "rows": (surface.zones[zone.id] ?? []).map(inst => Object.assign(rowOf(zone, types, inst), fixed && ["elapsed", "seekbar", "duration"].indexOf(inst.type) >= 0 ? {
                     "removable": false,
                     "movable": false
                 } : {}))
@@ -306,13 +308,23 @@ Item {
         }
 
         SettingsCard {
-            visible: root.surfaceId === "side"
+            visible: root.surfaceId !== "bar"
 
             SettingsToggleRow {
+                visible: root.surfaceId === "side"
                 text: I18n.tr("Follow the bottom bar", "side panel editor setting")
                 description: I18n.tr("Uses the bar's title, controls and buttons. Tabs follow the button order.", "side panel editor setting description")
                 checked: root.following
                 onToggled: value => root.write(root.zonesCopy(), value)
+            }
+
+            SettingsToggleRow {
+                text: I18n.tr("Center title and artist", "now playing editor setting")
+                checked: UiConfig.titleCentered(root.surfaceId)
+                onToggled: value => UiConfig.setSurface(root.surfaceId, {
+                        "zones": root.zonesCopy(),
+                        "centerTitle": value
+                    })
             }
         }
 

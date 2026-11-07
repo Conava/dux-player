@@ -32,6 +32,7 @@ Rectangle {
 
         AlbumArt {
             id: art
+            anchors.left: parent.left
             width: PlayerMetrics.shelfArtSize
             height: width
             radius: Theme.cornerRadiusL

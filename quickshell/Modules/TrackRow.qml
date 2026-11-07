@@ -243,10 +243,12 @@ DListItem {
         }
 
         Repeater {
-            model: root.columnSpecs
+            // a count, so a drag that changes the widths keeps the cells
+            model: root.columnSpecs.length
 
             StyledText {
-                required property var modelData
+                required property int index
+                readonly property var modelData: root.columnSpecs[index] ?? ({})
                 Layout.fillWidth: modelData.fill !== undefined
                 Layout.preferredWidth: modelData.fill ?? modelData.width
                 text: modelData.line === "artist" && (root.track?.artists?.length ?? 0) > 0 ? "" : UiConfig.infoText(root.track ?? {}, [modelData.line], root.lineOptions)

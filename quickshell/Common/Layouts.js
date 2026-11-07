@@ -47,16 +47,22 @@ function zone(id, kind, overflows) {
     };
 }
 
-// kind: "row" | "column" | "seek" (the seekbar line, a row) | "cover" | "panes" | "shelves"
+const aboveSeek = zone("seekAbove", "line", true);
+const belowSeek = zone("seekBelow", "line", true);
+
+// In the order they show. kind: "row" | "line" (a row of its own, the width of the surface) | "column" | "seek"
+// (the seekbar line, a row) | "cover" | "panes" | "shelves"
 const surfaceZones = dict({
-    "bar": [zone("left", "row"), zone("controls", "row"), zone("seek", "seek"), zone("right", "row", true)],
-    "side": [zone("panes", "panes"), zone("cover", "cover"), zone("title", "column"), zone("top", "row", true), zone("controls", "row", true), zone("seek", "seek"), zone("bottom", "row", true)],
-    "fullBento": [zone("cover", "cover"), zone("header", "row"), zone("title", "column"), zone("top", "row", true), zone("seek", "seek"), zone("controls", "row", true), zone("bottom", "row", true)],
-    "fullM3e": [zone("header", "row"), zone("buttons", "row", true), zone("cover", "cover"), zone("title", "column"), zone("seek", "seek"), zone("controls", "row", true), zone("end", "row", true)],
+    "bar": [zone("left", "row"), aboveSeek, zone("seek", "seek"), belowSeek, zone("controls", "row"), zone("right", "row", true)],
+    "side": [zone("panes", "panes"), zone("cover", "cover"), zone("title", "column"), aboveSeek, zone("seek", "seek"), belowSeek, zone("controls", "row", true), zone("top", "row", true), zone("bottom", "row", true)],
+    "fullBento": [zone("cover", "cover"), zone("header", "row"), zone("title", "column"), zone("top", "row", true), aboveSeek, zone("seek", "seek"), belowSeek, zone("controls", "row", true), zone("bottom", "row", true)],
+    "fullM3e": [zone("header", "row"), zone("buttons", "row", true), zone("cover", "cover"), zone("title", "column"), aboveSeek, zone("seek", "seek"), belowSeek, zone("controls", "row", true), zone("end", "row", true)],
     "home": [zone("shelves", "shelves")]
 });
 const surfaceIds = ["bar", "side", "fullBento", "fullM3e", "home"];
 const nowPlayingSurfaces = ["bar", "side", "fullBento", "fullM3e"];
+// the order the side panel reads the bar in, which decides the order of what it takes from it
+const barReadOrder = ["left", "controls", "seekAbove", "seek", "seekBelow", "right"];
 
 // Row and menu actions per media type. trailing: what End of row offers; menu: every action of the ⋮ menu
 // (On hover offers the same, except keepTrack: its label depends on a lookup the hover buttons don't make)
@@ -223,6 +229,10 @@ const kinds = dict({
 const kindIds = Object.keys(kinds);
 const listLayouts = ["list", "grid", "compact"];
 const sizes = ["s", "m", "l"];
+// a custom page's limit presets, what a click on a track plays, and its icon names
+const pageLimits = [10, 25, 50, 100, 200, 500];
+const clickModes = ["list", "one"];
+const iconPattern = /^[a-z0-9_]{1,48}$/;
 const artShapes = ["cookie", "circle", "rounded", "square"];
 // facts a track row shows at its end (End of row), never as info lines
 const rowFacts = ["duration", "library"];
@@ -335,17 +345,13 @@ function typesFor(id, zoneId) {
         return shelfTypes;
     }
     return elementTypes.filter(type => {
-        if (type === "lyricLine")
-            return id === "bar" && kind === "row" && zoneId !== "controls";
-        if (type === "cover")
-            return (id === "bar" && zoneId === "left") || (id === "side" && zoneId === "title");
-        if (groups.seek.indexOf(type) >= 0)
-            return kind === "seek";
-        if (groups.trackInfo.indexOf(type) >= 0 || groups.layout.indexOf(type) >= 0)
-            return true;
-        if (type === "expand" || type === "dock")
-            return (id === "bar" || id === "side") && kind !== "column";
-        return kind !== "column";
+        // needs a line's width: beside other elements it would get what they leave, down to nothing
+        if (type === "seekbar")
+            return kind !== "row";
+        // the full view has nothing to open
+        if (type === "expand")
+            return id === "bar" || id === "side";
+        return true;
     });
 }
 
@@ -359,7 +365,7 @@ const titleFavorite = {
     "default": false
 };
 
-function optionSchema(id, type) {
+function optionSchema(id, type, zoneId) {
     if (id === "home")
         return type === "search" ? {} : {
             "source": {
@@ -374,6 +380,8 @@ function optionSchema(id, type) {
                 "default": "m"
             }
         };
+    if (type === "cover" && zoneId !== "cover")
+        return {};
     if (type === "cover" && (id === "fullBento" || id === "fullM3e"))
         return {
             "size": {
@@ -431,17 +439,25 @@ function optionSchema(id, type) {
                 "default": defaultTemplate()
             }
         };
-    if (type === "lyricLine")
-        return {
-            "width": {
-                "values": ["s", "m", "l", "xl"],
-                "default": "m"
-            },
+    if (type === "lyricLine") {
+        const smooth = {
             "smooth": {
                 "values": [true, false],
                 "default": false
+            },
+            "hideInLyrics": {
+                "values": [true, false],
+                "default": true
             }
         };
+        // anywhere else the zone sets its width
+        return id === "bar" && (zoneId === "left" || zoneId === "right") ? Object.assign({
+            "width": {
+                "values": ["s", "m", "l", "xl"],
+                "default": "m"
+            }
+        }, smooth) : smooth;
+    }
     if (type === "spacer")
         return {
             "size": {
@@ -492,8 +508,10 @@ function defaultSurface(id) {
         return {
             "zones": {
                 "left": insts(["cover", heartTitle(), "artists", hiddenInst("album"), hiddenInst("libraryBadge"), "castTarget"]),
-                "controls": insts(transport),
+                "seekAbove": [],
                 "seek": insts(seek),
+                "seekBelow": [],
+                "controls": insts(transport),
                 "right": insts([alwaysShown("addToPlaylist"), "lyrics", "queue", "device", "volume", "dock"])
             }
         };
@@ -504,9 +522,11 @@ function defaultSurface(id) {
                 "panes": [],
                 "cover": insts(["cover"]),
                 "title": insts([heartTitle(), "artists", "album", hiddenInst("libraryBadge")]),
-                "top": insts(["volume", fillSpacer(), "device"]),
-                "controls": insts(transport),
+                "seekAbove": [],
                 "seek": insts(seek),
+                "seekBelow": [],
+                "controls": insts(transport),
+                "top": insts(["volume", fillSpacer(), "device"]),
                 "bottom": insts([alwaysShown("addToPlaylist"), "sleep", "dock"])
             }
         };
@@ -517,7 +537,9 @@ function defaultSurface(id) {
                 "header": insts(["playingFrom"]),
                 "title": insts(["title", "artists", "album"]),
                 "top": [],
+                "seekAbove": [],
                 "seek": insts(seek),
+                "seekBelow": [],
                 "controls": insts(transport),
                 "bottom": insts(["lyrics", "queue", groupGap(), "volume", "device", groupGap()]).concat([alwaysShown("favorite"), alwaysShown("addToPlaylist")], ["sleep", "speed", "goToAlbum", "goToArtist", "details"].map(type => inst(type, {
                             "placement": "overflow"
@@ -531,7 +553,9 @@ function defaultSurface(id) {
                 "buttons": insts(["volume", "lyrics", "queue", "device"]),
                 "cover": [cover()],
                 "title": insts(["title", "artists", "album"]),
+                "seekAbove": [],
                 "seek": insts(["seekbar", "elapsed", "duration"]),
+                "seekBelow": [],
                 "controls": insts(["previous", "playPause", "next"]),
                 "end": insts([alwaysShown("favorite"), alwaysShown("addToPlaylist"), "sleep", "shuffle", "repeat"])
             }
@@ -610,7 +634,7 @@ function cleanZone(id, zoneId, stored, seen) {
             "type": x.type,
             "hidden": x.hidden === true,
             "placement": placements.indexOf(x.placement) >= 0 ? x.placement : "auto",
-            "options": cleanOptions(optionSchema(id, x.type), x.options)
+            "options": cleanOptions(optionSchema(id, x.type, zoneId), x.options)
         });
     }
     return out;
@@ -633,6 +657,9 @@ function cleanSurface(id, stored) {
         out.zones[z.id] = cleanZone(id, z.id, storedZones[z.id], seen) ?? cleanZone(id, z.id, defaults[z.id], seen);
     if (id === "side")
         out.panesFollowBar = given.panesFollowBar !== false;
+    // unset, the style decides
+    if (typeof given.centerTitle === "boolean")
+        out.centerTitle = given.centerTitle;
     return out;
 }
 
@@ -833,6 +860,25 @@ function columnSize(o, line) {
     return o.lineOptions?.[line]?.size ?? 1;
 }
 
+// the options with these columns' widths set (1 removes the stored size, and an entry left empty goes with it)
+function withColumnSizes(o, sizes) {
+    const lineOptions = Object.assign({}, o.lineOptions);
+    for (const line of Object.keys(sizes)) {
+        const entry = Object.assign({}, lineOptions[line]);
+        if (sizes[line] === 1)
+            delete entry.size;
+        else
+            entry.size = sizes[line];
+        if (Object.keys(entry).length > 0)
+            lineOptions[line] = entry;
+        else
+            delete lineOptions[line];
+    }
+    return Object.assign({}, o, {
+        "lineOptions": lineOptions
+    });
+}
+
 // "s", "m" or "l" for a width the Width row sets, "" for a dragged one
 function sizeName(size) {
     return Object.keys(columnSizes).find(k => columnSizes[k] === size) ?? "";
@@ -911,8 +957,18 @@ function cleanListOptions(kind, stored) {
                 out[key] = v;
             break;
         case "descending":
+        case "shuffleButton":
+        case "ranked":
             if (typeof v === "boolean")
-                out.descending = v;
+                out[key] = v;
+            break;
+        case "limit":
+            if (pageLimits.indexOf(v) >= 0)
+                out.limit = v;
+            break;
+        case "click":
+            if (clickModes.indexOf(v) >= 0)
+                out.click = v;
             break;
         case "filters":
             if (isObject(v)) {
@@ -958,12 +1014,17 @@ function cleanNavigation(stored) {
 function cleanSavedViews(stored) {
     if (!Array.isArray(stored))
         return [];
-    return stored.slice(0, maxList).filter(v => isObject(v) && safeString(v.id, 64) && safeString(v.name, 256) && typeDefaults[v.type] !== undefined).map(v => ({
-                "id": v.id,
-                "name": v.name,
-                "type": v.type,
-                "options": cleanListOptions(v.type, v.options)
-            }));
+    return stored.slice(0, maxList).filter(v => isObject(v) && safeString(v.id, 64) && safeString(v.name, 256) && typeDefaults[v.type] !== undefined).map(v => {
+        const out = {
+            "id": v.id,
+            "name": v.name,
+            "type": v.type,
+            "options": cleanListOptions(v.type, v.options)
+        };
+        if (typeof v.icon === "string" && iconPattern.test(v.icon))
+            out.icon = v.icon;
+        return out;
+    });
 }
 
 function overrideKind(key) {
@@ -998,7 +1059,7 @@ function sidePanes(bar, side) {
         return panes.length > 0 ? panes : ["cover"];
     }
     // the bar never takes a pane away: one whose button the bar doesn't show goes last
-    const shown = surfaceZones.bar.reduce((all, z) => all.concat(bar.zones[z.id].filter(i => !i.hidden).map(i => i.type)), []);
+    const shown = barReadOrder.reduce((all, z) => all.concat(bar.zones[z].filter(i => !i.hidden).map(i => i.type)), []);
     const at = type => shown.indexOf(type) < 0 ? shown.length : shown.indexOf(type);
     return ["cover"].concat(at("lyrics") <= at("queue") ? ["lyrics", "queue"] : ["queue", "lyrics"]);
 }
@@ -1011,9 +1072,12 @@ function sideFollowedZones() {
 // What the side panel takes from the bar while it follows: the track info (not the cover: the panel has a cover
 // pane), the transport, and the buttons, window buttons at the bottom. Lyrics and queue are the panel's tabs, and
 // the bar's spacers mean nothing in a column. Order, hidden state and placement come with them; the device chip
-// goes to the far end of its row, and the transport is one row in its usual order, as the bar may split it.
-function sideFromBar(bar) {
-    const all = surfaceZones.bar.reduce((list, z) => list.concat(bar.zones[z.id]), []).filter(i => isKnownType(i.type));
+// goes to the far end of its row, and the transport is one row in its usual order, as the bar may split it. The
+// bar's lines above and below the seekbar stay lines, in a line the panel has no content of its own for.
+function sideFromBar(bar, side) {
+    const lines = ["seekAbove", "seekBelow"];
+    const line = z => side.zones[z].length > 0 ? side.zones[z] : bar.zones[z].filter(i => isKnownType(i.type) && i.type !== "lyrics" && i.type !== "queue").map(i => copy(i));
+    const all = barReadOrder.filter(z => lines.indexOf(z) < 0).reduce((list, z) => list.concat(bar.zones[z]), []).filter(i => isKnownType(i.type));
     const of = (types, skip) => all.filter(i => types.indexOf(i.type) >= 0 && skip.indexOf(i.type) < 0).map(i => copy(i));
     const buttons = of(groups.buttons.concat(groups.actions), ["lyrics", "queue"]);
     const windowButtons = ["dock", "expand"];
@@ -1021,6 +1085,8 @@ function sideFromBar(bar) {
     const device = top.filter(i => i.type === "device");
     return {
         "title": of(groups.trackInfo, ["cover"]),
+        "seekAbove": line("seekAbove"),
+        "seekBelow": line("seekBelow"),
         "top": device.length === 0 ? top : top.filter(i => i.type !== "device").concat([fillSpacer()], device),
         "controls": of(groups.transport, []).sort((a, b) => groups.transport.indexOf(a.type) - groups.transport.indexOf(b.type)),
         "bottom": buttons.filter(i => windowButtons.indexOf(i.type) >= 0)
@@ -1044,7 +1110,7 @@ function effective(stored) {
     for (const type of itemTypes)
         out.items[type] = cleanItem(type, items[type]);
     if (out.surfaces.side.panesFollowBar)
-        Object.assign(out.surfaces.side.zones, sideFromBar(out.surfaces.bar));
+        Object.assign(out.surfaces.side.zones, sideFromBar(out.surfaces.bar, out.surfaces.side));
     out.sidePanes = sidePanes(out.surfaces.bar, out.surfaces.side);
     return out;
 }
@@ -1196,6 +1262,8 @@ function setSurface(stored, id, value) {
     given.zones = isObject(given.zones) ? given.zones : {};
     if (id === "side" && typeof given.panesFollowBar !== "boolean")
         given.panesFollowBar = before.surfaces.side.panesFollowBar;
+    if (typeof given.centerTitle !== "boolean" && typeof before.surfaces[id].centerTitle === "boolean")
+        given.centerTitle = before.surfaces[id].centerTitle;
     // turning "Follow the bottom bar" off starts the panes from what the panel showed
     if (id === "side" && before.surfaces.side.panesFollowBar && given.panesFollowBar === false && !(Array.isArray(given.zones.panes) && given.zones.panes.length > 0))
         given.zones.panes = before.sidePanes.map(t => inst(t));

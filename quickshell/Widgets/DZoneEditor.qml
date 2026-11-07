@@ -6,14 +6,16 @@ import qs.DCommon.Widgets
 
 // Titled zones of DInstanceRows. Drag reorders within and across zones; the row menu (right-click, Menu key)
 // moves up, down or to another zone. Emits edits only: the consumer changes the model, and decides undo and
-// confirmation for removals.
-// zones: [{id, label, note?, disabled?, addable?, rows: [{title, icon?, subtitle?, warning?, hidden?,
-//          hideable?, hideEnabled?, removable?, movable?, hasOptions?, dimmed?}]}]
+// confirmation for removals. A closed zone takes no element from another zone, and its rows move out by the menu.
+// zones: [{id, label, note?, disabled?, addable?, closed?, rows: [{title, icon?, subtitle?, warning?, hidden?,
+//          hideable?, hideEnabled?, removable?, movable?, hasOptions?, expandable?, expanded?, dimmed?}]}]
+// expandedPanel shows right under the row marked expanded.
 Column {
     id: root
 
     property var zones: []
     property var flickable: null
+    property Component expandedPanel: null
     property string addText: I18n.tr("Add element", "button under a zone in a layout editor")
     property string emptyText: I18n.tr("Drop elements here", "now playing zone empty state")
     property color rowColor: Style.foregroundColor(Style.chipSurface, Style.isFloatingWindow(root))
@@ -51,7 +53,7 @@ Column {
                 "icon": "arrow_downward",
                 "enabled": index < zone.rows.length - 1
             });
-            const targets = zones.filter(z => z.id !== zoneId && !z.disabled);
+            const targets = zones.filter(z => z.id !== zoneId && !z.disabled && !z.closed);
             if (targets.length > 0)
                 entries.push({
                     "divider": true
@@ -185,7 +187,7 @@ Column {
                 id: list
                 width: parent.width
                 model: zone.rows
-                group: reorderGroup
+                group: zone.modelData.closed ? null : reorderGroup
                 groupKey: zone.zoneId
                 dropArea: zone
                 flickable: root.flickable
@@ -209,10 +211,50 @@ Column {
                     removable: modelData.removable ?? true
                     movable: modelData.movable ?? true
                     hasOptions: modelData.hasOptions ?? false
+                    expandable: modelData.expandable ?? false
+                    expanded: modelData.expanded ?? false
                     onOptionsRequested: root.optionsRequested(zone.zoneId, index)
                     onHiddenToggled: hidden => root.hiddenToggled(zone.zoneId, index, hidden)
                     onRemoveRequested: root.removed(zone.zoneId, index)
                     onContextMenuRequested: (x, y) => root.openMenu(zone.zoneId, index, row, x, y)
+                }
+
+                // the list's drop gap makes the room; a drag takes it over, so the panel steps aside meanwhile
+                readonly property int openRow: zone.rows.findIndex(r => r.expanded === true)
+                readonly property bool panelShown: openRow >= 0 && root.expandedPanel !== null && draggingIndex < 0
+
+                // the list clears its gap whenever the rows change, so it is put back
+                function keepGap() {
+                    if (!panelShown)
+                        return;
+                    gapIndex = openRow + 1;
+                    gapHeight = panel.height;
+                    layout();
+                }
+
+                onGapIndexChanged: Qt.callLater(keepGap)
+                onOpenRowChanged: keepGap()
+                onPanelShownChanged: {
+                    if (panelShown) {
+                        keepGap();
+                        return;
+                    }
+                    gapIndex = -1;
+                    layout();
+                }
+
+                Loader {
+                    id: panel
+                    x: Style.spacingL
+                    y: (list.positions[list.openRow] ?? 0) + (list.itemAt(list.openRow)?.height ?? 0) + list.spacing
+                    width: list.width - Style.spacingL * 2
+                    active: list.panelShown
+                    sourceComponent: root.expandedPanel
+                    onHeightChanged: list.keepGap()
+                    onLoaded: Qt.callLater(() => {
+                        const top = mapToItem(root.flickable?.contentItem ?? root, 0, 0).y;
+                        root.flickable?.revealRange(top, top + height);
+                    })
                 }
             }
 

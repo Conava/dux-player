@@ -366,6 +366,56 @@ function sortSignature(count, options, sortKey, template, libraries) {
     return JSON.stringify([count, options.filters, sortKey, options.descending === true, template, sortKey === "library" ? libraries.map(l => [l.id, l.name]) : null]);
 }
 
+// The group an item falls in for a custom page's Group by; "" when it has none
+function groupLabel(group, item) {
+    switch (group) {
+    case "artist":
+        return String(item.artist ?? "");
+    case "album":
+        return String(item.album ?? "");
+    case "genre":
+        return String(item.genre ?? "");
+    case "year":
+        return item.year > 0 ? String(item.year) : "";
+    case "initial":
+        {
+            const c = String(item.title ?? item.name ?? "").trim().charAt(0);
+            if (c === "")
+                return "";
+            return c.toLowerCase() !== c.toUpperCase() ? c.toUpperCase() : "#";
+        }
+    }
+    return "";
+}
+
+// a number from the seed and the item, the same for the same pair
+function seededRank(seed, item) {
+    const text = seed + "/" + (item.library ?? "") + "/" + (item.id ?? item.name ?? "");
+    let h = 2166136261;
+    for (let i = 0; i < text.length; i++)
+        h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+    return h >>> 0;
+}
+
+// What a custom page does to its sorted list: random order (sort "random", from `seed`, so the order holds
+// while the list is rebuilt), the first `limit` items, then stable grouping, groups A to Z and the unnamed last.
+function shape(list, options, seed, group) {
+    let out = list;
+    if (options.sort === "random")
+        out = sortBy(out, i => seededRank(seed, i), i => "", false);
+    if (options.limit > 0)
+        out = out.slice(0, options.limit);
+    if (group === "" || group === undefined)
+        return out;
+    const rows = out.map((item, i) => ({
+                "g": groupLabel(group, item),
+                "i": i,
+                "item": item
+            }));
+    rows.sort((a, b) => (a.g === "") - (b.g === "") || (a.g !== "" ? a.g.localeCompare(b.g) : 0) || a.i - b.i);
+    return rows.map(r => r.item);
+}
+
 // the items holding every word of `text` (any case) in their names: title, name, artists, album, genre
 function filterText(list, text) {
     const words = (text ?? "").toLowerCase().split(/\s+/).filter(w => w !== "");

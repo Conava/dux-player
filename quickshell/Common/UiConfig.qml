@@ -383,9 +383,84 @@ Singleton {
             return lineLabel(key);
         case "position":
             return I18n.tr("Playlist order", "sort key: the order a playlist keeps");
+        case "random":
+            return I18n.tr("Random", "sort key: a new order each time the page opens");
         }
         return key;
     }
+
+    // Custom pages: the Group by choices of a type ("" is no grouping), and the limit and icon presets
+
+    function groupChoices(type) {
+        switch (type) {
+        case "tracks":
+            return ["", "artist", "album", "genre", "year", "initial"];
+        case "albums":
+            return ["", "artist", "genre", "year", "initial"];
+        case "artists":
+            return ["", "initial"];
+        }
+        return [];
+    }
+
+    function groupLabel(key) {
+        switch (key) {
+        case "":
+            return I18n.tr("None", "group by choice: no grouping");
+        case "initial":
+            return I18n.tr("First letter", "group by choice: the first letter of the name");
+        }
+        return lineLabel(key);
+    }
+
+    readonly property var pageLimits: Layouts.pageLimits
+
+    function limitLabel(limit) {
+        return limit > 0 ? I18n.tr("First %1", "limit choice on a custom page: keeps the first N items").arg(limit) : I18n.tr("No limit", "limit choice on a custom page: keeps every item");
+    }
+
+    readonly property var pageIcons: [
+        {
+            "value": "bookmark",
+            "label": I18n.tr("Bookmark", "custom page icon choice")
+        },
+        {
+            "value": "favorite",
+            "label": I18n.tr("Heart", "custom page icon choice")
+        },
+        {
+            "value": "star",
+            "label": I18n.tr("Star", "custom page icon choice")
+        },
+        {
+            "value": "music_note",
+            "label": I18n.tr("Music note", "custom page icon choice")
+        },
+        {
+            "value": "album",
+            "label": I18n.tr("Record", "custom page icon choice")
+        },
+        {
+            "value": "headphones",
+            "label": I18n.tr("Headphones", "custom page icon choice")
+        },
+        {
+            "value": "mic",
+            "label": I18n.tr("Microphone", "custom page icon choice")
+        },
+        {
+            "value": "trending_up",
+            "label": I18n.tr("Trending", "custom page icon choice")
+        },
+        {
+            "value": "bolt",
+            "label": I18n.tr("Lightning", "custom page icon choice")
+        },
+        {
+            "value": "bedtime",
+            "label": I18n.tr("Moon", "custom page icon choice")
+        }
+    ]
 
     function sortChoices(type) {
         switch (type) {
@@ -483,6 +558,19 @@ Singleton {
 
     function resetPageOptions(kind, itemId) {
         SettingsData.layout = Layouts.resetPageOptions(SettingsData.layout, kind, itemId ?? "");
+    }
+
+    // a column drag on a page: one write, so one undo. A custom page writes into itself, a page in edit mode with
+    // "all" picked into the kind's default, any other into its own change.
+    function setColumnSizes(sizes, kind, itemId, savedView, all) {
+        if (savedView)
+            updateSavedView(savedView.id, {
+                "options": Layouts.withColumnSizes(savedViewOptions(savedView), sizes)
+            });
+        else if (all)
+            setKindDefault(kind, Layouts.withColumnSizes(kindDefault(kind), sizes));
+        else
+            setPageOptions(kind, itemId, Layouts.withColumnSizes(pageOptions(kind, itemId), sizes));
     }
 
     function savedViewOptions(view) {
@@ -584,7 +672,7 @@ Singleton {
         case "library":
             return I18n.tr("Library", "track list column");
         case "view":
-            return I18n.tr("Saved view", "a saved view: page label, playback context");
+            return I18n.tr("Custom page", "a custom page: page label, playback context");
         case "artist":
             return I18n.tr("Artist", "track list column");
         }
@@ -650,7 +738,7 @@ Singleton {
         case "library":
             return Phrases.join(I18n.tr("Library", "track list column"), PlayerService.libraryName(id));
         case "view":
-            return Phrases.join(I18n.tr("Saved view", "a saved view: page label, playback context"), savedView(id)?.name ?? "");
+            return Phrases.join(I18n.tr("Custom page", "a custom page: page label, playback context"), savedView(id)?.name ?? "");
         case "favorites":
             return pageLabel("favorites");
         case "history":
@@ -752,7 +840,7 @@ Singleton {
         case "library":
             return PlayerService.isRemote(entry.target) ? "cloud" : "folder";
         case "view":
-            return "bookmark";
+            return savedView(entry.target)?.icon ?? "bookmark";
         case "artist":
             return "artist";
         }
@@ -837,6 +925,10 @@ Singleton {
         return effective.surfaces[id] ?? null;
     }
 
+    function titleCentered(id) {
+        return surface(id)?.centerTitle ?? (id === "fullBento" || id === "side" && styleOf("side") !== "m3e");
+    }
+
     function setSurface(id, value) {
         SettingsData.layout = Layouts.setSurface(SettingsData.layout, id, value);
     }
@@ -877,7 +969,7 @@ Singleton {
                     "label": forItem ? actionLabel(id, type) : id === "home" ? shelfSourceLabel(type) : elementLabel(type),
                     "icon": forItem ? actionIcon(id, type) : elementIcon(type),
                     "group": forItem ? "" : Layouts.groupOf(type),
-                    "options": Layouts.optionSchema(id, type)
+                    "options": Layouts.optionSchema(id, type, zone)
                 }));
     }
 
@@ -939,7 +1031,11 @@ Singleton {
         case "right":
             return I18n.tr("Right", "now playing zone");
         case "controls":
-            return id === "bar" ? I18n.tr("Below the seekbar", "now playing zone") : I18n.tr("Transport row", "now playing zone");
+            return I18n.tr("Transport row", "now playing zone");
+        case "seekAbove":
+            return I18n.tr("Above the seekbar", "now playing zone");
+        case "seekBelow":
+            return I18n.tr("Below the seekbar", "now playing zone");
         case "seek":
             return I18n.tr("Seekbar row", "now playing zone");
         case "top":

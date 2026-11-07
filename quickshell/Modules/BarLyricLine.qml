@@ -16,10 +16,15 @@ Item {
     // fills each word across its sung time instead of at once
     property bool sweep: false
     property real fontSize: Theme.fontSizeMedium
+    property bool centered: false
+    // without a synced line: the title and artist, or nothing where they already show
+    property bool fallback: true
+    // keeps its place but shows nothing
+    property bool blank: false
 
     readonly property LyricsController controller: LyricsController {
         // held only while the line is on screen; a minimized window still counts as visible to its items
-        enabled: root.visible && root.Window.visibility !== Window.Minimized && root.Window.visibility !== Window.Hidden
+        enabled: root.visible && !root.blank && root.Window.visibility !== Window.Minimized && root.Window.visibility !== Window.Hidden
     }
     readonly property bool wordFill: UiConfig.lyricsWordSync
     readonly property real clock: controller.sampleTime
@@ -34,6 +39,8 @@ Item {
     property real turnedWidth: 0
 
     implicitHeight: Math.ceil(measure.implicitHeight)
+    // squeezed by its row, a line is only a cut-off word: it keeps its place but shows nothing
+    opacity: blank || width < PlayerMetrics.barLyricMinWidth ? 0 : 1
     clip: true
     LayoutMirroring.enabled: false
     LayoutMirroring.childrenInherit: true
@@ -242,7 +249,7 @@ Item {
     DScrollingText {
         width: parent.width
         height: parent.height
-        visible: !root.active
+        visible: !root.active && root.fallback
         text: [PlayerService.current?.title, PlayerService.current?.artist].filter(part => part).join(" • ")
         font.pixelSize: root.fontSize
         font.weight: Theme.fontWeightMedium
@@ -276,6 +283,7 @@ Item {
 
         StyledText {
             id: base
+            x: root.centered ? Math.round((face.width - implicitWidth) / 2) : 0
             anchors.verticalCenter: parent.verticalCenter
             text: face.text
             font: measure.font
@@ -287,13 +295,13 @@ Item {
 
         Item {
             id: filled
-            x: face.rtl ? base.implicitWidth - face.fill : 0
+            x: base.x + (face.rtl ? base.implicitWidth - face.fill : 0)
             width: face.fill
             height: parent.height
             clip: true
 
             StyledText {
-                x: -filled.x
+                x: base.x - filled.x
                 anchors.verticalCenter: parent.verticalCenter
                 text: face.text
                 font: measure.font

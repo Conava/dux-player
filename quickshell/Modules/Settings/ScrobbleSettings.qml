@@ -5,13 +5,18 @@ import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
 
-// ListenBrainz and Last.fm accounts for plays from local libraries; server libraries report to their server.
+// ListenBrainz and Last.fm accounts for plays; server libraries also report to their server.
 SettingsPage {
     id: root
 
     readonly property var listenbrainz: PlayerService.scrobble.listenbrainz ?? {}
     readonly property var lastfm: PlayerService.scrobble.lastfm ?? {}
+    readonly property bool builtIn: PlayerService.scrobble.lastfmBuiltIn === true
+    property bool ownKey: false
+    readonly property bool keyFields: !builtIn || ownKey
     readonly property var disabled: PlayerService.scrobble.disabledLibraries ?? []
+    readonly property var serverOnly: PlayerService.scrobble.serverOnlyLibraries ?? []
+    readonly property var serverLibraries: PlayerService.libraries.filter(l => PlayerService.isRemote(l.id))
     readonly property string signInFirst: I18n.tr("Available after signing in.", "why a scrobbling setting is hidden")
 
     function accountLine(account) {
@@ -19,7 +24,7 @@ SettingsPage {
     }
 
     SettingsPageIntro {
-        text: I18n.tr("A play is scrobbled after half the track or four minutes, whichever comes first. Server libraries scrobble to their server, local libraries to the accounts below.", "scrobbling settings intro")
+        text: I18n.tr("A play is scrobbled after half the track or four minutes, whichever comes first. Plays go to the accounts below, and server libraries report them to their server too.", "scrobbling settings intro")
     }
 
     // brand names stay untranslated
@@ -141,7 +146,7 @@ SettingsPage {
 
         SettingsFieldRow {
             id: keyRow
-            visible: root.lastfm.connected !== true
+            visible: root.lastfm.connected !== true && root.keyFields
             unavailableReason: root.accountLine(root.lastfm)
             title: I18n.tr("API key", "API key field")
             subtitle: I18n.tr("Create an API account at last.fm/api. The key and secret are stored in the system keyring.", "Last.fm sign-in hint")
@@ -149,7 +154,7 @@ SettingsPage {
 
         SettingsFieldRow {
             id: secretRow
-            visible: root.lastfm.connected !== true
+            visible: root.lastfm.connected !== true && root.keyFields
             unavailableReason: root.accountLine(root.lastfm)
             title: I18n.tr("Shared secret", "Last.fm sign-in field")
             field.echoMode: TextInput.Password
@@ -161,17 +166,50 @@ SettingsPage {
             visible: root.lastfm.connected !== true
             subtitle: connectLastfm.enabled ? "" : I18n.tr("Enter the API key and shared secret first.", "why Last.fm sign-in is disabled")
 
-            DButton {
-                id: connectLastfm
+            Row {
                 anchors.verticalCenter: parent.verticalCenter
-                text: I18n.tr("Sign in", "scrobbling account action")
-                backgroundColor: root.lastfm.awaitingApproval ? Theme.secondaryContainer : Theme.primary
-                textColor: root.lastfm.awaitingApproval ? Theme.onSecondaryContainer : Theme.onPrimary
-                enabled: keyRow.field.text.trim() !== "" && secretRow.field.text.trim() !== ""
-                onClicked: PlayerService.scrobbleConnect("lastfm", {
-                    "apiKey": keyRow.field.text.trim(),
-                    "apiSecret": secretRow.field.text.trim()
-                }, () => secretRow.field.text = "")
+                spacing: Theme.spacingS
+
+                DButton {
+                    visible: root.builtIn && !root.ownKey
+                    text: I18n.tr("Use your own API key", "Last.fm sign-in action")
+                    backgroundColor: "transparent"
+                    textColor: Theme.primary
+                    onClicked: root.ownKey = true
+                }
+
+                DButton {
+                    id: connectLastfm
+                    text: root.builtIn && !root.ownKey ? I18n.tr("Connect", "Last.fm sign-in action") : I18n.tr("Sign in", "scrobbling account action")
+                    reserveText: root.builtIn && !root.ownKey ? I18n.tr("Sign in", "scrobbling account action") : I18n.tr("Connect", "Last.fm sign-in action")
+                    backgroundColor: root.lastfm.awaitingApproval ? Theme.secondaryContainer : Theme.primary
+                    textColor: root.lastfm.awaitingApproval ? Theme.onSecondaryContainer : Theme.onPrimary
+                    enabled: !root.keyFields || (keyRow.field.text.trim() !== "" && secretRow.field.text.trim() !== "")
+                    onClicked: PlayerService.scrobbleConnect("lastfm", root.keyFields ? {
+                        "apiKey": keyRow.field.text.trim(),
+                        "apiSecret": secretRow.field.text.trim()
+                    } : {}, () => secretRow.field.text = "")
+                }
+            }
+        }
+    }
+
+    SettingsCard {
+        visible: root.serverLibraries.length > 0
+        title: I18n.tr("Server libraries on your accounts", "scrobbling settings section: whether a server's plays also go to the accounts")
+
+        Repeater {
+            model: root.serverLibraries
+
+            SettingsToggleRow {
+                required property var modelData
+                readonly property bool libraryOn: root.disabled.indexOf(modelData.id) < 0
+                text: modelData.name
+                searchable: false
+                description: libraryOn ? I18n.tr("Turn off when the server sends its plays to the same accounts.", "scrobbling server library row") : I18n.tr("Scrobbling is off for this library.", "why a scrobbling setting is unavailable")
+                enabled: libraryOn
+                checked: root.serverOnly.indexOf(modelData.id) < 0
+                onToggled: value => PlayerService.setScrobbleLibraryAccounts(modelData.id, value)
             }
         }
     }
@@ -188,8 +226,7 @@ SettingsPage {
                 readonly property bool silentServer: PlayerService.isRemote(modelData.id) && !viaServer
                 text: modelData.name
                 description: viaServer ? I18n.tr("Scrobbled to the server", "scrobbling library row") : silentServer ? I18n.tr("This server doesn't support scrobbling", "scrobbling library row") : I18n.tr("Scrobbled to your accounts", "scrobbling library row")
-                enabled: !silentServer
-                checked: !silentServer && root.disabled.indexOf(modelData.id) < 0
+                checked: root.disabled.indexOf(modelData.id) < 0
                 onToggled: value => PlayerService.setScrobbleLibrary(modelData.id, value)
             }
         }

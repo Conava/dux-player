@@ -2,7 +2,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 
-// Picks something to pin: the leading sections, then playlists, saved views, genres and libraries.
+// Picks something to pin: the leading sections, then playlists, custom pages, genres and libraries.
 // Every item's value is [kind, id].
 PickerSheet {
     id: root
@@ -30,7 +30,7 @@ PickerSheet {
             "items": PlayerService.playlists.map(p => root.item("playlist", p.id, p.name))
         },
         {
-            "title": I18n.tr("Saved views", "add shelf section"),
+            "title": I18n.tr("Custom pages", "add shelf section"),
             "items": UiConfig.effective.savedViews.map(v => root.item("view", v.id, v.name))
         },
         {
