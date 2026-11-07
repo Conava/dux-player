@@ -161,7 +161,10 @@ SettingsPage {
                     iconName: "content_copy"
                     backgroundColor: Theme.secondaryContainer
                     textColor: Theme.onSecondaryContainer
-                    onClicked: Quickshell.clipboardText = WindowRuleService.snippet()
+                    onClicked: {
+                        Quickshell.clipboardText = WindowRuleService.snippet();
+                        Router.notify(I18n.tr("Copied", "toast after text was copied to the clipboard"));
+                    }
                 }
             }
         }
