@@ -338,16 +338,24 @@ RowLayout {
         readonly property real preferredWidth: bar ? root.infoWidth : -1
         readonly property real minimumWidth: bar ? root.infoWidth - root.infoCut / Math.max(1, root.stackCount) : -1
         readonly property real padding: root.opensView ? Theme.spacingS : 0
-        // the widest line as drawn, as the lines themselves fill the block
-        readonly property real textExtent: Math.min(lines.width, Math.max(0, ...Array.from(lines.children).filter(c => c.visible).map(c => c.item?.drawnWidth ?? c.implicitWidth ?? 0)))
+        // each line's text and the heart after it: a centred line centres its text alone, so the heart hangs off its end
+        readonly property var drawn: Array.from(lines.children).filter(c => c.visible).map(c => ({
+                    "text": c.item?.textWidth ?? c.item?.drawnWidth ?? c.implicitWidth ?? 0,
+                    "after": c.item?.heartSpace ?? 0
+                }))
+        readonly property real textStart: root.centered ? Math.max(0, (lines.width - Math.max(0, ...drawn.map(d => d.text))) / 2) : 0
+        readonly property real textEnd: Math.min(lines.width, Math.max(0, ...drawn.map(d => (root.centered ? (lines.width + d.text) / 2 : d.text) + d.after)))
+        readonly property real textExtent: Math.max(0, textEnd - textStart)
+        // the heart's button has its own room around the icon
+        readonly property bool heartEnds: drawn.some(d => d.after > 0 && Math.abs((root.centered ? (lines.width + d.text) / 2 : d.text) + d.after - textEnd) < 1)
 
         implicitWidth: bar ? root.infoWidth : lines.implicitWidth
         implicitHeight: lines.implicitHeight + padding * 2
 
         StyledButton {
             id: opener
-            x: root.centered ? Math.round((stack.width - width) / 2) : 0
-            width: stack.textExtent + stack.padding * 2
+            x: Math.round(stack.textStart)
+            width: stack.textExtent + stack.padding * (stack.heartEnds ? 1 : 2)
             height: parent.height
             visible: root.opensView
             radius: Theme.cornerRadiusM

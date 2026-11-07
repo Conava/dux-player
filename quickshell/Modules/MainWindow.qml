@@ -224,7 +224,7 @@ DFloatingWindow {
                 Behavior on fullReveal {
                     enabled: Theme.animationsEnabled
                     NumberAnimation {
-                        duration: Theme.expressiveDurations.extraLarge
+                        duration: PlayerMetrics.morphDuration
                         easing.type: Easing.BezierSpline
                         easing.bezierCurve: Theme.expressiveCurves.standard
                     }
@@ -233,7 +233,7 @@ DFloatingWindow {
                 Behavior on fullFade {
                     enabled: Theme.animationsEnabled
                     NumberAnimation {
-                        duration: Theme.expressiveDurations.extraLarge
+                        duration: PlayerMetrics.morphDuration
                     }
                 }
 

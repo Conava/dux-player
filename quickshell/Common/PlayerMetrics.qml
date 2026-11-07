@@ -16,6 +16,8 @@ Singleton {
     readonly property real pageEnterScale: 0.92
     // the full view's morph, as shares of its time: the pages are gone by the first, the view starts fading in at
     // the second, after them so it never shows over the pages, and the card behind them starts fading out at the third
+    // between the large and extra large durations: the window-sized move reads slow at extra large
+    readonly property real morphDuration: Theme.currentAnimationBaseDuration * 1.6
     readonly property real morphPagesFade: 0.3
     readonly property real morphViewFade: 0.5
     readonly property real morphCardFade: 0.85
