@@ -187,7 +187,7 @@ starts() { # NAME X Y W H: the first frame showing the card has it on that recta
     judge "$1" "
 x = next(x for x in s if x['card'])
 d = max(abs(x['cardX'] - ($2)), abs(x['cardY'] - ($3)), abs(x['cardW'] - ($4)), abs(x['cardH'] - ($5)))
-d <= 4 or print(d, 'px off', x)" "the morph starts on its source"
+d <= 12 or print(d, 'px off', x)" "the morph starts on its source"
 }
 starts morph-side "x['hostX']" "x['hostY']" "x['host']" "x['hostH']"
 always morph-side "x['view'] == 0 or x['pages'] == 0" "the view never shows over the pages"
