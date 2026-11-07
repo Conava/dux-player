@@ -4417,7 +4417,7 @@
     "comment": ""
   },
   {
-    "term": "No cover, title or open button. Clicking the bar still opens the full view.",
+    "term": "No cover, title or open button. The full view can't be opened from the bar.",
     "translation": "",
     "context": "customization warning",
     "reference": "",
