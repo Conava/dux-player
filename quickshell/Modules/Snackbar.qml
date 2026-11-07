@@ -9,14 +9,27 @@ Rectangle {
 
     // room for what sits at the window's bottom edge
     property real bottomInset: 0
+    // the Settings window's snackbar; it shows notices only while that window has the focus
+    property bool inSettings: false
     readonly property string notice: Router.notice
-    readonly property bool showing: notice !== ""
+    readonly property bool showing: notice !== "" && inSettings === Router.settingsFocused
     readonly property bool undoable: Router.noticeUndo !== null
 
     // keeps the text while it fades out
     onNoticeChanged: {
         if (notice !== "")
             label.text = notice;
+    }
+    onShowingChanged: {
+        if (showing)
+            label.text = notice;
+    }
+
+    Binding {
+        target: Router
+        property: "settingsFocused"
+        value: root.Window.active
+        when: root.inSettings
     }
 
     anchors.horizontalCenter: parent.horizontalCenter

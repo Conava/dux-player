@@ -215,6 +215,7 @@ SettingsPage {
     }
 
     SettingsCard {
+        visible: PlayerService.libraries.length > 0 || (PlayerService.scrobble.queued ?? 0) > 0
         title: I18n.tr("Libraries", "the music libraries: page, settings tab, section")
 
         Repeater {

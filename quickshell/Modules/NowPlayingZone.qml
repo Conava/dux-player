@@ -143,6 +143,7 @@ RowLayout {
         case "lyricLine":
             return UiConfig.lyricsOn;
         case "playingFrom":
+            return track !== null && !PlayerService.ended;
         case "title":
             return track !== null;
         case "artists":
