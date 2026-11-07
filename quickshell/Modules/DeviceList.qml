@@ -83,7 +83,6 @@ Column {
                 width: parent.width
                 implicitHeight: lineHeight + (volumeShown ? volume.height + Theme.spacingM : 0)
                 enabled: modelData.available
-                focusPolicy: Qt.StrongFocus
                 isSelected: selected && !root.several
                 firstInGroup: index === 0
                 lastInGroup: index === root.shown.length - 1

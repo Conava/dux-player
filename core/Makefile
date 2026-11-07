@@ -18,7 +18,7 @@ COMMIT?=$(COMMIT_HASH)
 
 BUILD_LDFLAGS=-ldflags='-s -w -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.Commit=$(COMMIT)'
 
-.PHONY: all build dev sync-shell clean test cover fmt vet lint deps help
+.PHONY: all build dev sync-shell clean test test-race test-stress cover fmt vet lint deps help
 
 all: build
 
@@ -45,8 +45,21 @@ dev:
 clean:
 	@rm -rf $(BUILD_DIR) $(EMBED_DIR)
 
+# A new test order every run; a failure prints the -test.shuffle seed that repeats it.
+TEST=GIT_CONFIG_GLOBAL=/dev/null $(GO) test -shuffle=on
+COUNT?=20
+
 test:
-	CGO_ENABLED=0 GIT_CONFIG_GLOBAL=/dev/null $(GO) test ./...
+	CGO_ENABLED=0 $(TEST) ./...
+
+# The race detector needs cgo and a C compiler, for the tests only: builds stay CGO_ENABLED=0.
+test-race:
+	@command -v $$($(GO) env CC) >/dev/null || { echo "make test-race needs a C compiler (gcc) for the race detector"; exit 1; }
+	CGO_ENABLED=1 $(TEST) -race ./...
+
+# COUNT rounds, each in a new order, to bring out a test that fails only sometimes.
+test-stress:
+	@for i in $$(seq $(COUNT)); do echo "round $$i of $(COUNT)"; CGO_ENABLED=0 $(TEST) ./... || exit 1; done
 
 cover:
 	CGO_ENABLED=0 GIT_CONFIG_GLOBAL=/dev/null $(GO) test -coverprofile=coverage.out ./...
@@ -68,4 +81,4 @@ deps:
 	$(GO) mod download
 
 help:
-	@echo "Targets: build dev sync-shell clean test cover fmt vet lint deps"
+	@echo "Targets: build dev sync-shell clean test test-race test-stress cover fmt vet lint deps"

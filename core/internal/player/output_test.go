@@ -65,7 +65,7 @@ func TestRemoteGetsTransportCommands(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv")})
-	go p.Run(ctx)
+	run(t, ctx, p)
 	r := &fakeRemote{}
 
 	require.NoError(t, p.SetRemote(ctx, r, false))
@@ -116,7 +116,7 @@ func TestRemotePlaysCount(t *testing.T) {
 			mu.Unlock()
 		}
 	}})
-	go p.Run(ctx)
+	run(t, ctx, p)
 	require.NoError(t, p.SetRemote(ctx, &fakeRemote{}, false))
 	require.NoError(t, p.Play(ctx, []source.Track{{Library: "l", ID: "a", Duration: 100}}, 0, Origin{}))
 	for pos := 1.0; pos <= 51; pos++ {
@@ -165,7 +165,7 @@ func TestCrossfade(t *testing.T) {
 			p := New(Config{Binary: bin, Socket: filepath.Join(dir, "mpv.sock"), ExtraArgs: []string{"--ao=null"}, Resolver: res, Options: opts})
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			go p.Run(ctx)
+			run(t, ctx, p)
 			var q []source.Track
 			for i, id := range []string{"a", "b", "c"} {
 				q = append(q, source.Track{Library: "l", ID: id, Title: id, Album: tc.albums[i], Duration: 3})
@@ -220,7 +220,7 @@ func TestCastQueueEndsAtTheStopRule(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv")})
-	go p.Run(ctx)
+	run(t, ctx, p)
 	r := &fakeRemote{}
 	require.NoError(t, p.SetRemote(ctx, r, false))
 	require.NoError(t, p.Play(ctx, tracks("a", "b", "c", "d"), 0, Origin{}))
@@ -271,7 +271,7 @@ func TestCastRunsOutAtTheStopRule(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv")})
-			go p.Run(ctx)
+			run(t, ctx, p)
 			r := &fakeRemote{}
 			require.NoError(t, p.SetRemote(ctx, r, false))
 			require.NoError(t, p.Play(ctx, tracks("a", "b", "c"), 0, Origin{}))
@@ -320,7 +320,7 @@ func TestCastQueueWrapsToARuleBehindWithRepeatAll(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv")})
-	go p.Run(ctx)
+	run(t, ctx, p)
 	r := &fakeRemote{}
 	require.NoError(t, p.SetRemote(ctx, r, false))
 	require.NoError(t, p.Play(ctx, tracks("a", "b", "c", "d"), 0, Origin{}))

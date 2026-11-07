@@ -109,6 +109,10 @@ type Service struct {
 	warm       []warmed // newest last
 	warming    string   // key of the track being prefetched
 	warmCancel context.CancelFunc
+
+	stop   context.CancelFunc
+	workMu sync.Mutex // keeps spawn from racing Close's wait
+	work   sync.WaitGroup
 }
 
 // maxWarmed keeps the next track's result while the track after it is
@@ -124,15 +128,51 @@ type warmed struct {
 }
 
 func New(ctx context.Context, cfg Config) *Service {
-	s := &Service{cfg: cfg, baseCtx: ctx, providers: openProviders(filepath.Join(cfg.ConfigDir, providersFile))}
+	ctx, stop := context.WithCancel(ctx)
+	s := &Service{cfg: cfg, baseCtx: ctx, stop: stop, providers: openProviders(filepath.Join(cfg.ConfigDir, providersFile))}
 	s.client = s.newClient(s.cacheDir())
 	s.wasOn, s.wasFitting, s.wasKeep = s.enabled(), s.fitting(), cfg.Keep == nil || cfg.Keep()
-	go func() { s.refreshKept(); s.client.Prune() }()
-	go pruneFits(filepath.Join(cfg.CacheDir, "lyrics-fit"))
+	s.spawn(func() { s.refreshKept(); s.client.Prune() })
+	s.spawn(func() { pruneFits(filepath.Join(cfg.CacheDir, "lyrics-fit")) })
 	if err := os.RemoveAll(s.aheadDir()); err != nil {
 		log.Warnf("lyrics: %v", err)
 	}
 	return s
+}
+
+// spawn runs f in the background for Close to wait on, and reports false
+// without running it once the service has stopped.
+func (s *Service) spawn(f func()) bool {
+	s.workMu.Lock()
+	defer s.workMu.Unlock()
+	if s.baseCtx.Err() != nil {
+		return false
+	}
+	s.work.Go(f)
+	return true
+}
+
+// closeWait bounds Close: the cache walks and the prune don't stop when
+// cancelled, and shutdown must not wait for a whole walk.
+const closeWait = 3 * time.Second
+
+// Close cancels the lookups and waits up to closeWait for the service's
+// goroutines. A dux-go lookup that was already running isn't cancelled and
+// may still write its cache entry after Close returns.
+func (s *Service) Close() {
+	s.workMu.Lock()
+	s.stop()
+	s.workMu.Unlock()
+	done := make(chan struct{})
+	go func() {
+		s.work.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(closeWait):
+		log.Infof("lyrics: stopped waiting for background work after %s", closeWait)
+	}
 }
 
 func (s *Service) newClient(dir string) *duxlyrics.Client {
@@ -227,9 +267,10 @@ func (s *Service) refresh() {
 	t := s.track
 	s.shown = key(t)
 	if t == nil || !s.enabled() {
-		s.last = Event{State: "idle"}
+		ev := Event{State: "idle"}
+		s.last = ev
 		s.mu.Unlock()
-		s.cfg.Publish(Topic, s.last)
+		s.cfg.Publish(Topic, ev)
 		return
 	}
 	ctx, cancel := context.WithCancel(s.baseCtx)
@@ -255,11 +296,12 @@ func (s *Service) refresh() {
 		s.prefetch()
 		return
 	}
-	s.last = Event{Library: t.Library, ID: t.ID, State: "loading"}
+	ev := Event{Library: t.Library, ID: t.ID, State: "loading"}
+	s.last = ev
 	s.mu.Unlock()
-	s.cfg.Publish(Topic, s.last)
+	s.cfg.Publish(Topic, ev)
 
-	go func() {
+	s.spawn(func() {
 		defer cancel()
 		res, err := s.Lookup(ctx, *t)
 		if err != nil {
@@ -279,7 +321,7 @@ func (s *Service) refresh() {
 			}
 		}
 		s.prefetch()
-	}()
+	})
 }
 
 // show publishes ev unless the view moved on from t.
@@ -331,7 +373,7 @@ func (s *Service) prefetch() {
 	}
 	ctx, cancel := context.WithCancel(s.baseCtx)
 	s.warming, s.warmCancel = k, cancel
-	go func() {
+	s.spawn(func() {
 		defer cancel()
 		dir := filepath.Join(s.aheadDir(), hashed(k))
 		best := s.best(ctx, s.newClient(dir), *t)
@@ -345,7 +387,7 @@ func (s *Service) prefetch() {
 		if s.warming == k {
 			s.warming = ""
 		}
-	}()
+	})
 }
 
 func (s *Service) warmedLocked(k string) *warmed {
@@ -577,21 +619,24 @@ const syncGrace = 2 * time.Second
 func (s *Service) Lookup(ctx context.Context, t source.Track) (*duxlyrics.Result, error) {
 	order := s.providers.enabled()
 	req, serverID := s.request(ctx, t, order)
+	ask := func(req duxlyrics.Request) chan answer {
+		out := make(chan answer, 1)
+		ran := s.spawn(func() {
+			res, err := s.client.Lookup(ctx, req)
+			out <- answer{res, err}
+		})
+		if !ran {
+			out <- answer{err: context.Canceled}
+		}
+		return out
+	}
 	var server chan answer
 	if serverID != "" {
 		sreq := req
 		sreq.Providers = []duxlyrics.Provider{serverID}
-		server = make(chan answer, 1)
-		go func() {
-			res, err := s.client.Lookup(ctx, sreq)
-			server <- answer{res, err}
-		}()
+		server = ask(sreq)
 	}
-	providers := make(chan answer, 1)
-	go func() {
-		res, err := s.client.Lookup(ctx, req)
-		providers <- answer{res, err}
-	}()
+	providers := ask(req)
 	if server == nil {
 		a := <-providers
 		return a.res, a.err
@@ -1012,8 +1057,9 @@ func (s *Service) resolve(id duxlyrics.Provider) (duxlyrics.Source, bool) {
 }
 
 // online is a cheap guess: some interface is up with a routable address.
-// Offline, lookups use the cache only instead of waiting out timeouts.
-func online() bool {
+// Offline, lookups use the cache only instead of waiting out timeouts. A
+// variable so tests don't depend on the machine's network.
+var online = func() bool {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return true

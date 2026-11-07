@@ -113,7 +113,7 @@ func TestFirstPlayWaitsForSlowMPVStart(t *testing.T) {
 	})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 
 	require.NoError(t, p.Play(ctx, []source.Track{{Library: "l", ID: "a", Title: "a"}}, 0, Origin{Kind: "track"}))
 	st, err := p.Status(ctx)
@@ -135,7 +135,7 @@ func TestSetRepeatTimeoutRevertsTheBackend(t *testing.T) {
 	p := New(Config{Binary: os.Args[0], Socket: filepath.Join(dir, "mpv.sock"), Resolver: pathResolver{"a": filepath.Join(dir, "a.wav")}})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 	require.NoError(t, p.Play(ctx, []source.Track{{Library: "l", ID: "a", Title: "a"}}, 0, Origin{Kind: "track"}))
 
 	require.NoError(t, os.WriteFile(stall, nil, 0o600))
@@ -164,7 +164,7 @@ func TestHungMPVIsReplaced(t *testing.T) {
 	p := New(Config{Binary: os.Args[0], Socket: filepath.Join(dir, "mpv.sock"), Resolver: pathResolver{"a": filepath.Join(dir, "a.wav")}})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 	require.NoError(t, p.Play(ctx, []source.Track{{Library: "l", ID: "a", Title: "a"}}, 0, Origin{Kind: "track"}))
 
 	require.NoError(t, os.WriteFile(hang, nil, 0o600))

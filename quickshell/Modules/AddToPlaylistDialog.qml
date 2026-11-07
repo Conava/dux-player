@@ -41,13 +41,6 @@ WindowDialog {
     opened: tracks.length > 0
     title: tracks.length === 1 ? I18n.tr("Playlists with “%1”", "add to playlist dialog title for one track").arg(tracks[0].title) : I18n.tr("Playlists with these %1 tracks", "add to playlist dialog title for several tracks").arg(tracks.length)
     acceptEnabled: false
-    // the tab chain would leave for the window's controls before reaching the dialog's own
-    Keys.onTabPressed: event => {
-        if (activeFocus)
-            newRow.forceActiveFocus(Qt.TabFocusReason);
-        else
-            event.accepted = false;
-    }
     onRejected: close()
     // later: taking focus inside the binding update loops through DDialog's focus tracking
     onOpenedChanged: {
@@ -69,8 +62,6 @@ WindowDialog {
         DListItem {
             id: newRow
             width: parent.width
-            focusPolicy: Qt.StrongFocus
-            Keys.onBacktabPressed: doneButton.forceActiveFocus(Qt.BacktabFocusReason)
             lastInGroup: root.choices.length === 0
             Accessible.name: newLabel.text
             onClicked: {
@@ -128,7 +119,6 @@ WindowDialog {
                 firstInGroup: false
                 lastInGroup: index === root.choiceKey.split("\n").length - 1
                 enabled: loaded && fits
-                focusPolicy: Qt.StrongFocus
                 Accessible.role: Accessible.CheckBox
                 Accessible.name: playlist?.name ?? ""
                 Accessible.checked: showsAll
@@ -227,8 +217,6 @@ WindowDialog {
 
     actions: [
         DButton {
-            id: doneButton
-            Keys.onTabPressed: newRow.forceActiveFocus(Qt.TabFocusReason)
             text: I18n.tr("Done", "edit mode finish button")
             backgroundColor: "transparent"
             textColor: Theme.primary

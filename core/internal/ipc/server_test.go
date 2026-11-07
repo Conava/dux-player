@@ -25,13 +25,17 @@ func TestRequestsOfOneConnectionKeepTheirOrder(t *testing.T) {
 
 	var mu sync.Mutex
 	var log []string
+	readDone := make(chan struct{})
 	r := NewRegistry()
 	r.Group("t", func(_ context.Context, w *ConnWriter, req Request) {
 		switch req.Method {
 		case "t.slowWrite":
 			time.Sleep(100 * time.Millisecond)
 		case "t.slowRead":
-			time.Sleep(400 * time.Millisecond)
+			select {
+			case <-readDone:
+			case <-time.After(10 * time.Second):
+			}
 		}
 		mu.Lock()
 		if req.Method == "t.slowWrite" || req.Method == "t.write" {
@@ -40,6 +44,9 @@ func TestRequestsOfOneConnectionKeepTheirOrder(t *testing.T) {
 		seen := append([]string{}, log...)
 		mu.Unlock()
 		w.Respond(req.ID, seen)
+		if req.Method == "t.read" {
+			close(readDone)
+		}
 	},
 		MethodSpec{Name: "t.slowWrite"},
 		MethodSpec{Name: "t.write"},

@@ -46,7 +46,7 @@ func TestBuiltinReportsOutputThatWontOpen(t *testing.T) {
 	})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 
 	require.NoError(t, p.Play(ctx, []source.Track{{Library: "l", ID: "a", Title: "a"}}, 0, Origin{Kind: "adhoc"}))
 	select {
@@ -79,7 +79,7 @@ func TestBuiltinReportsOutputLostMidTrack(t *testing.T) {
 	})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 
 	require.NoError(t, p.Play(ctx, []source.Track{{Library: "l", ID: "a", Title: "a"}}, 0, Origin{Kind: "adhoc"}))
 	require.Eventually(t, func() bool {
@@ -131,7 +131,7 @@ func TestQueueGoesOnWhenTheNextTrackDidNotLineUp(t *testing.T) {
 	})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 
 	queue := []source.Track{{Library: "l", ID: "a", Title: "a"}, {Library: "l", ID: "b", Title: "b"}}
 	require.NoError(t, p.Play(ctx, queue, 0, Origin{Kind: "adhoc"}))
@@ -181,7 +181,7 @@ func TestBuiltinWithoutMPV(t *testing.T) {
 	})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 
 	queue := []source.Track{{Library: "l", ID: "m4a", Title: "m4a"}, {Library: "l", ID: "b", Title: "b", Album: "x"},
 		{Library: "l", ID: "c", Title: "c", Album: "y"}}
@@ -228,7 +228,7 @@ func TestBuiltinStopsAfterAnEntryOnlyMPVPlays(t *testing.T) {
 	})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 
 	require.NoError(t, p.Play(ctx, tracks("a", "m4a", "c"), 0, Origin{Kind: "adhoc"}))
 	require.NoError(t, p.SetSleepAfter(ctx, 1))
@@ -260,7 +260,7 @@ func TestPlayFeedShufflesByAlbum(t *testing.T) {
 		Options: opts, Publish: func(string, any) {}})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 
 	require.NoError(t, p.PlayFeed(ctx, &fakeFeed{batches: [][]source.Track{batch}}, Origin{Kind: "tracks"}))
 	q, err := p.Queue(ctx)

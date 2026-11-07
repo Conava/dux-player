@@ -25,6 +25,16 @@ func queueIDs(t *testing.T, ctx context.Context, p *Player) []string {
 	return out
 }
 
+// queued is the queue's length, or -1 when it can't be read. Unlike queueIDs
+// it doesn't fail the test, so it can run inside Eventually.
+func queued(ctx context.Context, p *Player) int {
+	q, err := p.Queue(ctx)
+	if err != nil {
+		return -1
+	}
+	return len(q.Items)
+}
+
 // A queue [a b] plays its last track; continuing offers a, b and c, of which
 // only c is new.
 func TestQueueContinues(t *testing.T) {
@@ -61,7 +71,7 @@ func TestQueueContinues(t *testing.T) {
 				require.NoError(t, tc.act(ctx, p))
 			}
 			if len(tc.want) > 2 {
-				require.Eventually(t, func() bool { return len(queueIDs(t, ctx, p)) >= len(tc.want) }, 2*time.Second, 5*time.Millisecond)
+				require.Eventually(t, func() bool { return queued(ctx, p) >= len(tc.want) }, 2*time.Second, 5*time.Millisecond)
 			}
 			time.Sleep(50 * time.Millisecond)
 			assert.Equal(t, tc.want, queueIDs(t, ctx, p))
@@ -105,7 +115,7 @@ func TestNextAfterTheEndContinues(t *testing.T) {
 		}})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go p.Run(ctx)
+	run(t, ctx, p)
 
 	require.NoError(t, p.Play(ctx, tracks("a"), 0, Origin{Kind: "track"}))
 	require.Eventually(t, func() bool {
@@ -168,10 +178,17 @@ func TestFailedContinueIsRetried(t *testing.T) {
 					return tracks("c"), nil
 				}})
 			require.NoError(t, p.Play(ctx, tracks("a", "b"), 1, Origin{}))
-			require.Eventually(t, func() bool { return calls.Load() >= 1 }, 2*time.Second, 5*time.Millisecond)
-			time.Sleep(50 * time.Millisecond)
+			require.Eventually(t, func() bool {
+				var feeding bool
+				err := p.do(ctx, func(context.Context) error { feeding = p.feeding; return nil })
+				return err == nil && calls.Load() >= 1 && !feeding
+			}, 2*time.Second, 5*time.Millisecond)
 			require.NoError(t, p.SetRepeat(ctx, RepeatOff))
-			time.Sleep(50 * time.Millisecond)
+			if len(tc.want) > 2 {
+				require.Eventually(t, func() bool { return queued(ctx, p) >= len(tc.want) }, 2*time.Second, 5*time.Millisecond)
+			} else {
+				time.Sleep(50 * time.Millisecond)
+			}
 			assert.Equal(t, tc.want, queueIDs(t, ctx, p))
 		})
 	}
