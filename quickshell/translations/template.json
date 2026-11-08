@@ -301,6 +301,20 @@
     "comment": ""
   },
   {
+    "term": "%1 s early",
+    "translation": "",
+    "context": "lyrics source status: timing measured this many seconds early",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 s late",
+    "translation": "",
+    "context": "lyrics source status: timing measured this many seconds late",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "%1 scrobbles pending",
     "translation": "",
     "context": "scrobbling queue state, plural",
@@ -1788,6 +1802,13 @@
     "term": "Couldn't change the lyrics",
     "translation": "",
     "context": "toast when a lyrics source can't be kept for a track",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't change the lyrics timing",
+    "translation": "",
+    "context": "toast when the lyrics timing of a track can't be changed",
     "reference": "",
     "comment": ""
   },
@@ -4095,6 +4116,13 @@
     "comment": ""
   },
   {
+    "term": "Lyrics file · not changed",
+    "translation": "",
+    "context": "lyrics source status: the user's lyrics file, never moved",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Lyrics files next to the music come first, then the providers in order. Drag to reorder.",
     "translation": "",
     "context": "lyrics settings intro",
@@ -4133,6 +4161,13 @@
     "term": "Manage",
     "translation": "",
     "context": "libraries page button opening library settings",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Manual adjustment",
+    "translation": "",
+    "context": "lyrics menu slider moving a track's lyrics earlier or later by hand",
     "reference": "",
     "comment": ""
   },
@@ -4697,6 +4732,13 @@
     "comment": ""
   },
   {
+    "term": "Not measured",
+    "translation": "",
+    "context": "lyrics source status: timing not measured against the audio",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Not running. Passwords and keys can't be saved.",
     "translation": "",
     "context": "about page: no Secret Service is running",
@@ -4847,6 +4889,13 @@
     "term": "On this device",
     "translation": "",
     "context": "playlists section for local playlists",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "On time (%1 s)",
+    "translation": "",
+    "context": "lyrics source status: timing measured on time by this shift",
     "reference": "",
     "comment": ""
   },
@@ -6520,6 +6569,34 @@
     "term": "Shown on keyboard focus.",
     "translation": "",
     "context": "appearance setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Shown · auto-moved %1 s",
+    "translation": "",
+    "context": "lyrics source status: shown, timing moved automatically by this shift",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Shown · not changed",
+    "translation": "",
+    "context": "lyrics source status: shown as the source sent it",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Shown · on time (%1 s)",
+    "translation": "",
+    "context": "lyrics source status: shown, its timing measured on time by this shift",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Shown · timing aligned to %1",
+    "translation": "",
+    "context": "lyrics source status: shown, its words placed on the line timing of the named source",
     "reference": "",
     "comment": ""
   },
