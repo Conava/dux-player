@@ -90,7 +90,7 @@ func pf(t *testing.T) (*env, context.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	t.Cleanup(cancel)
 	e := setup(t, "", nil, nil)
-	go e.c.runPrefetch(ctx)
+	e.c.Spawn(func() { e.c.runPrefetch(e.c.ctx) })
 	return e, ctx
 }
 
