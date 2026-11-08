@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -34,13 +35,16 @@ type Source struct {
 	coverDir string
 	meter    *loudness.Meter
 	measure  *loudness.Loop
-	ctx      context.Context
-	cancel   context.CancelFunc
+	// ctx ends at Close; work holds the goroutines Close waits for.
+	ctx    context.Context
+	cancel context.CancelFunc
+	workMu sync.Mutex // keeps spawn from racing Close's wait
+	work   sync.WaitGroup
 	// gone holds the library folders that are missing right now.
 	gone        atomic.Pointer[map[string]bool]
 	watchNotice atomic.Value
-	// watching closes once the folders are watched, or that failed. Only tests
-	// wait for it: a change before then isn't seen until the next rescan.
+	// watching closes once the folders are watched or watching them failed.
+	// Only tests wait on it, so they don't have to sleep until the watcher is ready.
 	watching chan struct{}
 }
 
@@ -68,9 +72,9 @@ func Factory(store *library.Store) source.Factory {
 		ctx, cancel := context.WithCancel(context.Background())
 		s := &Source{lib: lib, store: store, coverDir: filepath.Join(env.CacheDir, "covers", lib.ID),
 			meter: env.Meter, ctx: ctx, cancel: cancel, watching: make(chan struct{})}
-		s.measure = &loudness.Loop{Meter: env.Meter, Pending: s.pendingMeasure, Save: s.saveMeasure}
+		s.measure = &loudness.Loop{Meter: env.Meter, Pending: s.pendingMeasure, Save: s.saveMeasure, Spawn: s.spawn}
 		s.checkRoots(ctx)
-		go s.watch()
+		s.spawn(s.watch)
 		// Picks up measurements an earlier run didn't finish.
 		s.startMeasuring()
 		return s, nil
@@ -91,8 +95,37 @@ func Folders(lib source.Library) []string {
 
 func (s *Source) Library() source.Library { return s.lib }
 
+// spawn runs f in the background for Close to wait on, and reports false
+// without running it once the source has closed.
+func (s *Source) spawn(f func()) bool {
+	s.workMu.Lock()
+	defer s.workMu.Unlock()
+	if s.ctx.Err() != nil {
+		return false
+	}
+	s.work.Go(f)
+	return true
+}
+
+// closeWait bounds Close: the file a rescan is reading doesn't stop when cancelled.
+const closeWait = 3 * time.Second
+
+// Close stops the watcher and the measuring and waits up to closeWait for
+// them, so neither writes to the store after it.
 func (s *Source) Close() error {
+	s.workMu.Lock()
 	s.cancel()
+	s.workMu.Unlock()
+	done := make(chan struct{})
+	go func() {
+		s.work.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(closeWait):
+		log.Infof("library %s: stopped waiting for background work after %s", s.lib.Name, closeWait)
+	}
 	return nil
 }
 
