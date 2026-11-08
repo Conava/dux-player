@@ -124,6 +124,7 @@ dp seek 33.5 >/dev/null
 sleep 1.5
 fact "centred line" "$(centre)" "33.0 Verse line at second 33 of the fixture"
 menu_click button
+fact "menu opens with its sources" "$(lyrics_menu '"" in d["rows"] and "sidecar" in d["rows"]')" True
 cap bento-lyrics-menu
 width=$(lyrics_menu 'd["width"]')
 fact "no reset button at 0" "$(lyrics_menu 'd["reset"]')" None
@@ -216,10 +217,8 @@ fact "cli sets" "$(dp lyrics offset 2)" "Lyrics timing +2.0 s"
 fact "cli reset" "$(dp lyrics offset 0)" "Lyrics timing reset"
 pointer m $((x + w - 20)) $((y + h / 2))
 
-# sources that answer while the slider is held join below it, and the drag goes on
+# a drag that leaves the menu open
 menu_click button
-ui lyricsSources false
-sleep 0.5
 read -r px py <<<"$(slider_at 0.5)"
 read -r qx _ <<<"$(slider_at 0.75)"
 pointer m $((px - 2)) "$py"
@@ -233,21 +232,9 @@ for i in 1 2 3 4; do
     sleep 0.03
 done
 sleep 0.5
-ui lyricsSources true
-sleep 0.8
-fact "sources join a held slider" "$(lyrics_menu '"" in d["rows"] and len(d["rows"]) > 2')" True
-fact "highlight stays on the held slider" "$(lyrics_menu 'd["highlight"]')" timing
-# the sources widen the menu and with it the slider
-read -r rx _ <<<"$(slider_at 0.9)"
-for i in 1 2 3 4; do
-    pointer m $((qx + (rx - qx) * i / 4)) "$py"
-    sleep 0.03
-done
-sleep 0.5
-fact "drag goes on after the sources join" "$(lyrics_menu 'd["slider"]["value"]')" 16
 pointer u
 sleep 1
-fact "offset after the held drag" "$(lyrics_menu 'd["offset"]')" 8
+fact "offset after a second drag" "$(lyrics_menu 'd["offset"]')" 5
 # a change from the command line shows in the menu left open after a drag
 dp lyrics offset 0 >/dev/null
 sleep 1

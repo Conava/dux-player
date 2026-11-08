@@ -618,12 +618,12 @@ Singleton {
         _lyricsState = "idle";
     }
 
-    function lyricsChoices(then) {
+    function lyricsChoices(then, failed) {
         if (current)
             DaemonBridge.request("lyrics.choices", {
                 "library": current.library,
                 "id": current.id
-            }, I18n.tr("Couldn't list the lyrics sources", "toast when the lyrics sources can't be read"), then);
+            }, I18n.tr("Couldn't list the lyrics sources", "toast when the lyrics sources can't be read"), then, failed);
     }
 
     // an empty source goes back to automatic

@@ -389,18 +389,16 @@ FocusScope {
         visible: root.ready
         iconName: "more_vert"
         Accessible.name: I18n.tr("Lyrics source", "button choosing which provider's lyrics a track uses")
-        // asking every provider can take a while, so the menu opens at once and the sources join it when they answer
+        // opens with its list so it never grows; a failed reply still opens it for the slider
         onClicked: {
             const track = sourceMenu.track;
-            sourceMenu.open(sourceButton);
-            if (sourceMenu.choicesFor === track)
-                return;
-            PlayerService.lyricsChoices(list => {
+            const show = list => {
                 if (sourceMenu.track !== track)
                     return;
                 sourceMenu.choices = list;
-                sourceMenu.choicesFor = track;
-            });
+                sourceMenu.open(sourceButton);
+            };
+            PlayerService.lyricsChoices(show, () => show([]));
         }
     }
 
@@ -409,7 +407,6 @@ FocusScope {
 
         readonly property string track: PlayerService.current ? PlayerService.current.library + ":" + PlayerService.current.id : ""
         property var choices: []
-        property string choicesFor: ""
         readonly property bool auto: !PlayerService.lyricsChosen
         readonly property string shown: PlayerService.lyrics?.source ?? ""
         readonly property var sources: [
@@ -418,7 +415,7 @@ FocusScope {
                 "text": I18n.tr("Automatic", "Automatic"),
                 "checked": auto
             }
-        ].concat((choicesFor === track ? choices : []).map(c => ({
+        ].concat(choices.map(c => ({
                     "id": c.source,
                     "text": I18n.tr("%1 · %2", "lyrics source and its timing").arg(nameOf(c.source)).arg(c.timing === "word" ? I18n.tr("Word by word", "Word by word") : c.timing === "line" ? I18n.tr("Line by line", "lyrics timing of a source") : I18n.tr("Not synced", "lyrics timing of a source")),
                     "info": statusText(c.status),
@@ -474,12 +471,11 @@ FocusScope {
             });
         }
 
-        // the slider comes first, so sources answering after the menu opened join below it
         model: [
             {
                 "id": "timing",
                 "slider": true,
-                "text": I18n.tr("Lyrics timing", "lyrics menu slider showing a track's lyrics earlier or later"),
+                "text": I18n.tr("Manual adjustment", "lyrics menu slider moving a track's lyrics earlier or later by hand"),
                 "value": isNaN(requested) ? PlayerService.lyricsOffset : requested,
                 "from": -PlayerMetrics.lyricsNudgeMax,
                 "to": PlayerMetrics.lyricsNudgeMax,

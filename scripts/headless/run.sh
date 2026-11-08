@@ -311,13 +311,6 @@ cat >>"$W/tree/shell.qml" <<'Q'
             walk(windowLoader.item?.contentItem);
             return Date.now() + " " + rows.sort((a, b) => a - b).join(" ");
         }
-        // hides the open lyrics menu's sources as if they hadn't answered yet, or brings them back
-        function lyricsSources(shown: bool): void {
-            const kids = item => [item].concat(...Array.from(item.children).map(kids));
-            const menu = kids(windowLoader.item.contentItem).find(i => i.choicesFor !== undefined && i.opened === true);
-            if (menu)
-                menu.choicesFor = shown ? menu.track : "";
-        }
         // the lyrics view's centred line and its source menu, as JSON; points are in window coordinates
         function lyricsMenu(): string {
             let view = null;

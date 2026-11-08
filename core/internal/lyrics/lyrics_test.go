@@ -373,6 +373,62 @@ func TestChosenLyricsStayWithTheTrack(t *testing.T) {
 	assert.Nil(t, again.chosen(key(&source.Track{Library: "srv", ID: "song"})))
 }
 
+// flakyLib's server fails once fail is set.
+type flakyLib struct {
+	countingLib
+	fail *atomic.Bool
+}
+
+func (f flakyLib) Lyrics(ctx context.Context, id string) (*duxlyrics.Lyrics, error) {
+	if f.fail.Load() {
+		f.asked.Add(1)
+		return nil, errors.New("rate limited")
+	}
+	return f.countingLib.Lyrics(ctx, id)
+}
+
+// The menu lists what the last automatic pick weighed, without asking
+// anyone; a track without one, as a hand-picked one, asks the sources.
+func TestChoicesListTheLastDecision(t *testing.T) {
+	track := source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"}
+	ref := track.Ref()
+	tests := []struct {
+		name   string
+		decide bool
+		chosen bool
+		asks   bool
+		status string
+	}{
+		{"after a decision, a failing source changes nothing", true, false, false, "shown"},
+		{"no decision yet", false, false, true, "not-measured"},
+		{"hand-picked, never decided", false, true, true, "shown"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var asked atomic.Int32
+			var fail atomic.Bool
+			s := quietService(t, t.TempDir(), func(string, any) {}, nil)
+			s.cfg.Libraries = libs{"srv": flakyLib{countingLib{asked: &asked}, &fail}}
+			if tt.decide {
+				require.NotNil(t, s.Best(context.Background(), track))
+				fail.Store(true)
+			}
+			if tt.chosen {
+				require.NoError(t, s.Choose(context.Background(), ref, ServerSource))
+				s.decided = nil
+			}
+			// an empty cache, so a lookup would reach the server
+			s.client = s.newClient(t.TempDir())
+			asked.Store(0)
+			choices, err := s.Choices(context.Background(), ref)
+			require.NoError(t, err)
+			require.Len(t, choices, 1)
+			assert.Equal(t, Choice{Source: ServerSource, Name: "Navidrome", Timing: "line", Status: Status{Kind: tt.status}}, choices[0])
+			assert.Equal(t, tt.asks, asked.Load() > 0, "asked the server")
+		})
+	}
+}
+
 func TestLyricsOffAsksNobody(t *testing.T) {
 	on := false
 	var got published

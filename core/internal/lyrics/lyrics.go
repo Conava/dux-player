@@ -171,32 +171,34 @@ type Service struct {
 	work   sync.WaitGroup
 }
 
-// decision is what the last automatic pick for a track noted per answer.
+// decision is what the last automatic pick for a track weighed: the answers
+// the user can pick from, and a note per answer.
 type decision struct {
-	key   string
-	notes []note
+	key     string
+	choices []Choice // without Status
+	notes   []note
 }
 
 // maxDecided keeps the decisions of the current track and the prefetched ones.
 const maxDecided = 2 * maxWarmed
 
-func (s *Service) noteDecision(k string, notes []note) {
+func (s *Service) noteDecision(d decision) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.decided = slices.DeleteFunc(s.decided, func(d decision) bool { return d.key == k })
-	s.decided = append(s.decided, decision{k, notes})
+	s.decided = slices.DeleteFunc(s.decided, func(o decision) bool { return o.key == d.key })
+	s.decided = append(s.decided, d)
 	if len(s.decided) > maxDecided {
 		s.decided = slices.Delete(s.decided, 0, 1)
 	}
 }
 
-func (s *Service) decisionNotes(k string) []note {
+func (s *Service) lastDecision(k string) (decision, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if i := slices.IndexFunc(s.decided, func(d decision) bool { return d.key == k }); i >= 0 {
-		return s.decided[i].notes
+		return s.decided[i], true
 	}
-	return nil
+	return decision{}, false
 }
 
 // maxWarmed keeps the next track's result while the track after it is
@@ -723,26 +725,40 @@ func (s *Service) storeOffset(k string, res *duxlyrics.Result, v float64, relati
 	return v, writeOffset(path, offsetFor(v, res))
 }
 
-// Choices lists what every enabled source has for a track.
+// Choices lists what the last automatic pick for a track weighed, so the
+// list matches it and asks nobody. Without one it asks every enabled source.
 func (s *Service) Choices(ctx context.Context, ref source.Ref) ([]Choice, error) {
 	t, err := s.trackOf(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
-	out := []Choice{}
 	var chosen duxlyrics.Provider
 	if res := s.chosen(key(&t)); res != nil {
 		chosen = res.Source
 	}
-	notes := s.decisionNotes(key(&t))
-	results, loose := s.gather(ctx, s.client, t)
-	for _, r := range append(results, loose...) {
+	d, ok := s.lastDecision(key(&t))
+	if !ok {
+		results, loose := s.gather(ctx, s.client, t)
+		d.choices = choicesOf(append(results, loose...))
+	}
+	out := make([]Choice, len(d.choices))
+	for i, c := range d.choices {
+		c.Status = statusOf(d.notes, duxlyrics.Provider(c.Source), chosen)
+		out[i] = c
+	}
+	return out, nil
+}
+
+// choicesOf is the answers with lyrics, one per source, without Status.
+func choicesOf(all []*duxlyrics.Result) []Choice {
+	out := []Choice{}
+	for _, r := range all {
 		// a lyrics file beside the track answers for every provider
 		seen := slices.ContainsFunc(out, func(c Choice) bool { return c.Source == string(r.Source) })
 		if !r.Found || r.Instrumental || seen {
 			continue
 		}
-		c := Choice{Source: string(r.Source), Name: r.Attribution.Name, Timing: "plain", Status: statusOf(notes, r.Source, chosen)}
+		c := Choice{Source: string(r.Source), Name: r.Attribution.Name, Timing: "plain"}
 		if name, ok := providerNames[r.Source]; ok && c.Name == "" {
 			c.Name = name
 		}
@@ -754,7 +770,7 @@ func (s *Service) Choices(ctx context.Context, ref source.Ref) ([]Choice, error)
 		}
 		out = append(out, c)
 	}
-	return out, nil
+	return out
 }
 
 // Choose keeps one source's lyrics for a track from now on; an empty source
@@ -926,7 +942,7 @@ func (s *Service) best(ctx context.Context, client *duxlyrics.Client, t source.T
 	}
 	res, notes := decide(s.providers.enabled(), results, loose, s.recording(ctx, t))
 	if ctx.Err() == nil {
-		s.noteDecision(key(&t), notes)
+		s.noteDecision(decision{key: key(&t), choices: choicesOf(append(results, loose...)), notes: notes})
 	}
 	return res
 }
