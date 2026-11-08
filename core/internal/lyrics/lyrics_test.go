@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -237,7 +238,7 @@ func TestAlignMovesAnOutlierOntoWhatTheOthersAgreeOn(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			before, wordBefore := float64(tt.results[0].Synced[0].Start), float64(tt.results[0].Synced[0].Words[0].Start)
-			got := align(order, tt.results)
+			got := align(order, tt.results).res
 			assert.Equal(t, tt.results[0].Source, got.Source, "word timing wins")
 			assert.InDelta(t, tt.want, float64(got.Synced[0].Start), 0.001)
 			assert.InDelta(t, tt.want, float64(got.Synced[0].Words[0].Start), 0.001)
@@ -353,6 +354,9 @@ func TestChosenLyricsStayWithTheTrack(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, choices, 1)
 	assert.Equal(t, "line", choices[0].Timing)
+	data, err := json.Marshal(choices[0])
+	require.NoError(t, err)
+	assert.Contains(t, string(data), `"status":{"kind":"not-measured"}`, "nothing was decided for the track yet")
 	require.Error(t, s.Choose(context.Background(), ref, "kugou"), "a source without lyrics can't be picked")
 	require.NoError(t, s.Choose(context.Background(), ref, choices[0].Source))
 
@@ -552,7 +556,7 @@ func TestLineFitCarriesItsShiftToTheShownSource(t *testing.T) {
 	line := &duxlyrics.Result{Found: true, Source: duxlyrics.LRCLIB, Lyrics: duxlyrics.Lyrics{Synced: reference}}
 
 	order := []duxlyrics.Provider{duxlyrics.KuGou, duxlyrics.LRCLIB}
-	got := fallback(order, []*duxlyrics.Result{top, line}, s.recording(context.Background(), track))
+	got := fallback(order, []*duxlyrics.Result{top, line}, s.recording(context.Background(), track)).res
 	assert.Equal(t, duxlyrics.KuGou, got.Source)
 	assert.InDelta(t, 3.7, float64(got.Synced[0].Start-top.Synced[0].Start), 0.05, "the source that can be measured speaks for the one shown")
 }
@@ -629,7 +633,7 @@ func TestDecidePicksTheSourceOnTheRecording(t *testing.T) {
 			for src := range tt.fits {
 				results = append(results, result(src, slices.Contains(tt.words, src)))
 			}
-			got := decide(allProviders(), results, nil, fakeRecording{fits: tt.fits})
+			got, _ := decide(allProviders(), results, nil, fakeRecording{fits: tt.fits})
 			assert.Equal(t, tt.want, got.Source)
 			assert.InDelta(t, 10+tt.shift, float64(got.Synced[0].Start), 0.001)
 		})
@@ -1160,10 +1164,68 @@ func TestDecideKeepsWordsLaidOnAnOnTimeLineSource(t *testing.T) {
 					results = append(results, word)
 				}
 			}
-			got := decide(allProviders(), results, loose, rec)
+			got, _ := decide(allProviders(), results, loose, rec)
 			assert.Equal(t, tt.source, got.Source)
 			assert.Equal(t, tt.words, tier(answer{res: got}) == 2)
 			assert.InDelta(t, tt.start, float64(got.Synced[0].Start), 0.001)
+		})
+	}
+}
+
+// The source menu tells per source what the last pick measured and did.
+func TestStatusSaysWhatThePickDidWithEachSource(t *testing.T) {
+	result := func(src duxlyrics.Provider, late float64, timing string) *duxlyrics.Result {
+		if timing == "plain" {
+			return &duxlyrics.Result{Found: true, Source: src, Lyrics: duxlyrics.Lyrics{Plain: "line"}}
+		}
+		lines := make([]duxlyrics.Line, 40)
+		for i := range lines {
+			at := duxlyrics.Seconds(10 + 4*float64(i) + late)
+			lines[i] = duxlyrics.Line{Start: at, Text: fmt.Sprintf("line %d", i)}
+			if timing == "word" {
+				lines[i].Words = []duxlyrics.Word{{Start: at, Text: "line"}, {Start: at + 1, Text: fmt.Sprint(i)}}
+			}
+		}
+		return &duxlyrics.Result{Found: true, Source: src, Lyrics: duxlyrics.Lyrics{Synced: lines}}
+	}
+	kugou, lrclib, better := duxlyrics.KuGou, duxlyrics.LRCLIB, duxlyrics.BetterLyrics
+	type fits = map[duxlyrics.Provider]fitResult
+	words := func() []*duxlyrics.Result {
+		return []*duxlyrics.Result{result(kugou, 0, "word"), result(lrclib, 0, "line")}
+	}
+	tests := []struct {
+		name    string
+		results []*duxlyrics.Result
+		fits    fits // nil: no recording
+		laid    *fitResult
+		src     duxlyrics.Provider
+		chosen  duxlyrics.Provider
+		want    Status
+	}{
+		{"shown on time", words(), fits{kugou: {0.2, false}, lrclib: {-6.6, false}}, nil, kugou, "", Status{Kind: "shown-on-time", Seconds: 0.2}},
+		{"shown, moved by a sure fit", words(), fits{lrclib: {0.3, true}, kugou: {-1.8, false}}, nil, lrclib, "", Status{Kind: "moved", Seconds: 0.3}},
+		{"shown words on another source's line timing", []*duxlyrics.Result{result(kugou, 6, "word"), result(lrclib, 0, "line")},
+			fits{lrclib: {0.1, false}, kugou: {-1.8, false}}, &fitResult{Shift: -0.2}, kugou, "", Status{Kind: "aligned", Source: "lrclib"}},
+		{"the line source that lent its timing", []*duxlyrics.Result{result(kugou, 6, "word"), result(lrclib, 0, "line")},
+			fits{lrclib: {0.1, false}, kugou: {-1.8, false}}, &fitResult{Shift: -0.2}, lrclib, "", Status{Kind: "on-time", Seconds: 0.1}},
+		{"shown off the recording, unchanged", words(), fits{kugou: {-1.8, false}}, nil, kugou, "", Status{Kind: "shown"}},
+		{"on time, not chosen", []*duxlyrics.Result{result(kugou, 0, "word"), result(better, 0, "line")}, fits{kugou: {0.1, false}, better: {-0.1, false}}, nil, better, "", Status{Kind: "on-time", Seconds: -0.1}},
+		{"late, not used", words(), fits{kugou: {0.1, false}, lrclib: {-6.6, false}}, nil, lrclib, "", Status{Kind: "late", Seconds: 6.6}},
+		{"early, not used", words(), fits{kugou: {0.1, false}, lrclib: {1.2, true}}, nil, lrclib, "", Status{Kind: "early", Seconds: 1.2}},
+		{"no recording", words(), nil, nil, lrclib, "", Status{Kind: "not-measured"}},
+		{"too few lines", []*duxlyrics.Result{result(kugou, 0, "word"), result(lrclib, 0, "plain")}, fits{kugou: {0.1, false}}, nil, lrclib, "", Status{Kind: "not-measured"}},
+		{"a lyrics file", []*duxlyrics.Result{result(duxlyrics.Sidecar, 0, "line"), result(lrclib, 0, "line")}, fits{lrclib: {0, false}}, nil, duxlyrics.Sidecar, "", Status{Kind: "file"}},
+		{"chosen by hand", words(), fits{kugou: {0.1, false}, lrclib: {-6.6, false}}, nil, lrclib, lrclib, Status{Kind: "shown"}},
+		{"another source chosen by hand", words(), fits{kugou: {0.1, false}, lrclib: {-6.6, false}}, nil, kugou, lrclib, Status{Kind: "on-time", Seconds: 0.1}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var rec recording
+			if tt.fits != nil {
+				rec = fakeRecording{fits: tt.fits, laid: tt.laid}
+			}
+			_, notes := decide(allProviders(), tt.results, nil, rec)
+			assert.Equal(t, tt.want, statusOf(notes, tt.src, tt.chosen))
 		})
 	}
 }

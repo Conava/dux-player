@@ -420,9 +420,45 @@ FocusScope {
             }
         ].concat((choicesFor === track ? choices : []).map(c => ({
                     "id": c.source,
-                    "text": I18n.tr("%1 · %2", "lyrics source and its timing").arg(c.source === "sidecar" ? I18n.tr("Lyrics file", "lyrics source: a file next to the track") : c.name).arg(c.timing === "word" ? I18n.tr("Word by word", "Word by word") : c.timing === "line" ? I18n.tr("Line by line", "lyrics timing of a source") : I18n.tr("Not synced", "lyrics timing of a source")),
+                    "text": I18n.tr("%1 · %2", "lyrics source and its timing").arg(nameOf(c.source)).arg(c.timing === "word" ? I18n.tr("Word by word", "Word by word") : c.timing === "line" ? I18n.tr("Line by line", "lyrics timing of a source") : I18n.tr("Not synced", "lyrics timing of a source")),
+                    "info": statusText(c.status),
                     "checked": !auto && c.source === shown
                 })))
+        function nameOf(source) {
+            if (source === "sidecar")
+                return I18n.tr("Lyrics file", "lyrics source: a file next to the track");
+            return choices.find(c => c.source === source)?.name ?? source;
+        }
+
+        function signed(seconds) {
+            const rounded = Math.round(seconds * 10) / 10;
+            return (rounded < 0 ? "\u2212" : "+") + Math.abs(rounded).toFixed(1);
+        }
+
+        // what the last automatic pick measured and did with a source's lyrics
+        function statusText(status) {
+            const seconds = status?.seconds ?? 0;
+            switch (status?.kind) {
+            case "shown-on-time":
+                return I18n.tr("Shown · on time (%1 s)", "lyrics source status: shown, its timing measured on time by this shift").arg(signed(seconds));
+            case "moved":
+                return I18n.tr("Shown · auto-moved %1 s", "lyrics source status: shown, timing moved automatically by this shift").arg(signed(seconds));
+            case "aligned":
+                return I18n.tr("Shown · timing aligned to %1", "lyrics source status: shown, its words placed on the line timing of the named source").arg(nameOf(status.source ?? ""));
+            case "shown":
+                return I18n.tr("Shown · not changed", "lyrics source status: shown as the source sent it");
+            case "on-time":
+                return I18n.tr("On time (%1 s)", "lyrics source status: timing measured on time by this shift").arg(signed(seconds));
+            case "late":
+                return I18n.tr("%1 s late", "lyrics source status: timing measured this many seconds late").arg(Math.abs(seconds).toFixed(1));
+            case "early":
+                return I18n.tr("%1 s early", "lyrics source status: timing measured this many seconds early").arg(Math.abs(seconds).toFixed(1));
+            case "file":
+                return I18n.tr("Lyrics file · not changed", "lyrics source status: the user's lyrics file, never moved");
+            }
+            return I18n.tr("Not measured", "lyrics source status: timing not measured against the audio");
+        }
+
         // what the user set until the daemon answers it, so an older answer doesn't move the slider back
         property real requested: NaN
 

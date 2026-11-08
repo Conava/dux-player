@@ -71,6 +71,56 @@ type Choice struct {
 	Source string `json:"source"`
 	Name   string `json:"name"`
 	Timing string `json:"timing"` // word, line, plain
+	Status Status `json:"status"`
+}
+
+// Status is what the last automatic pick did with a source's lyrics. Seconds
+// is the signed shift for shown-on-time, moved and on-time, and how far off
+// for late and early. Source is, for aligned, the source whose line timing
+// the shown words were laid on.
+type Status struct {
+	Kind    string  `json:"kind"` // shown-on-time, moved, aligned, shown, on-time, late, early, not-measured, file
+	Seconds float64 `json:"seconds,omitempty"`
+	Source  string  `json:"source,omitempty"`
+}
+
+// statusOf tells src's status from the notes of the last decision. A source
+// the user chose is shown as it is.
+func statusOf(notes []note, src, chosen duxlyrics.Provider) Status {
+	switch src {
+	case duxlyrics.Sidecar:
+		return Status{Kind: "file"}
+	case chosen:
+		return Status{Kind: "shown"}
+	}
+	i := slices.IndexFunc(notes, func(n note) bool { return n.source == src && n.shown })
+	if i < 0 {
+		i = slices.IndexFunc(notes, func(n note) bool { return n.source == src })
+	}
+	if i < 0 {
+		return Status{Kind: "not-measured"}
+	}
+	n := notes[i]
+	n.shown = n.shown && chosen == ""
+	shift := n.fit.Shift
+	near := math.Abs(shift) <= onTimeSlack
+	switch {
+	case n.shown && n.lines != "":
+		return Status{Kind: "aligned", Source: string(n.lines)}
+	case n.shown && n.moved != 0:
+		return Status{Kind: "moved", Seconds: n.moved}
+	case n.shown && n.measured && near:
+		return Status{Kind: "shown-on-time", Seconds: shift}
+	case n.shown:
+		return Status{Kind: "shown"}
+	case !n.measured:
+		return Status{Kind: "not-measured"}
+	case near:
+		return Status{Kind: "on-time", Seconds: shift}
+	case shift > 0:
+		return Status{Kind: "early", Seconds: shift}
+	}
+	return Status{Kind: "late", Seconds: -shift}
 }
 
 type Config struct {
@@ -112,12 +162,41 @@ type Service struct {
 	warm       []warmed // newest last
 	warming    string   // key of the track being prefetched
 	warmCancel context.CancelFunc
+	decided    []decision // newest last
 
 	offsetMu sync.Mutex // one nudge reads and writes the file at a time
 
 	stop   context.CancelFunc
 	workMu sync.Mutex // keeps spawn from racing Close's wait
 	work   sync.WaitGroup
+}
+
+// decision is what the last automatic pick for a track noted per answer.
+type decision struct {
+	key   string
+	notes []note
+}
+
+// maxDecided keeps the decisions of the current track and the prefetched ones.
+const maxDecided = 2 * maxWarmed
+
+func (s *Service) noteDecision(k string, notes []note) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.decided = slices.DeleteFunc(s.decided, func(d decision) bool { return d.key == k })
+	s.decided = append(s.decided, decision{k, notes})
+	if len(s.decided) > maxDecided {
+		s.decided = slices.Delete(s.decided, 0, 1)
+	}
+}
+
+func (s *Service) decisionNotes(k string) []note {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if i := slices.IndexFunc(s.decided, func(d decision) bool { return d.key == k }); i >= 0 {
+		return s.decided[i].notes
+	}
+	return nil
 }
 
 // maxWarmed keeps the next track's result while the track after it is
@@ -476,7 +555,7 @@ func (s *Service) forget() {
 		s.warmCancel()
 	}
 	old := s.warm
-	s.warm, s.warming = nil, ""
+	s.warm, s.warming, s.decided = nil, "", nil
 	s.mu.Unlock()
 	for _, w := range old {
 		discard(w.dir)
@@ -651,6 +730,11 @@ func (s *Service) Choices(ctx context.Context, ref source.Ref) ([]Choice, error)
 		return nil, err
 	}
 	out := []Choice{}
+	var chosen duxlyrics.Provider
+	if res := s.chosen(key(&t)); res != nil {
+		chosen = res.Source
+	}
+	notes := s.decisionNotes(key(&t))
 	results, loose := s.gather(ctx, s.client, t)
 	for _, r := range append(results, loose...) {
 		// a lyrics file beside the track answers for every provider
@@ -658,7 +742,7 @@ func (s *Service) Choices(ctx context.Context, ref source.Ref) ([]Choice, error)
 		if !r.Found || r.Instrumental || seen {
 			continue
 		}
-		c := Choice{Source: string(r.Source), Name: r.Attribution.Name, Timing: "plain"}
+		c := Choice{Source: string(r.Source), Name: r.Attribution.Name, Timing: "plain", Status: statusOf(notes, r.Source, chosen)}
 		if name, ok := providerNames[r.Source]; ok && c.Name == "" {
 			c.Name = name
 		}
@@ -840,7 +924,11 @@ func (s *Service) best(ctx context.Context, client *duxlyrics.Client, t source.T
 	if len(results)+len(loose) == 0 {
 		return nil
 	}
-	return decide(s.providers.enabled(), results, loose, s.recording(ctx, t))
+	res, notes := decide(s.providers.enabled(), results, loose, s.recording(ctx, t))
+	if ctx.Err() == nil {
+		s.noteDecision(key(&t), notes)
+	}
+	return res
 }
 
 // trackFits measures t's answers against its local copy, decoded at most

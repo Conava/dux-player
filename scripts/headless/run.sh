@@ -355,7 +355,18 @@ cat >>"$W/tree/shell.qml" <<'Q'
                 return [Math.round(p.x), Math.round(p.y)];
             };
             const reset = inside.find(i => i.iconName === "restart_alt");
+            const infos = {};
+            for (const row of inside) {
+                const info = row.entry?.info ? kids(row).find(i => i.iconName === "info" && i.visible) : null;
+                if (info)
+                    infos[row.entry.id] = {
+                        "at": point(info),
+                        "text": info.tooltipText,
+                        "description": kids(row).find(i => i.Accessible.role === Accessible.MenuItem)?.Accessible.description ?? ""
+                    };
+            }
             return JSON.stringify({
+                "infos": infos,
                 "centre": centre,
                 "button": button ? point(button) : null,
                 "open": menu?.opened === true,

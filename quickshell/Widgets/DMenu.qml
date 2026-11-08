@@ -7,8 +7,9 @@ import qs.DCommon.Common
 import qs.DCommon.Widgets
 
 // An action menu: icons, labels, a checked state, dividers and sliders, opened under a button or at the pointer.
-// model: [{id, text, description, icon, iconFilled, active, checked, enabled, divider}]; a divider entry only needs
-// `divider: true`. description is a second line, e.g. why a disabled entry is disabled. A toggle entry shows
+// model: [{id, text, description, info, icon, iconFilled, active, checked, enabled, divider}]; a divider entry only
+// needs `divider: true`. description is a second line, e.g. why a disabled entry is disabled. info shows an info icon
+// at the entry's end with info as its tooltip and the entry's accessible description. A toggle entry shows
 // the state after its action as the icon (filled or outlined) instead of a check mark. active is a toggle that is
 // on: a filled icon in the accent colour. checked marks the current pick of a list of choices.
 // A slider entry is {id, text, slider: true, value, from, to, stepSize, unit, resetValue}: the value shows beside
@@ -305,7 +306,7 @@ Item {
                         id: items
 
                         // the longest label decides the menu's width
-                        readonly property real widest: root.model.reduce((max, entry) => entry.divider ? max : Math.max(max, entry.slider ? root.sliderWidth(entry) : Math.max(labelMetrics.advanceWidth(entry.text ?? ""), descriptionMetrics.advanceWidth(entry.description ?? "")) + Style.iconSizeMedium * 2 + Style.spacingM * 4), 0)
+                        readonly property real widest: root.model.reduce((max, entry) => entry.divider ? max : Math.max(max, entry.slider ? root.sliderWidth(entry) : Math.max(labelMetrics.advanceWidth(entry.text ?? ""), descriptionMetrics.advanceWidth(entry.description ?? "")) + Style.iconSizeMedium * 2 + Style.spacingM * 4 + (entry.info ? Style.buttonHeightXS + Style.spacingXS : 0)), 0)
 
                         width: parent.width
 
@@ -476,7 +477,7 @@ Item {
                                     color: root.highlightIndex === row.index ? Style.selectedContainer : "transparent"
                                     Accessible.role: Accessible.MenuItem
                                     Accessible.name: row.entry.text ?? ""
-                                    Accessible.description: row.entry.description ?? ""
+                                    Accessible.description: row.entry.description || row.entry.info || ""
                                     Accessible.checkable: row.entry.checked !== undefined || row.entry.active !== undefined
                                     Accessible.checked: row.entry.checked === true || row.entry.active === true
                                     onHoveredChanged: {
@@ -534,6 +535,19 @@ Item {
                                             size: Style.iconSizeMedium
                                             color: Style.primary
                                         }
+                                    }
+
+                                    // takes the pointer so a click on it doesn't trigger the entry
+                                    DActionButton {
+                                        anchors.right: parent.right
+                                        anchors.rightMargin: Style.spacingXS
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: !!row.entry.info
+                                        focusPolicy: Qt.NoFocus
+                                        iconName: "info"
+                                        iconSize: Style.iconSizeSmall
+                                        tooltipText: row.entry.info ?? ""
+                                        Accessible.ignored: true
                                     }
                                 }
                             }

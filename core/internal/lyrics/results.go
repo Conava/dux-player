@@ -122,10 +122,10 @@ func choose(order []duxlyrics.Provider, results []*duxlyrics.Result) *duxlyrics.
 
 // align chooses the best result and moves it onto the timing the other
 // sources agree on. A lyrics file of the user's own is never moved.
-func align(order []duxlyrics.Provider, results []*duxlyrics.Result) *duxlyrics.Result {
+func align(order []duxlyrics.Provider, results []*duxlyrics.Result) outcome {
 	best := choose(order, results)
 	if !best.Found || best.Source == duxlyrics.Sidecar || len(best.Synced) == 0 {
-		return best
+		return kept(best)
 	}
 	var offsets []float64
 	for _, r := range results {
@@ -138,9 +138,9 @@ func align(order []duxlyrics.Provider, results []*duxlyrics.Result) *duxlyrics.R
 	}
 	shift, ok := consensus(offsets)
 	if !ok {
-		return best
+		return kept(best)
 	}
-	return shifted(best, shift)
+	return moved(best, shift)
 }
 
 // offset is how far b's lines sit after a's, taken over the lines they share.

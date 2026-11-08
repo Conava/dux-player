@@ -46,28 +46,84 @@ type recording interface {
 }
 
 // decide picks what to show from the answers found with the track's length
-// and the loose ones found only without it. rec is nil when the recording
-// can't be measured.
-func decide(order []duxlyrics.Provider, results, loose []*duxlyrics.Result, rec recording) *duxlyrics.Result {
+// and the loose ones found only without it, and notes what it found and did
+// for each answer. rec is nil when the recording can't be measured.
+func decide(order []duxlyrics.Provider, results, loose []*duxlyrics.Result, rec recording) (*duxlyrics.Result, []note) {
 	if !slices.ContainsFunc(results, func(r *duxlyrics.Result) bool { return tier(answer{res: r}) >= 1 }) {
 		results, loose = append(results, loose...), nil
 	}
-	if rec == nil || choose(order, results).Source == duxlyrics.Sidecar {
-		return align(order, results)
-	}
 	all := append(slices.Clip(results), loose...)
+	fits := map[*duxlyrics.Result]fitResult{}
+	var o outcome
+	if rec == nil || choose(order, results).Source == duxlyrics.Sidecar {
+		o = align(order, results)
+	} else {
+		o = measured(order, results, all, measures{rec, fits})
+	}
+	notes := make([]note, len(all))
+	for i, r := range all {
+		notes[i].source = r.Source
+		notes[i].fit, notes[i].measured = fits[r]
+		if r == o.from {
+			notes[i].shown, notes[i].moved = true, o.moved
+			if o.lines != nil {
+				notes[i].lines = o.lines.Source
+			}
+		}
+	}
+	return o.res, notes
+}
+
+func measured(order []duxlyrics.Provider, results, all []*duxlyrics.Result, rec recording) outcome {
 	on, ok := onTime(order, all, rec)
 	if !ok {
 		return fallback(order, results, rec)
 	}
-	if laid, ok := lend(order, on, all, rec); ok {
+	if laid, ok := lend(order, on.res, all, rec); ok {
 		return laid
 	}
 	return on
 }
 
+// note is what deciding found for one answer and did with it.
+type note struct {
+	source   duxlyrics.Provider
+	fit      fitResult
+	measured bool
+	shown    bool
+	moved    float64            // seconds the shown answer was moved
+	lines    duxlyrics.Provider // whose line timing the shown words were laid on
+}
+
+// outcome is what is shown: res, made from the answer from, moved by moved
+// seconds, with from's words laid on the line timing of lines when set.
+type outcome struct {
+	res, from, lines *duxlyrics.Result
+	moved            float64
+}
+
+func kept(r *duxlyrics.Result) outcome { return outcome{res: r, from: r} }
+
+func moved(r *duxlyrics.Result, by float64) outcome {
+	return outcome{res: shifted(r, by), from: r, moved: by}
+}
+
+// measures keeps the first measure of each answer.
+type measures struct {
+	recording
+	fits map[*duxlyrics.Result]fitResult
+}
+
+func (m measures) measure(r *duxlyrics.Result, words bool) (fitResult, bool) {
+	f, ok := m.recording.measure(r, words)
+	if _, seen := m.fits[r]; ok && !seen {
+		m.fits[r] = f
+	}
+	return f, ok
+}
+
 // onTime is the answer that lands on the recording, with its sure shift applied.
-func onTime(order []duxlyrics.Provider, all []*duxlyrics.Result, rec recording) (*duxlyrics.Result, bool) {
+func onTime(order []duxlyrics.Provider, all []*duxlyrics.Result, rec recording) (outcome, bool) {
 	var on []*duxlyrics.Result
 	fits := map[*duxlyrics.Result]fitResult{}
 	for _, r := range all {
@@ -77,7 +133,7 @@ func onTime(order []duxlyrics.Provider, all []*duxlyrics.Result, rec recording) 
 		}
 	}
 	if len(on) == 0 {
-		return nil, false
+		return outcome{}, false
 	}
 	r := choose(order, on)
 	return applied(r, fits[r]), true
@@ -85,10 +141,10 @@ func onTime(order []duxlyrics.Provider, all []*duxlyrics.Result, rec recording) 
 
 // fallback is the best-timed answer, moved by the first sure measure that
 // speaks for it, else onto what the others agree on.
-func fallback(order []duxlyrics.Provider, results []*duxlyrics.Result, rec recording) *duxlyrics.Result {
+func fallback(order []duxlyrics.Provider, results []*duxlyrics.Result, rec recording) outcome {
 	top := choose(order, results)
 	if f, ok := rec.measure(top, true); ok && f.Confident {
-		return shifted(top, f.Shift)
+		return moved(top, f.Shift)
 	}
 	// A line-timed answer can be measured where a word-timed top can't, and
 	// offset carries its shift over.
@@ -103,7 +159,7 @@ func fallback(order []duxlyrics.Provider, results []*duxlyrics.Result, rec recor
 			d, ok = offset(top.Synced, r.Synced)
 		}
 		if ok {
-			return shifted(top, d+f.Shift)
+			return moved(top, d+f.Shift)
 		}
 	}
 	return align(order, results)
@@ -113,9 +169,9 @@ func fallback(order []duxlyrics.Provider, results []*duxlyrics.Result, rec recor
 // line-timed pick and keeps the first copy that lands on the recording.
 // Line starts often sit a little before the singing, so a sure shift of the
 // copy is applied.
-func lend(order []duxlyrics.Provider, lines *duxlyrics.Result, all []*duxlyrics.Result, rec recording) (*duxlyrics.Result, bool) {
+func lend(order []duxlyrics.Provider, lines *duxlyrics.Result, all []*duxlyrics.Result, rec recording) (outcome, bool) {
 	if tier(answer{res: lines}) != 1 {
-		return nil, false
+		return outcome{}, false
 	}
 	words := slices.DeleteFunc(slices.Clone(all), func(r *duxlyrics.Result) bool { return tier(answer{res: r}) != 2 })
 	slices.SortStableFunc(words, func(a, b *duxlyrics.Result) int { return rank(order, a.Source) - rank(order, b.Source) })
@@ -125,15 +181,17 @@ func lend(order []duxlyrics.Provider, lines *duxlyrics.Result, all []*duxlyrics.
 			continue
 		}
 		if f, ok := rec.measureLaid(w, laid); ok && math.Abs(f.Shift) <= onTimeSlack {
-			return applied(laid, f), true
+			o := applied(laid, f)
+			o.from, o.lines = w, lines
+			return o, true
 		}
 	}
-	return nil, false
+	return outcome{}, false
 }
 
-func applied(r *duxlyrics.Result, f fitResult) *duxlyrics.Result {
+func applied(r *duxlyrics.Result, f fitResult) outcome {
 	if !f.Confident {
-		return r
+		return kept(r)
 	}
-	return shifted(r, f.Shift)
+	return moved(r, f.Shift)
 }

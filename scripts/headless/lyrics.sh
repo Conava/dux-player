@@ -191,6 +191,22 @@ sleep 0.1
 pointer m $((x + mx)) $((y + my))
 sleep 0.5
 fact "hover moves the highlight off the slider" "$(lyrics_menu 'repr(d["highlight"])')" "''"
+# the info icon at the end of a source row shows its status as a tooltip and doesn't pick the source
+info_hover() {
+    read -r ix iy <<<"$(lyrics_menu '"%d %d" % tuple(d["infos"]["sidecar"]["at"])')"
+    pointer m $((x + ix - 2)) $((y + iy))
+    sleep 0.1
+    pointer m $((x + ix)) $((y + iy))
+    sleep 1.5
+}
+fact "lyrics file status" "$(lyrics_menu 'd["infos"]["sidecar"]["text"]')" "Lyrics file · not changed"
+fact "status is the row's description" "$(lyrics_menu 'd["infos"]["sidecar"]["description"]')" "Lyrics file · not changed"
+info_hover
+cap bento-lyrics-info
+click $((x + ix)) $((y + iy))
+sleep 0.5
+# a click that picked the row would close the menu
+fact "a click on the info icon keeps the menu" "$(lyrics_menu 'd["open"]')" True
 click $((x + 40)) $((y + h / 2))
 sleep 1
 fact "menu closed by a click outside" "$(lyrics_menu 'd["open"]')" False
@@ -310,6 +326,8 @@ wtype -k Left
 sleep 1
 fact "Left below zero" "$(lyrics_menu 'd["offset"]')" -0.5
 cap material-lyrics-menu-earlier
+info_hover
+cap material-lyrics-info
 wtype -k Escape
 sleep 0.5
 fact "Escape closes the menu" "$(lyrics_menu 'd["open"]')" False
