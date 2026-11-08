@@ -526,9 +526,9 @@ func (s *Service) chosen(k string) *duxlyrics.Result {
 	return &res
 }
 
-// The timing nudge: maxNudge bounds it and nudgeStep is one click, in seconds.
+// The timing nudge: maxNudge bounds it and nudgeStep is what it rounds to, in seconds.
 const (
-	maxNudge  = 30.0
+	maxNudge  = 10.0
 	nudgeStep = 0.5
 )
 
@@ -536,7 +536,7 @@ func (s *Service) offsetPath(k string) string {
 	return filepath.Join(s.cfg.DataDir, "lyrics-offset", hashed(k)+".json")
 }
 
-// offset is the timing nudge the user gave a track; 0 without one or when the file is bad.
+// offset is the timing nudge the user gave a track, within maxNudge; 0 without one or when the file is bad.
 func (s *Service) offset(k string) float64 {
 	data, err := os.ReadFile(s.offsetPath(k))
 	if errors.Is(err, fs.ErrNotExist) {
@@ -547,18 +547,18 @@ func (s *Service) offset(k string) float64 {
 		return 0
 	}
 	var v float64
-	if err := json.Unmarshal(data, &v); err != nil || math.Abs(v) > maxNudge {
+	if err := json.Unmarshal(data, &v); err != nil {
 		log.Warnf("lyrics: %s is unreadable, ignoring it", s.offsetPath(k))
 		return 0
 	}
-	return v
+	return max(-maxNudge, min(maxNudge, v))
 }
 
-// Nudge moves the playing track's lyrics by seconds, later when positive, and
-// returns the track's new offset; 0 resets it.
-func (s *Service) Nudge(by float64) (float64, error) {
-	if math.IsNaN(by) || math.IsInf(by, 0) {
-		return 0, errors.New("by must be a number of seconds")
+// SetOffset sets the playing track's lyrics timing to seconds, later when
+// positive, or moves it by seconds when relative, and returns the new offset.
+func (s *Service) SetOffset(seconds float64, relative bool) (float64, error) {
+	if math.IsNaN(seconds) || math.IsInf(seconds, 0) {
+		return 0, errors.New("the offset must be a number of seconds")
 	}
 	if !s.enabled() {
 		return 0, errOff
@@ -570,7 +570,7 @@ func (s *Service) Nudge(by float64) (float64, error) {
 		return 0, errors.New("nothing is playing")
 	}
 	s.offsetMu.Lock()
-	v, err := s.storeOffset(k, by)
+	v, err := s.storeOffset(k, seconds, relative)
 	s.offsetMu.Unlock()
 	if err != nil {
 		return 0, err
@@ -584,13 +584,12 @@ func (s *Service) Nudge(by float64) (float64, error) {
 	return v, nil
 }
 
-func (s *Service) storeOffset(k string, by float64) (float64, error) {
+func (s *Service) storeOffset(k string, v float64, relative bool) (float64, error) {
 	path := s.offsetPath(k)
-	v := 0.0
-	if by != 0 {
-		v = math.Round((s.offset(k)+by)/nudgeStep) * nudgeStep
-		v = max(-maxNudge, min(maxNudge, v))
+	if relative {
+		v += s.offset(k)
 	}
+	v = max(-maxNudge, min(maxNudge, math.Round(v/nudgeStep)*nudgeStep))
 	if v == 0 {
 		if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return 0, err

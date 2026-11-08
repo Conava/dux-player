@@ -163,10 +163,11 @@ Singleton {
     readonly property real lyricsEdgeFadeMax: Theme.spacingXL * 2
     readonly property real lyricsBreakGap: 5
     readonly property real lyricsBreakIndicatorScale: 1.2
-    // seconds one click of the lyrics timing nudge moves; the daemon rounds to the same step
+    // the lyrics timing slider's step and its furthest either way, in seconds, as the daemon rounds and bounds it
     readonly property real lyricsNudgeStep: 0.5
-    // the furthest the daemon lets the nudge go either way, in seconds
-    readonly property real lyricsNudgeMax: 30
+    readonly property real lyricsNudgeMax: 10
+    // how often a drag of the lyrics timing slider sends its value, in ms
+    readonly property int lyricsNudgeInterval: 100
     // below this view width the follow button shows only its icon
     readonly property real lyricsFollowLabelMinWidth: 240
     readonly property int positionTick: 250

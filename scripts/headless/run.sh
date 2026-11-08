@@ -311,6 +311,13 @@ cat >>"$W/tree/shell.qml" <<'Q'
             walk(windowLoader.item?.contentItem);
             return Date.now() + " " + rows.sort((a, b) => a - b).join(" ");
         }
+        // hides the open lyrics menu's sources as if they hadn't answered yet, or brings them back
+        function lyricsSources(shown: bool): void {
+            const kids = item => [item].concat(...Array.from(item.children).map(kids));
+            const menu = kids(windowLoader.item.contentItem).find(i => i.choicesFor !== undefined && i.opened === true);
+            if (menu)
+                menu.choicesFor = shown ? menu.track : "";
+        }
         // the lyrics view's centred line and its source menu, as JSON; points are in window coordinates
         function lyricsMenu(): string {
             let view = null;
@@ -338,9 +345,16 @@ cat >>"$W/tree/shell.qml" <<'Q'
             const menu = kids(view).find(i => i.sources !== undefined && i.opened !== undefined);
             const popup = menu?.opened ? menu.children.find(c => c.item)?.item : null;
             const rows = {};
-            for (const row of popup?.contentItem ? kids(popup.contentItem) : [])
-                if (row.modelData?.id !== undefined && row.modelData?.divider !== true && row.height > 0)
-                    rows[row.modelData.id] = point(row);
+            const inside = popup?.contentItem ? kids(popup.contentItem) : [];
+            for (const row of inside)
+                if (row.entry?.id !== undefined && row.entry?.divider !== true && row.height > 0)
+                    rows[row.entry.id] = point(row);
+            const slider = inside.find(i => i.isDragging !== undefined && i.stepBy !== undefined);
+            const end = ratio => {
+                const p = slider.mapToItem(null, slider.handleWidth / 2 + (slider.width - slider.handleWidth) * ratio, slider.height / 2);
+                return [Math.round(p.x), Math.round(p.y)];
+            };
+            const reset = inside.find(i => i.iconName === "restart_alt");
             return JSON.stringify({
                 "centre": centre,
                 "button": button ? point(button) : null,
@@ -348,7 +362,13 @@ cat >>"$W/tree/shell.qml" <<'Q'
                 "offset": PlayerService.lyricsOffset,
                 "width": popup ? popup.menuWidth : 0,
                 "highlight": menu?.model[menu.highlightIndex]?.id ?? null,
-                "rows": rows
+                "rows": rows,
+                "slider": slider ? {
+                    "value": slider.value,
+                    "start": end(0),
+                    "end": end(1)
+                } : null,
+                "reset": reset?.visible ? point(reset) : null
             });
         }
         function customize(surface: string): void {

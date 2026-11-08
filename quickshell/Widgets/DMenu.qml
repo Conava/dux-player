@@ -6,13 +6,15 @@ import Quickshell
 import qs.DCommon.Common
 import qs.DCommon.Widgets
 
-// An action menu: icons, labels, a checked state and dividers, opened under a button or at the pointer.
-// model: [{id, text, description, icon, iconFilled, active, checked, enabled, keepOpen, reserveText, divider}]; a divider
-// entry only needs `divider: true`. description is a second line, e.g. why a disabled entry is disabled. keepOpen leaves
-// the menu open after the entry is triggered, for an action that is repeated; reserveText is the entry's widest text, so
-// the menu keeps its width while the text changes. A toggle entry shows
+// An action menu: icons, labels, a checked state, dividers and sliders, opened under a button or at the pointer.
+// model: [{id, text, description, icon, iconFilled, active, checked, enabled, divider}]; a divider entry only needs
+// `divider: true`. description is a second line, e.g. why a disabled entry is disabled. A toggle entry shows
 // the state after its action as the icon (filled or outlined) instead of a check mark. active is a toggle that is
 // on: a filled icon in the accent colour. checked marks the current pick of a list of choices.
+// A slider entry is {id, text, slider: true, value, from, to, stepSize, unit, resetValue}: the value shows beside
+// text, signed when from is below 0, and a reset button shows while it isn't resetValue (optional). It keeps the
+// menu open and takes Left and Right while highlighted; valueMoved reports every change, valueSet the value the
+// user let go at, and the owner passes it back as value. While dragged it follows the pointer and ignores value.
 Item {
     id: root
 
@@ -31,6 +33,24 @@ Item {
     readonly property var actionIndexes: model.map((entry, i) => entry.divider || entry.enabled === false ? -1 : i).filter(i => i >= 0)
 
     signal triggered(string id)
+    signal valueMoved(string id, real value)
+    signal valueSet(string id, real value)
+
+    // one slot per entry, grown and shrunk at the end: a row keeps its index and stays alive while entries are
+    // appended or changed, so a slider being dragged survives them; entries inserted before it still rebuild it
+    ListModel {
+        id: rowSlots
+    }
+
+    function syncRows() {
+        while (rowSlots.count < model.length)
+            rowSlots.append({});
+        if (rowSlots.count > model.length)
+            rowSlots.remove(model.length, rowSlots.count - model.length);
+    }
+
+    onModelChanged: syncRows()
+    Component.onCompleted: syncRows()
 
     // a model changed while open can take the highlighted row away; the keyboard goes on from the last action
     onActionIndexesChanged: {
@@ -84,11 +104,39 @@ Item {
 
     function trigger(index) {
         const entry = model[index];
-        if (!entry || entry.divider || entry.enabled === false)
+        if (!entry || entry.divider || entry.slider || entry.enabled === false)
             return;
-        if (entry.keepOpen !== true)
-            close();
+        close();
         triggered(entry.id);
+    }
+
+    function setSlider(entry, v) {
+        valueMoved(entry.id ?? "", v);
+        valueSet(entry.id ?? "", v);
+    }
+
+    function stepSlider(index, direction) {
+        const entry = model[index];
+        const step = entry.stepSize ?? 1;
+        setSlider(entry, Math.max(entry.from, Math.min(entry.to, Math.round((entry.value ?? 0) / step + direction) * step)));
+    }
+
+    function decimalsOf(entry) {
+        return (String(entry.stepSize ?? 1).split(".")[1] ?? "").length;
+    }
+
+    // without decimals, as many as v has
+    function formatValue(entry, v, decimals) {
+        const digits = decimals === undefined ? String(Math.abs(v)) : Math.abs(v).toFixed(decimals);
+        return (v < 0 ? "\u2212" : entry.from < 0 && v > 0 ? "+" : "") + digits;
+    }
+
+    function widestValue(entry) {
+        return [entry.from, entry.to].map(v => formatValue(entry, v, decimalsOf(entry)) + (entry.unit ?? "")).reduce((a, b) => b.length > a.length ? b : a, "");
+    }
+
+    function sliderWidth(entry) {
+        return labelMetrics.advanceWidth(entry.text ?? "") + descriptionMetrics.advanceWidth(widestValue(entry).replace(/\d/g, "8")) + Style.buttonHeightXS + Style.spacingXS + Style.spacingM * 3;
     }
 
     function step(delta) {
@@ -194,6 +242,12 @@ Item {
                     case Qt.Key_Backtab:
                         root.step(-1);
                         break;
+                    case Qt.Key_Left:
+                    case Qt.Key_Right:
+                        if (root.model[root.highlightIndex]?.slider !== true)
+                            return;
+                        root.stepSlider(root.highlightIndex, (event.key === Qt.Key_Right) !== I18n.isRtl ? 1 : -1);
+                        break;
                     case Qt.Key_Home:
                         root.highlightIndex = root.actionIndexes[0] ?? -1;
                         break;
@@ -251,43 +305,180 @@ Item {
                         id: items
 
                         // the longest label decides the menu's width
-                        readonly property real widest: root.model.reduce((max, entry) => entry.divider ? max : Math.max(max, Math.max(labelMetrics.advanceWidth(entry.text ?? ""), labelMetrics.advanceWidth(entry.reserveText ?? ""), descriptionMetrics.advanceWidth(entry.description ?? "")) + Style.iconSizeMedium * 2 + Style.spacingM * 4), 0)
+                        readonly property real widest: root.model.reduce((max, entry) => entry.divider ? max : Math.max(max, entry.slider ? root.sliderWidth(entry) : Math.max(labelMetrics.advanceWidth(entry.text ?? ""), descriptionMetrics.advanceWidth(entry.description ?? "")) + Style.iconSizeMedium * 2 + Style.spacingM * 4), 0)
 
                         width: parent.width
 
                         Repeater {
                             id: rows
-                            model: root.model
+                            model: rowSlots
 
                             Item {
                                 id: row
-                                required property var modelData
                                 required property int index
+                                readonly property var entry: root.model[index] ?? ({})
 
                                 width: items.width
-                                height: modelData.divider ? Style.spacingS * 2 + Style.dividerWidth : (modelData.description ?? "") !== "" ? Style.listItemTwoLineHeight : Style.menuItemHeight
+                                height: entry.divider ? Style.spacingS * 2 + Style.dividerWidth : entry.slider ? sliderLoader.implicitHeight : (entry.description ?? "") !== "" ? Style.listItemTwoLineHeight : Style.menuItemHeight
 
                                 Rectangle {
-                                    visible: row.modelData.divider === true
+                                    visible: row.entry.divider === true
                                     anchors.centerIn: parent
                                     width: parent.width
                                     height: Style.dividerWidth
                                     color: Style.outlineVariant
                                 }
 
+                                Loader {
+                                    id: sliderLoader
+                                    active: row.entry.slider === true
+                                    width: parent.width
+
+                                    sourceComponent: Item {
+                                        id: sliderEntry
+
+                                        readonly property real step: row.entry.stepSize ?? 1
+                                        readonly property int decimals: root.decimalsOf(row.entry)
+
+                                        implicitHeight: sliderContent.implicitHeight + Style.spacingS * 2
+
+                                        // a state layer: the selected container is the slider track's colour
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            radius: root.itemRadius
+                                            color: root.highlightIndex === row.index ? Style.withAlpha(Style.onSurface, Style.stateLayerHover) : "transparent"
+                                        }
+
+                                        HoverHandler {
+                                            onHoveredChanged: {
+                                                if (hovered)
+                                                    root.highlightIndex = row.index;
+                                            }
+                                        }
+
+                                        Column {
+                                            id: sliderContent
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                            anchors.leftMargin: Style.spacingM
+                                            anchors.rightMargin: Style.spacingM
+                                            anchors.verticalCenter: parent.verticalCenter
+
+                                            Item {
+                                                width: parent.width
+                                                height: Style.buttonHeightXS
+
+                                                StyledText {
+                                                    anchors.left: parent.left
+                                                    anchors.right: valueRow.left
+                                                    anchors.rightMargin: Style.spacingM
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    text: row.entry.text ?? ""
+                                                    font.pixelSize: Style.fontSizeMedium
+                                                    color: Style.onSurface
+                                                    elide: Text.ElideRight
+                                                }
+
+                                                Row {
+                                                    id: valueRow
+                                                    anchors.right: parent.right
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    spacing: Style.spacingXS
+
+                                                    NumericText {
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                        text: root.formatValue(row.entry, slider.value * sliderEntry.step, sliderEntry.decimals) + (row.entry.unit ?? "")
+                                                        reserveText: root.widestValue(row.entry)
+                                                        font.pixelSize: Style.fontSizeSmall
+                                                        color: Style.onSurfaceVariant
+                                                        horizontalAlignment: Text.AlignRight
+                                                    }
+
+                                                    // keeps its place while hidden, so the value doesn't move
+                                                    Item {
+                                                        width: Style.buttonHeightXS
+                                                        height: Style.buttonHeightXS
+
+                                                        DActionButton {
+                                                            anchors.fill: parent
+                                                            visible: row.entry.resetValue !== undefined && slider.value !== Math.round(row.entry.resetValue / sliderEntry.step)
+                                                            focusPolicy: Qt.NoFocus
+                                                            iconName: "restart_alt"
+                                                            iconSize: Style.iconSizeSmall
+                                                            Accessible.name: I18n.tr("Reset", "button that restores the defaults")
+                                                            onClicked: root.setSlider(row.entry, row.entry.resetValue)
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            Row {
+                                                width: parent.width
+                                                spacing: Style.spacingS
+
+                                                StyledText {
+                                                    id: fromLabel
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    text: root.formatValue(row.entry, row.entry.from ?? 0)
+                                                    font.pixelSize: Style.fontSizeSmall
+                                                    color: Style.onSurfaceVariant
+                                                }
+
+                                                DSlider {
+                                                    id: slider
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    width: parent.width - fromLabel.width - toLabel.width - parent.spacing * 2
+                                                    size: "s"
+                                                    showValue: false
+                                                    minimum: Math.round((row.entry.from ?? 0) / sliderEntry.step)
+                                                    maximum: Math.round((row.entry.to ?? 0) / sliderEntry.step)
+                                                    Accessible.name: row.entry.text ?? ""
+                                                    onSliderValueChanged: v => root.valueMoved(row.entry.id ?? "", v * sliderEntry.step)
+                                                    // a drag reports its value when it ends, released or cancelled
+                                                    onSliderDragFinished: v => {
+                                                        if (!isDragging)
+                                                            root.valueSet(row.entry.id ?? "", v * sliderEntry.step);
+                                                    }
+                                                    // a press takes the focus; the menu's keys get it back
+                                                    onIsDraggingChanged: {
+                                                        if (isDragging)
+                                                            return;
+                                                        root.valueSet(row.entry.id ?? "", value * sliderEntry.step);
+                                                        menuKeys.forceActiveFocus();
+                                                    }
+
+                                                    Binding on value {
+                                                        value: Math.round((row.entry.value ?? 0) / sliderEntry.step)
+                                                        when: !slider.isDragging
+                                                        restoreMode: Binding.RestoreNone
+                                                    }
+                                                }
+
+                                                StyledText {
+                                                    id: toLabel
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    text: root.formatValue(row.entry, row.entry.to ?? 0)
+                                                    font.pixelSize: Style.fontSizeSmall
+                                                    color: Style.onSurfaceVariant
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
                                 StyledButton {
                                     id: action
-                                    visible: row.modelData.divider !== true
+                                    visible: row.entry.divider !== true && row.entry.slider !== true
                                     anchors.fill: parent
-                                    enabled: row.modelData.enabled !== false
+                                    enabled: row.entry.enabled !== false
                                     focusPolicy: Qt.NoFocus
                                     radius: root.itemRadius
                                     color: root.highlightIndex === row.index ? Style.selectedContainer : "transparent"
                                     Accessible.role: Accessible.MenuItem
-                                    Accessible.name: row.modelData.text ?? ""
-                                    Accessible.description: row.modelData.description ?? ""
-                                    Accessible.checkable: row.modelData.checked !== undefined || row.modelData.active !== undefined
-                                    Accessible.checked: row.modelData.checked === true || row.modelData.active === true
+                                    Accessible.name: row.entry.text ?? ""
+                                    Accessible.description: row.entry.description ?? ""
+                                    Accessible.checkable: row.entry.checked !== undefined || row.entry.active !== undefined
+                                    Accessible.checked: row.entry.checked === true || row.entry.active === true
                                     onHoveredChanged: {
                                         if (hovered)
                                             root.highlightIndex = row.index;
@@ -308,11 +499,11 @@ Item {
 
                                         DIcon {
                                             anchors.verticalCenter: parent.verticalCenter
-                                            visible: (row.modelData.icon ?? "") !== ""
-                                            name: row.modelData.icon ?? ""
-                                            filled: row.modelData.iconFilled === true || row.modelData.active === true
+                                            visible: (row.entry.icon ?? "") !== ""
+                                            name: row.entry.icon ?? ""
+                                            filled: row.entry.iconFilled === true || row.entry.active === true
                                             size: Style.iconSizeMedium
-                                            color: !action.enabled ? Style.onSurface_38 : row.modelData.active === true ? Style.primary : Style.onSurfaceVariant
+                                            color: !action.enabled ? Style.onSurface_38 : row.entry.active === true ? Style.primary : Style.onSurfaceVariant
                                         }
 
                                         Column {
@@ -320,7 +511,7 @@ Item {
                                             spacing: Style.spacingXXS
 
                                             StyledText {
-                                                text: row.modelData.text ?? ""
+                                                text: row.entry.text ?? ""
                                                 font.pixelSize: Style.fontSizeMedium
                                                 color: action.enabled ? Style.onSurface : Style.onSurface_38
                                             }
@@ -328,7 +519,7 @@ Item {
                                             StyledText {
                                                 visible: text !== ""
                                                 width: Math.min(implicitWidth, root.maximumWidth - Style.iconSizeMedium * 2 - Style.spacingM * 4)
-                                                text: row.modelData.description ?? ""
+                                                text: row.entry.description ?? ""
                                                 font.pixelSize: Style.fontSizeSmall
                                                 color: Style.onSurfaceVariant
                                                 elide: Text.ElideRight
@@ -338,7 +529,7 @@ Item {
 
                                         DIcon {
                                             anchors.verticalCenter: parent.verticalCenter
-                                            visible: row.modelData.checked === true
+                                            visible: row.entry.checked === true
                                             name: "check"
                                             size: Style.iconSizeMedium
                                             color: Style.primary

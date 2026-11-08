@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -23,8 +24,11 @@ var lyricsCmd = &cobra.Command{
 }
 
 var lyricsOffsetCmd = &cobra.Command{
-	Use:                "offset <seconds>",
-	Short:              "Show the playing track's lyrics later (+0.5) or earlier (-0.5); 0 resets",
+	Use:   "offset <[+|-]seconds>",
+	Short: "Set the playing track's lyrics timing in seconds (0 resets), or move it with +0.5 or -0.5",
+	Long: "Set the playing track's lyrics timing in seconds, later when positive, or move it with a + or - sign.\n" +
+		"A signed number always moves it, so a timing below zero is reached by steps: dplayer lyrics offset 0, then -2.\n" +
+		"The timing is rounded to 0.5 s and stays within ±10 s.",
 	DisableFlagParsing: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		args, done, err := signedArgs(cmd, args)
@@ -34,14 +38,18 @@ var lyricsOffsetCmd = &cobra.Command{
 		if len(args) != 1 {
 			return fmt.Errorf("lyrics offset takes one number of seconds")
 		}
-		by, err := strconv.ParseFloat(args[0], 64)
-		if err != nil || math.IsNaN(by) || math.IsInf(by, 0) {
+		v, err := strconv.ParseFloat(args[0], 64)
+		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) {
 			return fmt.Errorf("%q is not a number of seconds", args[0])
+		}
+		param := "to"
+		if strings.HasPrefix(args[0], "+") || strings.HasPrefix(args[0], "-") {
+			param = "by"
 		}
 		var out struct {
 			Offset float64 `json:"offset"`
 		}
-		if err := call(true, "lyrics.nudge", map[string]any{"by": by}, &out); err != nil {
+		if err := call(true, "lyrics.setOffset", map[string]any{param: v}, &out); err != nil {
 			return err
 		}
 		switch {

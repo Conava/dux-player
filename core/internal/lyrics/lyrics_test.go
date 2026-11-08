@@ -685,26 +685,36 @@ func TestLyricsBackOnAfterNobodyWatched(t *testing.T) {
 	assert.Equal(t, "loading", got.all()[1])
 }
 
-// A timing nudge adds up per track, stays across restarts and moves whatever
+// A timing offset set or moved per track stays across restarts and moves whatever
 // is shown: a picked source as well as a fitted result.
-func TestTimingNudge(t *testing.T) {
+func TestTimingOffset(t *testing.T) {
+	type step struct {
+		v        float64
+		relative bool
+	}
+	by := func(v float64) step { return step{v, true} }
+	to := func(v float64) step { return step{v, false} }
 	tests := []struct {
 		name   string
 		fitted bool   // the shown result is a fitted one at 1.9 s, else the server's pick at 1 s
 		file   string // what the offset file holds before
-		nudges []float64
+		steps  []step
 		want   float64
 	}{
-		{name: "later twice adds up", nudges: []float64{0.5, 0.5}, want: 1},
-		{name: "earlier", nudges: []float64{-0.5}, want: -0.5},
-		{name: "earlier than the song starts stops at 0", nudges: []float64{-1.5}, want: -1.5},
-		{name: "back from below 0 keeps the timing", nudges: []float64{-1.5, 1}, want: -0.5},
-		{name: "after a fit", fitted: true, nudges: []float64{0.5}, want: 0.5},
-		{name: "rounds to the step", nudges: []float64{0.3}, want: 0.5},
-		{name: "clamped", nudges: []float64{100, 1}, want: maxNudge},
-		{name: "zero resets", nudges: []float64{1.5, 0}, want: 0},
-		{name: "a file out of range is ignored", file: "1000", want: 0},
-		{name: "a corrupt file is replaced", file: "{nope", nudges: []float64{-1}, want: -1},
+		{name: "later twice adds up", steps: []step{by(0.5), by(0.5)}, want: 1},
+		{name: "earlier", steps: []step{by(-0.5)}, want: -0.5},
+		{name: "earlier than the song starts stops at 0", steps: []step{by(-1.5)}, want: -1.5},
+		{name: "back from below 0 keeps the timing", steps: []step{by(-1.5), by(1)}, want: -0.5},
+		{name: "after a fit", fitted: true, steps: []step{by(0.5)}, want: 0.5},
+		{name: "rounds to the step", steps: []step{by(0.3)}, want: 0.5},
+		{name: "clamped", steps: []step{by(100), by(1)}, want: 10},
+		{name: "set", steps: []step{by(1), to(-2)}, want: -2},
+		{name: "set rounds to the step", steps: []step{to(3.3)}, want: 3.5},
+		{name: "set clamped", steps: []step{to(-25)}, want: -10},
+		{name: "set to zero resets", steps: []step{by(1.5), to(0)}, want: 0},
+		{name: "moving by zero keeps it", steps: []step{by(1.5), by(0)}, want: 1.5},
+		{name: "a file out of range is clamped", file: "1000", want: 10},
+		{name: "a corrupt file is replaced", file: "{nope", steps: []step{by(-1)}, want: -1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -733,8 +743,8 @@ func TestTimingNudge(t *testing.T) {
 			if tt.fitted {
 				base = 1.9
 			}
-			for _, by := range tt.nudges {
-				_, err := s.Nudge(by)
+			for _, st := range tt.steps {
+				_, err := s.SetOffset(st.v, st.relative)
 				require.NoError(t, err)
 			}
 			assert.InDelta(t, tt.want, last.Offset, 1e-9, "the playing song follows at once")
@@ -750,7 +760,7 @@ func TestTimingNudge(t *testing.T) {
 			start(again)
 			assert.InDelta(t, tt.want, last.Offset, 1e-9, "kept across a restart")
 			assert.InDelta(t, max(0, base+tt.want), float64(last.Result.Synced[0].Start), 1e-9)
-			if tt.want == 0 && len(tt.nudges) > 0 {
+			if tt.want == 0 && len(tt.steps) > 0 {
 				assert.NoFileExists(t, s.offsetPath(key(track)))
 			}
 		})

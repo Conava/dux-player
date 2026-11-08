@@ -388,77 +388,98 @@ FocusScope {
         anchors.margins: Theme.spacingS
         visible: root.ready
         iconName: "more_vert"
-        tooltipText: I18n.tr("Lyrics source", "button choosing which provider's lyrics a track uses")
-        Accessible.name: tooltipText
-        onClicked: PlayerService.lyricsChoices(list => {
-            const shown = PlayerService.lyrics?.source ?? "";
-            const auto = !PlayerService.lyricsChosen;
-            sourceMenu.sources = [
-                {
-                    "id": "",
-                    "text": I18n.tr("Automatic", "Automatic"),
-                    "checked": auto
-                }
-            ].concat(list.map(c => ({
-                        "id": c.source,
-                        "text": I18n.tr("%1 · %2", "lyrics source and its timing").arg(c.source === "sidecar" ? I18n.tr("Lyrics file", "lyrics source: a file next to the track") : c.name).arg(c.timing === "word" ? I18n.tr("Word by word", "Word by word") : c.timing === "line" ? I18n.tr("Line by line", "lyrics timing of a source") : I18n.tr("Not synced", "lyrics timing of a source")),
-                        "checked": !auto && c.source === shown
-                    })));
+        Accessible.name: I18n.tr("Lyrics source", "button choosing which provider's lyrics a track uses")
+        // asking every provider can take a while, so the menu opens at once and the sources join it when they answer
+        onClicked: {
+            const track = sourceMenu.track;
             sourceMenu.open(sourceButton);
-        })
+            if (sourceMenu.choicesFor === track)
+                return;
+            PlayerService.lyricsChoices(list => {
+                if (sourceMenu.track !== track)
+                    return;
+                sourceMenu.choices = list;
+                sourceMenu.choicesFor = track;
+            });
+        }
     }
 
     DMenu {
         id: sourceMenu
 
-        property var sources: []
-        readonly property real offset: PlayerService.lyricsOffset
+        readonly property string track: PlayerService.current ? PlayerService.current.library + ":" + PlayerService.current.id : ""
+        property var choices: []
+        property string choicesFor: ""
+        readonly property bool auto: !PlayerService.lyricsChosen
+        readonly property string shown: PlayerService.lyrics?.source ?? ""
+        readonly property var sources: [
+            {
+                "id": "",
+                "text": I18n.tr("Automatic", "Automatic"),
+                "checked": auto
+            }
+        ].concat((choicesFor === track ? choices : []).map(c => ({
+                    "id": c.source,
+                    "text": I18n.tr("%1 · %2", "lyrics source and its timing").arg(c.source === "sidecar" ? I18n.tr("Lyrics file", "lyrics source: a file next to the track") : c.name).arg(c.timing === "word" ? I18n.tr("Word by word", "Word by word") : c.timing === "line" ? I18n.tr("Line by line", "lyrics timing of a source") : I18n.tr("Not synced", "lyrics timing of a source")),
+                    "checked": !auto && c.source === shown
+                })))
+        // what the user set until the daemon answers it, so an older answer doesn't move the slider back
+        property real requested: NaN
 
-        function resetLabel(seconds) {
-            return I18n.tr("Reset timing (%1 s)", "lyrics menu entry, %1 is the timing offset in seconds such as +1.5").arg((seconds > 0 ? "+" : "") + seconds.toFixed(1));
+        function send() {
+            if (isNaN(requested))
+                return;
+            const track = sourceMenu.track;
+            const sent = requested;
+            // a newer value is still on its way; it clears itself when answered
+            PlayerService.setLyricsOffset(sent, () => {
+                if (sourceMenu.track === track && sourceMenu.requested === sent)
+                    sourceMenu.requested = NaN;
+            });
         }
 
-        model: sources.concat([
+        // the slider comes first, so sources answering after the menu opened join below it
+        model: [
+            {
+                "id": "timing",
+                "slider": true,
+                "text": I18n.tr("Lyrics timing", "lyrics menu slider showing a track's lyrics earlier or later"),
+                "value": isNaN(requested) ? PlayerService.lyricsOffset : requested,
+                "from": -PlayerMetrics.lyricsNudgeMax,
+                "to": PlayerMetrics.lyricsNudgeMax,
+                "stepSize": PlayerMetrics.lyricsNudgeStep,
+                "unit": " " + I18n.tr("s", "unit suffix for seconds"),
+                "resetValue": 0
+            },
             {
                 "divider": true
-            },
-            {
-                "id": "timing:earlier",
-                "text": I18n.tr("Show lyrics earlier", "moves the lyrics timing of a track back by half a second"),
-                "icon": "history",
-                "keepOpen": true
-            },
-            {
-                "id": "timing:later",
-                "text": I18n.tr("Show lyrics later", "moves the lyrics timing of a track forward by half a second"),
-                "icon": "update",
-                "keepOpen": true,
-                // the reset row comes and goes; the menu keeps the width it needs from the start
-                "reserveText": resetLabel(-PlayerMetrics.lyricsNudgeMax)
             }
-        ], offset === 0 ? [] : [
-            {
-                "id": "timing:reset",
-                "text": resetLabel(offset),
-                "reserveText": resetLabel(-PlayerMetrics.lyricsNudgeMax),
-                "icon": "restart_alt",
-                "keepOpen": true
-            }
-        ])
-        onTriggered: id => {
-            switch (id) {
-            case "timing:earlier":
-                PlayerService.nudgeLyrics(-PlayerMetrics.lyricsNudgeStep);
-                break;
-            case "timing:later":
-                PlayerService.nudgeLyrics(PlayerMetrics.lyricsNudgeStep);
-                break;
-            case "timing:reset":
-                PlayerService.nudgeLyrics(0);
-                break;
-            default:
-                PlayerService.chooseLyrics(id);
-            }
+        ].concat(sources)
+        onOpenedChanged: {
+            nudgeThrottle.stop();
+            requested = NaN;
+        }
+        onTrackChanged: {
+            nudgeThrottle.stop();
+            requested = NaN;
+        }
+        // a drag sends at most every lyricsNudgeInterval, so the lyrics move along without flooding the daemon
+        onValueMoved: (id, value) => {
+            requested = value;
+            if (!nudgeThrottle.running)
+                nudgeThrottle.start();
+        }
+        onValueSet: (id, value) => {
+            requested = value;
+            nudgeThrottle.stop();
+            send();
+        }
+        onTriggered: id => PlayerService.chooseLyrics(id)
+
+        Timer {
+            id: nudgeThrottle
+            interval: PlayerMetrics.lyricsNudgeInterval
+            onTriggered: sourceMenu.send()
         }
     }
 

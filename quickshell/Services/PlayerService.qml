@@ -636,11 +636,12 @@ Singleton {
             }, I18n.tr("Couldn't change the lyrics", "toast when a lyrics source can't be kept for a track"));
     }
 
-    // moves the playing track's lyrics by seconds, later when positive; 0 resets
-    function nudgeLyrics(by) {
-        DaemonBridge.request("lyrics.nudge", {
-            "by": by
-        }, I18n.tr("Couldn't change the lyrics timing", "toast when the lyrics timing of a track can't be changed"));
+    // sets the playing track's lyrics timing in seconds, later when positive; 0 resets
+    // done runs once the daemon answered, on success and on failure
+    function setLyricsOffset(seconds, done) {
+        DaemonBridge.request("lyrics.setOffset", {
+            "to": seconds
+        }, I18n.tr("Couldn't change the lyrics timing", "toast when the lyrics timing of a track can't be changed"), done, done);
     }
 
     // the seekbar was used on a track that can't seek
