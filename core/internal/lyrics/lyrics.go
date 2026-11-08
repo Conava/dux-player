@@ -332,7 +332,7 @@ func (s *Service) refresh() {
 // without it, so a nudge never compounds and the caches stay valid.
 func (s *Service) publish(ev Event) {
 	if ev.Result != nil && ev.ID != "" {
-		if ev.Offset = s.offset(ev.Library + ":" + ev.ID); ev.Offset != 0 {
+		if ev.Offset = s.offset(ev.Library+":"+ev.ID, ev.Result); ev.Offset != 0 {
 			ev.Result = shifted(ev.Result, ev.Offset)
 		}
 	}
@@ -536,9 +536,29 @@ func (s *Service) offsetPath(k string) string {
 	return filepath.Join(s.cfg.DataDir, "lyrics-offset", hashed(k)+".json")
 }
 
-// offset is the timing nudge the user gave a track, within maxNudge; 0 without one or when the file is bad.
-func (s *Service) offset(k string) float64 {
-	data, err := os.ReadFile(s.offsetPath(k))
+// storedOffset is a track's timing nudge and the lyrics it was tuned against,
+// told apart by source and timing tier (a laid copy reports its line source).
+type storedOffset struct {
+	Offset float64 `json:"offset"`
+	Source string  `json:"source"`
+	Tier   int     `json:"tier"`
+}
+
+func offsetFor(v float64, res *duxlyrics.Result) storedOffset {
+	return storedOffset{Offset: v, Source: string(res.Source), Tier: tier(answer{res: res})}
+}
+
+// offset is the timing nudge the user gave a track for res, within maxNudge;
+// 0 without one, when the file is bad or when it was set for other lyrics.
+func (s *Service) offset(k string, res *duxlyrics.Result) float64 {
+	s.offsetMu.Lock()
+	defer s.offsetMu.Unlock()
+	return s.offsetLocked(k, res)
+}
+
+func (s *Service) offsetLocked(k string, res *duxlyrics.Result) float64 {
+	path := s.offsetPath(k)
+	data, err := os.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return 0
 	}
@@ -546,16 +566,37 @@ func (s *Service) offset(k string) float64 {
 		log.Warnf("lyrics: %v", err)
 		return 0
 	}
-	var v float64
-	if err := json.Unmarshal(data, &v); err != nil {
-		log.Warnf("lyrics: %s is unreadable, ignoring it", s.offsetPath(k))
+	var o storedOffset
+	if err := json.Unmarshal(data, &o.Offset); err == nil {
+		// An older file holds a bare number: it belongs to what is shown now.
+		o = offsetFor(o.Offset, res)
+		if err := writeOffset(path, o); err != nil {
+			log.Warnf("lyrics: %v", err)
+		}
+	} else if err := json.Unmarshal(data, &o); err != nil {
+		log.Warnf("lyrics: %s is unreadable, ignoring it", path)
 		return 0
 	}
-	return max(-maxNudge, min(maxNudge, v))
+	if o != offsetFor(o.Offset, res) {
+		return 0
+	}
+	return max(-maxNudge, min(maxNudge, o.Offset))
+}
+
+func writeOffset(path string, o storedOffset) error {
+	data, err := json.Marshal(o)
+	if err == nil {
+		err = os.MkdirAll(filepath.Dir(path), 0o700)
+	}
+	if err == nil {
+		err = atomicfile.WriteFile(path, data, 0o600)
+	}
+	return err
 }
 
 // SetOffset sets the playing track's lyrics timing to seconds, later when
 // positive, or moves it by seconds when relative, and returns the new offset.
+// The offset holds for the lyrics shown now and is ignored once others show.
 func (s *Service) SetOffset(seconds float64, relative bool) (float64, error) {
 	if math.IsNaN(seconds) || math.IsInf(seconds, 0) {
 		return 0, errors.New("the offset must be a number of seconds")
@@ -565,18 +606,22 @@ func (s *Service) SetOffset(seconds float64, relative bool) (float64, error) {
 	}
 	s.mu.Lock()
 	k := key(s.track)
+	last := s.last
 	s.mu.Unlock()
 	if k == "" {
 		return 0, errors.New("nothing is playing")
 	}
+	if last.Library+":"+last.ID != k || last.Result == nil {
+		return 0, errors.New("no lyrics are shown")
+	}
 	s.offsetMu.Lock()
-	v, err := s.storeOffset(k, seconds, relative)
+	v, err := s.storeOffset(k, last.Result, seconds, relative)
 	s.offsetMu.Unlock()
 	if err != nil {
 		return 0, err
 	}
 	s.mu.Lock()
-	last := s.last
+	last = s.last
 	s.mu.Unlock()
 	if last.Library+":"+last.ID == k && s.cfg.HasSubscriber(Topic) {
 		s.publish(last)
@@ -584,10 +629,10 @@ func (s *Service) SetOffset(seconds float64, relative bool) (float64, error) {
 	return v, nil
 }
 
-func (s *Service) storeOffset(k string, v float64, relative bool) (float64, error) {
+func (s *Service) storeOffset(k string, res *duxlyrics.Result, v float64, relative bool) (float64, error) {
 	path := s.offsetPath(k)
 	if relative {
-		v += s.offset(k)
+		v += s.offsetLocked(k, res)
 	}
 	v = max(-maxNudge, min(maxNudge, math.Round(v/nudgeStep)*nudgeStep))
 	if v == 0 {
@@ -596,14 +641,7 @@ func (s *Service) storeOffset(k string, v float64, relative bool) (float64, erro
 		}
 		return 0, nil
 	}
-	data, err := json.Marshal(v)
-	if err == nil {
-		err = os.MkdirAll(filepath.Dir(path), 0o700)
-	}
-	if err == nil {
-		err = atomicfile.WriteFile(path, data, 0o600)
-	}
-	return v, err
+	return v, writeOffset(path, offsetFor(v, res))
 }
 
 // Choices lists what every enabled source has for a track.

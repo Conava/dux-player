@@ -919,6 +919,76 @@ func TestTimingOffset(t *testing.T) {
 	}
 }
 
+// An offset belongs to the lyrics it was tuned against: it shows 0 once the
+// shown source or timing changes, and an older bare number belongs to what
+// shows first.
+func TestTimingOffsetFollowsSource(t *testing.T) {
+	const server, kugou, words = "server", "kugou", "server words"
+	tests := []struct {
+		name  string
+		file  string  // what the offset file holds before
+		first string  // what shows when the offset is set
+		set   float64 // moved by this much, when not 0
+		live  bool    // the source is picked by hand while playing, else after a restart
+		then  string  // what shows afterwards
+		want  float64
+	}{
+		{name: "kept for its own source", first: kugou, set: 1, then: kugou, want: 1},
+		{name: "dropped when the pick changes", first: kugou, set: 1, then: server, want: 0},
+		{name: "dropped when a source is picked by hand", first: kugou, set: 1, live: true, then: server, want: 0},
+		{name: "dropped when the timing changes", first: server, set: 1, then: words, want: 0},
+		{name: "a bare number belongs to what shows", file: "1.5", first: server, then: server, want: 1.5},
+		{name: "a bare number stays with that source", file: "1.5", first: server, then: kugou, want: 0},
+		{name: "a bare number moves on the next set", file: "1.5", first: server, set: 0.5, then: server, want: 2},
+		{name: "a corrupt file is ignored", file: "{nope", first: server, then: server, want: 0},
+		{name: "a half-read file is ignored", file: `{"offset":1.5,"source":"server","tier":1,"tier":"x"}`, first: server, then: server, want: 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			track := &source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"}
+			var last Event
+			show := func(s *Service, what string) {
+				t.Helper()
+				switch what {
+				case server:
+					require.NoError(t, s.Choose(context.Background(), track.Ref(), ServerSource))
+				case kugou, words:
+					require.NoError(t, os.RemoveAll(s.chosenPath(key(track))))
+					line := duxlyrics.Line{Start: 1.9, Text: "x"}
+					src := duxlyrics.KuGou
+					if what == words {
+						line.Words, src = []duxlyrics.Word{{Start: 1.9, Text: "x"}}, ServerSource
+					}
+					s.remember(warmed{key: key(track), res: &duxlyrics.Result{Found: true, Source: src,
+						Lyrics: duxlyrics.Lyrics{Synced: []duxlyrics.Line{line}}}})
+				}
+			}
+			s := quietService(t, dir, func(_ string, d any) { last = d.(Event) }, nil)
+			if tt.file != "" {
+				require.NoError(t, os.MkdirAll(filepath.Dir(s.offsetPath(key(track))), 0o700))
+				require.NoError(t, os.WriteFile(s.offsetPath(key(track)), []byte(tt.file), 0o600))
+			}
+			show(s, tt.first)
+			s.TrackChanged(track)
+			require.Equal(t, "ready", last.State)
+			if tt.set != 0 {
+				_, err := s.SetOffset(tt.set, true)
+				require.NoError(t, err)
+			}
+			if tt.live {
+				show(s, tt.then)
+			} else {
+				s = quietService(t, dir, func(_ string, d any) { last = d.(Event) }, nil)
+				show(s, tt.then)
+				s.TrackChanged(track)
+			}
+			require.Equal(t, "ready", last.State)
+			assert.InDelta(t, tt.want, last.Offset, 1e-9)
+		})
+	}
+}
+
 // Word timing that drifts against a line source is laid onto that source's
 // lines one by one, keeping the rhythm within each line.
 func TestAnchoredLaysWordsOnTheLineTiming(t *testing.T) {
