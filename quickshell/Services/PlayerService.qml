@@ -31,6 +31,8 @@ Singleton {
     // seconds left in the queue from the current track's start; subtract position for what's left
     readonly property real queueLeft: _queueSums[Math.max(0, queueIndex)] ?? 0
     property bool playing: false
+    // a track is loaded, playing or paused: a stopped player keeps its current track but refuses seeks
+    readonly property bool active: _state !== "stopped"
     // a stream URL is still being looked up; the position stands until it plays
     property bool loading: false
     // the running position, refreshed a few times a second while a view holds watchPosition; a view that

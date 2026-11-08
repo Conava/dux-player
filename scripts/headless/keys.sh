@@ -58,6 +58,19 @@ t=$(track)
 for _ in 1 2 3 4 5; do key -k Right; done
 expect "right stops short of the end" "$(track)" "$t"
 
+# stopped, the player keeps its current track but refuses seeks, so the arrows send none
+dp stop >/dev/null
+sleep 1
+L="$XDG_STATE_HOME/dplayer/ui.log"
+from=$(($(wc -l <"$L") + 1))
+key -k Right
+key -k Left
+expect "arrows send no seek when stopped" "$(tail -n "+$from" "$L" | grep -c 'player.seek')" "0"
+dp resume >/dev/null
+sleep 1.5
+dp pause >/dev/null
+sleep 0.5
+
 key -k f
 expect "f opens the view" "$(view)" "true"
 key -k f

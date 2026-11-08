@@ -95,6 +95,19 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function searchText(): string {
             return Router.pageSearch?.text ?? "";
         }
+        // the dialog holding the keyboard focus while closed, "" for none
+        function closedDialogFocus(): string {
+            for (let item = Router.pageScroll?.view.Window.activeFocusItem ?? null; item; item = item.parent) {
+                if (item.embedded === false && item.opened === false)
+                    return String(item);
+            }
+            return "";
+        }
+        // the item with the keyboard focus: its accessible name, else its type
+        function focusName(): string {
+            const item = Router.pageScroll?.view.Window.activeFocusItem ?? null;
+            return item ? item.Accessible.name || String(item).replace(/[_(].*/, "") : "";
+        }
         function elementOptions(id: string): void {
             const find = item => {
                 if (!item)

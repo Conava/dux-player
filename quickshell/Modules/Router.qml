@@ -31,7 +31,18 @@ Singleton {
     // Bento's full view shows the devices in a sheet over its deck; focus goes back to playOnFrom when it closes
     property bool playOnOpen: false
     property Item playOnFrom: null
-    onNowPlayingOpenChanged: playOnOpen = playOnOpen && nowPlayingOpen
+    onNowPlayingOpenChanged: {
+        playOnOpen = playOnOpen && nowPlayingOpen;
+        // opened by other means: the step that would reopen it is spent
+        if (nowPlayingOpen && forwardHistory[forwardHistory.length - 1]?.view === true)
+            forwardHistory = forwardHistory.slice(0, -1);
+    }
+    // the full view shows only with a track: an emptied queue closes it, so the window doesn't stay blank
+    readonly property bool hasTrack: PlayerService.current !== null
+    onHasTrackChanged: {
+        if (!hasTrack)
+            nowPlayingOpen = false;
+    }
     property bool sleepPickerOpen: false
     property bool speedPickerOpen: false
     // the shown page's own search field, which Ctrl+F focuses before the global search
@@ -186,10 +197,18 @@ Singleton {
         go(kind, item.id);
     }
 
-    // closes the full view first, then steps back through the pages
+    // closes the full view first, then steps back through the pages. Closing it leaves a step in the forward history
+    // that opens it again over this page.
     function back() {
         if (nowPlayingOpen) {
             nowPlayingOpen = false;
+            forwardHistory = forwardHistory.concat([
+                {
+                    "page": page,
+                    "itemId": itemId,
+                    "view": true
+                }
+            ]);
             return;
         }
         _stepBack();
@@ -209,6 +228,13 @@ Singleton {
             return;
         const next = forwardHistory[forwardHistory.length - 1];
         forwardHistory = forwardHistory.slice(0, -1);
+        if (next.view) {
+            if (hasTrack)
+                nowPlayingOpen = true;
+            else
+                forward();
+            return;
+        }
         history = history.concat([_here()]);
         _show(next.page, next.itemId, next.offset);
         nowPlayingOpen = false;
@@ -230,7 +256,7 @@ Singleton {
     // two visits of one route. The top of both stacks is their last entry, next to the current route.
     function forget(target, id) {
         const kept = e => e.page !== target || e.itemId !== id;
-        const same = (a, b) => a.page === b.page && a.itemId === b.itemId;
+        const same = (a, b) => a.page === b.page && a.itemId === b.itemId && a.view === b.view;
         const tidy = stack => stack.filter(kept).filter((e, i, a) => !same(e, a[i + 1] ?? {
                     "page": page,
                     "itemId": itemId

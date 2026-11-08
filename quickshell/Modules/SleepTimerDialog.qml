@@ -33,10 +33,6 @@ WindowDialog {
     }
     acceptEnabled: false
     onRejected: Router.sleepPickerOpen = false
-    onOpenedChanged: {
-        if (opened)
-            forceActiveFocus();
-    }
 
     Column {
         width: parent.width

@@ -199,7 +199,6 @@ Item {
         function show(i) {
             index = i;
             opened = true;
-            forceActiveFocus();
         }
 
         host: root

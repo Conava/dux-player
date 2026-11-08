@@ -49,7 +49,6 @@ WindowDialog {
             event.accepted = false;
     }
     onRejected: close()
-    // later: taking focus inside the binding update loops through DDialog's focus tracking
     onOpenedChanged: {
         if (!opened)
             return;
@@ -59,7 +58,6 @@ WindowDialog {
             if (p.loaded !== true)
                 load(p.id);
         }
-        Qt.callLater(forceActiveFocus);
     }
 
     Column {

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Templates as T
 import qs.Common
 import qs.DCommon.Widgets
 
@@ -13,6 +14,32 @@ DDialog {
     z: Theme.zDialog
     embedded: false
     opened: false
+    // DDialog's root stays visible while closed, so with its focus: true a new page's dialog would take the window's
+    // focus and every key with it
+    focus: false
+
+    // what had the focus before, with its reason, so a clicked opener gets no focus ring back
+    property Item _focusBack: null
+    property int _focusBackReason: Qt.OtherFocusReason
+
+    onOpenedChanged: {
+        if (opened) {
+            _focusBack = Window.activeFocusItem;
+            _focusBackReason = (_focusBack as T.Control)?.focusReason ?? Qt.OtherFocusReason;
+            // later: taking focus inside a binding update of opened loops through DDialog's focus tracking
+            Qt.callLater(() => {
+                if (opened && !activeFocus)
+                    forceActiveFocus();
+            });
+            return;
+        }
+        // not when the focus already moved on, e.g. to a dialog opened from this one
+        const returns = activeFocus || Window.activeFocusItem === null || Window.activeFocusItem === Window.contentItem;
+        focus = false;
+        if (returns && _focusBack?.visible)
+            _focusBack.forceActiveFocus(_focusBackReason);
+        _focusBack = null;
+    }
 
     // Out of the window before the page's context goes: a Loader deletes the page later, and until then the
     // dialog's focus handlers would still run in the dead context ("invalid context" warnings).

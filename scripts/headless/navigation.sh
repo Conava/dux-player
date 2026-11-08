@@ -49,6 +49,27 @@ pointer f
 sleep 0.8
 expect "extra button forward" "$(route)" "albums/"
 
+# a real mouse holds the button for a while and moves a little: one action on release either way
+held() {
+    # the pointer helper returns at once, so wait out the hold too
+    wait=$(awk "BEGIN { print $1 / 1000 + 0.8 }")
+    go tracks
+    go albums
+    pointer b "$1" "$2"
+    sleep "$wait"
+    expect "side button back, $3" "$(route)" "tracks/"
+    go tracks
+    go albums
+    alt Left
+    pointer f "$1" "$2"
+    sleep "$wait"
+    expect "extra button forward, $3" "$(route)" "albums/"
+}
+held 1000 0 "held 1 s"
+held 300 20 "moved 20 px"
+pointer m 1280 720
+sleep 0.3
+
 alt Left
 go libraries
 alt Right
@@ -60,7 +81,9 @@ expand true
 alt Left
 expect "alt+left closes the view" "$(view)" "false"
 expect "alt+left keeps the route" "$(route)" "albums/"
-expand true
+alt Right
+expect "alt+right reopens the view" "$(view)" "true"
+expect "alt+right reopens it on the page" "$(route)" "albums/"
 pointer b
 sleep 0.8
 expect "side button closes the view" "$(view)" "false"
@@ -68,6 +91,23 @@ expect "side button keeps the route" "$(route)" "albums/"
 pointer b
 sleep 0.8
 expect "side button then moves" "$(route)" "tracks/"
+alt Right
+expect "forward to the page the view closed on" "$(route)" "albums/"
+expect "forward to the page leaves the view closed" "$(view)" "false"
+pointer f
+sleep 0.8
+expect "extra button then reopens the view" "$(view)" "true"
+expect "extra button reopens it on the page" "$(route)" "albums/"
+wtype -k Escape
+sleep 0.8
+expect "escape closes the view" "$(view)" "false"
+alt Right
+expect "forward after escape leaves the view closed" "$(view)" "false"
+expand true
+alt Left
+go libraries
+alt Right
+expect "forward after a new page leaves the view closed" "$(view)" "false"
 
 ui entry 0
 sleep 1
@@ -146,6 +186,7 @@ alt Left
 alt Left
 alt Left
 alt Left
+expect "four steps back" "$(route)" "history/"
 ui deletePlaylist "$ahead2"
 sleep 1
 alt Right
@@ -165,5 +206,48 @@ expect "alt+left under a dialog" "$(route)" "$before"
 wtype -k Escape
 sleep 1
 shot navigation
+
+# A dialog gives the focus back to what opened it, also through a dialog it opened: Add to playlist at 684,365 on the
+# album page, New playlist by Tab and Space, which closes Add to playlist
+focus() { ask focusName | tr -d '\n'; }
+ui open album "$(ask albumId "Test Album" | tr -d '\n')"
+sleep 2
+click 684 365
+sleep 1.5
+wtype -k Tab
+sleep 0.5
+wtype -k space
+sleep 1.5
+wtype -k Escape
+sleep 1.2
+expect "a closed dialog returns the focus to its opener" "$(focus)" "Add to playlist"
+
+# Rename from a row's menu, at 2478,247 on the only playlist and 2408,467
+rpc localPlaylists.create '{"name":"Renamed"}' >/dev/null
+go playlists
+click 2478 247
+sleep 1
+click 2408 467
+sleep 1.2
+wtype -k Escape
+sleep 1
+expect "a prompt from a row menu returns the focus to the row" "$(focus)" "More"
+
+# an emptied queue closes the full view and leaves forward nothing to open
+go albums
+expand true
+alt Left
+rpc queue.clear '{}' >/dev/null
+sleep 1.5
+alt Right
+expect "forward with an empty queue opens no view" "$(view)" "false"
+expect "forward with an empty queue stays on the page" "$(route)" "albums/"
+dp play "$W/music" >/dev/null
+sleep 2
+expand true
+rpc queue.clear '{}' >/dev/null
+sleep 1.5
+shot cleared
+expect "clearing the queue closes the view" "$(view)" "false"
 
 [ "$failed" = 0 ]

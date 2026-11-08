@@ -90,7 +90,7 @@ DFloatingWindow {
         // Hyprland leaves the keyboard here under an open dropdown, so every Shortcut would beat its popup. Its trigger holds the focus.
         readonly property bool dropdownOpen: (keyItem?.parent as DDropdown)?.menuOpen ?? false
         Keys.onShortcutOverride: event => event.accepted = dropdownOpen
-        readonly property bool canSeek: PlayerService.current !== null && PlayerService.seekable && PlayerService.duration > 0
+        readonly property bool canSeek: PlayerService.active && PlayerService.seekable && PlayerService.duration > 0
 
         Shortcut {
             sequence: "Space"
@@ -148,19 +148,22 @@ DFloatingWindow {
         }
 
         Shortcut {
-            sequences: [StandardKey.Back]
+            sequences: ["Alt+Left", "Back"]
             enabled: !focusScope.dialogOpen && (Router.canGoBack || Router.nowPlayingOpen)
             onActivated: Router.back()
         }
 
         Shortcut {
-            sequences: [StandardKey.Forward]
+            sequences: ["Alt+Right", "Forward"]
             enabled: !focusScope.dialogOpen && Router.canGoForward
             onActivated: Router.forward()
         }
 
         TapHandler {
+            // a thumb press is held and shoves the mouse; act on release like browsers do
             acceptedButtons: Qt.BackButton | Qt.ForwardButton
+            gesturePolicy: TapHandler.ReleaseWithinBounds
+            longPressThreshold: 0
             enabled: !focusScope.dialogOpen
             onTapped: (point, button) => {
                 if (button === Qt.BackButton)

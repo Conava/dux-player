@@ -15,7 +15,7 @@ QtObject {
     readonly property real duration: PlayerService.duration
     readonly property string trackKey: PlayerService.currentKey
     readonly property real rate: PlayerService.positionRate
-    readonly property bool canSeekLines: synced && duration > 0
+    readonly property bool canSeekLines: synced && duration > 0 && PlayerService.active
 
     property var lines: []
     property var plainLines: []
