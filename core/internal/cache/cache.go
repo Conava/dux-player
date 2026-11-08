@@ -148,6 +148,12 @@ type Cache struct {
 	// fileMu orders the read-modify-writes of cache.json.
 	fileMu sync.Mutex
 	pre    prefetch
+
+	// ctx ends at Close; work holds the goroutines Close waits for.
+	ctx    context.Context
+	stop   context.CancelFunc
+	workMu sync.Mutex // keeps Spawn from racing Close's wait
+	work   sync.WaitGroup
 }
 
 func Open(ctx context.Context, cfg Config) (*Cache, error) {
@@ -164,7 +170,9 @@ func Open(ctx context.Context, cfg Config) (*Cache, error) {
 		queued: map[source.Ref]bool{}, wanted: map[source.Ref]bool{}, online: map[string]bool{}, top: map[string][]source.Track{},
 		wake: make(chan struct{}, 1), probing: make(chan struct{}, 1),
 		pre: prefetch{buf: map[source.Ref]*buffered{}, wake: make(chan struct{}, 1), tracks: 1}}
+	c.ctx, c.stop = context.WithCancel(context.Background())
 	if err := c.migrate(ctx); err != nil {
+		c.stop()
 		db.Close()
 		return nil, fmt.Errorf("move the offline settings to rules: %w", err)
 	}
@@ -172,7 +180,40 @@ func Open(ctx context.Context, cfg Config) (*Cache, error) {
 	return c, nil
 }
 
-func (c *Cache) Close() error { return c.db.Close() }
+// Spawn runs f in the background for Close to wait on, and reports false
+// without running it once the cache has closed.
+func (c *Cache) Spawn(f func()) bool {
+	c.workMu.Lock()
+	defer c.workMu.Unlock()
+	if c.ctx.Err() != nil {
+		return false
+	}
+	c.work.Go(f)
+	return true
+}
+
+// closeWait bounds Close: a file write or an ffmpeg measurement doesn't stop
+// the moment it is cancelled.
+const closeWait = 3 * time.Second
+
+// Close stops the downloads, the prefetch and the measuring, waits up to
+// closeWait for them and closes the index.
+func (c *Cache) Close() error {
+	c.workMu.Lock()
+	c.stop()
+	c.workMu.Unlock()
+	done := make(chan struct{})
+	go func() {
+		c.work.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(closeWait):
+		log.Infof("cache: stopped waiting for background work after %s", closeWait)
+	}
+	return c.db.Close()
+}
 
 func fileName(ref source.Ref) string {
 	h := sha256.Sum256([]byte(ref.Library + "\x00" + ref.ID))
@@ -345,7 +386,7 @@ func (c *Cache) AddRule(ctx context.Context, libID string, r Rule) error {
 	if err != nil {
 		return err
 	}
-	go c.Sync(context.WithoutCancel(ctx), libID, func(k string) bool { return k == r.key() })
+	c.Spawn(func() { c.Sync(c.ctx, libID, func(k string) bool { return k == r.key() }) })
 	c.changed()
 	return nil
 }
@@ -368,7 +409,7 @@ func (c *Cache) UpdateRule(ctx context.Context, libID, kind string, l Limit) err
 	if err != nil {
 		return err
 	}
-	go c.Sync(context.WithoutCancel(ctx), libID, none)
+	c.Spawn(func() { c.Sync(c.ctx, libID, none) })
 	c.changed()
 	return nil
 }
@@ -618,11 +659,17 @@ func (c *Cache) enqueue(tracks []source.Track, sync bool) {
 	}
 }
 
-// Run downloads queued tracks one at a time until ctx ends.
-func (c *Cache) Run(ctx context.Context) {
-	old := &loudness.Loop{Meter: c.cfg.Meter, Pending: c.pendingSilence, Save: c.saveSilence}
-	old.Start(ctx)
-	go c.runPrefetch(ctx)
+// Start runs the downloads, the prefetch and the measuring in the
+// background until Close.
+func (c *Cache) Start() {
+	old := &loudness.Loop{Meter: c.cfg.Meter, Pending: c.pendingSilence, Save: c.saveSilence, Spawn: c.Spawn}
+	old.Start(c.ctx)
+	c.Spawn(func() { c.runPrefetch(c.ctx) })
+	c.Spawn(func() { c.run(c.ctx) })
+}
+
+// run downloads queued tracks one at a time until ctx ends.
+func (c *Cache) run(ctx context.Context) {
 	for {
 		c.mu.Lock()
 		var j job

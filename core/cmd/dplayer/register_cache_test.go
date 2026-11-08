@@ -24,7 +24,7 @@ func TestBurstRunsOncePerBurst(t *testing.T) {
 		runs.Add(1)
 		entered <- struct{}{}
 		<-release
-	}}
+	}, spawn: func(f func()) bool { go f(); return true }}
 	ctx := context.Background()
 	b.trigger(ctx, "lib")
 	<-entered

@@ -209,7 +209,7 @@ func (e *env) setRules(t *testing.T, rules ...Rule) {
 	require.NoError(t, e.m.SetConfig(context.Background(), e.lib, configKey, map[string]any{"rules": rules}))
 }
 
-// drain downloads everything queued, as Run would.
+// drain downloads everything queued, as run would.
 func (e *env) drain(t *testing.T) {
 	t.Helper()
 	for {

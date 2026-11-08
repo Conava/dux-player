@@ -46,7 +46,7 @@ func (s *Source) watch() {
 		s.addWatches(w, dirs, root)
 	}
 	close(s.watching)
-	mounts := mountChanges(s.ctx)
+	mounts := s.mountChanges()
 
 	pending := map[string]bool{}
 	full := false
@@ -299,7 +299,8 @@ func forgetDirs(dirs map[string]bool, dir string) {
 // mountChanges signals whenever a filesystem is mounted or unmounted. The
 // kernel flags /proc/self/mountinfo with POLLPRI on every change, so this
 // blocks instead of polling. Without it, drives are noticed on rescans only.
-func mountChanges(ctx context.Context) <-chan struct{} {
+func (s *Source) mountChanges() <-chan struct{} {
+	ctx := s.ctx
 	out := make(chan struct{}, 1)
 	f, err := os.Open("/proc/self/mountinfo")
 	if err != nil {
@@ -310,11 +311,8 @@ func mountChanges(ctx context.Context) <-chan struct{} {
 		f.Close()
 		return out
 	}
-	go func() {
-		<-ctx.Done()
-		unix.Close(stop[1])
-	}()
-	go func() {
+	context.AfterFunc(ctx, func() { unix.Close(stop[1]) })
+	started := s.spawn(func() {
 		defer f.Close()
 		defer unix.Close(stop[0])
 		fds := []unix.PollFd{{Fd: int32(f.Fd()), Events: unix.POLLPRI}, {Fd: int32(stop[0]), Events: unix.POLLIN}}
@@ -338,7 +336,11 @@ func mountChanges(ctx context.Context) <-chan struct{} {
 				}
 			}
 		}
-	}()
+	})
+	if !started {
+		unix.Close(stop[0])
+		f.Close()
+	}
 	return out
 }
 

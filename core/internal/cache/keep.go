@@ -56,7 +56,7 @@ func (c *Cache) Keep(ctx context.Context, refs []source.Ref, keep bool) error {
 		}
 	}
 	if wasFull && !keep {
-		go c.syncAll(context.WithoutCancel(ctx), all)
+		c.Spawn(func() { c.syncAll(c.ctx, all) })
 	}
 	c.changed()
 	return nil
