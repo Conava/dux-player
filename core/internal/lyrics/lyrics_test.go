@@ -620,7 +620,7 @@ func TestDecidePicksTheSourceOnTheRecording(t *testing.T) {
 				s.storeFit(name, fitResult{Shift: f.shift, Confident: f.confident})
 				results = append(results, r)
 			}
-			got := s.decide(context.Background(), track, results)
+			got := s.decide(context.Background(), track, results, nil)
 			assert.Equal(t, tt.want, got.Source)
 			assert.InDelta(t, 10+tt.shift, float64(got.Synced[0].Start), 0.001)
 		})
@@ -646,14 +646,15 @@ func TestFindRetriesWithoutLengthAndAlbum(t *testing.T) {
 		name   string
 		answer func(duxlyrics.Request) (*duxlyrics.Lyrics, error)
 		cached bool   // the provider answered a lookup with the album once
-		want   string // the synced line shown, "" for none
+		want   string // the synced line shown, "" for none, then "+" and a loose answer's
 		first  bool   // the first show, which takes the first synced answer
 	}{
 		{"found with the length", byLength(synced("with"), none, nil), false, "with", false},
-		{"found only without the length", byLength(none, synced("without"), nil), false, "without", false},
-		{"synced without the length beats plain with it", byLength(&duxlyrics.Lyrics{Plain: "plain"}, synced("without"), nil), false, "without", false},
+		{"found only without the length: loose", byLength(none, synced("without"), nil), false, "+without", false},
+		{"the first show takes what is found without the length", byLength(none, synced("without"), nil), false, "without", true},
+		{"synced without the length beats plain with it: loose", byLength(&duxlyrics.Lyrics{Plain: "plain"}, synced("without"), nil), false, "+without", false},
 		{"synced with the length beats other lyrics without it", byLength(synced("with"), synced("without"), nil), false, "with", false},
-		{"word timing without the length beats line timing with it", byLength(synced("with"), &duxlyrics.Lyrics{Synced: []duxlyrics.Line{{Start: 1, Text: "words", Words: []duxlyrics.Word{{Start: 1, Text: "words"}}}}}, nil), false, "words", false},
+		{"word timing without the length comes beside line timing with it", byLength(synced("with"), &duxlyrics.Lyrics{Synced: []duxlyrics.Line{{Start: 1, Text: "words", Words: []duxlyrics.Word{{Start: 1, Text: "words"}}}}}, nil), false, "with+words", false},
 		{"the first show takes line timing with the length", byLength(synced("with"), &duxlyrics.Lyrics{Synced: []duxlyrics.Line{{Start: 1, Text: "words", Words: []duxlyrics.Word{{Start: 1, Text: "words"}}}}}, nil), false, "with", true},
 		{"a failed lookup isn't asked again without the length", byLength(nil, synced("without"), errors.New("offline")), false, "", false},
 		{"cached with the album", func(r duxlyrics.Request) (*duxlyrics.Lyrics, error) {
@@ -687,8 +688,12 @@ func TestFindRetriesWithoutLengthAndAlbum(t *testing.T) {
 				albums.Store(0)
 			}
 			got := ""
-			if res, err := find(context.Background(), client, req, track.Album, !tt.first); err == nil && res.Found && len(res.Synced) > 0 {
+			res, loose, err := find(context.Background(), client, req, track.Album, !tt.first)
+			if err == nil && res.Found && len(res.Synced) > 0 {
 				got = res.Synced[0].Text
+			}
+			if loose != nil {
+				got += "+" + loose.Synced[0].Text
 			}
 			assert.Equal(t, tt.want, got)
 			assert.Zero(t, albums.Load(), "no provider is asked with the album")
@@ -1043,15 +1048,22 @@ func TestDecideKeepsWordsLaidOnAnOnTimeLineSource(t *testing.T) {
 		name     string
 		hasWords bool
 		line     float64 // the line source's measured shift
+		own      float64 // the word source's
 		laid     float64 // the laid copy's measured shift
+		sure     bool    // and whether that fit is sure
+		loose    bool    // the word source was found only without the length
 		words    bool
 		source   duxlyrics.Provider
 		start    float64
 	}{
-		{"laid on time: words on the line timing", true, 0.1, -0.2, true, duxlyrics.LRCLIB, 10},
-		{"laid but off: the line source as before", true, 0.1, -1, false, duxlyrics.LRCLIB, 10},
-		{"no word source: the line source as before", false, 0.1, 0, false, duxlyrics.LRCLIB, 10},
-		{"no line source on time: as before", true, -3, 0, true, duxlyrics.KuGou, 16},
+		{"laid on time: words on the line timing", true, 0.1, -1.8, -0.2, false, false, true, duxlyrics.LRCLIB, 10},
+		{"a sure laid fit is applied", true, 0.1, -1.8, 0.25, true, false, true, duxlyrics.LRCLIB, 10.25},
+		{"laid but off: the line source as before", true, 0.1, -1.8, -1, false, false, false, duxlyrics.LRCLIB, 10},
+		{"no word source: the line source as before", false, 0.1, -1.8, 0, false, false, false, duxlyrics.LRCLIB, 10},
+		{"no line source on time: as before", true, -3, -1.8, 0, false, false, true, duxlyrics.KuGou, 16},
+		{"loose words are laid on an on-time line source", true, 0.1, -1.8, -0.2, false, true, true, duxlyrics.LRCLIB, 10},
+		{"loose words off the recording are never shown alone", true, -3, -1.8, 0, false, true, false, duxlyrics.LRCLIB, 10},
+		{"loose words on the recording are shown", true, -3, 0.2, 0, false, true, true, duxlyrics.KuGou, 16},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1070,17 +1082,22 @@ func TestDecideKeepsWordsLaidOnAnOnTimeLineSource(t *testing.T) {
 			name, _ := fitName(track, line, false)
 			s.storeFit(name, fitResult{Shift: tt.line})
 			results := []*duxlyrics.Result{line}
+			var loose []*duxlyrics.Result
 			if tt.hasWords {
 				word := result(duxlyrics.KuGou, 6, true)
 				name, _ := fitName(track, word, true)
-				s.storeFit(name, fitResult{Shift: -1.8})
+				s.storeFit(name, fitResult{Shift: tt.own})
 				laid, ok := anchored(word, line)
 				require.True(t, ok)
 				name, _ = anchoredFitName(track, word, laid)
-				s.storeFit(name, fitResult{Shift: tt.laid})
-				results = append(results, word)
+				s.storeFit(name, fitResult{Shift: tt.laid, Confident: tt.sure})
+				if tt.loose {
+					loose = append(loose, word)
+				} else {
+					results = append(results, word)
+				}
 			}
-			got := s.decide(context.Background(), track, results)
+			got := s.decide(context.Background(), track, results, loose)
 			assert.Equal(t, tt.source, got.Source)
 			assert.Equal(t, tt.words, tier(answer{res: got}) == 2)
 			assert.InDelta(t, tt.start, float64(got.Synced[0].Start), 0.001)

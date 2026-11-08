@@ -613,7 +613,8 @@ func (s *Service) Choices(ctx context.Context, ref source.Ref) ([]Choice, error)
 		return nil, err
 	}
 	out := []Choice{}
-	for _, r := range s.gather(ctx, s.client, t) {
+	results, loose := s.gather(ctx, s.client, t)
+	for _, r := range append(results, loose...) {
 		// a lyrics file beside the track answers for every provider
 		seen := slices.ContainsFunc(out, func(c Choice) bool { return c.Source == string(r.Source) })
 		if !r.Found || r.Instrumental || seen {
@@ -649,7 +650,8 @@ func (s *Service) Choose(ctx context.Context, ref source.Ref, src string) error 
 		s.reshow(key(&t))
 		return nil
 	}
-	results := s.gather(ctx, s.client, t)
+	results, loose := s.gather(ctx, s.client, t)
+	results = append(results, loose...)
 	i := slices.IndexFunc(results, func(r *duxlyrics.Result) bool { return string(r.Source) == src && r.Found })
 	if i < 0 {
 		return fmt.Errorf("%s has no lyrics for this track", src)
@@ -731,7 +733,10 @@ func (s *Service) Lookup(ctx context.Context, t source.Track) (*duxlyrics.Result
 		sreq.Providers = []duxlyrics.Provider{serverID}
 		server = ask(func() (*duxlyrics.Result, error) { return s.client.Lookup(ctx, sreq) })
 	}
-	providers := ask(func() (*duxlyrics.Result, error) { return find(ctx, s.client, req, t.Album, false) })
+	providers := ask(func() (*duxlyrics.Result, error) {
+		res, _, err := find(ctx, s.client, req, t.Album, false)
+		return res, err
+	})
 	if server == nil {
 		a := <-providers
 		return a.res, a.err
@@ -793,26 +798,33 @@ func (s *Service) Best(ctx context.Context, t source.Track) *duxlyrics.Result {
 }
 
 func (s *Service) best(ctx context.Context, client *duxlyrics.Client, t source.Track) *duxlyrics.Result {
-	results := s.gather(ctx, client, t)
-	if len(results) == 0 {
+	results, loose := s.gather(ctx, client, t)
+	if len(results)+len(loose) == 0 {
 		return nil
 	}
-	return s.decide(ctx, t, results)
+	return s.decide(ctx, t, results, loose)
 }
 
-// decide picks among a track's results and fits the pick to the audio when it can.
-func (s *Service) decide(ctx context.Context, t source.Track, results []*duxlyrics.Result) *duxlyrics.Result {
+// decide picks among a track's results and fits the pick to the audio when it
+// can. A loose result is shown only when it lands on the recording itself or
+// nothing else is synced; otherwise it may only lend its words to an on-time
+// line source.
+func (s *Service) decide(ctx context.Context, t source.Track, results, loose []*duxlyrics.Result) *duxlyrics.Result {
+	if !slices.ContainsFunc(results, func(r *duxlyrics.Result) bool { return tier(answer{res: r}) >= 1 }) {
+		results, loose = append(results, loose...), nil
+	}
 	order := s.providers.enabled()
 	top := choose(order, results)
 	if !s.canFit(top) {
 		return align(order, results)
 	}
 	audio := sync.OnceValues(func() ([]float64, bool) { return s.audioAttacks(ctx, t) })
-	if r, known, ok := s.onTime(t, order, results, audio); ok {
+	all := append(slices.Clip(results), loose...)
+	if r, known, ok := s.onTime(t, order, all, audio); ok {
 		if known.Confident {
 			r = shifted(r, known.Shift)
 		}
-		if laid, ok := s.wordsOnTime(t, order, r, results, audio); ok {
+		if laid, ok := s.wordsOnTime(t, order, r, all, audio); ok {
 			return laid
 		}
 		return r
@@ -851,7 +863,8 @@ func (s *Service) onTime(t source.Track, order []duxlyrics.Provider, results []*
 }
 
 // wordsOnTime is a word-timed result laid on the line timing of lines, when
-// its words then land on the recording too. Its own shift is never applied.
+// its words then land on the recording too. A sure fit of the laid copy is
+// applied: line starts often sit a little before the singing.
 func (s *Service) wordsOnTime(t source.Track, order []duxlyrics.Provider, lines *duxlyrics.Result, results []*duxlyrics.Result, audio func() ([]float64, bool)) (*duxlyrics.Result, bool) {
 	if tier(answer{res: lines}) != 1 {
 		return nil, false
@@ -865,9 +878,13 @@ func (s *Service) wordsOnTime(t source.Track, order []duxlyrics.Provider, lines 
 		}
 		name, starts := anchoredFitName(t, w, laid)
 		known, ok := s.measureStarts(t, w, name, starts, true, audio)
-		if ok && math.Abs(known.Shift) <= onTimeSlack {
-			return laid, true
+		if !ok || math.Abs(known.Shift) > onTimeSlack {
+			continue
 		}
+		if known.Confident {
+			laid = shifted(laid, known.Shift)
+		}
+		return laid, true
 	}
 	return nil, false
 }
@@ -1115,14 +1132,17 @@ func (s *Service) Stored(ctx context.Context, t source.Track, keepLyrics bool) {
 	}
 }
 
-func (s *Service) gather(ctx context.Context, client *duxlyrics.Client, t source.Track) []*duxlyrics.Result {
+// gather asks every source on its own. Loose answers, found only without the
+// track's length, come apart from the others.
+func (s *Service) gather(ctx context.Context, client *duxlyrics.Client, t source.Track) (results, loose []*duxlyrics.Result) {
 	order := s.providers.enabled()
 	req, serverID := s.request(ctx, t, order)
 	ids := slices.Clone(req.Providers)
 	if serverID != "" {
 		ids = append(ids, serverID)
 	}
-	results := make([]*duxlyrics.Result, len(ids))
+	results = make([]*duxlyrics.Result, len(ids))
+	loose = make([]*duxlyrics.Result, len(ids))
 	var wg sync.WaitGroup
 	for i, id := range ids {
 		wg.Add(1)
@@ -1138,7 +1158,7 @@ func (s *Service) gather(ctx context.Context, client *duxlyrics.Client, t source
 			if id == serverID {
 				res, err = client.Lookup(ctx, one)
 			} else {
-				res, err = find(ctx, client, one, t.Album, true)
+				res, loose[i], err = find(ctx, client, one, t.Album, true)
 			}
 			if err != nil {
 				log.Debugf("lyrics for %q from %s: %v", t.Title, id, err)
@@ -1151,7 +1171,8 @@ func (s *Service) gather(ctx context.Context, client *duxlyrics.Client, t source
 		}()
 	}
 	wg.Wait()
-	return slices.DeleteFunc(results, func(r *duxlyrics.Result) bool { return r == nil })
+	isNil := func(r *duxlyrics.Result) bool { return r == nil }
+	return slices.DeleteFunc(results, isNil), slices.DeleteFunc(loose, isNil)
 }
 
 // attempts are the lookups for req in turn: as asked, then without the
@@ -1177,22 +1198,31 @@ func attempts(req duxlyrics.Request, album string) []duxlyrics.Request {
 // answer. With words, line timing is asked again without the length, as KuGou
 // drops a cut whose length is off yet may time its words. After a failed first
 // lookup only the cache is asked, so a flaky network isn't waited out again.
-func find(ctx context.Context, client *duxlyrics.Client, req duxlyrics.Request, album string, words bool) (*duxlyrics.Result, error) {
-	var best answer
+// With words, a better answer found only without the length comes back apart
+// as loose: it may be another cut's lyrics.
+func find(ctx context.Context, client *duxlyrics.Client, req duxlyrics.Request, album string, words bool) (*duxlyrics.Result, *duxlyrics.Result, error) {
+	var best, other answer
 	for i, r := range attempts(req, album) {
 		if i > 0 && best.err != nil && !r.CacheOnly {
 			continue
 		}
 		res, err := client.Lookup(ctx, r)
-		if a := (answer{res, err}); i == 0 || tier(a) > tier(best) {
+		a := answer{res, err}
+		switch {
+		case words && i > 0 && r.Duration == 0 && req.Duration > 0:
+			other = a
+		case i == 0 || tier(a) > tier(best):
 			best = a
 		}
 		retry := words && i == 0 && req.Duration > 0 && tier(best) == 1
-		if tier(best) >= 1 && !retry || ctx.Err() != nil {
+		if max(tier(best), tier(other)) >= 1 && !retry || ctx.Err() != nil {
 			break
 		}
 	}
-	return best.res, best.err
+	if tier(other) > tier(best) {
+		return best.res, other.res, best.err
+	}
+	return best.res, nil, best.err
 }
 
 type answer struct {
