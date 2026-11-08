@@ -453,7 +453,7 @@ func TestAudioFitMovesWordTiming(t *testing.T) {
 	}
 	track := source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"}
 	fitted := func(res *duxlyrics.Result) (float64, bool) {
-		known, ok := s.measure(track, res, true, func() ([]float64, bool) { return s.audioAttacks(context.Background(), track) })
+		known, ok := s.recording(context.Background(), track).measure(res, true)
 		return known.Shift, ok && known.Confident
 	}
 	res := &duxlyrics.Result{Found: true, Source: duxlyrics.KuGou, Lyrics: duxlyrics.Lyrics{Synced: lines}}
@@ -477,7 +477,7 @@ func TestAudioFitMovesWordTiming(t *testing.T) {
 	_, ok = fitted(res)
 	assert.False(t, ok, "audio the words don't fit moves nothing")
 	s.cfg.AudioTiming = func() bool { return false }
-	assert.False(t, s.canFit(res), "off in settings")
+	assert.Nil(t, s.recording(context.Background(), track), "off in settings")
 }
 
 // Lines every few seconds, as sung.
@@ -551,19 +551,42 @@ func TestLineFitCarriesItsShiftToTheShownSource(t *testing.T) {
 	top := &duxlyrics.Result{Found: true, Source: duxlyrics.KuGou, Lyrics: duxlyrics.Lyrics{Synced: shown}}
 	line := &duxlyrics.Result{Found: true, Source: duxlyrics.LRCLIB, Lyrics: duxlyrics.Lyrics{Synced: reference}}
 
-	attacksOf := func() ([]float64, bool) { return s.audioAttacks(context.Background(), track) }
-	shift, ok := s.linesFitted(track, top, []*duxlyrics.Result{top, line}, attacksOf)
-	require.True(t, ok, "the source that can be measured speaks for the one shown")
-	assert.InDelta(t, 3.7, shift, 0.05)
+	order := []duxlyrics.Provider{duxlyrics.KuGou, duxlyrics.LRCLIB}
+	got := fallback(order, []*duxlyrics.Result{top, line}, s.recording(context.Background(), track))
+	assert.Equal(t, duxlyrics.KuGou, got.Source)
+	assert.InDelta(t, 3.7, float64(got.Synced[0].Start-top.Synced[0].Start), 0.05, "the source that can be measured speaks for the one shown")
+}
+
+func allProviders() []duxlyrics.Provider {
+	var out []duxlyrics.Provider
+	for _, p := range defaultProviders() {
+		out = append(out, duxlyrics.Provider(p.ID))
+	}
+	return out
+}
+
+// fakeRecording measures each source at its fit, for its own timing only,
+// and every laid copy at laid.
+type fakeRecording struct {
+	fits map[duxlyrics.Provider]fitResult
+	laid *fitResult
+}
+
+func (f fakeRecording) measure(r *duxlyrics.Result, words bool) (fitResult, bool) {
+	known, ok := f.fits[r.Source]
+	return known, ok && words == (tier(answer{res: r}) == 2)
+}
+
+func (f fakeRecording) measureLaid(_, _ *duxlyrics.Result) (fitResult, bool) {
+	if f.laid == nil {
+		return fitResult{}, false
+	}
+	return *f.laid, true
 }
 
 // With the audio measured, the source that lands on the recording is shown;
 // when none does, the timing tier and the order decide as before.
 func TestDecidePicksTheSourceOnTheRecording(t *testing.T) {
-	type fit struct {
-		shift     float64
-		confident bool
-	}
 	result := func(src duxlyrics.Provider, words bool) *duxlyrics.Result {
 		lines := make([]duxlyrics.Line, 40)
 		for i := range lines {
@@ -579,48 +602,34 @@ func TestDecidePicksTheSourceOnTheRecording(t *testing.T) {
 	tests := []struct {
 		name  string
 		words []duxlyrics.Provider // word-timed; the others are line-timed
-		fits  map[duxlyrics.Provider]fit
+		fits  map[duxlyrics.Provider]fitResult
 		want  duxlyrics.Provider
 		shift float64
 	}{
 		{"an on-time word source beats an on-time line source", []duxlyrics.Provider{kugou},
-			map[duxlyrics.Provider]fit{kugou: {0.1, false}, better: {0, false}}, kugou, 0},
+			map[duxlyrics.Provider]fitResult{kugou: {0.1, false}, better: {0, false}}, kugou, 0},
 		{"an on-time line source beats a drifting word source", []duxlyrics.Provider{kugou},
-			map[duxlyrics.Provider]fit{kugou: {-1.8, false}, better: {-0.14, false}, lrclib: {-3.08, false}}, better, 0},
+			map[duxlyrics.Provider]fitResult{kugou: {-1.8, false}, better: {-0.14, false}, lrclib: {-3.08, false}}, better, 0},
 		{"between on-time line sources the order decides", nil,
-			map[duxlyrics.Provider]fit{lrclib: {0.06, false}, better: {-0.3, false}}, better, 0},
+			map[duxlyrics.Provider]fitResult{lrclib: {0.06, false}, better: {-0.3, false}}, better, 0},
 		{"a sure on-time fit is applied", nil,
-			map[duxlyrics.Provider]fit{better: {-0.9, false}, lrclib: {0.3, true}}, lrclib, 0.3},
+			map[duxlyrics.Provider]fitResult{better: {-0.9, false}, lrclib: {0.3, true}}, lrclib, 0.3},
 		{"none on time: the word source as before", []duxlyrics.Provider{kugou},
-			map[duxlyrics.Provider]fit{kugou: {-1.8, false}, lrclib: {-3.08, false}}, kugou, 0},
+			map[duxlyrics.Provider]fitResult{kugou: {-1.8, false}, lrclib: {-3.08, false}}, kugou, 0},
 		{"none on time: a sure shift is applied as before", []duxlyrics.Provider{kugou},
-			map[duxlyrics.Provider]fit{kugou: {2, true}, lrclib: {-3.08, false}}, kugou, 2},
+			map[duxlyrics.Provider]fitResult{kugou: {2, true}, lrclib: {-3.08, false}}, kugou, 2},
 		{"an unsure shift is never applied", []duxlyrics.Provider{kugou},
-			map[duxlyrics.Provider]fit{kugou: {0.3, false}}, kugou, 0},
+			map[duxlyrics.Provider]fitResult{kugou: {0.3, false}}, kugou, 0},
 		{"a lyrics file beside the track is never overridden", nil,
-			map[duxlyrics.Provider]fit{duxlyrics.Sidecar: {-3, true}, ServerSource: {0, true}}, duxlyrics.Sidecar, 0},
+			map[duxlyrics.Provider]fitResult{duxlyrics.Sidecar: {-3, true}, ServerSource: {0, true}}, duxlyrics.Sidecar, 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := quietService(t, t.TempDir(), func(string, any) {}, nil)
-			var all []Provider
-			for _, p := range defaultProviders() {
-				all = append(all, Provider{ID: p.ID, Enabled: true})
-			}
-			_, err := s.providers.set(all)
-			require.NoError(t, err)
-			s.cfg.AudioTiming = func() bool { return true }
-			s.cfg.AudioFile = func(context.Context, source.Ref) (string, bool) { return "/x", true }
-			s.cfg.Decode = func(context.Context, string, func(io.Reader) error) error { return errors.New("no audio") }
-			track := source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"}
 			var results []*duxlyrics.Result
-			for src, f := range tt.fits {
-				r := result(src, slices.Contains(tt.words, src))
-				name, _ := fitName(track, r, slices.Contains(tt.words, src))
-				s.storeFit(name, fitResult{Shift: f.shift, Confident: f.confident})
-				results = append(results, r)
+			for src := range tt.fits {
+				results = append(results, result(src, slices.Contains(tt.words, src)))
 			}
-			got := s.decide(context.Background(), track, results, nil)
+			got := decide(allProviders(), results, nil, fakeRecording{fits: tt.fits})
 			assert.Equal(t, tt.want, got.Source)
 			assert.InDelta(t, 10+tt.shift, float64(got.Synced[0].Start), 0.001)
 		})
@@ -1067,37 +1076,21 @@ func TestDecideKeepsWordsLaidOnAnOnTimeLineSource(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := quietService(t, t.TempDir(), func(string, any) {}, nil)
-			var all []Provider
-			for _, p := range defaultProviders() {
-				all = append(all, Provider{ID: p.ID, Enabled: true})
-			}
-			_, err := s.providers.set(all)
-			require.NoError(t, err)
-			s.cfg.AudioTiming = func() bool { return true }
-			s.cfg.AudioFile = func(context.Context, source.Ref) (string, bool) { return "/x", true }
-			s.cfg.Decode = func(context.Context, string, func(io.Reader) error) error { return errors.New("no audio") }
-			track := source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"}
 			line := result(duxlyrics.LRCLIB, 0, false)
-			name, _ := fitName(track, line, false)
-			s.storeFit(name, fitResult{Shift: tt.line})
+			rec := fakeRecording{fits: map[duxlyrics.Provider]fitResult{duxlyrics.LRCLIB: {Shift: tt.line}}}
 			results := []*duxlyrics.Result{line}
 			var loose []*duxlyrics.Result
 			if tt.hasWords {
 				word := result(duxlyrics.KuGou, 6, true)
-				name, _ := fitName(track, word, true)
-				s.storeFit(name, fitResult{Shift: tt.own})
-				laid, ok := anchored(word, line)
-				require.True(t, ok)
-				name, _ = anchoredFitName(track, word, laid)
-				s.storeFit(name, fitResult{Shift: tt.laid, Confident: tt.sure})
+				rec.fits[duxlyrics.KuGou] = fitResult{Shift: tt.own}
+				rec.laid = &fitResult{Shift: tt.laid, Confident: tt.sure}
 				if tt.loose {
 					loose = append(loose, word)
 				} else {
 					results = append(results, word)
 				}
 			}
-			got := s.decide(context.Background(), track, results, loose)
+			got := decide(allProviders(), results, loose, rec)
 			assert.Equal(t, tt.source, got.Source)
 			assert.Equal(t, tt.words, tier(answer{res: got}) == 2)
 			assert.InDelta(t, tt.start, float64(got.Synced[0].Start), 0.001)

@@ -802,118 +802,50 @@ func (s *Service) best(ctx context.Context, client *duxlyrics.Client, t source.T
 	if len(results)+len(loose) == 0 {
 		return nil
 	}
-	return s.decide(ctx, t, results, loose)
+	return decide(s.providers.enabled(), results, loose, s.recording(ctx, t))
 }
 
-// decide picks among a track's results and fits the pick to the audio when it
-// can. A loose result is shown only when it lands on the recording itself or
-// nothing else is synced; otherwise it may only lend its words to an on-time
-// line source.
-func (s *Service) decide(ctx context.Context, t source.Track, results, loose []*duxlyrics.Result) *duxlyrics.Result {
-	if !slices.ContainsFunc(results, func(r *duxlyrics.Result) bool { return tier(answer{res: r}) >= 1 }) {
-		results, loose = append(results, loose...), nil
-	}
-	order := s.providers.enabled()
-	top := choose(order, results)
-	if !s.canFit(top) {
-		return align(order, results)
-	}
-	audio := sync.OnceValues(func() ([]float64, bool) { return s.audioAttacks(ctx, t) })
-	all := append(slices.Clip(results), loose...)
-	if r, known, ok := s.onTime(t, order, all, audio); ok {
-		if known.Confident {
-			r = shifted(r, known.Shift)
-		}
-		if laid, ok := s.wordsOnTime(t, order, r, all, audio); ok {
-			return laid
-		}
-		return r
-	}
-	if known, ok := s.measure(t, top, true, audio); ok && known.Confident {
-		return shifted(top, known.Shift)
-	}
-	if shift, ok := s.linesFitted(t, top, results, audio); ok {
-		return shifted(top, shift)
-	}
-	return align(order, results)
+// trackFits measures t's answers against its local copy, decoded at most
+// once, and keeps every measure in the fit cache.
+type trackFits struct {
+	s     *Service
+	t     source.Track
+	audio func() ([]float64, bool)
 }
 
-// onTimeSlack in seconds: a source measured this close to 0 sits on the
-// recording. Fits of sources that match a song spread about this far.
-const onTimeSlack = 0.35
-
-// onTime is the synced result whose measured shift is within onTimeSlack,
-// word timing first and then the order, with its fit. An unsure fit counts
-// too, because a source off by seconds rarely lands near 0 by chance.
-func (s *Service) onTime(t source.Track, order []duxlyrics.Provider, results []*duxlyrics.Result, audio func() ([]float64, bool)) (*duxlyrics.Result, fitResult, bool) {
-	var on []*duxlyrics.Result
-	fits := map[*duxlyrics.Result]fitResult{}
-	for _, r := range results {
-		known, ok := s.measure(t, r, tier(answer{res: r}) == 2, audio)
-		if ok && math.Abs(known.Shift) <= onTimeSlack {
-			on = append(on, r)
-			fits[r] = known
-		}
+// recording is nil when fitting is off or the audio can't be read.
+func (s *Service) recording(ctx context.Context, t source.Track) recording {
+	if !s.fitting() || s.cfg.AudioFile == nil || s.cfg.Decode == nil {
+		return nil
 	}
-	if len(on) == 0 {
-		return nil, fitResult{}, false
-	}
-	r := choose(order, on)
-	return r, fits[r], true
+	return trackFits{s: s, t: t, audio: sync.OnceValues(func() ([]float64, bool) { return s.audioAttacks(ctx, t) })}
 }
 
-// wordsOnTime is a word-timed result laid on the line timing of lines, when
-// its words then land on the recording too. A sure fit of the laid copy is
-// applied: line starts often sit a little before the singing.
-func (s *Service) wordsOnTime(t source.Track, order []duxlyrics.Provider, lines *duxlyrics.Result, results []*duxlyrics.Result, audio func() ([]float64, bool)) (*duxlyrics.Result, bool) {
-	if tier(answer{res: lines}) != 1 {
-		return nil, false
-	}
-	words := slices.DeleteFunc(slices.Clone(results), func(r *duxlyrics.Result) bool { return tier(answer{res: r}) != 2 })
-	slices.SortStableFunc(words, func(a, b *duxlyrics.Result) int { return rank(order, a.Source) - rank(order, b.Source) })
-	for _, w := range words {
-		laid, ok := anchored(w, lines)
-		if !ok {
-			continue
-		}
-		name, starts := anchoredFitName(t, w, laid)
-		known, ok := s.measureStarts(t, w, name, starts, true, audio)
-		if !ok || math.Abs(known.Shift) > onTimeSlack {
-			continue
-		}
-		if known.Confident {
-			laid = shifted(laid, known.Shift)
-		}
-		return laid, true
-	}
-	return nil, false
+func (f trackFits) measure(r *duxlyrics.Result, words bool) (fitResult, bool) {
+	name, starts := fitName(f.t, r, words, "")
+	return f.fitted(r.Source, name, starts, words)
 }
 
-// fitResult is a measured shift, kept so a track is decoded once per source.
-type fitResult struct {
-	Shift     float64 `json:"shift"`
-	Confident bool    `json:"confident"`
+func (f trackFits) measureLaid(words, laid *duxlyrics.Result) (fitResult, bool) {
+	name, starts := fitName(f.t, laid, true, words.Source)
+	return f.fitted(words.Source, name, starts, true)
 }
 
-// measure fits r's word starts, or its line starts, to the audio; false when
-// r has too few of them or the audio can't be read.
-func (s *Service) measure(t source.Track, r *duxlyrics.Result, words bool, audio func() ([]float64, bool)) (fitResult, bool) {
-	name, starts := fitName(t, r, words)
-	return s.measureStarts(t, r, name, starts, words, audio)
-}
-
-func (s *Service) measureStarts(t source.Track, r *duxlyrics.Result, name string, starts []float64, words bool, audio func() ([]float64, bool)) (fitResult, bool) {
+// fitted is the cached or newly measured fit of starts from src. A lyrics
+// file beside the track is the user's own and never measured, and too few
+// starts fit anywhere.
+func (f trackFits) fitted(src duxlyrics.Provider, name string, starts []float64, words bool) (fitResult, bool) {
 	least := fitMinLines
 	if words {
 		least = fitMinWords
 	}
-	if r.Source == duxlyrics.Sidecar || len(starts) < least {
+	if src == duxlyrics.Sidecar || len(starts) < least {
 		return fitResult{}, false
 	}
-	if known, ok := s.knownFit(name); ok {
+	if known, ok := f.s.knownFit(name); ok {
 		return known, true
 	}
-	found, ok := audio()
+	found, ok := f.audio()
 	if !ok {
 		return fitResult{}, false
 	}
@@ -924,14 +856,16 @@ func (s *Service) measureStarts(t source.Track, r *duxlyrics.Result, name string
 	} else {
 		known.Shift, known.Confident = fitLines(starts, found)
 	}
-	log.Debugf("lyrics: %q from %s fits the audio at %+.2f s (words %v): %v", t.Title, r.Source, known.Shift, words, known.Confident)
-	s.storeFit(name, known)
+	log.Debugf("lyrics: %q from %s fits the audio at %+.2f s (words %v): %v", f.t.Title, src, known.Shift, words, known.Confident)
+	f.s.storeFit(name, known)
 	return known, true
 }
 
-// fitName names r's word or line fit in the cache, and returns the starts it
-// fits. The timing is part of the name: a source that changes it is fitted anew.
-func fitName(t source.Track, r *duxlyrics.Result, words bool) (string, []float64) {
+// fitName names a fit in the cache and returns the starts it fits. The
+// timing is part of the name: a source that changes it is fitted anew. Words
+// laid on r's lines from laidFrom are named apart from both sources' own fits,
+// with all their starts, as a change to either source can move any of them.
+func fitName(t source.Track, r *duxlyrics.Result, words bool, laidFrom duxlyrics.Provider) (string, []float64) {
 	starts, kind := lineStarts(r), "lines/"
 	if words {
 		starts, kind = wordStarts(r), ""
@@ -939,41 +873,11 @@ func fitName(t source.Track, r *duxlyrics.Result, words bool) (string, []float64
 	if len(starts) == 0 {
 		return "", nil
 	}
-	return fmt.Sprintf("%s%s/%s/%d/%.2f", kind, key(&t), r.Source, len(starts), starts[0]), starts
-}
-
-// anchoredFitName names the word fit of laid, words laid on another
-// source's lines, apart from both sources' own fits. All its starts are in
-// the name, as a change to either source can move any of them.
-func anchoredFitName(t source.Track, words, laid *duxlyrics.Result) (string, []float64) {
-	name, starts := fitName(t, laid, true)
-	return fmt.Sprintf("laid/%s/%s/%.12s", words.Source, name, hashed(fmt.Sprintf("%.2f", starts))), starts
-}
-
-// linesFitted is the shift top needs, from the first source whose line starts
-// sit on the audio for sure. All sources count: a line-timed one can show what
-// a word-timed top can't, and offset carries its shift over.
-func (s *Service) linesFitted(t source.Track, top *duxlyrics.Result, results []*duxlyrics.Result, audio func() ([]float64, bool)) (float64, bool) {
-	for i, r := range append([]*duxlyrics.Result{top}, results...) {
-		if i > 0 && r == top {
-			continue
-		}
-		known, ok := s.measure(t, r, false, audio)
-		if !ok || !known.Confident {
-			continue
-		}
-		if r == top {
-			return known.Shift, true
-		}
-		if d, ok := offset(top.Synced, r.Synced); ok {
-			return d + known.Shift, true
-		}
+	name := fmt.Sprintf("%s%s/%s/%d/%.2f", kind, key(&t), r.Source, len(starts), starts[0])
+	if laidFrom != "" {
+		name = fmt.Sprintf("laid/%s/%s/%.12s", laidFrom, name, hashed(fmt.Sprintf("%.2f", starts)))
 	}
-	return 0, false
-}
-
-func (s *Service) canFit(r *duxlyrics.Result) bool {
-	return s.fitting() && s.cfg.AudioFile != nil && s.cfg.Decode != nil && r.Source != duxlyrics.Sidecar
+	return name, starts
 }
 
 func (s *Service) fitPath(name string) string {
@@ -1175,75 +1079,6 @@ func (s *Service) gather(ctx context.Context, client *duxlyrics.Client, t source
 	return slices.DeleteFunc(results, isNil), slices.DeleteFunc(loose, isNil)
 }
 
-// attempts are the lookups for req in turn: as asked, then without the
-// length so a single edit still finds the album cut's lyrics, then the cache
-// entries stored while lookups still carried the album; tracks kept for
-// offline use rely on them.
-func attempts(req duxlyrics.Request, album string) []duxlyrics.Request {
-	out := []duxlyrics.Request{req}
-	if req.Duration > 0 {
-		short := req
-		short.Duration = 0
-		out = append(out, short)
-	}
-	if album != "" {
-		old := req
-		old.Album, old.CacheOnly = album, true
-		out = append(out, old)
-	}
-	return out
-}
-
-// find tries the attempts until one has synced lyrics and keeps the best
-// answer. With words, line timing is asked again without the length, as KuGou
-// drops a cut whose length is off yet may time its words. After a failed first
-// lookup only the cache is asked, so a flaky network isn't waited out again.
-// With words, a better answer found only without the length comes back apart
-// as loose: it may be another cut's lyrics.
-func find(ctx context.Context, client *duxlyrics.Client, req duxlyrics.Request, album string, words bool) (*duxlyrics.Result, *duxlyrics.Result, error) {
-	var best, other answer
-	for i, r := range attempts(req, album) {
-		if i > 0 && best.err != nil && !r.CacheOnly {
-			continue
-		}
-		res, err := client.Lookup(ctx, r)
-		a := answer{res, err}
-		switch {
-		case words && i > 0 && r.Duration == 0 && req.Duration > 0:
-			other = a
-		case i == 0 || tier(a) > tier(best):
-			best = a
-		}
-		retry := words && i == 0 && req.Duration > 0 && tier(best) == 1
-		if max(tier(best), tier(other)) >= 1 && !retry || ctx.Err() != nil {
-			break
-		}
-	}
-	if tier(other) > tier(best) {
-		return best.res, other.res, best.err
-	}
-	return best.res, nil, best.err
-}
-
-type answer struct {
-	res *duxlyrics.Result
-	err error
-}
-
-// tier ranks a result as dux-go does: word sync 2, line sync (or
-// instrumental) 1, plain 0, nothing -1.
-func tier(a answer) int {
-	switch {
-	case a.err != nil || a.res == nil || !a.res.Found:
-		return -1
-	case slices.ContainsFunc(a.res.Synced, func(l duxlyrics.Line) bool { return len(l.Words) > 0 }):
-		return 2
-	case len(a.res.Synced) > 0 || a.res.Instrumental:
-		return 1
-	}
-	return 0
-}
-
 // pick keeps the better synced of the server's and the providers' answers;
 // between equals the one earlier in order wins.
 func pick(order []duxlyrics.Provider, srv, prov answer) (*duxlyrics.Result, error) {
@@ -1259,17 +1094,6 @@ func pick(order []duxlyrics.Provider, srv, prov answer) (*duxlyrics.Result, erro
 		return srv.res, nil
 	}
 	return prov.res, prov.err
-}
-
-// rank is p's place in order; a sidecar file comes before everything.
-func rank(order []duxlyrics.Provider, p duxlyrics.Provider) int {
-	if p == duxlyrics.Sidecar {
-		return -1
-	}
-	if i := slices.Index(order, p); i >= 0 {
-		return i
-	}
-	return len(order)
 }
 
 // resolve turns "server:<library>:<track>" into a Source asking that server;

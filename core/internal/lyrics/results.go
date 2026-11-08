@@ -1,6 +1,7 @@
 package lyrics
 
 import (
+	"context"
 	"math"
 	"slices"
 	"strings"
@@ -8,6 +9,86 @@ import (
 
 	duxlyrics "github.com/duxlabs-dev/dux-go/lyrics"
 )
+
+// attempts are the lookups for req in turn: as asked, then without the
+// length so a single edit still finds the album cut's lyrics, then the cache
+// entries stored while lookups still carried the album; tracks kept for
+// offline use rely on them.
+func attempts(req duxlyrics.Request, album string) []duxlyrics.Request {
+	out := []duxlyrics.Request{req}
+	if req.Duration > 0 {
+		short := req
+		short.Duration = 0
+		out = append(out, short)
+	}
+	if album != "" {
+		old := req
+		old.Album, old.CacheOnly = album, true
+		out = append(out, old)
+	}
+	return out
+}
+
+// find tries the attempts until one has synced lyrics and keeps the best
+// answer. With words, line timing is asked again without the length, as KuGou
+// drops a cut whose length is off yet may time its words. After a failed first
+// lookup only the cache is asked, so a flaky network isn't waited out again.
+// With words, a better answer found only without the length comes back apart
+// as loose: it may be another cut's lyrics.
+func find(ctx context.Context, client *duxlyrics.Client, req duxlyrics.Request, album string, words bool) (*duxlyrics.Result, *duxlyrics.Result, error) {
+	var best, other answer
+	for i, r := range attempts(req, album) {
+		if i > 0 && best.err != nil && !r.CacheOnly {
+			continue
+		}
+		res, err := client.Lookup(ctx, r)
+		a := answer{res, err}
+		switch {
+		case words && i > 0 && r.Duration == 0 && req.Duration > 0:
+			other = a
+		case i == 0 || tier(a) > tier(best):
+			best = a
+		}
+		retry := words && i == 0 && req.Duration > 0 && tier(best) == 1
+		if max(tier(best), tier(other)) >= 1 && !retry || ctx.Err() != nil {
+			break
+		}
+	}
+	if tier(other) > tier(best) {
+		return best.res, other.res, best.err
+	}
+	return best.res, nil, best.err
+}
+
+type answer struct {
+	res *duxlyrics.Result
+	err error
+}
+
+// tier ranks a result as dux-go does: word sync 2, line sync (or
+// instrumental) 1, plain 0, nothing -1.
+func tier(a answer) int {
+	switch {
+	case a.err != nil || a.res == nil || !a.res.Found:
+		return -1
+	case slices.ContainsFunc(a.res.Synced, func(l duxlyrics.Line) bool { return len(l.Words) > 0 }):
+		return 2
+	case len(a.res.Synced) > 0 || a.res.Instrumental:
+		return 1
+	}
+	return 0
+}
+
+// rank is p's place in order; a sidecar file comes before everything.
+func rank(order []duxlyrics.Provider, p duxlyrics.Provider) int {
+	if p == duxlyrics.Sidecar {
+		return -1
+	}
+	if i := slices.Index(order, p); i >= 0 {
+		return i
+	}
+	return len(order)
+}
 
 const (
 	// minVoters is how many other sources must time the same lines before
