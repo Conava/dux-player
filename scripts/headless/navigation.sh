@@ -186,6 +186,7 @@ alt Left
 alt Left
 alt Left
 alt Left
+expect "four steps back" "$(route)" "history/"
 ui deletePlaylist "$ahead2"
 sleep 1
 alt Right
