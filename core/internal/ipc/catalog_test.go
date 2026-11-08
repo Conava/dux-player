@@ -125,6 +125,7 @@ func TestOnlyARescanTakesAMuchSmallerList(t *testing.T) {
 	require.NoError(t, store.AddLibrary(ctx, source.Library{ID: "srv", Kind: "fake", Name: "Server", Enabled: true}))
 	server := &syncServer{lib: source.Library{ID: "srv", Name: "Server"}, more: 3}
 	libs := library.NewManager(store, source.Registry{"fake": func(source.Library, source.Env) (source.Source, error) { return server, nil }}, source.Env{})
+	t.Cleanup(libs.Close)
 	require.NoError(t, libs.Load(ctx))
 	deps := Deps{Bus: NewBus(), Libraries: libs, Ctx: ctx}
 	count := func() int {
@@ -152,6 +153,7 @@ func TestSyncedServerOverIPC(t *testing.T) {
 	require.NoError(t, store.AddLibrary(ctx, source.Library{ID: "srv", Kind: "fake", Name: "Server", Enabled: true}))
 	server := &syncServer{lib: source.Library{ID: "srv", Name: "Server"}}
 	libs := library.NewManager(store, source.Registry{"fake": func(source.Library, source.Env) (source.Source, error) { return server, nil }}, source.Env{})
+	t.Cleanup(libs.Close)
 	require.NoError(t, libs.Load(ctx))
 	deps := Deps{Bus: NewBus(), Libraries: libs, Ctx: ctx}
 	done := make(chan map[string]any, 4)

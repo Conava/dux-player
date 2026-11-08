@@ -158,12 +158,21 @@ Rectangle {
         sourceComponent: root.pane === "queue" ? queuePane : lyricsPane
     }
 
+    component PaneFade: NumberAnimation {
+        from: 0
+        to: 1
+        running: Theme.animationsEnabled
+        duration: Theme.expressiveDurations.expressiveEffects
+        easing.type: Easing.BezierSpline
+        easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+    }
+
     Component {
         id: lyricsPane
         LyricsView {
+            PaneFade on opacity {}
             radius: root.paneRadius
             cardColor: root.paneColor
-            backdropColor: root.joined ? ArtColors.cardColor : "transparent"
             artScheme: ArtColors.nowPlaying
         }
     }
@@ -173,6 +182,8 @@ Rectangle {
         Rectangle {
             radius: root.paneRadius
             color: root.paneColor
+
+            PaneFade on opacity {}
 
             QueueList {
                 anchors.fill: parent

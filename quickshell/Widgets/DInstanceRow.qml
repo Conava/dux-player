@@ -49,7 +49,6 @@ DListItem {
 
     width: view?.width ?? 0
     height: implicitHeight
-    focusPolicy: Qt.StrongFocus
     isSelected: dragging
     firstInGroup: dragging || position === 0
     lastInGroup: dragging || position === (view?.count ?? 0) - 1

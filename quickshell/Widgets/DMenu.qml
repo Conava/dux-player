@@ -63,6 +63,8 @@ Item {
         popup.anchor.rect.y = 0;
         popup.anchor.edges = Edges.Top | Edges.Left;
         popup.anchor.gravity = Edges.Bottom | Edges.Right;
+        // a fullscreen window is larger than the work area: a slide would move the popup and the menu in it
+        popup.anchor.adjustment = PopupAdjustment.None;
         popup.implicitWidth = window.width;
         popup.implicitHeight = window.height;
         popup.anchor.updateAnchor();

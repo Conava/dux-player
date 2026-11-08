@@ -9,10 +9,14 @@
 #                    ui pageOptions tracks '{"lines":["format"]}', ui addElement fullBento title '{"type":"text"}'
 #   dp ARGS          the dplayer CLI against this sandbox: dp play "$W/music", dp pause
 #   rpc METHOD JSON  one daemon IPC call; prints the reply
-#   pointer m X Y | c | d | u | w NOTCHES   move, click, press, release, wheel, through a real virtual pointer
-#   pointer b | f    press and release the side button (back) or the extra button (forward)
+#   pointer m X Y | c | r | d | u | D | U | s MS | w NOTCHES   through a real virtual pointer: move, click, right click,
+#                    left press and release, right press and release, pause, wheel. Lines of one write keep their
+#                    timing: pointer "$(printf 'D\ns 30\nU')"
+#   pointer b | f [MS [DX]]   hold the side button (back) or the extra button (forward) for MS, moving DX halfway
 #   ask NAME ARGS    like ui, but prints the reply: ask route
 #   click X Y        move and click
+#   frames NAME CMD  run CMD and write the ms between UI frames to out/NAME.frames
+#   rclick X Y       move and right click
 dp() { dplayer-dev "$@"; }
 
 wait_for_daemon() {
@@ -43,6 +47,15 @@ expand() { ui expand "$1"; sleep "${SETTLE:-1.5}"; }
 look() { ui look "$1" "$2"; sleep "${SETTLE:-1.5}"; }
 element() { ui element "$1" "$2"; }
 shot() { grim "$W/out/$1.png"; }
+# frames NAME CMD...: runs CMD, then records the ms between UI frames for 1.5 s in out/NAME.frames
+frames() {
+    local name=$1
+    shift
+    qs ipc -p "$W/tree" call headless framesStart >/dev/null
+    "$@"
+    sleep 1.5
+    qs ipc -p "$W/tree" call headless framesStop >"$W/out/$name.frames"
+}
 
 pointer() {
     if [ ! -p "$W/ptr" ]; then
@@ -52,4 +65,5 @@ pointer() {
     fi
     echo "$*" >&9
 }
-click() { pointer m "$(($1 - 2))" "$2"; sleep 0.1; pointer m "$1" "$2"; sleep 0.3; pointer c; }
+click() { pointer m "$(($1 - 2))" "$2"; sleep 0.1; pointer m "$1" "$2"; sleep 0.3; pointer "${3:-c}"; }
+rclick() { click "$1" "$2" r; }

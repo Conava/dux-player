@@ -50,19 +50,59 @@ SettingsPage {
                     color: Theme.primary
                 }
 
-                // the shell's device row: the playing output carries the volume
+                // the playing output carries the volume
                 body: Loader {
                     width: parent.width
                     active: deviceRow.selected && PlayerService.selectedOutputs[0] === deviceRow.modelData.id
                     visible: active
 
-                    sourceComponent: MediaVolumeSlider {
-                        fillColor: Theme.primary
-                        fillContentColor: Theme.onPrimary
-                        trackColor: Theme.secondaryContainer
-                        trackContentColor: Theme.onSecondaryContainer
-                        showValue: true
-                        accessibleName: I18n.tr("Volume", "audio volume: settings section, slider") + ": " + deviceRow.title
+                    sourceComponent: Row {
+                        id: volumeRow
+                        readonly property bool muted: PlayerService.muted || PlayerService.volume === 0
+                        spacing: Theme.spacingS
+
+                        DActionButton {
+                            buttonSize: Theme.iconButtonSize
+                            iconName: volumeRow.muted ? "volume_off" : PlayerService.volume < 0.5 ? "volume_down" : "volume_up"
+                            iconSize: Theme.iconSizeMedium
+                            iconColor: Theme.surfaceVariantText
+                            anchors.verticalCenter: parent.verticalCenter
+                            Accessible.name: I18n.tr("Mute", "volume button")
+                            Accessible.role: Accessible.CheckBox
+                            Accessible.checked: volumeRow.muted
+                            onClicked: PlayerService.setMuted(!PlayerService.muted)
+                        }
+
+                        DSlider {
+                            id: volumeSlider
+                            size: "s"
+                            width: parent.width - (Theme.iconButtonSize + parent.spacing) - volumeText.width - parent.spacing
+                            anchors.verticalCenter: parent.verticalCenter
+                            maximum: Math.max(1, Math.round(PlayerService.volumeMax * 100))
+                            unit: "%"
+                            wheelEnabled: false
+                            showValue: false
+                            Accessible.name: I18n.tr("Volume", "audio volume: settings section, slider") + ": " + deviceRow.title
+                            onSliderValueChanged: newValue => PlayerService.setVolume(newValue / 100)
+
+                            Binding on value {
+                                value: volumeRow.muted ? 0 : Math.round(PlayerService.volume * 100)
+                                when: !volumeSlider.isDragging
+                                restoreMode: Binding.RestoreNone
+                            }
+                        }
+
+                        NumericText {
+                            id: volumeText
+                            width: Math.ceil(reservedWidth)
+                            anchors.verticalCenter: parent.verticalCenter
+                            isMonospace: false
+                            text: volumeSlider.formatValue(volumeSlider.value)
+                            reserveText: volumeSlider.formatValue(volumeSlider.maximum)
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.surfaceVariantText
+                            horizontalAlignment: Text.AlignRight
+                        }
                     }
                 }
             }

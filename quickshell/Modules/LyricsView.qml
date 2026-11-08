@@ -13,15 +13,10 @@ FocusScope {
     id: root
 
     property color cardColor: "transparent"
-    // what lies behind a view with no card of its own
-    property color backdropColor: "transparent"
-    // the list's edge fade paints this; with nothing behind it, it looks further up for the surface
-    readonly property var surfaceColor: cardColor.a > 0 ? cardColor : backdropColor.a > 0 ? backdropColor : undefined
     property var artScheme: null
     property real radius: 0
     property bool following: true
     property real now: 0
-    property int pushedItem: -1
     property bool animateFollow: false
     property var heightCache: ({})
     property int centreItem: -1
@@ -58,6 +53,7 @@ FocusScope {
     readonly property real breakSize: Math.round(leadFontSize * PlayerMetrics.lyricsBreakIndicatorScale)
     // the ends leave room for half a single row line, so scrolling stops with the first or last line centred
     readonly property real endPadding: controller.synced ? Math.max(0, transcript.height / 2 - (leadFontMetrics.lineHeight + Theme.spacingS * 2) / 2) : Theme.spacingS
+    readonly property real edgeFade: Math.min(transcript.height * PlayerMetrics.lyricsEdgeFadeRatio, PlayerMetrics.lyricsEdgeFadeMax)
     readonly property real leadFontSize: Math.round(textScale * Math.max(Theme.fontSizeXLarge, Math.min(Theme.fontSizeDisplay, transcript.height / PlayerMetrics.lyricsLeadHeightDivisor, transcript.width / PlayerMetrics.lyricsLeadWidthDivisor)))
     readonly property string message: PlayerService.lyricsMessage
 
@@ -79,7 +75,6 @@ FocusScope {
         centreItem = trackedCentre;
     }
     onItemsChanged: {
-        pushedItem = -1;
         centreTime = -Infinity;
         centreItem = trackedCentre;
         requestFollow(false);
@@ -107,7 +102,6 @@ FocusScope {
     function browse() {
         following = false;
         scrollSpring.snapTo(transcript.contentY);
-        settleRows();
     }
 
     function resume() {
@@ -121,58 +115,30 @@ FocusScope {
         followTimer.restart();
     }
 
-    function settleRows() {
-        for (const row of transcript.contentItem.children) {
-            if (row.settle)
-                row.settle();
-        }
-    }
-
-    // the view snaps to the new centre and every row is pushed back by the same distance, so the rows catch up one
-    // after another: the new line leads and the others follow outwards
     function followCurrent() {
-        const animate = animateFollow && animationsEnabled && pushedItem >= 0;
+        const animate = animateFollow && animationsEnabled;
         animateFollow = false;
         if (!ready || !controller.synced || !following || transcript.count === 0)
             return;
         const centre = Math.max(0, centreItem);
-        const jump = Math.abs(centre - pushedItem) > 1;
-        pushedItem = centre;
-        // a scroll on its way retargets to the active line on every step
-        if (scrollSpring.running)
-            return;
         transcript.stopMomentum();
         transcript.forceLayout();
         heightCache = {};
         const target = Math.round(centreOffset(centre));
-        const delta = target - transcript.contentY;
-        if (delta === 0)
-            return;
-        // rows far off are only laid out by moving there, so a jump lets the view place them
-        if (!animate && Math.abs(delta) > transcript.height) {
-            settleRows();
-            transcript.positionViewAtIndex(centre, ListView.Center);
-            return;
-        }
-        // further than a view away the rows cannot catch up one by one, so the view scrolls there
-        if (animate && Math.abs(delta) > transcript.height) {
-            settleRows();
-            scrollSpring.snapTo(transcript.contentY);
+        if (animate) {
+            if (!scrollSpring.running)
+                scrollSpring.snapTo(transcript.contentY);
             scrollSpring.retarget(target);
-            return;
+            // a disabled spring takes the target at once and leaves the view where it is
+            if (scrollSpring.running)
+                return;
         }
-        transcript.contentY = target;
-        if (!animate) {
-            settleRows();
-            return;
-        }
-        transcript.forceLayout();
-        for (const row of transcript.contentItem.children) {
-            if (!row.push || row.index < 0)
-                continue;
-            const lag = Math.abs(centre - row.index);
-            row.push(delta, jump ? 0 : Math.min(lag, PlayerMetrics.lyricsTrackMaxPush) * row.moveDuration * PlayerMetrics.lyricsTrackPushShare);
-        }
+        scrollSpring.snapTo(transcript.contentY);
+        // rows far off are only laid out by moving there, so a jump lets the view place them
+        if (Math.abs(target - transcript.contentY) > transcript.height)
+            transcript.positionViewAtIndex(centre, ListView.Center);
+        else
+            transcript.contentY = target;
     }
 
     // the same sum a row makes of its height, so a line without a row is placed exactly
@@ -249,8 +215,8 @@ FocusScope {
         onValueChanged: {
             if (!running)
                 return;
-            transcript.contentY = Math.round(value);
-            retarget(root.centreOffset(Math.max(0, root.centreItem)));
+            transcript.contentY = value;
+            retarget(Math.round(root.centreOffset(Math.max(0, root.centreItem))));
         }
     }
 
@@ -324,7 +290,8 @@ FocusScope {
 
     DListView {
         id: transcript
-        fadeEdges: true
+        // a fade painted over the rows lets them show through a translucent window, cut off at the list's edge
+        fadeEdges: false
         showScrollBar: false
         anchors.left: parent.left
         anchors.right: parent.right
@@ -378,8 +345,11 @@ FocusScope {
 
             required property var modelData
             readonly property bool live: Math.abs(index - root.centreItem) <= 1
+            // from the row's outer edge, so it is gone before the list's clip can cut it
+            readonly property real edgeDistance: Math.min(y - transcript.contentY, transcript.contentY + transcript.height - y - height)
 
             width: transcript.width
+            opacity: root.edgeFade > 0 ? Math.max(0, Math.min(1, edgeDistance / root.edgeFade)) : 1
             item: modelData
             controller: root.controller
             accents: root.accents

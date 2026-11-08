@@ -82,6 +82,8 @@ Singleton {
 
     // the snackbar's text, "" when none shows
     property string notice: ""
+    // the Settings window has the focus; the snackbar of the focused window shows the notice
+    property bool settingsFocused: false
     // the undo the snackbar offers, null when it offers none
     property var noticeUndo: null
     property var _pendingCommit: null

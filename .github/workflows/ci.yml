@@ -21,14 +21,17 @@ jobs:
     env:
       XDG_RUNTIME_DIR: /tmp/runtime
     steps:
+      # Without mpv and ffmpeg the tests that play or measure audio skip; gcc is for
+      # the race detector only, the build stays CGO_ENABLED=0.
       - name: Install dependencies
         run: |
           pacman-key --init
-          pacman -Syu --noconfirm --needed git make diffutils go nodejs python quickshell qt6-declarative
-          mkdir -m 700 -p "$XDG_RUNTIME_DIR"
+          pacman -Syu --noconfirm --needed git make diffutils go gcc nodejs python quickshell qt6-declarative mpv ffmpeg
+          useradd --create-home builder
+          install -d -m 700 -o builder "$XDG_RUNTIME_DIR"
 
       - name: Record versions
-        run: pacman -Q go quickshell qt6-declarative nodejs
+        run: pacman -Q go gcc quickshell qt6-declarative nodejs mpv ffmpeg
 
       - name: Checkout
         uses: actions/checkout@v6
@@ -36,15 +39,19 @@ jobs:
           submodules: recursive
           persist-credentials: false
 
-      # The container runs as root; git refuses a checkout owned by another user.
-      - name: Trust the checkout
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      # Root ignores file permissions, so everything runs as a normal user, as on a
+      # developer's machine; owning the checkout also keeps git from refusing it.
+      - name: Hand the checkout to the build user
+        run: chown -R builder "$GITHUB_WORKSPACE"
 
       - name: Lint
-        run: make lint
+        run: runuser -u builder -- make lint
 
       - name: Test
-        run: make test
+        run: runuser -u builder -- make test
+
+      - name: Race test
+        run: runuser -u builder -- make test-race
 
       - name: Build
-        run: make build
+        run: runuser -u builder -- make build

@@ -34,7 +34,7 @@ Features are specified by the maintainer and mostly implemented with AI agents. 
 
 ### Definition of done
 
-1. `make check` (lint, test and build) passes.
+1. `make check` (lint, test, test-race and build) passes.
 2. **The developer has tried it by hand.** Hand over one command, say what to look at and what working looks like. A green test suite is not the end.
 3. `make run` exercises the change end to end with no extra env vars, flags or wrappers. If it doesn't, fix your code or the script if really necessary.
 4. No dead code, no leftover old path, comments pass the comment rules.
@@ -59,6 +59,8 @@ For GUI work, use `make headless` before handing anything over. It runs the real
 - `make headless SCENARIO=scripts/headless/home.sh` resizes the window across the compact width with the header search field on and rescans a changed library, and fails when Home's shelves are rebuilt or Random albums misses the change. Run it after touching `HomePage` or `Shelf`.
 - `make headless SCENARIO=scripts/headless/keys.sh` types Space, the arrows, Ctrl+arrows and F with focus on a button, a text field, a dialog, a menu and a dropdown, and fails when a key goes to the wrong place. Run it after adding a field, popup or overlay, or touching the window's `Shortcut`s.
 - `make headless SCENARIO=scripts/headless/columns.sh` shrinks a track list's columns and fails on a QML warning. Run it after touching column cells or the column options.
+- `make headless SCENARIO=scripts/headless/motion.sh` measures frame gaps while the full view morphs and the bar and side panel slide on a 700-track list, tracks their positions frame by frame and compares mid-motion stills to end shots. It also checks what a click on the bar or side panel opens, a vanished track, reduce motion, layout modes, search from the full view and compact overlay focus. It fails on a gap over `GAP_MAX` (80 ms) or a jump. Run it after touching `MainWindow.qml`, the full view or the side panel.
+- `make headless SCENARIO=scripts/headless/menus.sh` checks a tile's buttons after its menu closes and under Tab, and that a menu stays at the pointer in fullscreen with a reserved top area. Run it after touching a tile's hover buttons or `DMenu` placement.
 - `make headless SCENARIO=scripts/headless/readme.sh` regenerates `docs/screenshots/` from a made-up library. Run it when the look changes.
 - Don't use `make run` or `make quit` for tests: `quit` can stop the developer's real player. Real speakers and devices can't be tested here.
 
@@ -101,6 +103,7 @@ The whole Dux suite follows Google's Material 3 Expressive (M3E). The app must l
 ## Go
 
 - `CGO_ENABLED=0`, always. No cgo and no GPL-3 dependencies. Something that needs C is an external binary.
+- The one exception is `make test-race`, which needs cgo for the race detector; nothing built ships with cgo.
 - Guard clauses and early returns; switch over if/else chains.
 - Every exec and network call has a timeout and bounded output, and none runs while holding a lock. Processes run with argv, never `sh -c` with data in it. Clamp server-supplied delays and sizes.
 - Every failure path returns a readable error, including quiet ones (a clean EOF, a peer that hangs up).
@@ -167,7 +170,7 @@ Comment only what the code can't say: a non-obvious why, a trap, a workaround. A
 
 `make` is the interface for everything, locally and in CI:
 
-- `make check`: the gate before calling work done, and what CI runs. It is `make lint` (gofmt, `go vet`, `go mod tidy`, golangci-lint, qmllint with warnings, qmlformat, a stale settings search index; it only reports and never changes files), `make test` (sandboxed Go tests and the QML logic tests) and `make build` (the release binary with the UI embedded).
+- `make check`: the gate before calling work done, and what CI runs. It is `make lint` (gofmt, `go vet`, `go mod tidy`, golangci-lint, qmllint with warnings, qmlformat, a stale settings search index; it only reports and never changes files), `make test` (sandboxed Go tests in a new order each run, and the QML logic tests), `make test-race` (the Go tests under the race detector; needs gcc) and `make build` (the release binary with the UI embedded).
 - `make run`: a fast dev build, then the window from the in-repo QML with hot reload.
 - `make fmt`: format the Go code (gofmt) and the QML (qmlformat, options in `.qmlformat.ini`).
 - `make settings-index`: regenerate the settings search index after changing a settings page.

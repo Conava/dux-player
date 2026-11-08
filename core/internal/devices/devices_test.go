@@ -175,10 +175,17 @@ func TestDefaultOutputGoingAwayPauses(t *testing.T) {
 		s.OnDeviceList(json.RawMessage(both))
 		require.Eventually(t, func() bool { return len(s.State().Devices) >= 3 }, time.Second, 5*time.Millisecond, tc.name)
 		s.OnDeviceList(json.RawMessage(speakerList))
-		time.Sleep(50 * time.Millisecond)
-		p.mu.Lock()
-		assert.Equal(t, tc.pauses, p.pauses, tc.name)
-		p.mu.Unlock()
+		pauses := func() int {
+			p.mu.Lock()
+			defer p.mu.Unlock()
+			return p.pauses
+		}
+		if tc.pauses > 0 {
+			require.Eventually(t, func() bool { return pauses() > 0 }, time.Second, 5*time.Millisecond, tc.name)
+		} else {
+			time.Sleep(50 * time.Millisecond)
+		}
+		assert.Equal(t, tc.pauses, pauses(), tc.name)
 	}
 }
 

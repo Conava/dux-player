@@ -17,7 +17,7 @@ BIN_DIR=$(PREFIX)/bin
 DATA_DIR=$(PREFIX)/share
 LICENSE_DIR ?= $(DATA_DIR)/licenses/dux-player
 
-.PHONY: all build dev run run-builtin headless deps clean check test test-go test-qml lint lint-go lint-qml lint-qml-format lint-settings-index fmt vet install uninstall quit \
+.PHONY: all build dev run run-builtin headless deps clean check test test-go test-qml test-race test-stress lint lint-go lint-qml lint-qml-format lint-settings-index fmt vet install uninstall quit \
 	dist update-common i18n-extract settings-index help
 
 all: build
@@ -55,7 +55,7 @@ clean:
 	@$(MAKE) -C $(CORE_DIR) clean
 
 # What CI runs.
-check: lint test build
+check: lint test test-race build
 
 test: test-go test-qml
 
@@ -64,6 +64,14 @@ test-go:
 
 test-qml:
 	@for t in $(SHELL_DIR)/tests/*.test.js; do node "$$t" || exit 1; done
+
+# The Go tests under the race detector; needs a C compiler (gcc).
+test-race:
+	@$(MAKE) -C $(CORE_DIR) test-race
+
+# The Go tests COUNT times (default 20), each round in a new order.
+test-stress:
+	@$(MAKE) -C $(CORE_DIR) test-stress
 
 lint: lint-go lint-qml lint-qml-format lint-settings-index
 
@@ -153,9 +161,11 @@ help:
 	@echo "  clean"
 	@echo ""
 	@echo "Check:"
-	@echo "  check          - lint, test and build: what CI runs"
+	@echo "  check          - lint, test, test-race and build: what CI runs"
 	@echo "  lint           - lint-go (gofmt -s, go vet, go mod tidy, golangci-lint), lint-qml (qmllint with warnings; needs qs), lint-qml-format (qmlformat) and lint-settings-index"
-	@echo "  test           - test-go (sandboxed Go tests) and test-qml (node logic tests)"
+	@echo "  test           - test-go (sandboxed Go tests, in a new order each run) and test-qml (node logic tests)"
+	@echo "  test-race      - The Go tests under the race detector (needs gcc)"
+	@echo "  test-stress    - The Go tests COUNT times (default 20), to catch one that fails only sometimes"
 	@echo "  fmt            - gofmt -s the Go code and qmlformat the QML"
 	@echo "  vet"
 	@echo ""

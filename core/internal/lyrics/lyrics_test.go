@@ -11,6 +11,8 @@ import (
 	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"slices"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -21,6 +23,10 @@ import (
 
 	"github.com/Conava/dux-player/core/internal/source"
 )
+
+// No provider is on in these tests, so nothing reaches the network; offline
+// they'd skip the fake servers too.
+func init() { online = func() bool { return true } }
 
 type localLib struct{ dir string }
 
@@ -58,7 +64,7 @@ func TestLookupUsesSidecarsAndTheServer(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "song.flac"), nil, 0o644))
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "song.lrc"), []byte("[00:01.00]from the sidecar\n"), 0o644))
-	s := New(context.Background(), Config{CacheDir: looseDir(t), ConfigDir: dir, Libraries: libs{"loc": localLib{dir}, "srv": serverLib{}},
+	s := newService(t, Config{ConfigDir: dir, Libraries: libs{"loc": localLib{dir}, "srv": serverLib{}},
 		Publish: func(string, any) {}, HasSubscriber: func(string) bool { return false }})
 	var off []Provider
 	for _, p := range defaultProviders() {
@@ -117,7 +123,7 @@ func TestCurrentTrackLyricsAreLazy(t *testing.T) {
 	dir := t.TempDir()
 	events := make(chan Event, 10)
 	watching := false
-	s := New(context.Background(), Config{CacheDir: looseDir(t), ConfigDir: dir, Libraries: libs{"srv": serverLib{}},
+	s := newService(t, Config{ConfigDir: dir, Libraries: libs{"srv": serverLib{}},
 		Publish: func(_ string, d any) { events <- d.(Event) }, HasSubscriber: func(string) bool { return watching }})
 	_, err := s.providers.set([]Provider{{ID: "lrclib"}, {ID: "betterlyrics"}, {ID: "unison"}, {ID: "lyricsplus"}, {ID: "kugou"}, {ID: "youtubemusic"}})
 	require.NoError(t, err)
@@ -178,7 +184,7 @@ func TestPickPrefersSyncOverOrder(t *testing.T) {
 // The server row turns off like any provider.
 func TestServerLyricsCanBeTurnedOff(t *testing.T) {
 	dir := t.TempDir()
-	s := New(context.Background(), Config{CacheDir: looseDir(t), ConfigDir: dir, Libraries: libs{"srv": serverLib{}},
+	s := newService(t, Config{ConfigDir: dir, Libraries: libs{"srv": serverLib{}},
 		Publish: func(string, any) {}, HasSubscriber: func(string) bool { return false }})
 	var off []Provider
 	for _, p := range defaultProviders() {
@@ -241,25 +247,53 @@ func TestAlignMovesAnOutlierOntoWhatTheOthersAgreeOn(t *testing.T) {
 	}
 }
 
-// looseDir is for a cache: pruning and lookups outlive a test, so it can't be a
-// t.TempDir, which fails when anything writes during its removal.
-func looseDir(t *testing.T) string {
+func newService(t *testing.T, cfg Config) *Service {
 	t.Helper()
-	dir, err := os.MkdirTemp("", "lyrics-test")
-	require.NoError(t, err)
+	cfg.CacheDir = t.TempDir()
+	s := New(context.Background(), cfg)
+	finishWork(t, s)
+	return s
+}
+
+// finishWork lets the service's lookups end before the test's temp folders
+// go, or one would write into them during their removal. They finish rather
+// than being cancelled, and without Close's time limit: dux-go goes on with a
+// cancelled lookup and writes its cache entry later.
+func finishWork(t *testing.T, s *Service) {
 	t.Cleanup(func() {
-		time.Sleep(100 * time.Millisecond)
-		_ = os.RemoveAll(dir)
+		s.work.Wait()
+		s.Close()
 	})
-	return dir
+}
+
+// published keeps the states a service sent, from whichever goroutine.
+type published struct {
+	mu     sync.Mutex
+	states []string
+}
+
+func (p *published) add(_ string, data any) {
+	if ev, ok := data.(Event); ok {
+		p.mu.Lock()
+		defer p.mu.Unlock()
+		p.states = append(p.states, ev.State)
+	}
+}
+
+func (p *published) all() []string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return slices.Clone(p.states)
 }
 
 func quietService(t *testing.T, dir string, publish func(string, any), on *bool) *Service {
 	t.Helper()
-	s := &Service{baseCtx: context.Background(), providers: openProviders(filepath.Join(dir, providersFile)), cfg: Config{
-		CacheDir: looseDir(t), DataDir: dir, Libraries: libs{"srv": serverLib{}}, Publish: publish,
+	ctx, stop := context.WithCancel(context.Background())
+	s := &Service{baseCtx: ctx, stop: stop, providers: openProviders(filepath.Join(dir, providersFile)), cfg: Config{
+		CacheDir: t.TempDir(), DataDir: dir, Libraries: libs{"srv": serverLib{}}, Publish: publish,
 		HasSubscriber: func(string) bool { return true },
 		Enabled:       func() bool { return on == nil || *on }}}
+	finishWork(t, s)
 	s.client = s.newClient(s.cacheDir())
 	s.wasOn = s.enabled()
 	var off []Provider
@@ -337,19 +371,15 @@ func TestChosenLyricsStayWithTheTrack(t *testing.T) {
 
 func TestLyricsOffAsksNobody(t *testing.T) {
 	on := false
-	var last Event
-	s := quietService(t, t.TempDir(), func(_ string, data any) {
-		if ev, ok := data.(Event); ok {
-			last = ev
-		}
-	}, &on)
+	var got published
+	s := quietService(t, t.TempDir(), got.add, &on)
 	s.TrackChanged(&source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"})
-	assert.Equal(t, "idle", last.State)
+	assert.Equal(t, []string{"idle"}, got.all())
 	_, err := s.Get(context.Background(), source.Ref{Library: "srv", ID: "song"})
 	require.ErrorIs(t, err, errOff)
 	on = true
 	s.SettingsChanged()
-	assert.Equal(t, "loading", last.State, "turning lyrics on shows the current track's")
+	assert.Equal(t, "loading", got.all()[1], "turning lyrics on shows the current track's")
 }
 
 // stereo is a song in raw floats: centre bursts where the vocals sing, and a
@@ -641,20 +671,16 @@ func TestKeptFoldersAreCleaned(t *testing.T) {
 func TestLyricsBackOnAfterNobodyWatched(t *testing.T) {
 	on := false
 	watching := true
-	var last Event
-	s := quietService(t, t.TempDir(), func(_ string, data any) {
-		if ev, ok := data.(Event); ok {
-			last = ev
-		}
-	}, &on)
+	var got published
+	s := quietService(t, t.TempDir(), got.add, &on)
 	s.cfg.HasSubscriber = func(string) bool { return watching }
 	s.TrackChanged(&source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"})
-	require.Equal(t, "idle", last.State)
+	require.Equal(t, []string{"idle"}, got.all())
 
 	watching = false
 	on = true
 	s.SettingsChanged()
 	watching = true
 	s.Subscribed()
-	assert.Equal(t, "loading", last.State)
+	assert.Equal(t, "loading", got.all()[1])
 }

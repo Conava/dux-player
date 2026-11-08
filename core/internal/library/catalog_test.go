@@ -48,6 +48,7 @@ type catalogServer struct {
 	live      atomic.Int32
 	pingErr   error
 	onPage    func()
+	pageCtx   context.Context
 	favorite  source.SearchResult
 	favErr    error
 	favCalls  int
@@ -115,10 +116,33 @@ func (s *catalogServer) Search(context.Context, string, int) (source.SearchResul
 	s.live.Add(1)
 	return source.SearchResult{}, nil
 }
-func (s *catalogServer) TrackPage(_ context.Context, q source.TrackQuery) (source.TrackPage, error) {
+
+// holdPage keeps the next page from answering until its walk is cancelled, or
+// for long enough to fail the test when nothing cancels it. The channel closes
+// once the walk is there.
+func (s *catalogServer) holdPage() <-chan struct{} {
+	entered := make(chan struct{})
+	s.set(func() {
+		s.onPage = func() {
+			s.onPage = nil
+			close(entered)
+			ctx := s.pageCtx
+			s.mu.Unlock()
+			select {
+			case <-ctx.Done():
+			case <-time.After(10 * time.Second):
+			}
+			s.mu.Lock()
+		}
+	})
+	return entered
+}
+
+func (s *catalogServer) TrackPage(ctx context.Context, q source.TrackQuery) (source.TrackPage, error) {
 	s.live.Add(1)
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.pageCtx = ctx
 	if s.onPage != nil {
 		s.onPage()
 	}
@@ -178,6 +202,7 @@ func catalogManager(t *testing.T, server *catalogServer) (*Manager, *Store) {
 		server.lib = l
 		return server, nil
 	}}, source.Env{Secrets: noSecrets{}})
+	t.Cleanup(m.Close)
 	require.NoError(t, m.Load(ctx))
 	m.awaitAll(ctx)
 	return m, store
@@ -401,17 +426,7 @@ func TestAccountChangeClearsTheCatalog(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, store.Synced(ctx, "srv"))
 
-	entered := make(chan struct{})
-	release := make(chan struct{})
-	server.set(func() {
-		server.onPage = func() {
-			server.onPage = nil
-			close(entered)
-			server.mu.Unlock()
-			<-release
-			server.mu.Lock()
-		}
-	})
+	entered := server.holdPage()
 	walked := make(chan error, 1)
 	go func() { _, err := m.Scan(ctx, "srv", nil); walked <- err }()
 	<-entered
@@ -420,8 +435,6 @@ func TestAccountChangeClearsTheCatalog(t *testing.T) {
 		_, err := m.Update(ctx, "srv", "", map[string]any{"username": "marlon"}, nil)
 		updated <- err
 	}()
-	time.Sleep(20 * time.Millisecond)
-	close(release)
 	require.NoError(t, <-updated)
 	require.Error(t, <-walked)
 	assert.False(t, store.Synced(ctx, "srv"))
@@ -478,24 +491,12 @@ func TestRemoveStopsTheWalk(t *testing.T) {
 	ctx := context.Background()
 	server := newCatalogServer(4)
 	m, _ := catalogManager(t, server)
-	entered := make(chan struct{})
-	release := make(chan struct{})
-	server.set(func() {
-		server.onPage = func() {
-			server.onPage = nil
-			close(entered)
-			server.mu.Unlock()
-			<-release
-			server.mu.Lock()
-		}
-	})
+	entered := server.holdPage()
 	walked := make(chan error, 1)
 	go func() { _, err := m.Scan(ctx, "srv", nil); walked <- err }()
 	<-entered
 	removed := make(chan error, 1)
 	go func() { removed <- m.Remove(ctx, "srv") }()
-	time.Sleep(20 * time.Millisecond)
-	close(release)
 	require.NoError(t, <-removed)
 	require.ErrorIs(t, <-walked, context.Canceled)
 }
@@ -566,6 +567,7 @@ func TestLocalLibraryIsNotReadAsASync(t *testing.T) {
 	require.NoError(t, store.SetScanned(ctx, "loc"))
 	local := newCatalogServer(0)
 	m := NewManager(store, source.Registry{"local": func(l source.Library, _ source.Env) (source.Source, error) { return local, nil }}, source.Env{})
+	defer m.Close()
 	require.NoError(t, m.Load(ctx))
 	b, err := m.Browser(ctx, "loc")
 	require.NoError(t, err)
@@ -964,6 +966,7 @@ func TestAddedServerStartsItsFirstSync(t *testing.T) {
 		server.lib = l
 		return server, nil
 	}}, source.Env{Secrets: noSecrets{}})
+	t.Cleanup(m.Close)
 	sctx, cancel := context.WithCancel(ctx)
 	t.Cleanup(cancel)
 	m.StartCatalogs(sctx, CatalogHooks{Sync: func(id string) { _, _ = m.Scan(sctx, id, nil) }})
@@ -1068,6 +1071,7 @@ func TestSyncedLibraryWithoutASource(t *testing.T) {
 		return server, nil
 	}}
 	first := NewManager(store, registry, source.Env{})
+	t.Cleanup(first.Close)
 	require.NoError(t, first.Load(ctx))
 	first.awaitAll(ctx)
 	_, err = first.Scan(ctx, "srv", nil)
@@ -1075,6 +1079,7 @@ func TestSyncedLibraryWithoutASource(t *testing.T) {
 
 	locked.Store(true)
 	m := NewManager(store, registry, source.Env{})
+	t.Cleanup(m.Close)
 	require.NoError(t, m.Load(ctx))
 	m.awaitAll(ctx)
 	infos, err := m.List(ctx)
@@ -1132,6 +1137,7 @@ func TestServerWithoutASource(t *testing.T) {
 			m := NewManager(store, source.Registry{"fake": func(source.Library, source.Env) (source.Source, error) {
 				return nil, keyring.ErrLocked
 			}}, source.Env{})
+			t.Cleanup(m.Close)
 			require.NoError(t, m.Load(ctx))
 			m.awaitAll(ctx)
 			assert.Equal(t, tt.want, m.Server("lib"))
@@ -1162,6 +1168,7 @@ func TestStartupAfterUpgrade(t *testing.T) {
 		server.lib = l
 		return server, nil
 	}}, source.Env{})
+	t.Cleanup(m.Close)
 	require.NoError(t, m.Load(ctx))
 	sctx, cancel := context.WithCancel(ctx)
 	t.Cleanup(cancel)
@@ -1203,11 +1210,11 @@ func TestRestartBrowsesBeforeTheBuild(t *testing.T) {
 	require.NoError(t, err)
 
 	built := make(chan struct{})
-	t.Cleanup(func() { close(built) })
 	next := NewManager(store, source.Registry{"fake": func(l source.Library, _ source.Env) (source.Source, error) {
 		<-built
 		return server, nil
 	}}, source.Env{})
+	t.Cleanup(func() { close(built); next.Close() })
 	require.NoError(t, next.Load(ctx))
 	wait, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
@@ -1232,8 +1239,7 @@ func TestWalkStopsAtTheBound(t *testing.T) {
 	_, err := m.Scan(ctx, "srv", nil)
 	require.NoError(t, err)
 
-	maxCatalog = 4
-	t.Cleanup(func() { maxCatalog = 200_000 })
+	m.maxCatalog = 4
 	server.set(func() { server.total = 4; server.stamp = "s2" })
 	_, err = m.Sync(ctx, "srv", nil)
 	require.ErrorIs(t, err, errCatalogTooLarge)

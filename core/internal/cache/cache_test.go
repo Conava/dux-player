@@ -181,6 +181,7 @@ func setup(t *testing.T, dir string, libCfg map[string]any, prep func(lib string
 		return &server{lib: lib, url: srv.URL, catalog: cat}, nil
 	}}
 	m := library.NewManager(store, reg, source.Env{Secrets: noSecrets{}})
+	t.Cleanup(m.Close)
 	if libCfg == nil {
 		libCfg = map[string]any{}
 	}

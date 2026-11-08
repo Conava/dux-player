@@ -76,7 +76,7 @@ func TestFailedTrackRechecksTheQueue(t *testing.T) {
 	defer cancel()
 	f := &failer{}
 	p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv"), Resolver: f})
-	go p.Run(ctx)
+	run(t, ctx, p)
 	r := &fakeRemote{}
 	require.NoError(t, p.SetRemote(ctx, r, false))
 	require.NoError(t, p.Play(ctx, tracks("a", "b", "c"), 0, Origin{}))
@@ -109,7 +109,7 @@ func TestPlayTurnsShuffleOff(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv"), Resolver: skipper{}})
-			go p.Run(ctx)
+			run(t, ctx, p)
 			require.NoError(t, p.SetRemote(ctx, &fakeRemote{}, false))
 			require.NoError(t, p.SetShuffle(ctx, tt.before))
 			if tt.shuffled {

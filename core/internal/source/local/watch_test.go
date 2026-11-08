@@ -11,20 +11,24 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Conava/dux-player/core/internal/library"
+	"github.com/Conava/dux-player/core/internal/testenv"
 )
 
 // Set once: watchers of earlier tests may still be reading them.
 func init() { debounce, maxDelay = 50*time.Millisecond, time.Second }
 
-// state is title → unavailable reason for every indexed track.
+// state is title → unavailable reason for every indexed track. It asserts
+// rather than requires, so it can run inside Eventually.
 func state(t *testing.T, s *Source) map[string]string {
 	t.Helper()
 	out := map[string]string{}
 	albums, err := s.Albums(context.Background(), "")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	for _, a := range albums {
 		full, err := s.Album(context.Background(), a.ID)
-		require.NoError(t, err)
+		if !assert.NoError(t, err) {
+			continue
+		}
 		for _, tr := range full.Tracks {
 			out[tr.Title] = tr.Unavailable
 		}
@@ -41,8 +45,7 @@ func TestWatcherKeepsVanishedFoldersAsMissing(t *testing.T) {
 	s, _ := newLibrary(t, root, nil)
 	_, err := s.Scan(ctx, nil)
 	require.NoError(t, err)
-	// The watcher adds its watches in the background.
-	time.Sleep(200 * time.Millisecond)
+	<-s.watching
 
 	writeWAV(t, filepath.Join(root, "B/new.wav"), tags("B1", "Bo", "Bee", "1"))
 	require.NoError(t, os.Remove(filepath.Join(root, "A/b.wav")))
@@ -74,9 +77,7 @@ func TestScanOfAnEmptiedFolderKeepsItsTracks(t *testing.T) {
 }
 
 func TestScanKeepsTheTracksOfAnUnreadableSubfolder(t *testing.T) {
-	if os.Geteuid() == 0 {
-		t.Skip("root reads unreadable folders (CI runs in a root container)")
-	}
+	testenv.NeedsPermissions(t)
 	ctx := context.Background()
 	root := t.TempDir()
 	writeWAV(t, filepath.Join(root, "A/a.wav"), tags("A1", "Ann", "Ex", "1"))
@@ -106,7 +107,7 @@ func TestWatcherReportsWhatChanged(t *testing.T) {
 	store.OnChange(func(_ string, d *library.Delta) { deltas <- d })
 	_, err := s.Scan(ctx, nil)
 	require.NoError(t, err)
-	time.Sleep(200 * time.Millisecond)
+	<-s.watching
 
 	c := filepath.Join(root, "A/c.wav")
 	writeWAV(t, c, tags("A3", "Ann", "Ex", "3"))
@@ -116,7 +117,9 @@ func TestWatcherReportsWhatChanged(t *testing.T) {
 	require.Eventually(t, func() bool {
 		select {
 		case d := <-deltas:
-			require.NotNil(t, d)
+			if !assert.NotNil(t, d) {
+				return false
+			}
 			got.Added = append(got.Added, d.Added...)
 			got.Changed = append(got.Changed, d.Changed...)
 			got.Removed = append(got.Removed, d.Removed...)

@@ -38,17 +38,13 @@ Rectangle {
         }
     }
 
-    // an empty stretch of the bar opens the full view; right-click offers the bar's own settings
+    // right-click anywhere the bar's own controls don't take it
     MouseArea {
         id: background
         anchors.fill: parent
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
-        onClicked: mouse => {
-            if (mouse.button === Qt.RightButton)
-                barMenu.open(background, mouse.x, mouse.y);
-            else
-                Router.openNowPlaying("");
-        }
+        acceptedButtons: Qt.RightButton
+        preventStealing: true
+        onClicked: mouse => barMenu.open(background, mouse.x, mouse.y)
     }
 
     // the same menu from the keyboard while a control in here has focus (rows take the Menu key first)
@@ -92,7 +88,7 @@ Rectangle {
         NowPlayingZone {
             id: leftZone
             Layout.fillWidth: true
-            Layout.maximumWidth: Math.min(implicitWidth, Math.max(Layout.minimumWidth, (root.width - (rightZone.visible ? rightZone.implicitWidth : 0)) * PlayerMetrics.barLeftShare))
+            Layout.maximumWidth: Math.min(implicitWidth, Math.max(Layout.minimumWidth, (root.width - (!root.compact && rightZone.populated ? rightZone.implicitWidth : 0)) * PlayerMetrics.barLeftShare))
             Layout.minimumWidth: implicitWidth - shrinkable
             instances: root.zones.left
             opensView: true

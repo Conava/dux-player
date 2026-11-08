@@ -33,7 +33,7 @@ func TestPlayRefsStartsBeforeTheListResolves(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv"), Resolver: skipper{}})
-			go p.Run(ctx)
+			run(t, ctx, p)
 			require.NoError(t, p.SetRemote(ctx, &fakeRemote{}, false))
 
 			refs := make([]source.Ref, tt.total)

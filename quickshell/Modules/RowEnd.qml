@@ -60,7 +60,7 @@ Row {
             Accessible.name: modelData.text
             Accessible.description: modelData.description ?? ""
             enabled: !end.header && !modelData.inert
-            opacity: !enabled || !end.hovering && !activeFocus ? 0 : modelData.enabled === false ? Theme.disabledOpacity : 1
+            opacity: !enabled || !end.hovering && !visualFocus ? 0 : modelData.enabled === false ? Theme.disabledOpacity : 1
             // blocked: still clickable, so the reason shows
             onClicked: modelData.enabled === false ? PlayerService.notice(modelData.description) : end.actions.run(modelData.id, this)
         }
@@ -118,7 +118,7 @@ Row {
                     kind: end.favoriteKind
                     item: end.item
                     enabled: blocker === ""
-                    opacity: enabled && (favorite || end.hovering || activeFocus) ? 1 : 0
+                    opacity: enabled && (favorite || end.hovering || visualFocus) ? 1 : 0
                 }
             }
 

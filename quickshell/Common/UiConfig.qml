@@ -205,7 +205,7 @@ Singleton {
             "format": track.format ?? "",
             "bitrate": count(track.bitrate),
             "added": template.indexOf("added") >= 0 ? infoText(track, ["added"]) : "",
-            "playingfrom": nowPlaying ? contextLabel(PlayerService.playContext) : ""
+            "playingfrom": nowPlaying && !PlayerService.ended ? contextLabel(PlayerService.playContext) : ""
         });
     }
 
@@ -989,7 +989,7 @@ Singleton {
             case "noPlayPause":
                 return I18n.tr("No play/pause button. Media keys and the CLI still work.", "customization warning");
             case "noFullView":
-                return I18n.tr("No cover, title or open button. Clicking the bar still opens the full view.", "customization warning");
+                return I18n.tr("No cover, title or open button. The full view can't be opened from the bar.", "customization warning");
             case "noMenuButton":
                 return I18n.tr("No ⋮ button. Right-click and the Menu key still open the menu.", "customization warning");
             }
