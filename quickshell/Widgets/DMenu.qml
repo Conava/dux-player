@@ -6,8 +6,10 @@ import qs.DCommon.Common
 import qs.DCommon.Widgets
 
 // An action menu: icons, labels, a checked state and dividers, opened under a button or at the pointer.
-// model: [{id, text, description, icon, iconFilled, active, checked, enabled, divider}]; a divider entry only needs
-// `divider: true`. description is a second line, e.g. why a disabled entry is disabled. A toggle entry shows
+// model: [{id, text, description, icon, iconFilled, active, checked, enabled, keepOpen, reserveText, divider}]; a divider
+// entry only needs `divider: true`. description is a second line, e.g. why a disabled entry is disabled. keepOpen leaves
+// the menu open after the entry is triggered, for an action that is repeated; reserveText is the entry's widest text, so
+// the menu keeps its width while the text changes. A toggle entry shows
 // the state after its action as the icon (filled or outlined) instead of a check mark. active is a toggle that is
 // on: a filled icon in the accent colour. checked marks the current pick of a list of choices.
 Item {
@@ -28,6 +30,12 @@ Item {
     readonly property var actionIndexes: model.map((entry, i) => entry.divider || entry.enabled === false ? -1 : i).filter(i => i >= 0)
 
     signal triggered(string id)
+
+    // a model changed while open can take the highlighted row away; the keyboard goes on from the last action
+    onActionIndexesChanged: {
+        if (highlightIndex >= 0 && !actionIndexes.includes(highlightIndex))
+            highlightIndex = actionIndexes[actionIndexes.length - 1] ?? -1;
+    }
 
     onOpenedChanged: {
         if (opened)
@@ -84,7 +92,8 @@ Item {
         const entry = model[index];
         if (!entry || entry.divider || entry.enabled === false)
             return;
-        close();
+        if (entry.keepOpen !== true)
+            close();
         triggered(entry.id);
     }
 
@@ -226,7 +235,7 @@ Item {
                         id: items
 
                         // the longest label decides the menu's width
-                        readonly property real widest: root.model.reduce((max, entry) => entry.divider ? max : Math.max(max, Math.max(labelMetrics.advanceWidth(entry.text ?? ""), descriptionMetrics.advanceWidth(entry.description ?? "")) + Style.iconSizeMedium * 2 + Style.spacingM * 4), 0)
+                        readonly property real widest: root.model.reduce((max, entry) => entry.divider ? max : Math.max(max, Math.max(labelMetrics.advanceWidth(entry.text ?? ""), labelMetrics.advanceWidth(entry.reserveText ?? ""), descriptionMetrics.advanceWidth(entry.description ?? "")) + Style.iconSizeMedium * 2 + Style.spacingM * 4), 0)
 
                         width: parent.width
 

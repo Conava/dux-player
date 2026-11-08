@@ -684,3 +684,75 @@ func TestLyricsBackOnAfterNobodyWatched(t *testing.T) {
 	s.Subscribed()
 	assert.Equal(t, "loading", got.all()[1])
 }
+
+// A timing nudge adds up per track, stays across restarts and moves whatever
+// is shown: a picked source as well as a fitted result.
+func TestTimingNudge(t *testing.T) {
+	tests := []struct {
+		name   string
+		fitted bool   // the shown result is a fitted one at 1.9 s, else the server's pick at 1 s
+		file   string // what the offset file holds before
+		nudges []float64
+		want   float64
+	}{
+		{name: "later twice adds up", nudges: []float64{0.5, 0.5}, want: 1},
+		{name: "earlier", nudges: []float64{-0.5}, want: -0.5},
+		{name: "earlier than the song starts stops at 0", nudges: []float64{-1.5}, want: -1.5},
+		{name: "back from below 0 keeps the timing", nudges: []float64{-1.5, 1}, want: -0.5},
+		{name: "after a fit", fitted: true, nudges: []float64{0.5}, want: 0.5},
+		{name: "rounds to the step", nudges: []float64{0.3}, want: 0.5},
+		{name: "clamped", nudges: []float64{100, 1}, want: maxNudge},
+		{name: "zero resets", nudges: []float64{1.5, 0}, want: 0},
+		{name: "a file out of range is ignored", file: "1000", want: 0},
+		{name: "a corrupt file is replaced", file: "{nope", nudges: []float64{-1}, want: -1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			track := &source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"}
+			var last Event
+			start := func(s *Service) {
+				t.Helper()
+				if tt.fitted {
+					s.remember(warmed{key: key(track), res: &duxlyrics.Result{Found: true, Source: duxlyrics.KuGou,
+						Lyrics: duxlyrics.Lyrics{Synced: []duxlyrics.Line{{Start: 1.9, Text: "x"}}}}})
+				}
+				s.TrackChanged(track)
+				require.Equal(t, "ready", last.State)
+			}
+			s := quietService(t, dir, func(_ string, d any) { last = d.(Event) }, nil)
+			if !tt.fitted {
+				require.NoError(t, s.Choose(context.Background(), track.Ref(), ServerSource))
+			}
+			if tt.file != "" {
+				require.NoError(t, os.MkdirAll(filepath.Dir(s.offsetPath(key(track))), 0o700))
+				require.NoError(t, os.WriteFile(s.offsetPath(key(track)), []byte(tt.file), 0o600))
+			}
+			start(s)
+			base := 1.0
+			if tt.fitted {
+				base = 1.9
+			}
+			for _, by := range tt.nudges {
+				_, err := s.Nudge(by)
+				require.NoError(t, err)
+			}
+			assert.InDelta(t, tt.want, last.Offset, 1e-9, "the playing song follows at once")
+			assert.InDelta(t, max(0, base+tt.want), float64(last.Result.Synced[0].Start), 1e-9)
+
+			last = Event{}
+			s.Subscribed()
+			require.Equal(t, "ready", last.State, "a window opening mid-song")
+			assert.InDelta(t, tt.want, last.Offset, 1e-9, "a window opening mid-song")
+			assert.InDelta(t, max(0, base+tt.want), float64(last.Result.Synced[0].Start), 1e-9, "a window opening mid-song")
+
+			again := quietService(t, dir, func(_ string, d any) { last = d.(Event) }, nil)
+			start(again)
+			assert.InDelta(t, tt.want, last.Offset, 1e-9, "kept across a restart")
+			assert.InDelta(t, max(0, base+tt.want), float64(last.Result.Synced[0].Start), 1e-9)
+			if tt.want == 0 && len(tt.nudges) > 0 {
+				assert.NoFileExists(t, s.offsetPath(key(track)))
+			}
+		})
+	}
+}

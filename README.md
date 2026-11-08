@@ -53,7 +53,7 @@ Pages, columns and the full view can be customized.
 - Offline rules per server library, caching and preloading the next songs for a seamless experience; favorites and ratings set while a server is unreachable are sent once it is back
 - Server catalogs are kept on the device once a first sync finishes: browsing and search are instant and work while the server is unreachable, where tracks without a cached copy show that they can't play. Checked every 15 minutes, read in full when the server reports a change (at most hourly), at least daily, and on Rescan; the sync waits on a metered connection unless started by hand
 - Gapless playback, crossfade, volume normalization, skipping leading and trailing silence, equalizer several outputs at once
-- Optional synced lyrics with word-by-word fill, in the full view and as one line in the bar, on by default, scrobbling (to ListenBrainz, Last.fm and the server), casting through [dux-cast](https://github.com/Conava/dux-cast)
+- Optional synced lyrics with word-by-word fill, in the full view and as one line in the bar, on by default, with a choice of source and a timing nudge per song (also `dplayer lyrics offset +0.5`), scrobbling (to ListenBrainz, Last.fm and the server), casting through [dux-cast](https://github.com/Conava/dux-cast)
 - Keeps playing with the window closed; MPRIS, a tray icon and a CLI (`dplayer play`, `dplayer next`, …) for keybinds
 - Phones can control the player over the network through KDE Connect or GSConnect (through MPRIS), until a LAN remote exists
 - `dplayer watch` and `dplayer status --format` for status bars and scripts

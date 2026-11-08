@@ -67,6 +67,21 @@ at() {
     dp seek "$1" >/dev/null
     cap "$2"
 }
+lyrics_menu() { # a python expression over the lyricsMenu JSON as d
+    python3 -I -c 'import json, sys; d = json.loads(sys.argv[2]); print(eval(sys.argv[1]))' "$1" "$(qs ipc -p "$W/tree" call headless lyricsMenu)"
+}
+fact() {
+    if [ "$2" = "$3" ]; then echo "ok   $1: $2"; else echo "FAIL $1: wanted '$3', got '$2'"; fi >>"$W/out/facts.txt"
+}
+centre() { lyrics_menu '"%.1f %s" % (d["centre"]["t"], d["centre"]["text"])'; }
+menu_click() { # a menu row by id, or the menu button
+    local x y w h at
+    read -r x y w h <<<"$(geometry '%d %d %d %d')"
+    if [ "$1" = button ]; then at=$(lyrics_menu '"%d %d" % tuple(d["button"])'); else at=$(lyrics_menu '"%d %d" % tuple(d["rows"]["'"$1"'"])'); fi
+    read -r mx my <<<"$at"
+    click $((x + mx)) $((y + my))
+    sleep 1
+}
 
 dp play "$dir" >/dev/null
 sleep 2
@@ -97,6 +112,46 @@ pointer w 3
 cap bento-follow-button
 click $((x + 410)) $((y + 900))
 cap bento-followed-again
+pointer m $((x + w - 20)) $((y + h / 2))
+
+# the menu's timing rows keep it open; two clicks later move every line by 1 s, so the line before is centred again
+dp seek 33.5 >/dev/null
+sleep 1.5
+fact "centred line" "$(centre)" "33.0 Verse line at second 33 of the fixture"
+menu_click button
+cap bento-lyrics-menu
+width=$(lyrics_menu 'd["width"]')
+menu_click timing:later
+fact "menu width at +0.5" "$(lyrics_menu 'd["width"]')" "$width"
+cap bento-lyrics-menu-half
+menu_click timing:later
+fact "menu open after two clicks" "$(lyrics_menu 'd["open"]')" True
+fact "offset after two clicks" "$(lyrics_menu 'd["offset"]')" 1
+fact "centred line 1 s later" "$(centre)" "30.0 Headlights on the empty road"
+cap bento-lyrics-menu-nudged
+fact "cli clamps" "$(dp lyrics offset -100)" "Lyrics timing -30.0 s"
+sleep 1
+fact "menu width at -30" "$(lyrics_menu 'd["width"]')" "$width"
+cap bento-lyrics-menu-min30
+menu_click timing:reset
+fact "menu open after reset" "$(lyrics_menu 'd["open"]')" True
+# the rows were rebuilt under the pointer; hovering still highlights
+read -r x y w h <<<"$(geometry '%d %d %d %d')"
+read -r mx my <<<"$(lyrics_menu '"%d %d" % tuple(d["rows"]["timing:earlier"])')"
+pointer m $((x + mx - 2)) $((y + my))
+sleep 0.1
+pointer m $((x + mx)) $((y + my))
+sleep 0.5
+fact "hover after a rebuild" "$(lyrics_menu 'd["highlight"]')" timing:earlier
+fact "centred line after reset" "$(centre)" "33.0 Verse line at second 33 of the fixture"
+fact "no reset row at 0" "$(lyrics_menu '"timing:reset" in d["rows"]')" False
+read -r x y w h <<<"$(geometry '%d %d %d %d')"
+click $((x + 40)) $((y + h / 2))
+sleep 1
+fact "menu closed by a click outside" "$(lyrics_menu 'd["open"]')" False
+fact "cli later" "$(dp lyrics offset +0.5)" "Lyrics timing +0.5 s"
+fact "cli earlier" "$(dp lyrics offset -1)" "Lyrics timing -0.5 s"
+fact "cli reset" "$(dp lyrics offset 0)" "Lyrics timing reset"
 pointer m $((x + w - 20)) $((y + h / 2))
 
 # playing: the line change and a far seek, a few frames apart
@@ -142,6 +197,35 @@ ui reduceMotion false
 look dark m3e
 at 8.1 material-word-fill
 at 25 material-gap-ring
+dp seek 33.5 >/dev/null
+sleep 1.5
+menu_click button
+menu_click timing:later
+cap material-lyrics-menu
+# off the menu, so only the keyboard moves the highlight
+read -r x y w h <<<"$(geometry '%d %d %d %d')"
+pointer m $((x + 40)) $((y + h / 2))
+sleep 0.3
+wtype -k Return
+sleep 1
+fact "menu open after Enter" "$(lyrics_menu 'd["open"]')" True
+fact "offset after Enter" "$(lyrics_menu 'd["offset"]')" 1
+wtype -k Down
+sleep 0.4
+fact "Down reaches reset" "$(lyrics_menu 'd["highlight"]')" timing:reset
+wtype -k Return
+sleep 1
+fact "menu open after Enter on reset" "$(lyrics_menu 'd["open"]')" True
+fact "offset after Enter on reset" "$(lyrics_menu 'd["offset"]')" 0
+fact "highlight after the reset row went" "$(lyrics_menu 'd["highlight"]')" timing:later
+wtype -k Up
+sleep 0.4
+fact "Up after the reset row went" "$(lyrics_menu 'd["highlight"]')" timing:earlier
+menu_click timing:later
+menu_click timing:reset
+read -r x y w h <<<"$(geometry '%d %d %d %d')"
+click $((x + 40)) $((y + h / 2))
+pointer m $((x + w - 20)) $((y + h / 2))
 
 ui lyricsDisplay alignment start
 at 9 material-start-aligned

@@ -70,6 +70,8 @@ Singleton {
     readonly property var lyrics: _lyricsKey === "" || _lyricsKey === currentKey ? _lyrics : null
     // the user picked these lyrics for this track
     readonly property bool lyricsChosen: _lyricsChosen && lyrics !== null
+    // the user's timing nudge for this track in seconds, later when positive; lyrics already has it
+    readonly property real lyricsOffset: lyrics !== null ? _lyricsOffset : 0
 
     // "off" | "minutes" | "endOfTrack" | "afterEntry"
     property string sleepMode: "off"
@@ -437,6 +439,7 @@ Singleton {
     property var _lyrics: null
     property string _lyricsState: "idle"
     property bool _lyricsChosen: false
+    property real _lyricsOffset: 0
     // the track the lyrics belong to ("" when the daemon didn't say)
     property string _lyricsKey: ""
     property bool _volumeBusy: false
@@ -594,6 +597,7 @@ Singleton {
         const r = e.result ?? null;
         _lyricsKey = e.library && e.id ? e.library + ":" + e.id : "";
         _lyricsChosen = e.chosen === true;
+        _lyricsOffset = typeof e.offset === "number" ? e.offset : 0;
         switch (e.state) {
         case "loading":
             _lyrics = null;
@@ -628,6 +632,13 @@ Singleton {
                 "id": current.id,
                 "source": source
             }, I18n.tr("Couldn't change the lyrics", "toast when a lyrics source can't be kept for a track"));
+    }
+
+    // moves the playing track's lyrics by seconds, later when positive; 0 resets
+    function nudgeLyrics(by) {
+        DaemonBridge.request("lyrics.nudge", {
+            "by": by
+        }, I18n.tr("Couldn't change the lyrics timing", "toast when the lyrics timing of a track can't be changed"));
     }
 
     // the seekbar was used on a track that can't seek

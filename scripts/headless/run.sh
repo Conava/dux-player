@@ -230,6 +230,46 @@ cat >>"$W/tree/shell.qml" <<'Q'
             walk(windowLoader.item?.contentItem);
             return Date.now() + " " + rows.sort((a, b) => a - b).join(" ");
         }
+        // the lyrics view's centred line and its source menu, as JSON; points are in window coordinates
+        function lyricsMenu(): string {
+            let view = null;
+            const walk = item => {
+                if (!item || view)
+                    return;
+                if (item.trackedCentre !== undefined && item.visible)
+                    view = item;
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(windowLoader.item?.contentItem);
+            if (!view)
+                return "{}";
+            const centre = (item => ({
+                        "t": item.t,
+                        "text": item.text
+                    }))(view.items[view.centreItem] ?? {});
+            const kids = item => [item].concat(...Array.from(item.children).map(kids));
+            const point = item => {
+                const p = item.mapToItem(null, item.width / 2, item.height / 2);
+                return [Math.round(p.x), Math.round(p.y)];
+            };
+            const button = kids(view).find(i => i.iconName === "more_vert");
+            const menu = kids(view).find(i => i.sources !== undefined && i.opened !== undefined);
+            const popup = menu?.opened ? menu.children.find(c => c.item)?.item : null;
+            const rows = {};
+            for (const row of popup?.contentItem ? kids(popup.contentItem) : [])
+                if (row.modelData?.id !== undefined && row.modelData?.divider !== true && row.height > 0)
+                    rows[row.modelData.id] = point(row);
+            return JSON.stringify({
+                "centre": centre,
+                "button": button ? point(button) : null,
+                "open": menu?.opened === true,
+                "offset": PlayerService.lyricsOffset,
+                "width": popup ? popup.menuWidth : 0,
+                "highlight": menu?.model[menu.highlightIndex]?.id ?? null,
+                "rows": rows
+            });
+        }
         function customize(surface: string): void {
             Router.customize(surface);
         }

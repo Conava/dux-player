@@ -393,7 +393,7 @@ FocusScope {
         onClicked: PlayerService.lyricsChoices(list => {
             const shown = PlayerService.lyrics?.source ?? "";
             const auto = !PlayerService.lyricsChosen;
-            sourceMenu.model = [
+            sourceMenu.sources = [
                 {
                     "id": "",
                     "text": I18n.tr("Automatic", "Automatic"),
@@ -410,7 +410,56 @@ FocusScope {
 
     DMenu {
         id: sourceMenu
-        onTriggered: id => PlayerService.chooseLyrics(id)
+
+        property var sources: []
+        readonly property real offset: PlayerService.lyricsOffset
+
+        function resetLabel(seconds) {
+            return I18n.tr("Reset timing (%1 s)", "lyrics menu entry, %1 is the timing offset in seconds such as +1.5").arg((seconds > 0 ? "+" : "") + seconds.toFixed(1));
+        }
+
+        model: sources.concat([
+            {
+                "divider": true
+            },
+            {
+                "id": "timing:earlier",
+                "text": I18n.tr("Show lyrics earlier", "moves the lyrics timing of a track back by half a second"),
+                "icon": "history",
+                "keepOpen": true
+            },
+            {
+                "id": "timing:later",
+                "text": I18n.tr("Show lyrics later", "moves the lyrics timing of a track forward by half a second"),
+                "icon": "update",
+                "keepOpen": true,
+                // the reset row comes and goes; the menu keeps the width it needs from the start
+                "reserveText": resetLabel(-PlayerMetrics.lyricsNudgeMax)
+            }
+        ], offset === 0 ? [] : [
+            {
+                "id": "timing:reset",
+                "text": resetLabel(offset),
+                "reserveText": resetLabel(-PlayerMetrics.lyricsNudgeMax),
+                "icon": "restart_alt",
+                "keepOpen": true
+            }
+        ])
+        onTriggered: id => {
+            switch (id) {
+            case "timing:earlier":
+                PlayerService.nudgeLyrics(-PlayerMetrics.lyricsNudgeStep);
+                break;
+            case "timing:later":
+                PlayerService.nudgeLyrics(PlayerMetrics.lyricsNudgeStep);
+                break;
+            case "timing:reset":
+                PlayerService.nudgeLyrics(0);
+                break;
+            default:
+                PlayerService.chooseLyrics(id);
+            }
+        }
     }
 
     DButton {

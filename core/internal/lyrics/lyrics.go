@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"math"
 	"net"
 	"net/url"
 	"os"
@@ -61,6 +62,8 @@ type Event struct {
 	Error   string            `json:"error,omitempty"`
 	// Chosen says the user picked these lyrics for this track.
 	Chosen bool `json:"chosen,omitempty"`
+	// Offset is the user's timing nudge in seconds, later when positive; Result already has it.
+	Offset float64 `json:"offset,omitempty"`
 }
 
 // Choice is one source's lyrics for a track, for the user to pick from.
@@ -109,6 +112,8 @@ type Service struct {
 	warm       []warmed // newest last
 	warming    string   // key of the track being prefetched
 	warmCancel context.CancelFunc
+
+	offsetMu sync.Mutex // one nudge reads and writes the file at a time
 
 	stop   context.CancelFunc
 	workMu sync.Mutex // keeps spawn from racing Close's wait
@@ -247,7 +252,6 @@ func (s *Service) Subscribed() {
 	}
 	s.mu.Lock()
 	// An idle result for a track is what lyrics being off left behind.
-	// An idle result for a track is what lyrics being off left behind.
 	stale := s.shown != key(s.track) || s.last.State == "error" || (s.last.State == "idle" && s.track != nil)
 	last := s.last
 	s.mu.Unlock()
@@ -255,7 +259,7 @@ func (s *Service) Subscribed() {
 		s.refresh()
 		return
 	}
-	s.cfg.Publish(Topic, last)
+	s.publish(last)
 	s.prefetch()
 }
 
@@ -270,7 +274,7 @@ func (s *Service) refresh() {
 		ev := Event{State: "idle"}
 		s.last = ev
 		s.mu.Unlock()
-		s.cfg.Publish(Topic, ev)
+		s.publish(ev)
 		return
 	}
 	ctx, cancel := context.WithCancel(s.baseCtx)
@@ -280,7 +284,7 @@ func (s *Service) refresh() {
 		s.last = ev
 		s.mu.Unlock()
 		cancel()
-		s.cfg.Publish(Topic, ev)
+		s.publish(ev)
 		s.prefetch()
 		return
 	}
@@ -291,7 +295,7 @@ func (s *Service) refresh() {
 		w.dir = ""
 		s.mu.Unlock()
 		cancel()
-		s.cfg.Publish(Topic, ev)
+		s.publish(ev)
 		s.adopt(dir)
 		s.prefetch()
 		return
@@ -299,7 +303,7 @@ func (s *Service) refresh() {
 	ev := Event{Library: t.Library, ID: t.ID, State: "loading"}
 	s.last = ev
 	s.mu.Unlock()
-	s.cfg.Publish(Topic, ev)
+	s.publish(ev)
 
 	s.spawn(func() {
 		defer cancel()
@@ -324,6 +328,17 @@ func (s *Service) refresh() {
 	})
 }
 
+// publish sends ev with the track's timing nudge applied. Results are kept
+// without it, so a nudge never compounds and the caches stay valid.
+func (s *Service) publish(ev Event) {
+	if ev.Result != nil && ev.ID != "" {
+		if ev.Offset = s.offset(ev.Library + ":" + ev.ID); ev.Offset != 0 {
+			ev.Result = shifted(ev.Result, ev.Offset)
+		}
+	}
+	s.cfg.Publish(Topic, ev)
+}
+
 // show publishes ev unless the view moved on from t.
 func (s *Service) show(ctx context.Context, t *source.Track, ev Event) {
 	s.mu.Lock()
@@ -333,7 +348,7 @@ func (s *Service) show(ctx context.Context, t *source.Track, ev Event) {
 	}
 	s.last = ev
 	s.mu.Unlock()
-	s.cfg.Publish(Topic, ev)
+	s.publish(ev)
 }
 
 func retimed(a, b *duxlyrics.Result) bool {
@@ -509,6 +524,87 @@ func (s *Service) chosen(k string) *duxlyrics.Result {
 		return nil
 	}
 	return &res
+}
+
+// The timing nudge: maxNudge bounds it and nudgeStep is one click, in seconds.
+const (
+	maxNudge  = 30.0
+	nudgeStep = 0.5
+)
+
+func (s *Service) offsetPath(k string) string {
+	return filepath.Join(s.cfg.DataDir, "lyrics-offset", hashed(k)+".json")
+}
+
+// offset is the timing nudge the user gave a track; 0 without one or when the file is bad.
+func (s *Service) offset(k string) float64 {
+	data, err := os.ReadFile(s.offsetPath(k))
+	if errors.Is(err, fs.ErrNotExist) {
+		return 0
+	}
+	if err != nil {
+		log.Warnf("lyrics: %v", err)
+		return 0
+	}
+	var v float64
+	if err := json.Unmarshal(data, &v); err != nil || math.Abs(v) > maxNudge {
+		log.Warnf("lyrics: %s is unreadable, ignoring it", s.offsetPath(k))
+		return 0
+	}
+	return v
+}
+
+// Nudge moves the playing track's lyrics by seconds, later when positive, and
+// returns the track's new offset; 0 resets it.
+func (s *Service) Nudge(by float64) (float64, error) {
+	if math.IsNaN(by) || math.IsInf(by, 0) {
+		return 0, errors.New("by must be a number of seconds")
+	}
+	if !s.enabled() {
+		return 0, errOff
+	}
+	s.mu.Lock()
+	k := key(s.track)
+	s.mu.Unlock()
+	if k == "" {
+		return 0, errors.New("nothing is playing")
+	}
+	s.offsetMu.Lock()
+	v, err := s.storeOffset(k, by)
+	s.offsetMu.Unlock()
+	if err != nil {
+		return 0, err
+	}
+	s.mu.Lock()
+	last := s.last
+	s.mu.Unlock()
+	if last.Library+":"+last.ID == k && s.cfg.HasSubscriber(Topic) {
+		s.publish(last)
+	}
+	return v, nil
+}
+
+func (s *Service) storeOffset(k string, by float64) (float64, error) {
+	path := s.offsetPath(k)
+	v := 0.0
+	if by != 0 {
+		v = math.Round((s.offset(k)+by)/nudgeStep) * nudgeStep
+		v = max(-maxNudge, min(maxNudge, v))
+	}
+	if v == 0 {
+		if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return 0, err
+		}
+		return 0, nil
+	}
+	data, err := json.Marshal(v)
+	if err == nil {
+		err = os.MkdirAll(filepath.Dir(path), 0o700)
+	}
+	if err == nil {
+		err = atomicfile.WriteFile(path, data, 0o600)
+	}
+	return v, err
 }
 
 // Choices lists what every enabled source has for a track.
