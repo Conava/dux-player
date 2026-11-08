@@ -397,6 +397,7 @@ Item {
                         MediaTile {
                             required property var modelData
                             width: Math.floor(albumFlow.width / albumFlow.columnCount)
+                            tileSize: root.options.tileSize ?? "m"
                             kind: "album"
                             item: modelData
                             lines: root.options.lines

@@ -12,6 +12,9 @@ StyledButton {
     required property var item
     property var lines: []
     property var lineOptions: ({})
+    // the page's tile size, "s", "m" or "l": the buttons and caption follow it
+    property string tileSize: "m"
+    readonly property bool large: tileSize === "l"
     readonly property string info: UiConfig.infoText(item, lines, lineOptions)
     readonly property bool menuOpened: menu.opened || trackMenu.opened
     readonly property bool active: hovered || visualFocus || playButton.visualFocus || moreButton.visualFocus || menuOpened
@@ -26,7 +29,7 @@ StyledButton {
     signal activated
 
     implicitWidth: PlayerMetrics.gridCellWidth
-    implicitHeight: width + PlayerMetrics.gridCaptionHeight
+    implicitHeight: width + (large ? PlayerMetrics.gridCaptionHeightL : PlayerMetrics.gridCaptionHeight)
     radius: Theme.cornerRadiusL
     color: "transparent"
     Accessible.name: Phrases.named(item?.title ?? item?.name ?? "", info)
@@ -85,7 +88,8 @@ StyledButton {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.margins: Theme.spacingS
-            size: "m"
+            buttonSize: root.tileSize === "s" ? Theme.buttonHeightS : PlayerMetrics.tilePlayButtonSize
+            width: buttonSize
             variant: "filled"
             iconName: "play_arrow"
             iconFilled: true
@@ -109,6 +113,8 @@ StyledButton {
             anchors.top: parent.top
             anchors.margins: Theme.spacingS
             visible: root.active
+            buttonSize: root.tileSize === "s" ? Theme.buttonHeightXS : Theme.buttonHeightS
+            iconSize: root.tileSize === "s" ? Theme.iconSizeSmall : Theme.iconSize
             variant: "tonal"
             iconName: "more_vert"
             tooltipText: I18n.tr("More", "track row menu button")
@@ -138,7 +144,7 @@ StyledButton {
         StyledText {
             width: parent.width
             text: root.item?.title ?? root.item?.name ?? ""
-            font.pixelSize: Theme.fontSizeMedium
+            font.pixelSize: root.large ? Theme.fontSizeLarge : Theme.fontSizeMedium
             font.weight: Theme.fontWeightMedium
             color: Theme.surfaceText
             elide: Text.ElideRight
@@ -150,7 +156,7 @@ StyledButton {
             width: parent.width
             visible: root.info !== ""
             text: root.info
-            font.pixelSize: Theme.fontSizeSmall
+            font.pixelSize: root.large ? Theme.fontSizeMedium : Theme.fontSizeSmall
             color: Theme.surfaceVariantText
             elide: Text.ElideRight
             wrapMode: Text.NoWrap

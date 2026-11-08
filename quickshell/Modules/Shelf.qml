@@ -91,6 +91,7 @@ Column {
     readonly property string layout: shelf.options.layout ?? "carousel"
     readonly property string size: shelf.options.size ?? "m"
     readonly property real tileWidth: size === "s" ? PlayerMetrics.tileSizeS : size === "l" ? PlayerMetrics.tileSizeL : PlayerMetrics.shelfArtSize
+    readonly property real captionHeight: size === "l" ? PlayerMetrics.gridCaptionHeightL : PlayerMetrics.gridCaptionHeight
     readonly property int listLimit: size === "s" ? 3 : size === "l" ? 10 : 5
     // a carousel holds enough tiles to fill its width; grid and list shuffle the shelfLimit they always did
     readonly property int shownLimit: layout === "carousel" ? Math.max(PlayerMetrics.shelfLimit, Math.ceil(carousel.width / (tileWidth + Theme.spacingS * 2 + Theme.spacingXS))) : PlayerMetrics.shelfLimit
@@ -269,7 +270,7 @@ Column {
         x: -Theme.spacingS
         width: parent.width + Theme.spacingS * 2
         visible: root.layout === "carousel" && root.source.type !== "continue"
-        height: visible ? root.tileWidth + Theme.spacingS * 2 + PlayerMetrics.gridCaptionHeight : 0
+        height: visible ? root.tileWidth + Theme.spacingS * 2 + root.captionHeight : 0
         spacing: Theme.spacingXS
         model: visible ? root.items.slice(0, root.shownLimit) : []
 
@@ -291,7 +292,7 @@ Column {
 
             Column {
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: -PlayerMetrics.gridCaptionHeight / 2
+                anchors.verticalCenterOffset: -root.captionHeight / 2
                 spacing: Theme.spacingS
 
                 Rectangle {
@@ -324,6 +325,7 @@ Column {
             required property var modelData
             required property int index
             width: root.tileWidth + Theme.spacingS * 2
+            tileSize: root.size
             kind: root.kind
             item: modelData
             lines: root.lines
@@ -346,6 +348,7 @@ Column {
                 required property var modelData
                 required property int index
                 width: flow.width / flow.columns
+                tileSize: root.size
                 kind: root.kind
                 item: modelData
                 lines: root.lines

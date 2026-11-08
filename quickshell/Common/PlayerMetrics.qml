@@ -24,6 +24,10 @@ Singleton {
     readonly property real pageHeaderHeight: Theme.fontSizeXXLarge + Theme.spacingXL + Theme.spacingM
     readonly property real gridCellWidth: 184
     readonly property real gridCaptionHeight: Theme.fontSizeMedium + Theme.fontSizeSmall + Theme.spacingM * 2
+    // tile size Large draws its caption a step larger
+    readonly property real gridCaptionHeightL: Theme.fontSizeLarge + Theme.fontSizeMedium + Theme.spacingM * 2
+    // a tile's play button at tile sizes Medium and Large, between the S and M button heights
+    readonly property real tilePlayButtonSize: (Theme.buttonHeightS + Theme.buttonHeightM) / 2
     readonly property real shelfArtSize: 152
     readonly property int shelfLimit: 12
     readonly property real detailArtSize: 232

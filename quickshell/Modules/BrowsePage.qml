@@ -510,7 +510,7 @@ Item {
             readonly property int columnCount: Math.max(1, Math.floor(width / root.tileWidth))
             clip: true
             cellWidth: Math.floor(width / columnCount)
-            cellHeight: cellWidth + PlayerMetrics.gridCaptionHeight
+            cellHeight: cellWidth + (root.options.tileSize === "l" ? PlayerMetrics.gridCaptionHeightL : PlayerMetrics.gridCaptionHeight)
             bottomMargin: root.isPlaylists ? fab.height + Theme.spacingL : 0
             model: RowModel {
                 rows: root.items.length
@@ -525,6 +525,7 @@ Item {
                 readonly property var modelData: root.items[index] ?? ({})
                 width: grid.cellWidth
                 height: grid.cellHeight
+                tileSize: root.options.tileSize ?? "m"
                 kind: root.kind
                 item: modelData
                 lines: root.options.lines
