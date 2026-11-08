@@ -153,9 +153,6 @@ func (f failSecrets) Set(lib, key, v string) error {
 
 func newQCManagerWith(t *testing.T, keys source.Secrets) (*Manager, *qcScript, *qcEvents) {
 	t.Helper()
-	qcEvery := quickConnectEvery
-	quickConnectEvery = 10 * time.Millisecond
-	t.Cleanup(func() { quickConnectEvery = qcEvery })
 	ctx := context.Background()
 	store, err := Open(ctx, filepath.Join(t.TempDir(), "library.db"))
 	require.NoError(t, err)
@@ -171,6 +168,8 @@ func newQCManagerWith(t *testing.T, keys source.Secrets) (*Manager, *qcScript, *
 			return &plainServer{fakeServer{lib: l, down: new(atomic.Bool), ping: ping}}, nil
 		},
 	}, source.Env{Secrets: keys})
+	t.Cleanup(m.Close)
+	m.qcEvery = 10 * time.Millisecond
 	ev := &qcEvents{ch: make(chan map[string]any, 8)}
 	m.SetPublish(ev.publish)
 	return m, script, ev
@@ -235,10 +234,8 @@ func TestQuickConnectEndings(t *testing.T) {
 }
 
 func TestQuickConnectTimesOut(t *testing.T) {
-	life := quickConnectLifetime
-	quickConnectLifetime = 100 * time.Millisecond
-	t.Cleanup(func() { quickConnectLifetime = life })
 	m, script, _, ev := newQCManager(t)
+	m.qcLifetime = 100 * time.Millisecond
 	script.polls = make([]error, 1000)
 	_, _, err := m.QuickConnectStart(context.Background(), "", "qc", "Home", map[string]any{"url": "https://a.example"})
 	require.NoError(t, err)

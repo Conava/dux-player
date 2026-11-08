@@ -26,11 +26,10 @@ const (
 var errCatalogTooLarge = errors.New("the catalog is larger than a sync can hold")
 
 // pagePause keeps a walk gentle on the server, and maxCatalog bounds it, like
-// the full read of play counts; tests change both.
-var (
-	pagePause  = 250 * time.Millisecond
-	maxCatalog = 200_000
-)
+// the full read of play counts.
+var pagePause = 250 * time.Millisecond
+
+const maxCatalog = 200_000
 
 type walkRun struct {
 	cancel context.CancelFunc
@@ -140,7 +139,7 @@ func (m *Manager) walk(ctx context.Context, id string, src source.Source, cs sou
 	// they came. Total is no end marker: a Subsonic server's is an estimate.
 	seen := map[string]bool{}
 	total, offset := 0, 0
-	for offset < maxCatalog {
+	for offset < m.maxCatalog {
 		page, err := pager.TrackPage(ctx, source.TrackQuery{Offset: offset, Limit: walkPage, Details: true})
 		if err != nil {
 			return stats, err
@@ -172,7 +171,7 @@ func (m *Manager) walk(ctx context.Context, id string, src source.Source, cs sou
 		}
 	}
 	stats.Seen, stats.Updated = len(seen), len(seen)
-	if offset >= maxCatalog {
+	if offset >= m.maxCatalog {
 		return stats, fmt.Errorf("library %s: %w", id, errCatalogTooLarge)
 	}
 	if len(seen) == 0 || len(seen) < total || cs.CatalogBusy(ctx) {
@@ -243,7 +242,7 @@ func (m *Manager) Browser(ctx context.Context, id string) (source.Browser, error
 		m.mu.RUnlock()
 		// Using a broken library is what retries it.
 		if retry {
-			go func() { _, _ = m.Get(id) }()
+			m.spawn(func() { _, _ = m.Get(id) })
 		}
 		return storeBrowser{m.store, id}, nil
 	}
@@ -294,21 +293,24 @@ type catalogRun struct {
 	known chan struct{}
 }
 
-// StartCatalogs keeps server catalogs current until ctx ends: a check after
-// each library's ping, and every checkEvery. Nothing here waits on a server.
+// StartCatalogs keeps server catalogs current until ctx ends or the manager
+// closes: a check after each library's ping, and every checkEvery. Nothing
+// here waits on a server.
 func (m *Manager) StartCatalogs(ctx context.Context, hooks CatalogHooks) {
+	ctx, cancel := context.WithCancel(ctx)
+	context.AfterFunc(m.ctx, cancel)
 	run := &catalogRun{ctx, hooks, make(chan struct{})}
 	if hooks.Pending != nil {
 		m.pending.Store(&hooks.Pending)
 	}
 	m.catalog.Store(run)
-	go func() {
+	m.spawn(func() {
 		defer close(run.known)
 		if hooks.WatchMetered != nil {
 			m.metered.Store(hooks.WatchMetered(ctx, m.metered.Store))
 		}
-	}()
-	go func() {
+	})
+	m.spawn(func() {
 		tick := time.NewTicker(checkEvery)
 		defer tick.Stop()
 		for {
@@ -319,7 +321,7 @@ func (m *Manager) StartCatalogs(ctx context.Context, hooks CatalogHooks) {
 				m.checkCatalogs(ctx)
 			}
 		}
-	}()
+	})
 }
 
 // checkCatalogs checks every library that is up and pings those that are
@@ -338,10 +340,10 @@ func (m *Manager) checkCatalogs(ctx context.Context) {
 	}
 	m.mu.RUnlock()
 	for id, src := range up {
-		go m.catalogCheck(id, src, true)
+		m.spawn(func() { m.catalogCheck(id, src, true) })
 	}
 	for _, id := range down {
-		go m.retry(ctx, id)
+		m.spawn(func() { m.retry(ctx, id) })
 	}
 }
 
@@ -466,7 +468,7 @@ func (m *Manager) walkDue(ctx context.Context, id string, cs source.CatalogSync)
 // first sync, or to none while its server is down.
 func (m *Manager) startCatalogCheck(lib source.Library) {
 	if run := m.catalog.Load(); run != nil {
-		go m.check(run.ctx, lib)
+		m.spawn(func() { m.check(run.ctx, lib) })
 	}
 }
 

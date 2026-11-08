@@ -16,10 +16,8 @@ WindowDialog {
     onOpenedChanged: {
         // cast devices are looked for only while the picker shows
         PlayerService.watchCastDevices(opened);
-        if (opened) {
+        if (opened)
             list.reset();
-            forceActiveFocus();
-        }
     }
 
     DeviceList {

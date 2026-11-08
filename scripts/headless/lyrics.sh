@@ -67,6 +67,21 @@ at() {
     dp seek "$1" >/dev/null
     cap "$2"
 }
+lyrics_menu() { # a python expression over the lyricsMenu JSON as d
+    python3 -I -c 'import json, sys; d = json.loads(sys.argv[2]); print(eval(sys.argv[1]))' "$1" "$(qs ipc -p "$W/tree" call headless lyricsMenu)"
+}
+fact() {
+    if [ "$2" = "$3" ]; then echo "ok   $1: $2"; else echo "FAIL $1: wanted '$3', got '$2'"; fi >>"$W/out/facts.txt"
+}
+centre() { lyrics_menu '"%.1f %s" % (d["centre"]["t"], d["centre"]["text"])'; }
+menu_click() { # a menu row by id, or the menu button
+    local x y w h at
+    read -r x y w h <<<"$(geometry '%d %d %d %d')"
+    if [ "$1" = button ]; then at=$(lyrics_menu '"%d %d" % tuple(d["button"])'); else at=$(lyrics_menu '"%d %d" % tuple(d["rows"]["'"$1"'"])'); fi
+    read -r mx my <<<"$at"
+    click $((x + mx)) $((y + my))
+    sleep 1
+}
 
 dp play "$dir" >/dev/null
 sleep 2
@@ -97,6 +112,136 @@ pointer w 3
 cap bento-follow-button
 click $((x + 410)) $((y + 900))
 cap bento-followed-again
+pointer m $((x + w - 20)) $((y + h / 2))
+
+# the timing slider keeps the menu open; two steps later move every line by 1 s, so the line before is centred again
+slider_at() { # screen point at a ratio of the slider's track
+    local x y w h
+    read -r x y w h <<<"$(geometry '%d %d %d %d')"
+    lyrics_menu '"%d %d" % (round(d["slider"]["start"][0] + (d["slider"]["end"][0] - d["slider"]["start"][0]) * '"$1"') + '"$x"', d["slider"]["start"][1] + '"$y"')'
+}
+dp seek 33.5 >/dev/null
+sleep 1.5
+fact "centred line" "$(centre)" "33.0 Verse line at second 33 of the fixture"
+menu_click button
+fact "menu opens with its sources" "$(lyrics_menu '"" in d["rows"] and "sidecar" in d["rows"]')" True
+cap bento-lyrics-menu
+width=$(lyrics_menu 'd["width"]')
+fact "no reset button at 0" "$(lyrics_menu 'd["reset"]')" None
+wtype -k Home
+sleep 0.4
+fact "Home reaches the slider" "$(lyrics_menu 'd["highlight"]')" timing
+wtype -k Right
+sleep 1
+fact "Right steps later" "$(lyrics_menu 'd["offset"]')" 0.5
+fact "menu width at +0.5" "$(lyrics_menu 'd["width"]')" "$width"
+cap bento-lyrics-menu-half
+wtype -k Right
+sleep 1
+fact "menu open after two steps" "$(lyrics_menu 'd["open"]')" True
+fact "offset after two steps" "$(lyrics_menu 'd["offset"]')" 1
+fact "centred line 1 s later" "$(centre)" "30.0 Headlights on the empty road"
+wtype -k Return
+sleep 0.5
+fact "Enter on the slider keeps the menu" "$(lyrics_menu 'd["open"]')" True
+fact "Enter on the slider keeps the timing" "$(lyrics_menu 'd["offset"]')" 1
+cap bento-lyrics-menu-nudged
+# a real drag from the handle to a quarter, held while the daemon answers, then past the start
+read -r px py <<<"$(slider_at 0.55)"
+pointer m $((px - 2)) "$py"
+sleep 0.1
+pointer m "$px" "$py"
+sleep 0.3
+pointer d
+sleep 0.2
+read -r qx qy <<<"$(slider_at 0.25)"
+for i in 1 2 3 4 5 6 7 8; do
+    pointer m $((px + (qx - px) * i / 8)) "$py"
+    sleep 0.03
+done
+sleep 0.8
+fact "slider follows the pointer" "$(lyrics_menu 'd["slider"]["value"]')" -10
+fact "lyrics follow during the drag" "$(lyrics_menu 'd["offset"]')" -5
+read -r sx sy <<<"$(slider_at 0)"
+for i in 1 2 3 4 5 6 7 8; do
+    pointer m $((qx + (sx - 40 - qx) * i / 8)) "$py"
+    sleep 0.03
+done
+sleep 0.3
+pointer u
+sleep 1
+fact "menu open after a drag" "$(lyrics_menu 'd["open"]')" True
+fact "offset after a drag" "$(lyrics_menu 'd["offset"]')" -10
+fact "slider after a drag" "$(lyrics_menu 'd["slider"]["value"]')" -20
+fact "menu width at -10" "$(lyrics_menu 'd["width"]')" "$width"
+fact "centred line 10 s earlier" "$(centre)" "31.0 Verse line at second 41 of the fixture"
+cap bento-lyrics-menu-min10
+fact "cli clamps" "$(dp lyrics offset -100)" "Lyrics timing -10.0 s"
+read -r x y w h <<<"$(geometry '%d %d %d %d')"
+read -r mx my <<<"$(lyrics_menu '"%d %d" % tuple(d["reset"])')"
+click $((x + mx)) $((y + my))
+sleep 1
+fact "menu open after reset" "$(lyrics_menu 'd["open"]')" True
+fact "offset after reset" "$(lyrics_menu 'd["offset"]')" 0
+fact "slider after reset" "$(lyrics_menu 'd["slider"]["value"]')" 0
+fact "centred line after reset" "$(centre)" "33.0 Verse line at second 33 of the fixture"
+fact "no reset button after reset" "$(lyrics_menu 'd["reset"]')" None
+read -r mx my <<<"$(lyrics_menu '"%d %d" % tuple(d["rows"][""])')"
+pointer m $((x + mx - 2)) $((y + my))
+sleep 0.1
+pointer m $((x + mx)) $((y + my))
+sleep 0.5
+fact "hover moves the highlight off the slider" "$(lyrics_menu 'repr(d["highlight"])')" "''"
+# the info icon at the end of a source row shows its status as a tooltip and doesn't pick the source
+info_hover() {
+    read -r ix iy <<<"$(lyrics_menu '"%d %d" % tuple(d["infos"]["sidecar"]["at"])')"
+    pointer m $((x + ix - 2)) $((y + iy))
+    sleep 0.1
+    pointer m $((x + ix)) $((y + iy))
+    sleep 1.5
+}
+fact "lyrics file status" "$(lyrics_menu 'd["infos"]["sidecar"]["text"]')" "Lyrics file · not changed"
+fact "status is the row's description" "$(lyrics_menu 'd["infos"]["sidecar"]["description"]')" "Lyrics file · not changed"
+info_hover
+cap bento-lyrics-info
+click $((x + ix)) $((y + iy))
+sleep 0.5
+# a click that picked the row would close the menu
+fact "a click on the info icon keeps the menu" "$(lyrics_menu 'd["open"]')" True
+click $((x + 40)) $((y + h / 2))
+sleep 1
+fact "menu closed by a click outside" "$(lyrics_menu 'd["open"]')" False
+fact "cli later" "$(dp lyrics offset +0.5)" "Lyrics timing +0.5 s"
+fact "cli earlier" "$(dp lyrics offset -1)" "Lyrics timing -0.5 s"
+fact "cli sets" "$(dp lyrics offset 2)" "Lyrics timing +2.0 s"
+fact "cli reset" "$(dp lyrics offset 0)" "Lyrics timing reset"
+pointer m $((x + w - 20)) $((y + h / 2))
+
+# a drag that leaves the menu open
+menu_click button
+read -r px py <<<"$(slider_at 0.5)"
+read -r qx _ <<<"$(slider_at 0.75)"
+pointer m $((px - 2)) "$py"
+sleep 0.1
+pointer m "$px" "$py"
+sleep 0.3
+pointer d
+sleep 0.2
+for i in 1 2 3 4; do
+    pointer m $((px + (qx - px) * i / 4)) "$py"
+    sleep 0.03
+done
+sleep 0.5
+pointer u
+sleep 1
+fact "offset after a second drag" "$(lyrics_menu 'd["offset"]')" 5
+# a change from the command line shows in the menu left open after a drag
+dp lyrics offset 0 >/dev/null
+sleep 1
+fact "slider follows the cli after a drag" "$(lyrics_menu 'd["slider"]["value"]')" 0
+read -r x y w h <<<"$(geometry '%d %d %d %d')"
+click $((x + 40)) $((y + h / 2))
+sleep 0.5
 pointer m $((x + w - 20)) $((y + h / 2))
 
 # playing: the line change and a far seek, a few frames apart
@@ -142,6 +287,39 @@ ui reduceMotion false
 look dark m3e
 at 8.1 material-word-fill
 at 25 material-gap-ring
+dp seek 33.5 >/dev/null
+sleep 1.5
+menu_click button
+# off the menu, so only the keyboard moves the highlight
+read -r x y w h <<<"$(geometry '%d %d %d %d')"
+pointer m $((x + 40)) $((y + h / 2))
+sleep 0.3
+wtype -k Home
+wtype -k Right
+sleep 1
+fact "material: Right steps later" "$(lyrics_menu 'd["offset"]')" 0.5
+cap material-lyrics-menu
+wtype -k Up
+sleep 0.4
+fact "Up leaves the slider" "$(lyrics_menu 'd["highlight"] != "timing"')" True
+wtype -k Right
+sleep 0.5
+fact "Right off the slider keeps the timing" "$(lyrics_menu 'd["offset"]')" 0.5
+wtype -k Down
+wtype -k Left
+sleep 1
+fact "Left steps earlier" "$(lyrics_menu 'd["offset"]')" 0
+wtype -k Left
+sleep 1
+fact "Left below zero" "$(lyrics_menu 'd["offset"]')" -0.5
+cap material-lyrics-menu-earlier
+info_hover
+cap material-lyrics-info
+wtype -k Escape
+sleep 0.5
+fact "Escape closes the menu" "$(lyrics_menu 'd["open"]')" False
+dp lyrics offset 0 >/dev/null
+pointer m $((x + w - 20)) $((y + h / 2))
 
 ui lyricsDisplay alignment start
 at 9 material-start-aligned

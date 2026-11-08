@@ -388,29 +388,131 @@ FocusScope {
         anchors.margins: Theme.spacingS
         visible: root.ready
         iconName: "more_vert"
-        tooltipText: I18n.tr("Lyrics source", "button choosing which provider's lyrics a track uses")
-        Accessible.name: tooltipText
-        onClicked: PlayerService.lyricsChoices(list => {
-            const shown = PlayerService.lyrics?.source ?? "";
-            const auto = !PlayerService.lyricsChosen;
-            sourceMenu.model = [
-                {
-                    "id": "",
-                    "text": I18n.tr("Automatic", "Automatic"),
-                    "checked": auto
-                }
-            ].concat(list.map(c => ({
-                        "id": c.source,
-                        "text": I18n.tr("%1 · %2", "lyrics source and its timing").arg(c.source === "sidecar" ? I18n.tr("Lyrics file", "lyrics source: a file next to the track") : c.name).arg(c.timing === "word" ? I18n.tr("Word by word", "Word by word") : c.timing === "line" ? I18n.tr("Line by line", "lyrics timing of a source") : I18n.tr("Not synced", "lyrics timing of a source")),
-                        "checked": !auto && c.source === shown
-                    })));
-            sourceMenu.open(sourceButton);
-        })
+        Accessible.name: I18n.tr("Lyrics source", "button choosing which provider's lyrics a track uses")
+        // opens with its list so it never grows; a failed reply still opens it for the slider
+        onClicked: {
+            const track = sourceMenu.track;
+            const show = list => {
+                if (sourceMenu.track !== track)
+                    return;
+                sourceMenu.choices = list;
+                sourceMenu.open(sourceButton);
+            };
+            PlayerService.lyricsChoices(show, () => show([]));
+        }
     }
 
     DMenu {
         id: sourceMenu
+
+        readonly property string track: PlayerService.current ? PlayerService.current.library + ":" + PlayerService.current.id : ""
+        property var choices: []
+        readonly property bool auto: !PlayerService.lyricsChosen
+        readonly property string shown: PlayerService.lyrics?.source ?? ""
+        readonly property var sources: [
+            {
+                "id": "",
+                "text": I18n.tr("Automatic", "Automatic"),
+                "checked": auto
+            }
+        ].concat(choices.map(c => ({
+                    "id": c.source,
+                    "text": I18n.tr("%1 · %2", "lyrics source and its timing").arg(nameOf(c.source)).arg(c.timing === "word" ? I18n.tr("Word by word", "Word by word") : c.timing === "line" ? I18n.tr("Line by line", "lyrics timing of a source") : I18n.tr("Not synced", "lyrics timing of a source")),
+                    "info": statusText(c.status),
+                    "checked": !auto && c.source === shown
+                })))
+        function nameOf(source) {
+            if (source === "sidecar")
+                return I18n.tr("Lyrics file", "lyrics source: a file next to the track");
+            return choices.find(c => c.source === source)?.name ?? source;
+        }
+
+        function signed(seconds) {
+            const rounded = Math.round(seconds * 10) / 10;
+            return (rounded < 0 ? "\u2212" : "+") + Math.abs(rounded).toFixed(1);
+        }
+
+        // what the last automatic pick measured and did with a source's lyrics
+        function statusText(status) {
+            const seconds = status?.seconds ?? 0;
+            switch (status?.kind) {
+            case "shown-on-time":
+                return I18n.tr("Shown · on time (%1 s)", "lyrics source status: shown, its timing measured on time by this shift").arg(signed(seconds));
+            case "moved":
+                return I18n.tr("Shown · auto-moved %1 s", "lyrics source status: shown, timing moved automatically by this shift").arg(signed(seconds));
+            case "aligned":
+                return I18n.tr("Shown · timing aligned to %1", "lyrics source status: shown, its words placed on the line timing of the named source").arg(nameOf(status.source ?? ""));
+            case "shown":
+                return I18n.tr("Shown · not changed", "lyrics source status: shown as the source sent it");
+            case "on-time":
+                return I18n.tr("On time (%1 s)", "lyrics source status: timing measured on time by this shift").arg(signed(seconds));
+            case "late":
+                return I18n.tr("%1 s late", "lyrics source status: timing measured this many seconds late").arg(Math.abs(seconds).toFixed(1));
+            case "early":
+                return I18n.tr("%1 s early", "lyrics source status: timing measured this many seconds early").arg(Math.abs(seconds).toFixed(1));
+            case "file":
+                return I18n.tr("Lyrics file · not changed", "lyrics source status: the user's lyrics file, never moved");
+            }
+            return I18n.tr("Not measured", "lyrics source status: timing not measured against the audio");
+        }
+
+        // what the user set until the daemon answers it, so an older answer doesn't move the slider back
+        property real requested: NaN
+
+        function send() {
+            if (isNaN(requested))
+                return;
+            const track = sourceMenu.track;
+            const sent = requested;
+            // a newer value is still on its way; it clears itself when answered
+            PlayerService.setLyricsOffset(sent, () => {
+                if (sourceMenu.track === track && sourceMenu.requested === sent)
+                    sourceMenu.requested = NaN;
+            });
+        }
+
+        model: [
+            {
+                "id": "timing",
+                "slider": true,
+                "text": I18n.tr("Manual adjustment", "lyrics menu slider moving a track's lyrics earlier or later by hand"),
+                "value": isNaN(requested) ? PlayerService.lyricsOffset : requested,
+                "from": -PlayerMetrics.lyricsNudgeMax,
+                "to": PlayerMetrics.lyricsNudgeMax,
+                "stepSize": PlayerMetrics.lyricsNudgeStep,
+                "unit": " " + I18n.tr("s", "unit suffix for seconds"),
+                "resetValue": 0
+            },
+            {
+                "divider": true
+            }
+        ].concat(sources)
+        onOpenedChanged: {
+            nudgeThrottle.stop();
+            requested = NaN;
+        }
+        onTrackChanged: {
+            nudgeThrottle.stop();
+            requested = NaN;
+        }
+        // a drag sends at most every lyricsNudgeInterval, so the lyrics move along without flooding the daemon
+        onValueMoved: (id, value) => {
+            requested = value;
+            if (!nudgeThrottle.running)
+                nudgeThrottle.start();
+        }
+        onValueSet: (id, value) => {
+            requested = value;
+            nudgeThrottle.stop();
+            send();
+        }
         onTriggered: id => PlayerService.chooseLyrics(id)
+
+        Timer {
+            id: nudgeThrottle
+            interval: PlayerMetrics.lyricsNudgeInterval
+            onTriggered: sourceMenu.send()
+        }
     }
 
     DButton {

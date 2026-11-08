@@ -229,6 +229,9 @@ type Loop struct {
 	Meter   *Meter
 	Pending func(ctx context.Context, silence bool) ([]Job, error)
 	Save    func(ctx context.Context, j Job, r Result, err error) error
+	// Spawn, when set, runs the loop's goroutine so its owner can wait for
+	// it, and reports false once the owner has stopped.
+	Spawn func(f func()) bool
 
 	running, waiting atomic.Bool
 }
@@ -238,7 +241,7 @@ func (l *Loop) Start(ctx context.Context) {
 	if !l.Meter.Available() || ctx.Err() != nil || !l.running.CompareAndSwap(false, true) {
 		return
 	}
-	go func() {
+	run := func() {
 		gen := l.Meter.generation()
 		defer func() {
 			l.running.Store(false)
@@ -273,7 +276,13 @@ func (l *Loop) Start(ctx context.Context) {
 				}
 			}
 		}
-	}()
+	}
+	switch {
+	case l.Spawn == nil:
+		go run()
+	case !l.Spawn(run):
+		l.running.Store(false)
+	}
 }
 
 // parse reads the summary's integrated loudness; the last match is the

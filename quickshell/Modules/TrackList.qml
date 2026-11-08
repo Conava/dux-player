@@ -47,8 +47,6 @@ Item {
     property bool ranked: false
     // a click plays that track alone, not the list from there
     property bool playsOne: false
-    // a page sharing this list with others; a new one starts at the top
-    property string route: ""
     property real bottomInset: 0
 
     property var selectedIndexes: []
@@ -81,7 +79,6 @@ Item {
     // fill columns carry their weight and the pixels it comes to, as a width
     readonly property var columnList: baseColumns.map(c => Object.assign({}, c, {
             "weight": c.fill,
-            "fill": undefined,
             "width": c.fill !== undefined ? c.fill * pixelsPerWeight : c.width
         }))
     readonly property real timeWidth: columns ? UiConfig.timeWidth(columnOptions) : PlayerMetrics.columnTimeWidth
@@ -251,8 +248,9 @@ Item {
         }
         // unset, the view makes the first row current as rows arrive, and that row takes the focus
         currentIndex: -1
-        readonly property string route: root.route
-        onRouteChanged: contentY = originY
+        readonly property PageScroll _scroll: PageScroll {
+            view: list
+        }
         onAtYEndChanged: {
             if (atYEnd && count > 0)
                 root.endReached();
@@ -337,9 +335,9 @@ Item {
                     SortCell {
                         required property int index
                         readonly property var modelData: root.columnList[index] ?? ({})
-                        Layout.preferredWidth: modelData.width
-                        label: modelData.label
-                        key: modelData.sort
+                        Layout.preferredWidth: modelData.width ?? 0
+                        label: modelData.label ?? ""
+                        key: modelData.sort ?? ""
 
                         // the last column borders the length slot, which has no handle
                         ColumnHandle {

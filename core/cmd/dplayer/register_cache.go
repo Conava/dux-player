@@ -22,7 +22,8 @@ import (
 // before the stream and while the server is unreachable.
 func init() {
 	var c *cache.Cache
-	favorites := burst{run: func(ctx context.Context, lib string) { c.Favorited(ctx, lib) }}
+	favorites := burst{run: func(ctx context.Context, lib string) { c.Favorited(ctx, lib) },
+		spawn: func(f func()) bool { return c.Spawn(f) }}
 	addFeature(feature{
 		register: func(r *ipc.Registry, d *daemon) { cache.Register(r, func() *cache.Cache { return c }) },
 		start: func(d *daemon) error {
@@ -60,10 +61,7 @@ func init() {
 			}
 			c = opened
 			d.Libraries.SetOffline(c)
-			go func() {
-				c.Run(d.Ctx)
-				c.Close()
-			}()
+			c.Start()
 			prefs := d.Settings.Get()
 			c.SetPrefetch(d.Ctx, prefs.PrefetchTracks, prefs.PrefetchOnMetered)
 			var last source.Ref
@@ -85,7 +83,7 @@ func init() {
 						return
 					}
 					last = st.Track.Ref()
-					go c.Played(d.Ctx, *st.Track)
+					c.Spawn(func() { c.Played(d.Ctx, *st.Track) })
 				case player.TopicQueue:
 					haveQueue = true
 					c.QueueChanged(d.Ctx, data.(player.QueueSnapshot))
@@ -100,20 +98,20 @@ func init() {
 					}
 				case ipc.TopicPlaylists:
 					m := data.(map[string]string)
-					go c.PlaylistChanged(d.Ctx, m["library"], m["id"])
+					c.Spawn(func() { c.PlaylistChanged(d.Ctx, m["library"], m["id"]) })
 				case history.Topic:
 					if t, ok := data.(map[string]any)["track"].(source.Track); ok {
-						go c.HistoryChanged(d.Ctx, t.Library)
+						c.Spawn(func() { c.HistoryChanged(d.Ctx, t.Library) })
 					}
 				case playlists.Topic:
 					if id, _ := data.(map[string]any)["id"].(string); id != "" {
-						go c.LocalPlaylistChanged(d.Ctx, id)
+						c.Spawn(func() { c.LocalPlaylistChanged(d.Ctx, id) })
 					}
 				case library.TopicLibraries:
 					ev := data.(map[string]any)
 					switch ev["type"] {
 					case "changed":
-						go c.LibrariesChanged(d.Ctx)
+						c.Spawn(func() { c.LibrariesChanged(d.Ctx) })
 					case "scanDone":
 						// A walk takes favorites in without a marks event.
 						if lib, _ := ev["library"].(string); d.Libraries.Server(lib) {
@@ -123,8 +121,13 @@ func init() {
 				}
 			}, player.TopicStatus, player.TopicQueue, ipc.TopicSettings, ipc.TopicMarks, library.TopicLibraries,
 				playlists.Topic, ipc.TopicPlaylists, history.Topic)
-			go c.LibrariesChanged(d.Ctx)
+			c.Spawn(func() { c.LibrariesChanged(d.Ctx) })
 			return nil
+		},
+		stop: func() {
+			if c != nil {
+				c.Close()
+			}
 		},
 	})
 }
@@ -133,7 +136,9 @@ func init() {
 // run, not one each, so a check that finds many changes costs one or two.
 type burst struct {
 	run func(ctx context.Context, key string)
-	mu  sync.Mutex
+	// spawn starts a run in the background, false when it can't.
+	spawn func(f func()) bool
+	mu    sync.Mutex
 	// again holds the running keys, true when one more run is due.
 	again map[string]bool
 }
@@ -149,7 +154,7 @@ func (b *burst) trigger(ctx context.Context, key string) {
 		b.again = map[string]bool{}
 	}
 	b.again[key] = false
-	go func() {
+	started := b.spawn(func() {
 		for {
 			b.run(ctx, key)
 			b.mu.Lock()
@@ -161,5 +166,8 @@ func (b *burst) trigger(ctx context.Context, key string) {
 			b.again[key] = false
 			b.mu.Unlock()
 		}
-	}()
+	})
+	if !started {
+		delete(b.again, key)
+	}
 }

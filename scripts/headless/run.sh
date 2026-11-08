@@ -143,6 +143,19 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function open(page: string, id: string): void {
             Router.go(page, id);
         }
+        function route(): string {
+            return Router.route;
+        }
+        function offset(): real {
+            const view = Router.pageScroll?.view;
+            return view ? Math.max(0, view.contentY - view.originY) : 0;
+        }
+        function nowPlaying(): bool {
+            return Router.nowPlayingOpen;
+        }
+        function entry(index: int): void {
+            Router.openEntry(Router.navEntries[index]);
+        }
         function expand(on: bool): void {
             if (on)
                 Router.openNowPlaying();
@@ -175,8 +188,56 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function focusSearch(): void {
             Router.pageSearch.forceActiveFocus();
         }
+        function focusRole(): int {
+            return Router.pageScroll?.view.Window.activeFocusItem?.Accessible.role ?? 0;
+        }
+        function deletePlaylist(id: string): void {
+            Router.deletePlaylist(id);
+        }
+        function playOnOpen(): bool {
+            return Router.playOnOpen;
+        }
+        // a new custom page as the first navigation entry, open in edit mode with no history
+        function editFirstView(): void {
+            pinFirst("view", "");
+            Router.openEntry(Router.navEntries[0]);
+            Router.editing = true;
+        }
+        // pins an item as the first navigation entry without navigating; the view target "" makes a new custom page.
+        // Returns its id.
+        function pinFirst(kind: string, target: string): string {
+            const id = kind === "view" && target === "" ? UiConfig.saveView("First", "albums", {}) : target;
+            UiConfig.pin(kind, id, "First");
+            const first = e => e.kind === kind && e.target === id;
+            UiConfig.setNavigation(UiConfig.navigation.filter(first).concat(UiConfig.navigation.filter(e => !first(e))));
+            return id;
+        }
+        // removes the first navigation entry without navigating
+        function unpinFirst(): void {
+            const e = Router.navEntries[0];
+            UiConfig.removeEntry(e.kind, e.target);
+        }
+        function albumId(title: string): string {
+            return PlayerService.query("albums", {}).find(a => a.title === title)?.id ?? "";
+        }
+        function shortcutFree(sequence: string): bool {
+            return UiConfig.shortcutProblem(sequence) === "";
+        }
         function searchText(): string {
             return Router.pageSearch?.text ?? "";
+        }
+        // the dialog holding the keyboard focus while closed, "" for none
+        function closedDialogFocus(): string {
+            for (let item = Router.pageScroll?.view.Window.activeFocusItem ?? null; item; item = item.parent) {
+                if (item.embedded === false && item.opened === false)
+                    return String(item);
+            }
+            return "";
+        }
+        // the item with the keyboard focus: its accessible name, else its type
+        function focusName(): string {
+            const item = Router.pageScroll?.view.Window.activeFocusItem ?? null;
+            return item ? item.Accessible.name || String(item).replace(/[_(].*/, "") : "";
         }
         function elementOptions(id: string): void {
             const find = item => {
@@ -216,6 +277,26 @@ cat >>"$W/tree/shell.qml" <<'Q'
             walk(settingsLoader.item?.contentItem);
             return faults.join("\n");
         }
+        // one line per home shelf: type, shown or hidden, item count and the item ids
+        function shelves(): string {
+            const out = [];
+            const walk = item => {
+                if (!item)
+                    return;
+                if (item.modelData?.type !== undefined && item.sourceComponent !== undefined) {
+                    const items = item.item?.items ?? [];
+                    out.push([item.modelData.type, item.visible ? "shown" : "hidden", items.length, items.map(i => i.id).join(",")].join(" "));
+                    return;
+                }
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(Router.pageScroll?.view.contentItem);
+            return out.join("\n");
+        }
+        function headerSearch(mode: string): void {
+            SettingsData.headerSearch = mode;
+        }
         // the time, then the middle of every lyrics line as drawn on screen, top to bottom
         function lyricsRows(): string {
             const rows = [];
@@ -229,6 +310,70 @@ cat >>"$W/tree/shell.qml" <<'Q'
             };
             walk(windowLoader.item?.contentItem);
             return Date.now() + " " + rows.sort((a, b) => a - b).join(" ");
+        }
+        // the lyrics view's centred line and its source menu, as JSON; points are in window coordinates
+        function lyricsMenu(): string {
+            let view = null;
+            const walk = item => {
+                if (!item || view)
+                    return;
+                if (item.trackedCentre !== undefined && item.visible)
+                    view = item;
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(windowLoader.item?.contentItem);
+            if (!view)
+                return "{}";
+            const centre = (item => ({
+                        "t": item.t,
+                        "text": item.text
+                    }))(view.items[view.centreItem] ?? {});
+            const kids = item => [item].concat(...Array.from(item.children).map(kids));
+            const point = item => {
+                const p = item.mapToItem(null, item.width / 2, item.height / 2);
+                return [Math.round(p.x), Math.round(p.y)];
+            };
+            const button = kids(view).find(i => i.iconName === "more_vert");
+            const menu = kids(view).find(i => i.sources !== undefined && i.opened !== undefined);
+            const popup = menu?.opened ? menu.children.find(c => c.item)?.item : null;
+            const rows = {};
+            const inside = popup?.contentItem ? kids(popup.contentItem) : [];
+            for (const row of inside)
+                if (row.entry?.id !== undefined && row.entry?.divider !== true && row.height > 0)
+                    rows[row.entry.id] = point(row);
+            const slider = inside.find(i => i.isDragging !== undefined && i.stepBy !== undefined);
+            const end = ratio => {
+                const p = slider.mapToItem(null, slider.handleWidth / 2 + (slider.width - slider.handleWidth) * ratio, slider.height / 2);
+                return [Math.round(p.x), Math.round(p.y)];
+            };
+            const reset = inside.find(i => i.iconName === "restart_alt");
+            const infos = {};
+            for (const row of inside) {
+                const info = row.entry?.info ? kids(row).find(i => i.iconName === "info" && i.visible) : null;
+                if (info)
+                    infos[row.entry.id] = {
+                        "at": point(info),
+                        "text": info.tooltipText,
+                        "description": kids(row).find(i => i.Accessible.role === Accessible.MenuItem)?.Accessible.description ?? ""
+                    };
+            }
+            return JSON.stringify({
+                "infos": infos,
+                "centre": centre,
+                "button": button ? point(button) : null,
+                "open": menu?.opened === true,
+                "offset": PlayerService.lyricsOffset,
+                "width": popup ? popup.menuWidth : 0,
+                "highlight": menu?.model[menu.highlightIndex]?.id ?? null,
+                "rows": rows,
+                "slider": slider ? {
+                    "value": slider.value,
+                    "start": end(0),
+                    "end": end(1)
+                } : null,
+                "reset": reset?.visible ? point(reset) : null
+            });
         }
         function customize(surface: string): void {
             Router.customize(surface);
@@ -337,7 +482,7 @@ env -i LANG=C.UTF-8 USER="$USER" HOME="$W/home" PATH="$W/bin:$repo/core/bin:/usr
 status=$?
 
 log="$W/out/ui.log"
-errors=$(grep -hE 'TypeError|ReferenceError|Cannot assign|is not a function|Cannot specify anchors for items inside|\.qml:[0-9]+.*(rror|nable)' "$log" 2>/dev/null | sort -u)
+errors=$(grep -hE 'TypeError|ReferenceError|Cannot assign|is not a function|Cannot specify anchors for items inside|\.qml[:[][0-9]+.*(rror|nable)' "$log" 2>/dev/null | sort -u)
 [ -n "$errors" ] && { echo "QML errors:"; echo "$errors" | cut -c1-200 | head -20; status=1; }
 echo "output: $W/out"
 ls "$W/out"

@@ -43,6 +43,25 @@ func Register(r *ipc.Registry, svc func() *Service) {
 				return
 			}
 			w.Respond(req.ID, true)
+		case "lyrics.setOffset":
+			to, hasTo, err := ipc.Num(req.Params, "to")
+			by, hasBy, errBy := ipc.Num(req.Params, "by")
+			switch {
+			case err != nil:
+			case errBy != nil:
+				err = errBy
+			case hasTo == hasBy:
+				err = errors.New("give one of to and by")
+			case hasTo:
+				to, err = s.SetOffset(to, false)
+			default:
+				to, err = s.SetOffset(by, true)
+			}
+			if err != nil {
+				w.RespondError(req.ID, err.Error())
+				return
+			}
+			w.Respond(req.ID, map[string]float64{"offset": to})
 		case "lyrics.providers":
 			w.Respond(req.ID, s.providers.get())
 		case "lyrics.setProviders":
@@ -62,6 +81,7 @@ func Register(r *ipc.Registry, svc func() *Service) {
 		ipc.MethodSpec{Name: "lyrics.get", Desc: "Lyrics of a track (dux-go lyrics Result)", Params: []ipc.ParamSpec{ipc.Req("library", ""), ipc.Req("id", "")}, Read: true},
 		ipc.MethodSpec{Name: "lyrics.choices", Desc: "What each enabled source has for a track", Params: []ipc.ParamSpec{ipc.Req("library", ""), ipc.Req("id", "")}, Read: true},
 		ipc.MethodSpec{Name: "lyrics.choose", Desc: "Keep one source's lyrics for a track; no source goes back to automatic", Params: []ipc.ParamSpec{ipc.Req("library", ""), ipc.Req("id", ""), ipc.Opt("source", "")}},
+		ipc.MethodSpec{Name: "lyrics.setOffset", Desc: "Set or move the playing track's lyrics timing, rounded to 0.5 s within ±10 s; returns {offset} in seconds", Params: []ipc.ParamSpec{ipc.Opt("to", "seconds, later when positive; 0 resets"), ipc.Opt("by", "seconds to move it by, instead of to")}},
 		ipc.MethodSpec{Name: "lyrics.providers", Desc: "Lyrics providers in priority order", Read: true},
 		ipc.MethodSpec{Name: "lyrics.setProviders", Desc: "Set the provider order and which are on", Params: []ipc.ParamSpec{ipc.Req("providers", "[{id,enabled}] in priority order; from the CLI, the ids to turn on, in order")}},
 	)

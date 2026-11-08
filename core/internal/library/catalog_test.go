@@ -202,6 +202,7 @@ func catalogManager(t *testing.T, server *catalogServer) (*Manager, *Store) {
 		server.lib = l
 		return server, nil
 	}}, source.Env{Secrets: noSecrets{}})
+	t.Cleanup(m.Close)
 	require.NoError(t, m.Load(ctx))
 	m.awaitAll(ctx)
 	return m, store
@@ -566,6 +567,7 @@ func TestLocalLibraryIsNotReadAsASync(t *testing.T) {
 	require.NoError(t, store.SetScanned(ctx, "loc"))
 	local := newCatalogServer(0)
 	m := NewManager(store, source.Registry{"local": func(l source.Library, _ source.Env) (source.Source, error) { return local, nil }}, source.Env{})
+	defer m.Close()
 	require.NoError(t, m.Load(ctx))
 	b, err := m.Browser(ctx, "loc")
 	require.NoError(t, err)
@@ -964,6 +966,7 @@ func TestAddedServerStartsItsFirstSync(t *testing.T) {
 		server.lib = l
 		return server, nil
 	}}, source.Env{Secrets: noSecrets{}})
+	t.Cleanup(m.Close)
 	sctx, cancel := context.WithCancel(ctx)
 	t.Cleanup(cancel)
 	m.StartCatalogs(sctx, CatalogHooks{Sync: func(id string) { _, _ = m.Scan(sctx, id, nil) }})
@@ -1068,6 +1071,7 @@ func TestSyncedLibraryWithoutASource(t *testing.T) {
 		return server, nil
 	}}
 	first := NewManager(store, registry, source.Env{})
+	t.Cleanup(first.Close)
 	require.NoError(t, first.Load(ctx))
 	first.awaitAll(ctx)
 	_, err = first.Scan(ctx, "srv", nil)
@@ -1075,6 +1079,7 @@ func TestSyncedLibraryWithoutASource(t *testing.T) {
 
 	locked.Store(true)
 	m := NewManager(store, registry, source.Env{})
+	t.Cleanup(m.Close)
 	require.NoError(t, m.Load(ctx))
 	m.awaitAll(ctx)
 	infos, err := m.List(ctx)
@@ -1132,6 +1137,7 @@ func TestServerWithoutASource(t *testing.T) {
 			m := NewManager(store, source.Registry{"fake": func(source.Library, source.Env) (source.Source, error) {
 				return nil, keyring.ErrLocked
 			}}, source.Env{})
+			t.Cleanup(m.Close)
 			require.NoError(t, m.Load(ctx))
 			m.awaitAll(ctx)
 			assert.Equal(t, tt.want, m.Server("lib"))
@@ -1162,6 +1168,7 @@ func TestStartupAfterUpgrade(t *testing.T) {
 		server.lib = l
 		return server, nil
 	}}, source.Env{})
+	t.Cleanup(m.Close)
 	require.NoError(t, m.Load(ctx))
 	sctx, cancel := context.WithCancel(ctx)
 	t.Cleanup(cancel)
@@ -1203,11 +1210,11 @@ func TestRestartBrowsesBeforeTheBuild(t *testing.T) {
 	require.NoError(t, err)
 
 	built := make(chan struct{})
-	t.Cleanup(func() { close(built) })
 	next := NewManager(store, source.Registry{"fake": func(l source.Library, _ source.Env) (source.Source, error) {
 		<-built
 		return server, nil
 	}}, source.Env{})
+	t.Cleanup(func() { close(built); next.Close() })
 	require.NoError(t, next.Load(ctx))
 	wait, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
@@ -1232,8 +1239,7 @@ func TestWalkStopsAtTheBound(t *testing.T) {
 	_, err := m.Scan(ctx, "srv", nil)
 	require.NoError(t, err)
 
-	maxCatalog = 4
-	t.Cleanup(func() { maxCatalog = 200_000 })
+	m.maxCatalog = 4
 	server.set(func() { server.total = 4; server.stamp = "s2" })
 	_, err = m.Sync(ctx, "srv", nil)
 	require.ErrorIs(t, err, errCatalogTooLarge)

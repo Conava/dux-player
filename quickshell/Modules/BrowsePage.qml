@@ -116,8 +116,6 @@ Item {
         "sort": ""
     } : {})
     readonly property bool editing: Router.editing
-    // the page loader keeps this page between routes that share it
-    readonly property string route: Router.page + "/" + Router.itemId
     // a page that lists things searches those things; a page of one item searches in it
     readonly property string searchPlaceholder: {
         if (Router.page === "favorites") {
@@ -360,8 +358,9 @@ Item {
                 }
                 onDeleteRequested: {
                     const id = root.savedView.id;
-                    Router.leave();
+                    Router.forget("view", id);
                     UiConfig.deleteSavedView(id);
+                    Router.leave();
                 }
 
                 SettingsToggleRow {
@@ -433,7 +432,6 @@ Item {
         TrackList {
             tracks: root.items
             context: root.playContext
-            route: root.route
             lines: root.options.lines
             lineOptions: root.options.lineOptions ?? ({})
             layout: root.options.layout
@@ -459,8 +457,9 @@ Item {
             id: list
             // unset, the view makes the first item current as items arrive, and that item takes the focus
             currentIndex: -1
-            readonly property string route: root.route
-            onRouteChanged: contentY = originY
+            readonly property PageScroll _scroll: PageScroll {
+                view: list
+            }
             clip: true
             spacing: Theme.groupedListGap
             bottomMargin: PlayerMetrics.pagePadding + (root.isPlaylists ? fab.height + Theme.spacingL : 0)
@@ -505,8 +504,9 @@ Item {
             id: grid
             // unset, the view makes the first item current as items arrive, and that item takes the focus
             currentIndex: -1
-            readonly property string route: root.route
-            onRouteChanged: contentY = originY
+            readonly property PageScroll _scroll: PageScroll {
+                view: grid
+            }
             readonly property int columnCount: Math.max(1, Math.floor(width / root.tileWidth))
             clip: true
             cellWidth: Math.floor(width / columnCount)

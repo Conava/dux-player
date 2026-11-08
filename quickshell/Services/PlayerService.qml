@@ -31,6 +31,8 @@ Singleton {
     // seconds left in the queue from the current track's start; subtract position for what's left
     readonly property real queueLeft: _queueSums[Math.max(0, queueIndex)] ?? 0
     property bool playing: false
+    // a track is loaded, playing or paused: a stopped player keeps its current track but refuses seeks
+    readonly property bool active: _state !== "stopped"
     // a stream URL is still being looked up; the position stands until it plays
     property bool loading: false
     // the running position, refreshed a few times a second while a view holds watchPosition; a view that
@@ -70,6 +72,8 @@ Singleton {
     readonly property var lyrics: _lyricsKey === "" || _lyricsKey === currentKey ? _lyrics : null
     // the user picked these lyrics for this track
     readonly property bool lyricsChosen: _lyricsChosen && lyrics !== null
+    // the user's timing nudge for this track in seconds, later when positive; lyrics already has it
+    readonly property real lyricsOffset: lyrics !== null ? _lyricsOffset : 0
 
     // "off" | "minutes" | "endOfTrack" | "afterEntry"
     property string sleepMode: "off"
@@ -437,6 +441,7 @@ Singleton {
     property var _lyrics: null
     property string _lyricsState: "idle"
     property bool _lyricsChosen: false
+    property real _lyricsOffset: 0
     // the track the lyrics belong to ("" when the daemon didn't say)
     property string _lyricsKey: ""
     property bool _volumeBusy: false
@@ -594,6 +599,7 @@ Singleton {
         const r = e.result ?? null;
         _lyricsKey = e.library && e.id ? e.library + ":" + e.id : "";
         _lyricsChosen = e.chosen === true;
+        _lyricsOffset = typeof e.offset === "number" ? e.offset : 0;
         switch (e.state) {
         case "loading":
             _lyrics = null;
@@ -612,12 +618,12 @@ Singleton {
         _lyricsState = "idle";
     }
 
-    function lyricsChoices(then) {
+    function lyricsChoices(then, failed) {
         if (current)
             DaemonBridge.request("lyrics.choices", {
                 "library": current.library,
                 "id": current.id
-            }, I18n.tr("Couldn't list the lyrics sources", "toast when the lyrics sources can't be read"), then);
+            }, I18n.tr("Couldn't list the lyrics sources", "toast when the lyrics sources can't be read"), then, failed);
     }
 
     // an empty source goes back to automatic
@@ -628,6 +634,14 @@ Singleton {
                 "id": current.id,
                 "source": source
             }, I18n.tr("Couldn't change the lyrics", "toast when a lyrics source can't be kept for a track"));
+    }
+
+    // sets the playing track's lyrics timing in seconds, later when positive; 0 resets
+    // done runs once the daemon answered, on success and on failure
+    function setLyricsOffset(seconds, done) {
+        DaemonBridge.request("lyrics.setOffset", {
+            "to": seconds
+        }, I18n.tr("Couldn't change the lyrics timing", "toast when the lyrics timing of a track can't be changed"), done, done);
     }
 
     // the seekbar was used on a track that can't seek
@@ -866,9 +880,6 @@ Singleton {
     }
     function refsOf(list) {
         return Catalog.refsOf(list);
-    }
-    function shuffled(list) {
-        return Catalog.shuffled(list);
     }
     function track(ref) {
         return CatalogService.track(ref);

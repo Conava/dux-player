@@ -185,7 +185,7 @@ func (c *Cache) setWindow(ctx context.Context, cur *source.Track, next []source.
 	c.pre.ahead = ahead
 	c.mu.Unlock()
 	for _, b := range gone {
-		go c.release(ctx, b)
+		c.Spawn(func() { c.release(ctx, b) })
 	}
 	select {
 	case c.pre.wake <- struct{}{}:

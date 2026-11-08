@@ -13,9 +13,15 @@ Singleton {
 
     readonly property var navEntries: UiConfig.shownNavigation
 
-    property string page: navEntries.length > 0 ? UiConfig.entryRoute(navEntries[0]).page : "home"
-    property string itemId: ""
+    // the first entry's whole route until something navigates, so a config or catalog that loads late still sets it
+    readonly property var startRoute: navEntries.length > 0 ? UiConfig.entryRoute(navEntries[0]) : {
+        "page": "home",
+        "itemId": ""
+    }
+    property string page: startRoute.page
+    property string itemId: startRoute.itemId
     property var history: []
+    property var forwardHistory: []
     // the main window's side panel beside the pages: "" | "queue" | "lyrics"
     property string panel: ""
     property bool nowPlayingOpen: false
@@ -25,11 +31,27 @@ Singleton {
     // Bento's full view shows the devices in a sheet over its deck; focus goes back to playOnFrom when it closes
     property bool playOnOpen: false
     property Item playOnFrom: null
-    onNowPlayingOpenChanged: playOnOpen = playOnOpen && nowPlayingOpen
+    onNowPlayingOpenChanged: {
+        playOnOpen = playOnOpen && nowPlayingOpen;
+        // opened by other means: the step that would reopen it is spent
+        if (nowPlayingOpen && forwardHistory[forwardHistory.length - 1]?.view === true)
+            forwardHistory = forwardHistory.slice(0, -1);
+    }
+    // the full view shows only with a track: an emptied queue closes it, so the window doesn't stay blank
+    readonly property bool hasTrack: PlayerService.current !== null
+    onHasTrackChanged: {
+        if (!hasTrack)
+            nowPlayingOpen = false;
+    }
     property bool sleepPickerOpen: false
     property bool speedPickerOpen: false
     // the shown page's own search field, which Ctrl+F focuses before the global search
     property Item pageSearch: null
+    // the shown page's scrolling view, through its PageScroll
+    property PageScroll pageScroll: null
+    // the offset the route being shown goes back to, -1 for a new visit; only set while the page changes, so a view
+    // built later starts at the top
+    property real restoreOffset: -1
     // set by the main window while its header shows the search field, so the search page drops its own
     property bool headerSearchField: false
     // the list picked in last (a track list, search results or the queue): Ctrl+A acts on its selection
@@ -79,6 +101,8 @@ Singleton {
     signal confirmRequested(string title, string text, string confirmText, var callback)
 
     readonly property bool canGoBack: history.length > 0
+    readonly property bool canGoForward: forwardHistory.length > 0
+    readonly property string route: page + "/" + itemId
     // detail pages light up the entry they were reached from
     readonly property int navIndex: {
         const exact = navEntries.findIndex(e => {
@@ -109,15 +133,33 @@ Singleton {
     function go(target, id) {
         if (target === page && (id ?? "") === itemId)
             return;
-        history = history.concat([
-            {
-                "page": page,
-                "itemId": itemId
-            }
-        ]);
-        page = target;
-        itemId = id ?? "";
+        history = history.concat([_here()]);
+        forwardHistory = [];
+        _show(target, id ?? "", -1);
         nowPlayingOpen = false;
+    }
+
+    // an offset still waiting for its rows counts, not where the view sits until they arrive
+    function pageOffset() {
+        const scroll = pageScroll;
+        if (!scroll)
+            return 0;
+        return scroll.pending >= 0 ? scroll.pending : Math.max(0, scroll.view.contentY - scroll.view.originY);
+    }
+
+    function _here() {
+        return {
+            "page": page,
+            "itemId": itemId,
+            "offset": pageOffset()
+        };
+    }
+
+    function _show(target, id, offset) {
+        restoreOffset = offset;
+        page = target;
+        itemId = id;
+        restoreOffset = -1;
         editing = false;
         editScope = 0;
     }
@@ -148,36 +190,81 @@ Singleton {
     function openEntry(entry) {
         const route = UiConfig.entryRoute(entry);
         history = [];
-        page = route.page;
-        itemId = route.itemId;
+        forwardHistory = [];
+        _show(route.page, route.itemId, -1);
         nowPlayingOpen = false;
-        editing = false;
-        editScope = 0;
     }
 
     function openItem(kind, item) {
         go(kind, item.id);
     }
 
+    // closes the full view first, then steps back through the pages. Closing it leaves a step in the forward history
+    // that opens it again over this page.
     function back() {
+        if (nowPlayingOpen) {
+            nowPlayingOpen = false;
+            forwardHistory = forwardHistory.concat([
+                {
+                    "page": page,
+                    "itemId": itemId,
+                    "view": true
+                }
+            ]);
+            return;
+        }
+        _stepBack();
+    }
+
+    function _stepBack() {
         if (history.length === 0)
             return;
         const last = history[history.length - 1];
         history = history.slice(0, -1);
-        page = last.page;
-        itemId = last.itemId;
-        editing = false;
-        editScope = 0;
+        forwardHistory = forwardHistory.concat([_here()]);
+        _show(last.page, last.itemId, last.offset);
     }
 
-    // back, or to the first navigation entry when there is no history (the page was opened from the nav)
-    function leave() {
-        if (canGoBack) {
-            back();
+    function forward() {
+        if (forwardHistory.length === 0)
+            return;
+        const next = forwardHistory[forwardHistory.length - 1];
+        forwardHistory = forwardHistory.slice(0, -1);
+        if (next.view) {
+            if (hasTrack)
+                nowPlayingOpen = true;
+            else
+                forward();
             return;
         }
-        if (navEntries.length > 0)
+        history = history.concat([_here()]);
+        _show(next.page, next.itemId, next.offset);
+        nowPlayingOpen = false;
+    }
+
+    // this page is gone: back, or to the first navigation entry or Home when there is no history; not forward-reachable
+    function leave() {
+        if (canGoBack)
+            _stepBack();
+        else if (navEntries.length > 0)
             openEntry(navEntries[0]);
+        else
+            _show("home", "", -1);
+        forwardHistory = [];
+        nowPlayingOpen = false;
+    }
+
+    // a deleted playlist or custom page: back and forward must not open it again, nor stay put where it was between
+    // two visits of one route. The top of both stacks is their last entry, next to the current route.
+    function forget(target, id) {
+        const kept = e => e.page !== target || e.itemId !== id;
+        const same = (a, b) => a.page === b.page && a.itemId === b.itemId && a.view === b.view;
+        const tidy = stack => stack.filter(kept).filter((e, i, a) => !same(e, a[i + 1] ?? {
+                    "page": page,
+                    "itemId": itemId
+                }));
+        history = tidy(history);
+        forwardHistory = tidy(forwardHistory);
     }
 
     readonly property bool lyricsOn: UiConfig.lyricsOn
@@ -376,6 +463,7 @@ Singleton {
             return;
         const run = () => {
             PlaylistService.setHidden(id, true);
+            forget("playlist", id);
             if (page === "playlist" && itemId === id)
                 leave();
             offerUndo(I18n.tr("Deleted \"%1\"", "toast after deleting a playlist").arg(p.name), () => PlaylistService.setHidden(id, false), done => {

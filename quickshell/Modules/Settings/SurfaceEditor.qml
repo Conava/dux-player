@@ -26,7 +26,7 @@ Item {
         })
     readonly property var zoneMeta: UiConfig.zonesOf(surfaceId)
     readonly property var problems: UiConfig.problems(surfaceId)
-    readonly property bool following: surfaceId === "side" && surface.panesFollowBar
+    readonly property bool following: surfaceId === "side" && (surface.panesFollowBar ?? false)
     readonly property var target: findInstance(optionsId)
     // reads revision so a refused move rebuilds the rows
     readonly property var editorZones: revision >= 0 ? zoneMeta.map(z => zoneModel(z)) : []

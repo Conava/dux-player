@@ -1386,6 +1386,9 @@ Singleton {
         // a plain or shifted key would be typed into fields instead
         if (!mods.some(m => m !== "Shift") && !/^F\d+$/.test(key))
             return I18n.tr("Include Ctrl, Alt or Super", "why a keyboard shortcut can't be used");
+        // a Shortcut with the same sequence as MainWindow's fixed keys would leave neither firing
+        if (["ctrl+left", "ctrl+right", "ctrl+space", "alt+left", "alt+right"].indexOf(sequence.toLowerCase()) >= 0)
+            return I18n.tr("Already used by %1", "why a keyboard shortcut can't be used, %1 is the other shortcut").arg(I18n.tr("Dux Player", "app name"));
         if (other !== undefined && sequence.toLowerCase() === shortcut(other).toLowerCase())
             return I18n.tr("Already used by %1", "why a keyboard shortcut can't be used, %1 is the other shortcut").arg(shortcutLabel(other));
         return "";

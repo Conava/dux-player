@@ -135,6 +135,10 @@ Item {
     }
 
     DFlickable {
+        id: flick
+        readonly property PageScroll _scroll: PageScroll {
+            view: flick
+        }
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: editor.bottom

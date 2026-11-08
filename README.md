@@ -53,7 +53,8 @@ Pages, columns and the full view can be customized.
 - Offline rules per server library, caching and preloading the next songs for a seamless experience; favorites and ratings set while a server is unreachable are sent once it is back
 - Server catalogs are kept on the device once a first sync finishes: browsing and search are instant and work while the server is unreachable, where tracks without a cached copy show that they can't play. Checked every 15 minutes, read in full when the server reports a change (at most hourly), at least daily, and on Rescan; the sync waits on a metered connection unless started by hand
 - Gapless playback, crossfade, volume normalization, skipping leading and trailing silence, equalizer several outputs at once
-- Optional synced lyrics with word-by-word fill, in the full view and as one line in the bar, on by default, scrobbling (to ListenBrainz, Last.fm and the server), casting through [dux-cast](https://github.com/Conava/dux-cast)
+- Optional synced lyrics with word-by-word fill, in the full view and as one line in the bar, on by default, with a choice of source (each with what the timing match to the audio found and changed) and a timing offset per song of up to ±10 s that holds for the lyrics it was set against (also `dplayer lyrics offset 2` to set it, `+0.5` or `-0.5` to move it; a signed number always moves it), scrobbling (to ListenBrainz, Last.fm and the server), casting through [dux-cast](https://github.com/Conava/dux-cast)
+- Back and forward through the pages with Alt+Left and Alt+Right or the mouse side buttons; each page returns to where you had scrolled
 - Keeps playing with the window closed; MPRIS, a tray icon and a CLI (`dplayer play`, `dplayer next`, …) for keybinds
 - Phones can control the player over the network through KDE Connect or GSConnect (through MPRIS), until a LAN remote exists
 - `dplayer watch` and `dplayer status --format` for status bars and scripts
@@ -96,6 +97,19 @@ make install
 
 `make help` to list every target.
 
+## Keyboard
+
+These keys are fixed. Space, the arrows and F leave a text field or a control reached with Tab to that control.
+
+| | |
+|---|---|
+| Space | Play or pause. |
+| Left, Right | Seek back or forward 5 seconds. |
+| Ctrl+Left, Ctrl+Right | Previous or next track. |
+| F | Open or close the full now playing view. |
+| Alt+Left, Alt+Right | Back or forward through the pages. |
+| Mouse side buttons | Back or forward through the pages. |
+
 ## Text templates
 
 The Text element of the now-playing surfaces, the Custom text line of track lists and `dplayer status --format` share one syntax:
@@ -131,7 +145,7 @@ A clone without `--recursive` has no `dux-qml-common`: run `git submodule update
 Dux Player only contacts the servers you add, except for these features, each of which can be turned off in Settings:
 
 - **Artist information:** artist names are sent to MusicBrainz, Wikidata and Wikipedia, and to fanart.tv once you add your own API key. Last.fm gets them too, through the app's built-in API key or your own. Biographies from Wikipedia are available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
-- **Lyrics:** on by default. Title, artist, album and length of the playing track, of the next track while lyrics are open, and of downloaded tracks are sent to the enabled lyrics providers. Turn lyrics off in Settings → Lyrics and no provider is contacted; turn off Lyrics for downloaded tracks to send only tracks you play. Matching lyrics timing to the audio runs on this device and sends nothing.
+- **Lyrics:** on by default. Title, artist and length of the playing track, of the next track while lyrics are open, and of downloaded tracks are sent to the enabled lyrics providers. Turn lyrics off in Settings → Lyrics and no provider is contacted; turn off Lyrics for downloaded tracks to send only tracks you play. Matching lyrics timing to the audio runs on this device and sends nothing.
 - **Scrobbling:** played tracks are sent to ListenBrainz or Last.fm when you connect an account, from server libraries too unless you turn that off for a library. Last.fm uses the app's built-in API account; if you prefer, enter your own [API account](https://www.last.fm/api/account/create).
 
 ## Contributing

@@ -22,6 +22,12 @@ print(d["lists"]["overrides"][sys.argv[2]]["rules"]["list"][0].get("value", ""))
 }
 search_text() { qs ipc -p "$W/tree" call headless searchText; }
 
+# Before anything is clicked: a closed dialog holding the focus takes every key.
+for page in home tracks albums history; do
+    go "$page"
+    expect "no closed dialog focused on $page" "$(ask closedDialogFocus | tr -d '\n')" ""
+done
+
 # The focus goes when rows are rebuilt with some left, so each case has to pass through that: all to one for tracks
 # ("Track 2"), none back to one for the only album. Going straight to no rows proves nothing.
 for page in tracks:1467,468 albums:1450,532; do

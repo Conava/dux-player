@@ -2,7 +2,13 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"math"
+	"strconv"
+	"strings"
+
+	"github.com/spf13/cobra"
 
 	"github.com/Conava/dux-player/core/internal/cache"
 	"github.com/Conava/dux-player/core/internal/ipc"
@@ -11,7 +17,56 @@ import (
 	"github.com/Conava/dux-player/core/internal/source"
 )
 
+var lyricsCmd = &cobra.Command{
+	Use:   "lyrics",
+	Short: "Lyrics of the playing track",
+	Args:  cobra.NoArgs,
+}
+
+var lyricsOffsetCmd = &cobra.Command{
+	Use:   "offset <[+|-]seconds>",
+	Short: "Set the playing track's lyrics timing in seconds (0 resets), or move it with +0.5 or -0.5",
+	Long: "Set the playing track's lyrics timing in seconds, later when positive, or move it with a + or - sign.\n" +
+		"A signed number always moves it, so a timing below zero is reached by steps: dplayer lyrics offset 0, then -2.\n" +
+		"The timing is rounded to 0.5 s and stays within ±10 s.",
+	DisableFlagParsing: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		args, done, err := signedArgs(cmd, args)
+		if done || err != nil {
+			return err
+		}
+		if len(args) != 1 {
+			return fmt.Errorf("lyrics offset takes one number of seconds")
+		}
+		v, err := strconv.ParseFloat(args[0], 64)
+		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) {
+			return fmt.Errorf("%q is not a number of seconds", args[0])
+		}
+		param := "to"
+		if strings.HasPrefix(args[0], "+") || strings.HasPrefix(args[0], "-") {
+			param = "by"
+		}
+		var out struct {
+			Offset float64 `json:"offset"`
+		}
+		if err := call(true, "lyrics.setOffset", map[string]any{param: v}, &out); err != nil {
+			return err
+		}
+		switch {
+		case jsonOutput:
+			return printJSON(out)
+		case out.Offset == 0:
+			fmt.Println("Lyrics timing reset")
+		default:
+			fmt.Printf("Lyrics timing %+.1f s\n", out.Offset)
+		}
+		return nil
+	},
+}
+
 func init() {
+	lyricsCmd.AddCommand(lyricsOffsetCmd)
+	rootCmd.AddCommand(lyricsCmd)
 	var svc *lyrics.Service
 	addFeature(feature{
 		register: func(r *ipc.Registry, d *daemon) { lyrics.Register(r, func() *lyrics.Service { return svc }) },

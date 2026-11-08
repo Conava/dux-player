@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"math"
 	"net"
 	"net/url"
 	"os"
@@ -61,6 +62,8 @@ type Event struct {
 	Error   string            `json:"error,omitempty"`
 	// Chosen says the user picked these lyrics for this track.
 	Chosen bool `json:"chosen,omitempty"`
+	// Offset is the user's timing nudge in seconds, later when positive; Result already has it.
+	Offset float64 `json:"offset,omitempty"`
 }
 
 // Choice is one source's lyrics for a track, for the user to pick from.
@@ -68,6 +71,56 @@ type Choice struct {
 	Source string `json:"source"`
 	Name   string `json:"name"`
 	Timing string `json:"timing"` // word, line, plain
+	Status Status `json:"status"`
+}
+
+// Status is what the last automatic pick did with a source's lyrics. Seconds
+// is the signed shift for shown-on-time, moved and on-time, and how far off
+// for late and early. Source is, for aligned, the source whose line timing
+// the shown words were laid on.
+type Status struct {
+	Kind    string  `json:"kind"` // shown-on-time, moved, aligned, shown, on-time, late, early, not-measured, file
+	Seconds float64 `json:"seconds,omitempty"`
+	Source  string  `json:"source,omitempty"`
+}
+
+// statusOf tells src's status from the notes of the last decision. A source
+// the user chose is shown as it is.
+func statusOf(notes []note, src, chosen duxlyrics.Provider) Status {
+	switch src {
+	case duxlyrics.Sidecar:
+		return Status{Kind: "file"}
+	case chosen:
+		return Status{Kind: "shown"}
+	}
+	i := slices.IndexFunc(notes, func(n note) bool { return n.source == src && n.shown })
+	if i < 0 {
+		i = slices.IndexFunc(notes, func(n note) bool { return n.source == src })
+	}
+	if i < 0 {
+		return Status{Kind: "not-measured"}
+	}
+	n := notes[i]
+	n.shown = n.shown && chosen == ""
+	shift := n.fit.Shift
+	near := math.Abs(shift) <= onTimeSlack
+	switch {
+	case n.shown && n.lines != "":
+		return Status{Kind: "aligned", Source: string(n.lines)}
+	case n.shown && n.moved != 0:
+		return Status{Kind: "moved", Seconds: n.moved}
+	case n.shown && n.measured && near:
+		return Status{Kind: "shown-on-time", Seconds: shift}
+	case n.shown:
+		return Status{Kind: "shown"}
+	case !n.measured:
+		return Status{Kind: "not-measured"}
+	case near:
+		return Status{Kind: "on-time", Seconds: shift}
+	case shift > 0:
+		return Status{Kind: "early", Seconds: shift}
+	}
+	return Status{Kind: "late", Seconds: -shift}
 }
 
 type Config struct {
@@ -109,10 +162,43 @@ type Service struct {
 	warm       []warmed // newest last
 	warming    string   // key of the track being prefetched
 	warmCancel context.CancelFunc
+	decided    []decision // newest last
+
+	offsetMu sync.Mutex // one nudge reads and writes the file at a time
 
 	stop   context.CancelFunc
 	workMu sync.Mutex // keeps spawn from racing Close's wait
 	work   sync.WaitGroup
+}
+
+// decision is what the last automatic pick for a track weighed: the answers
+// the user can pick from, and a note per answer.
+type decision struct {
+	key     string
+	choices []Choice // without Status
+	notes   []note
+}
+
+// maxDecided keeps the decisions of the current track and the prefetched ones.
+const maxDecided = 2 * maxWarmed
+
+func (s *Service) noteDecision(d decision) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.decided = slices.DeleteFunc(s.decided, func(o decision) bool { return o.key == d.key })
+	s.decided = append(s.decided, d)
+	if len(s.decided) > maxDecided {
+		s.decided = slices.Delete(s.decided, 0, 1)
+	}
+}
+
+func (s *Service) lastDecision(k string) (decision, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if i := slices.IndexFunc(s.decided, func(d decision) bool { return d.key == k }); i >= 0 {
+		return s.decided[i], true
+	}
+	return decision{}, false
 }
 
 // maxWarmed keeps the next track's result while the track after it is
@@ -247,7 +333,6 @@ func (s *Service) Subscribed() {
 	}
 	s.mu.Lock()
 	// An idle result for a track is what lyrics being off left behind.
-	// An idle result for a track is what lyrics being off left behind.
 	stale := s.shown != key(s.track) || s.last.State == "error" || (s.last.State == "idle" && s.track != nil)
 	last := s.last
 	s.mu.Unlock()
@@ -255,7 +340,7 @@ func (s *Service) Subscribed() {
 		s.refresh()
 		return
 	}
-	s.cfg.Publish(Topic, last)
+	s.publish(last)
 	s.prefetch()
 }
 
@@ -270,7 +355,7 @@ func (s *Service) refresh() {
 		ev := Event{State: "idle"}
 		s.last = ev
 		s.mu.Unlock()
-		s.cfg.Publish(Topic, ev)
+		s.publish(ev)
 		return
 	}
 	ctx, cancel := context.WithCancel(s.baseCtx)
@@ -280,7 +365,7 @@ func (s *Service) refresh() {
 		s.last = ev
 		s.mu.Unlock()
 		cancel()
-		s.cfg.Publish(Topic, ev)
+		s.publish(ev)
 		s.prefetch()
 		return
 	}
@@ -291,7 +376,7 @@ func (s *Service) refresh() {
 		w.dir = ""
 		s.mu.Unlock()
 		cancel()
-		s.cfg.Publish(Topic, ev)
+		s.publish(ev)
 		s.adopt(dir)
 		s.prefetch()
 		return
@@ -299,7 +384,7 @@ func (s *Service) refresh() {
 	ev := Event{Library: t.Library, ID: t.ID, State: "loading"}
 	s.last = ev
 	s.mu.Unlock()
-	s.cfg.Publish(Topic, ev)
+	s.publish(ev)
 
 	s.spawn(func() {
 		defer cancel()
@@ -324,6 +409,17 @@ func (s *Service) refresh() {
 	})
 }
 
+// publish sends ev with the track's timing nudge applied. Results are kept
+// without it, so a nudge never compounds and the caches stay valid.
+func (s *Service) publish(ev Event) {
+	if ev.Result != nil && ev.ID != "" {
+		if ev.Offset = s.offset(ev.Library+":"+ev.ID, ev.Result); ev.Offset != 0 {
+			ev.Result = shifted(ev.Result, ev.Offset)
+		}
+	}
+	s.cfg.Publish(Topic, ev)
+}
+
 // show publishes ev unless the view moved on from t.
 func (s *Service) show(ctx context.Context, t *source.Track, ev Event) {
 	s.mu.Lock()
@@ -333,11 +429,11 @@ func (s *Service) show(ctx context.Context, t *source.Track, ev Event) {
 	}
 	s.last = ev
 	s.mu.Unlock()
-	s.cfg.Publish(Topic, ev)
+	s.publish(ev)
 }
 
 func retimed(a, b *duxlyrics.Result) bool {
-	if a.Source != b.Source || len(a.Synced) != len(b.Synced) {
+	if a.Source != b.Source || len(a.Synced) != len(b.Synced) || tier(answer{res: a}) != tier(answer{res: b}) {
 		return true
 	}
 	return len(a.Synced) > 0 && a.Synced[0].Start != b.Synced[0].Start
@@ -461,7 +557,7 @@ func (s *Service) forget() {
 		s.warmCancel()
 	}
 	old := s.warm
-	s.warm, s.warming = nil, ""
+	s.warm, s.warming, s.decided = nil, "", nil
 	s.mu.Unlock()
 	for _, w := range old {
 		discard(w.dir)
@@ -511,14 +607,152 @@ func (s *Service) chosen(k string) *duxlyrics.Result {
 	return &res
 }
 
-// Choices lists what every enabled source has for a track.
+// The timing nudge: maxNudge bounds it and nudgeStep is what it rounds to, in seconds.
+const (
+	maxNudge  = 10.0
+	nudgeStep = 0.5
+)
+
+func (s *Service) offsetPath(k string) string {
+	return filepath.Join(s.cfg.DataDir, "lyrics-offset", hashed(k)+".json")
+}
+
+// storedOffset is a track's timing nudge and the lyrics it was tuned against,
+// told apart by source and timing tier (a laid copy reports its line source).
+type storedOffset struct {
+	Offset float64 `json:"offset"`
+	Source string  `json:"source"`
+	Tier   int     `json:"tier"`
+}
+
+func offsetFor(v float64, res *duxlyrics.Result) storedOffset {
+	return storedOffset{Offset: v, Source: string(res.Source), Tier: tier(answer{res: res})}
+}
+
+// offset is the timing nudge the user gave a track for res, within maxNudge;
+// 0 without one, when the file is bad or when it was set for other lyrics.
+func (s *Service) offset(k string, res *duxlyrics.Result) float64 {
+	s.offsetMu.Lock()
+	defer s.offsetMu.Unlock()
+	return s.offsetLocked(k, res)
+}
+
+func (s *Service) offsetLocked(k string, res *duxlyrics.Result) float64 {
+	path := s.offsetPath(k)
+	data, err := os.ReadFile(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return 0
+	}
+	if err != nil {
+		log.Warnf("lyrics: %v", err)
+		return 0
+	}
+	var o storedOffset
+	if err := json.Unmarshal(data, &o.Offset); err == nil {
+		// An older file holds a bare number: it belongs to what is shown now.
+		o = offsetFor(o.Offset, res)
+		if err := writeOffset(path, o); err != nil {
+			log.Warnf("lyrics: %v", err)
+		}
+	} else if err := json.Unmarshal(data, &o); err != nil {
+		log.Warnf("lyrics: %s is unreadable, ignoring it", path)
+		return 0
+	}
+	if o != offsetFor(o.Offset, res) {
+		return 0
+	}
+	return max(-maxNudge, min(maxNudge, o.Offset))
+}
+
+func writeOffset(path string, o storedOffset) error {
+	data, err := json.Marshal(o)
+	if err == nil {
+		err = os.MkdirAll(filepath.Dir(path), 0o700)
+	}
+	if err == nil {
+		err = atomicfile.WriteFile(path, data, 0o600)
+	}
+	return err
+}
+
+// SetOffset sets the playing track's lyrics timing to seconds, later when
+// positive, or moves it by seconds when relative, and returns the new offset.
+// The offset holds for the lyrics shown now and is ignored once others show.
+func (s *Service) SetOffset(seconds float64, relative bool) (float64, error) {
+	if math.IsNaN(seconds) || math.IsInf(seconds, 0) {
+		return 0, errors.New("the offset must be a number of seconds")
+	}
+	if !s.enabled() {
+		return 0, errOff
+	}
+	s.mu.Lock()
+	k := key(s.track)
+	last := s.last
+	s.mu.Unlock()
+	if k == "" {
+		return 0, errors.New("nothing is playing")
+	}
+	if last.Library+":"+last.ID != k || last.Result == nil {
+		return 0, errors.New("no lyrics are shown")
+	}
+	s.offsetMu.Lock()
+	v, err := s.storeOffset(k, last.Result, seconds, relative)
+	s.offsetMu.Unlock()
+	if err != nil {
+		return 0, err
+	}
+	s.mu.Lock()
+	last = s.last
+	s.mu.Unlock()
+	if last.Library+":"+last.ID == k && s.cfg.HasSubscriber(Topic) {
+		s.publish(last)
+	}
+	return v, nil
+}
+
+func (s *Service) storeOffset(k string, res *duxlyrics.Result, v float64, relative bool) (float64, error) {
+	path := s.offsetPath(k)
+	if relative {
+		v += s.offsetLocked(k, res)
+	}
+	v = max(-maxNudge, min(maxNudge, math.Round(v/nudgeStep)*nudgeStep))
+	if v == 0 {
+		if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return 0, err
+		}
+		return 0, nil
+	}
+	return v, writeOffset(path, offsetFor(v, res))
+}
+
+// Choices lists what the last automatic pick for a track weighed, so the
+// list matches it and asks nobody. Without one it asks every enabled source.
 func (s *Service) Choices(ctx context.Context, ref source.Ref) ([]Choice, error) {
 	t, err := s.trackOf(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
+	var chosen duxlyrics.Provider
+	if res := s.chosen(key(&t)); res != nil {
+		chosen = res.Source
+	}
+	d, ok := s.lastDecision(key(&t))
+	if !ok {
+		results, loose := s.gather(ctx, s.client, t)
+		d.choices = choicesOf(append(results, loose...))
+	}
+	out := make([]Choice, len(d.choices))
+	for i, c := range d.choices {
+		c.Status = statusOf(d.notes, duxlyrics.Provider(c.Source), chosen)
+		out[i] = c
+	}
+	return out, nil
+}
+
+// choicesOf is the answers with lyrics, one per source, without Status.
+func choicesOf(all []*duxlyrics.Result) []Choice {
 	out := []Choice{}
-	for _, r := range s.gather(ctx, s.client, t) {
+	for _, r := range all {
 		// a lyrics file beside the track answers for every provider
 		seen := slices.ContainsFunc(out, func(c Choice) bool { return c.Source == string(r.Source) })
 		if !r.Found || r.Instrumental || seen {
@@ -536,7 +770,7 @@ func (s *Service) Choices(ctx context.Context, ref source.Ref) ([]Choice, error)
 		}
 		out = append(out, c)
 	}
-	return out, nil
+	return out
 }
 
 // Choose keeps one source's lyrics for a track from now on; an empty source
@@ -554,7 +788,8 @@ func (s *Service) Choose(ctx context.Context, ref source.Ref, src string) error 
 		s.reshow(key(&t))
 		return nil
 	}
-	results := s.gather(ctx, s.client, t)
+	results, loose := s.gather(ctx, s.client, t)
+	results = append(results, loose...)
 	i := slices.IndexFunc(results, func(r *duxlyrics.Result) bool { return string(r.Source) == src && r.Found })
 	if i < 0 {
 		return fmt.Errorf("%s has no lyrics for this track", src)
@@ -619,10 +854,10 @@ const syncGrace = 2 * time.Second
 func (s *Service) Lookup(ctx context.Context, t source.Track) (*duxlyrics.Result, error) {
 	order := s.providers.enabled()
 	req, serverID := s.request(ctx, t, order)
-	ask := func(req duxlyrics.Request) chan answer {
+	ask := func(look func() (*duxlyrics.Result, error)) chan answer {
 		out := make(chan answer, 1)
 		ran := s.spawn(func() {
-			res, err := s.client.Lookup(ctx, req)
+			res, err := look()
 			out <- answer{res, err}
 		})
 		if !ran {
@@ -634,9 +869,12 @@ func (s *Service) Lookup(ctx context.Context, t source.Track) (*duxlyrics.Result
 	if serverID != "" {
 		sreq := req
 		sreq.Providers = []duxlyrics.Provider{serverID}
-		server = ask(sreq)
+		server = ask(func() (*duxlyrics.Result, error) { return s.client.Lookup(ctx, sreq) })
 	}
-	providers := ask(req)
+	providers := ask(func() (*duxlyrics.Result, error) {
+		res, _, err := find(ctx, s.client, req, t.Album, false)
+		return res, err
+	})
 	if server == nil {
 		a := <-providers
 		return a.res, a.err
@@ -666,8 +904,10 @@ func (s *Service) Lookup(ctx context.Context, t source.Track) (*duxlyrics.Result
 // request is the lookup for t, and the provider id of its server's lyrics
 // when it has them and they are on.
 func (s *Service) request(ctx context.Context, t source.Track, order []duxlyrics.Provider) (duxlyrics.Request, duxlyrics.Provider) {
+	// The album is left out: tags often name a single or a compilation, and
+	// providers then return a different cut's lyrics or none.
 	req := duxlyrics.Request{
-		Title: t.Title, Artist: t.Artist, Album: t.Album,
+		Title: t.Title, Artist: t.Artist,
 		Duration:  time.Duration(t.Duration * float64(time.Second)),
 		Providers: slices.DeleteFunc(slices.Clone(order), func(p duxlyrics.Provider) bool { return p == ServerSource }),
 		CacheOnly: !online(),
@@ -696,93 +936,90 @@ func (s *Service) Best(ctx context.Context, t source.Track) *duxlyrics.Result {
 }
 
 func (s *Service) best(ctx context.Context, client *duxlyrics.Client, t source.Track) *duxlyrics.Result {
-	results := s.gather(ctx, client, t)
-	if len(results) == 0 {
+	results, loose := s.gather(ctx, client, t)
+	if len(results)+len(loose) == 0 {
 		return nil
 	}
-	order := s.providers.enabled()
-	// the recording itself beats what other sources say about it
-	top := choose(order, results)
-	if shift, ok := s.fitted(ctx, t, top); ok {
-		return shifted(top, shift)
+	res, notes := decide(s.providers.enabled(), results, loose, s.recording(ctx, t))
+	if ctx.Err() == nil {
+		s.noteDecision(decision{key: key(&t), choices: choicesOf(append(results, loose...)), notes: notes})
 	}
-	if shift, ok := s.linesFitted(ctx, t, top, results); ok {
-		return shifted(top, shift)
-	}
-	return align(order, results)
+	return res
 }
 
-// fitResult is a measured shift, kept so a track is decoded once per source.
-type fitResult struct {
-	Shift     float64 `json:"shift"`
-	Confident bool    `json:"confident"`
+// trackFits measures t's answers against its local copy, decoded at most
+// once, and keeps every measure in the fit cache.
+type trackFits struct {
+	s     *Service
+	t     source.Track
+	audio func() ([]float64, bool)
 }
 
-// fitted is the shift the audio asks of a word-timed result, when it is sure.
-func (s *Service) fitted(ctx context.Context, t source.Track, r *duxlyrics.Result) (float64, bool) {
-	if !s.canFit(r) {
-		return 0, false
+// recording is nil when fitting is off or the audio can't be read.
+func (s *Service) recording(ctx context.Context, t source.Track) recording {
+	if !s.fitting() || s.cfg.AudioFile == nil || s.cfg.Decode == nil {
+		return nil
 	}
-	starts := wordStarts(r)
-	if len(starts) < fitMinWords {
-		return 0, false
+	return trackFits{s: s, t: t, audio: sync.OnceValues(func() ([]float64, bool) { return s.audioAttacks(ctx, t) })}
+}
+
+func (f trackFits) measure(r *duxlyrics.Result, words bool) (fitResult, bool) {
+	name, starts := fitName(f.t, r, words, "")
+	return f.fitted(r.Source, name, starts, words)
+}
+
+func (f trackFits) measureLaid(words, laid *duxlyrics.Result) (fitResult, bool) {
+	name, starts := fitName(f.t, laid, true, words.Source)
+	return f.fitted(words.Source, name, starts, true)
+}
+
+// fitted is the cached or newly measured fit of starts from src. A lyrics
+// file beside the track is the user's own and never measured, and too few
+// starts fit anywhere.
+func (f trackFits) fitted(src duxlyrics.Provider, name string, starts []float64, words bool) (fitResult, bool) {
+	least := fitMinLines
+	if words {
+		least = fitMinWords
 	}
-	// the timing is part of the name: a source that changes it is fitted anew
-	name := fmt.Sprintf("%s/%s/%d/%.2f", key(&t), r.Source, len(starts), starts[0])
-	if known, ok := s.knownFit(name); ok {
-		return known.Shift, known.Confident
+	if src == duxlyrics.Sidecar || len(starts) < least {
+		return fitResult{}, false
 	}
-	found, ok := s.audioAttacks(ctx, t)
+	if known, ok := f.s.knownFit(name); ok {
+		return known, true
+	}
+	found, ok := f.audio()
 	if !ok {
-		return 0, false
+		return fitResult{}, false
 	}
-	shift, confidence := fit(starts, found, fitReach)
-	known := fitResult{Shift: shift, Confident: confidence >= fitConfidence}
-	log.Debugf("lyrics: %q from %s fits the audio at %+.2f s, confidence %.1f", t.Title, r.Source, shift, confidence)
-	s.storeFit(name, known)
-	return known.Shift, known.Confident
+	var known fitResult
+	if words {
+		shift, confidence := fit(starts, found, fitReach)
+		known = fitResult{Shift: shift, Confident: confidence >= fitConfidence}
+	} else {
+		known.Shift, known.Confident = fitLines(starts, found)
+	}
+	log.Debugf("lyrics: %q from %s fits the audio at %+.2f s (words %v): %v", f.t.Title, src, known.Shift, words, known.Confident)
+	f.s.storeFit(name, known)
+	return known, true
 }
 
-// linesFitted is the shift top needs, from the first source whose line starts
-// sit on the audio for sure. All sources count: a line-timed one can show what
-// a word-timed top can't, and offset carries its shift over.
-func (s *Service) linesFitted(ctx context.Context, t source.Track, top *duxlyrics.Result, results []*duxlyrics.Result) (float64, bool) {
-	if !s.canFit(top) {
-		return 0, false
+// fitName names a fit in the cache and returns the starts it fits. The
+// timing is part of the name: a source that changes it is fitted anew. Words
+// laid on r's lines from laidFrom are named apart from both sources' own fits,
+// with all their starts, as a change to either source can move any of them.
+func fitName(t source.Track, r *duxlyrics.Result, words bool, laidFrom duxlyrics.Provider) (string, []float64) {
+	starts, kind := lineStarts(r), "lines/"
+	if words {
+		starts, kind = wordStarts(r), ""
 	}
-	var found []float64
-	for i, r := range append([]*duxlyrics.Result{top}, results...) {
-		starts := lineStarts(r)
-		if i > 0 && r == top || r.Source == duxlyrics.Sidecar || len(starts) < fitMinLines {
-			continue
-		}
-		name := fmt.Sprintf("lines/%s/%s/%d/%.2f", key(&t), r.Source, len(starts), starts[0])
-		known, ok := s.knownFit(name)
-		if !ok {
-			if found == nil {
-				if found, ok = s.audioAttacks(ctx, t); !ok {
-					return 0, false
-				}
-			}
-			known.Shift, known.Confident = fitLines(starts, found)
-			log.Debugf("lyrics: %q lines from %s fit the audio at %+.2f s: %v", t.Title, r.Source, known.Shift, known.Confident)
-			s.storeFit(name, known)
-		}
-		if !known.Confident {
-			continue
-		}
-		if r == top {
-			return known.Shift, true
-		}
-		if d, ok := offset(top.Synced, r.Synced); ok {
-			return d + known.Shift, true
-		}
+	if len(starts) == 0 {
+		return "", nil
 	}
-	return 0, false
-}
-
-func (s *Service) canFit(r *duxlyrics.Result) bool {
-	return s.fitting() && s.cfg.AudioFile != nil && s.cfg.Decode != nil && r.Source != duxlyrics.Sidecar
+	name := fmt.Sprintf("%s%s/%s/%d/%.2f", kind, key(&t), r.Source, len(starts), starts[0])
+	if laidFrom != "" {
+		name = fmt.Sprintf("laid/%s/%s/%.12s", laidFrom, name, hashed(fmt.Sprintf("%.2f", starts)))
+	}
+	return name, starts
 }
 
 func (s *Service) fitPath(name string) string {
@@ -941,14 +1178,17 @@ func (s *Service) Stored(ctx context.Context, t source.Track, keepLyrics bool) {
 	}
 }
 
-func (s *Service) gather(ctx context.Context, client *duxlyrics.Client, t source.Track) []*duxlyrics.Result {
+// gather asks every source on its own. Loose answers, found only without the
+// track's length, come apart from the others.
+func (s *Service) gather(ctx context.Context, client *duxlyrics.Client, t source.Track) (results, loose []*duxlyrics.Result) {
 	order := s.providers.enabled()
 	req, serverID := s.request(ctx, t, order)
 	ids := slices.Clone(req.Providers)
 	if serverID != "" {
 		ids = append(ids, serverID)
 	}
-	results := make([]*duxlyrics.Result, len(ids))
+	results = make([]*duxlyrics.Result, len(ids))
+	loose = make([]*duxlyrics.Result, len(ids))
 	var wg sync.WaitGroup
 	for i, id := range ids {
 		wg.Add(1)
@@ -959,7 +1199,13 @@ func (s *Service) gather(ctx context.Context, client *duxlyrics.Client, t source
 			if id == serverID {
 				one.FileURL = ""
 			}
-			res, err := client.Lookup(ctx, one)
+			var res *duxlyrics.Result
+			var err error
+			if id == serverID {
+				res, err = client.Lookup(ctx, one)
+			} else {
+				res, loose[i], err = find(ctx, client, one, t.Album, true)
+			}
 			if err != nil {
 				log.Debugf("lyrics for %q from %s: %v", t.Title, id, err)
 				return
@@ -971,26 +1217,8 @@ func (s *Service) gather(ctx context.Context, client *duxlyrics.Client, t source
 		}()
 	}
 	wg.Wait()
-	return slices.DeleteFunc(results, func(r *duxlyrics.Result) bool { return r == nil })
-}
-
-type answer struct {
-	res *duxlyrics.Result
-	err error
-}
-
-// tier ranks a result as dux-go does: word sync 2, line sync (or
-// instrumental) 1, plain 0, nothing -1.
-func tier(a answer) int {
-	switch {
-	case a.err != nil || a.res == nil || !a.res.Found:
-		return -1
-	case slices.ContainsFunc(a.res.Synced, func(l duxlyrics.Line) bool { return len(l.Words) > 0 }):
-		return 2
-	case len(a.res.Synced) > 0 || a.res.Instrumental:
-		return 1
-	}
-	return 0
+	isNil := func(r *duxlyrics.Result) bool { return r == nil }
+	return slices.DeleteFunc(results, isNil), slices.DeleteFunc(loose, isNil)
 }
 
 // pick keeps the better synced of the server's and the providers' answers;
@@ -1008,17 +1236,6 @@ func pick(order []duxlyrics.Provider, srv, prov answer) (*duxlyrics.Result, erro
 		return srv.res, nil
 	}
 	return prov.res, prov.err
-}
-
-// rank is p's place in order; a sidecar file comes before everything.
-func rank(order []duxlyrics.Provider, p duxlyrics.Provider) int {
-	if p == duxlyrics.Sidecar {
-		return -1
-	}
-	if i := slices.Index(order, p); i >= 0 {
-		return i
-	}
-	return len(order)
 }
 
 // resolve turns "server:<library>:<track>" into a Source asking that server;

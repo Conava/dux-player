@@ -54,6 +54,7 @@ func TestFailedTrackChecksItsServer(t *testing.T) {
 		m := NewManager(store, source.Registry{"fake": func(l source.Library, _ source.Env) (source.Source, error) {
 			return &fakeServer{lib: l, down: &isDown, ping: ping}, nil
 		}}, source.Env{})
+		t.Cleanup(m.Close)
 		require.NoError(t, m.Load(ctx))
 		m.awaitAll(ctx)
 		var mu sync.Mutex
@@ -132,6 +133,7 @@ func TestMovingAServerNeedsThePassword(t *testing.T) {
 	m := NewManager(store, source.Registry{"fake": func(l source.Library, _ source.Env) (source.Source, error) {
 		return &fakeServer{lib: l, down: &down, ping: ping}, nil
 	}}, source.Env{Secrets: secrets})
+	t.Cleanup(m.Close)
 	lib, err := m.Add(ctx, "fake", "S", map[string]any{"url": "https://a.example:4533"}, map[string]string{"password": "pw"})
 	require.NoError(t, err)
 
@@ -165,6 +167,7 @@ func TestManagerEditsAndSecrets(t *testing.T) {
 		}
 		return &fakeServer{lib: l, down: &down, ping: ping}, nil
 	}}, source.Env{Secrets: secrets})
+	t.Cleanup(m.Close)
 
 	_, err = m.Add(ctx, "fake", "Bad", map[string]any{"url": "https://a.example"}, map[string]string{"password": "wrong"})
 	require.Error(t, err)
@@ -209,6 +212,7 @@ func TestLoadBuildsInTheBackground(t *testing.T) {
 		<-release
 		return &fakeServer{lib: l, down: &down, ping: ping}, nil
 	}}, source.Env{})
+	t.Cleanup(m.Close)
 
 	loaded := make(chan error)
 	go func() { loaded <- m.Load(ctx) }()
@@ -256,6 +260,7 @@ func TestHasCopyIsUnknownWithoutACache(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { store.Close() })
 	m := NewManager(store, source.Registry{}, source.Env{})
+	t.Cleanup(m.Close)
 	has, known := m.HasCopy(ctx, source.Ref{Library: "srv", ID: "a"})
 	assert.False(t, has)
 	assert.False(t, known)
@@ -285,6 +290,7 @@ func TestShuffleOfANamedLibraryIgnoresItsSkipRule(t *testing.T) {
 	m := NewManager(store, source.Registry{"fake": func(l source.Library, _ source.Env) (source.Source, error) {
 		return randomServer{fakeServer{lib: l, down: &down, ping: ping}}, nil
 	}}, source.Env{Secrets: &memSecrets{}})
+	t.Cleanup(m.Close)
 	a, err := m.Add(ctx, "fake", "A", map[string]any{"url": "https://a.example"}, nil)
 	require.NoError(t, err)
 	b, err := m.Add(ctx, "fake", "B", map[string]any{"url": "https://b.example"}, nil)
@@ -331,6 +337,7 @@ func TestShuffleAllNeverContactsASkippedLibrary(t *testing.T) {
 	m := NewManager(store, source.Registry{"fake": func(l source.Library, _ source.Env) (source.Source, error) {
 		return countedServer{randomServer{fakeServer{lib: l, down: &down, ping: ping}}, &asked}, nil
 	}}, source.Env{Secrets: &memSecrets{}})
+	t.Cleanup(m.Close)
 	a, err := m.Add(ctx, "fake", "A", map[string]any{"url": "https://a.example"}, nil)
 	require.NoError(t, err)
 
