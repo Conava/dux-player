@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Templates as T
 import Quickshell
 import qs.DCommon.Common
 import qs.DCommon.Widgets
@@ -35,13 +36,6 @@ Item {
     onActionIndexesChanged: {
         if (highlightIndex >= 0 && !actionIndexes.includes(highlightIndex))
             highlightIndex = actionIndexes[actionIndexes.length - 1] ?? -1;
-    }
-
-    onOpenedChanged: {
-        if (opened)
-            MenuState.open = root;
-        else if (MenuState.open === root)
-            MenuState.open = null;
     }
 
     // x, y: a point in anchor's coordinates (the pointer for right-click); omitted, the menu opens below anchor
@@ -108,6 +102,27 @@ Item {
     property point anchorPoint: Qt.point(0, 0)
     property real anchorHeight: 0
 
+    // Hyprland keeps the keyboard on the window under a grabbing popup, so that window's Shortcuts see the keys
+    // first. Qt still hands the key press to the popup; a focused item that accepts the override stops the Shortcuts.
+    property Item focusBack: null
+    property int focusBackReason: Qt.OtherFocusReason
+
+    onOpenedChanged: {
+        if (!opened) {
+            focusBack?.forceActiveFocus(focusBackReason);
+            return;
+        }
+        focusBack = Window.activeFocusItem;
+        focusBackReason = (focusBack as T.Control)?.focusReason ?? Qt.OtherFocusReason;
+        forceActiveFocus();
+    }
+
+    Keys.onShortcutOverride: event => event.accepted = opened
+    Component.onDestruction: {
+        if (opened)
+            focusBack?.forceActiveFocus(focusBackReason);
+    }
+
     width: 0
     height: 0
 
@@ -160,10 +175,11 @@ Item {
             }
 
             FocusScope {
+                id: menuKeys
                 anchors.fill: parent
                 focus: true
-                // the popup's window doesn't exist yet at this point, and without one the focus goes nowhere
-                Component.onCompleted: Qt.callLater(forceActiveFocus)
+                // the popup's window doesn't exist yet at completion
+                Component.onCompleted: Qt.callLater(() => menuKeys.forceActiveFocus())
 
                 Keys.onPressed: event => {
                     switch (event.key) {

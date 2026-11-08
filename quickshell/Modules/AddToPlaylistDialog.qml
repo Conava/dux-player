@@ -42,7 +42,6 @@ WindowDialog {
     title: tracks.length === 1 ? I18n.tr("Playlists with “%1”", "add to playlist dialog title for one track").arg(tracks[0].title) : I18n.tr("Playlists with these %1 tracks", "add to playlist dialog title for several tracks").arg(tracks.length)
     acceptEnabled: false
     onRejected: close()
-    // later: taking focus inside the binding update loops through DDialog's focus tracking
     onOpenedChanged: {
         if (!opened)
             return;
@@ -52,7 +51,6 @@ WindowDialog {
             if (p.loaded !== true)
                 load(p.id);
         }
-        Qt.callLater(forceActiveFocus);
     }
 
     Column {

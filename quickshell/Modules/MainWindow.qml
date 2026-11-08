@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Templates as T
 import Quickshell
 import qs.Common
 import qs.Services
@@ -89,11 +90,69 @@ DFloatingWindow {
             onActivated: PlayerService.toggle()
         }
 
+        // a dialog, sheet or volume panel is open in this window: it owns the keys and the mouse buttons
+        readonly property bool dialogOpen: Router.playOnOpen || Escape.top(Router.escapeLayers, l => (l.handlesKey || (l.owner as VolumePanel) !== null) && l.owner.visible && l.owner.Window.window === focusScope.Window.window) !== null
+
+        // Player keys: a Shortcut fires before the focused item, so `enabled` is what leaves a key to a field or to a control reached by Tab
+        readonly property Item keyItem: Window.activeFocusItem
+        readonly property bool typing: (keyItem as TextInput) !== null || (keyItem as TextEdit) !== null
+        readonly property bool onSlider: keyItem?.Accessible.role === Accessible.Slider
+        // Tab gives a control visualFocus and a click doesn't; items that aren't Controls only take focus from Tab
+        readonly property bool keyboardHeld: (keyItem as T.Control)?.visualFocus ?? keyItem?.activeFocusOnTab ?? false
+        readonly property bool playerKeys: !dialogOpen && !typing
+        readonly property bool plainKeys: playerKeys && (onSlider || !keyboardHeld)
+        readonly property bool arrowKeys: plainKeys && !onSlider
+        // Hyprland leaves the keyboard here under an open dropdown, so every Shortcut would beat its popup. Its trigger holds the focus.
+        readonly property bool dropdownOpen: (keyItem?.parent as DDropdown)?.menuOpen ?? false
+        Keys.onShortcutOverride: event => event.accepted = dropdownOpen
+        readonly property bool canSeek: PlayerService.active && PlayerService.seekable && PlayerService.duration > 0
+
+        Shortcut {
+            sequence: "Space"
+            enabled: focusScope.plainKeys
+            autoRepeat: false
+            onActivated: PlayerService.toggle()
+        }
+
+        // left is back in right-to-left layouts too, as on the seekbar
+        Shortcut {
+            sequence: "Left"
+            enabled: focusScope.arrowKeys && focusScope.canSeek
+            onActivated: PlayerService.seek(PlayerService.livePosition() - 5)
+        }
+
+        Shortcut {
+            sequence: "Right"
+            enabled: focusScope.arrowKeys && focusScope.canSeek
+            // the end itself would skip the track, as on the seekbar
+            onActivated: PlayerService.seek(Math.max(PlayerService.livePosition(), Math.min(PlayerService.livePosition() + 5, PlayerService.duration * 0.99)))
+        }
+
+        Shortcut {
+            sequence: "Ctrl+Left"
+            enabled: focusScope.playerKeys
+            onActivated: PlayerService.previous()
+        }
+
+        Shortcut {
+            sequence: "Ctrl+Right"
+            enabled: focusScope.playerKeys
+            onActivated: PlayerService.next()
+        }
+
+        // with no track the view would hide the page over nothing
+        Shortcut {
+            sequence: "F"
+            enabled: focusScope.plainKeys && (Router.nowPlayingOpen || PlayerService.current !== null)
+            autoRepeat: false
+            onActivated: Router.nowPlayingOpen ? Router.nowPlayingOpen = false : Router.openNowPlaying("")
+        }
+
         // the only Escape shortcut: it closes whatever was opened or focused last (EscapeLayer)
         Shortcut {
             readonly property var layer: Escape.top(Router.escapeLayers, l => l.owner.visible && l.owner.Window.window === focusScope.Window.window)
             sequence: "Escape"
-            enabled: layer !== null && !layer.handlesKey && MenuState.open === null
+            enabled: layer !== null && !layer.handlesKey
             onActivated: layer.escaped()
         }
 
@@ -104,9 +163,29 @@ DFloatingWindow {
         }
 
         Shortcut {
-            sequences: [StandardKey.Back, "Alt+Left"]
-            enabled: Router.canGoBack
+            sequences: ["Alt+Left", "Back"]
+            enabled: !focusScope.dialogOpen && (Router.canGoBack || Router.nowPlayingOpen)
             onActivated: Router.back()
+        }
+
+        Shortcut {
+            sequences: ["Alt+Right", "Forward"]
+            enabled: !focusScope.dialogOpen && Router.canGoForward
+            onActivated: Router.forward()
+        }
+
+        TapHandler {
+            // a thumb press is held and shoves the mouse; act on release like browsers do
+            acceptedButtons: Qt.BackButton | Qt.ForwardButton
+            gesturePolicy: TapHandler.ReleaseWithinBounds
+            longPressThreshold: 0
+            enabled: !focusScope.dialogOpen
+            onTapped: (point, button) => {
+                if (button === Qt.BackButton)
+                    Router.back();
+                else
+                    Router.forward();
+            }
         }
 
         Column {
@@ -332,7 +411,7 @@ DFloatingWindow {
 
                             Loader {
                                 id: pageLoader
-                                readonly property string route: Router.page + "/" + Router.itemId
+                                readonly property string route: Router.route
 
                                 // the final size, so the page lays out once while the panel and bar slide
                                 anchors.left: parent.left

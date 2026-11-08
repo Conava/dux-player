@@ -13,10 +13,6 @@ WindowDialog {
     supportingText: SettingsService.canChangeSpeed ? I18n.tr("Pitch is preserved.", "playback speed note") : I18n.tr("Requires mpv.", "why a playback setting is unavailable")
     acceptEnabled: false
     onRejected: Router.speedPickerOpen = false
-    onOpenedChanged: {
-        if (opened)
-            forceActiveFocus();
-    }
 
     DButtonGroup {
         model: root.speeds.map(s => I18n.tr("%1×", "playback speed option").arg(s))

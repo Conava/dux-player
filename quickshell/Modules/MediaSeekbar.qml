@@ -25,7 +25,7 @@ Item {
     readonly property real handleInset: flat ? Theme.sliderHandleWidth / 2 : expressive ? handleWidth / 2 : 0
     property real handleWidth: flat ? (isSeeking ? Theme.sliderHandleWidthPressed : Theme.sliderHandleWidth) : isSeeking ? PlayerMetrics.mediaSeekbarHandleDragWidth : PlayerMetrics.mediaSeekbarHandleSize
     property real handleHeight: flat ? (thin ? PlayerMetrics.mediaSeekbarHeight : Theme.sliderHandleHeight) : isSeeking ? PlayerMetrics.mediaSeekbarHandleDragHeight : PlayerMetrics.mediaSeekbarHandleSize
-    readonly property bool usable: interactive && enabled && length > 0 && PlayerService.current !== null
+    readonly property bool usable: interactive && enabled && length > 0 && PlayerService.active
     readonly property bool canSeek: usable && PlayerService.seekable
     // a track that can't seek dims the bar and says why when it is used
     readonly property bool explains: usable && !PlayerService.seekable

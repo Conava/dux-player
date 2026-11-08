@@ -14,7 +14,8 @@ Item {
     readonly property bool editing: Router.editing
     readonly property var shelves: UiConfig.surface("home").zones.shelves
     readonly property bool hasLibraries: CatalogService.libraries.length > 0
-    readonly property var shown: shelves.filter(s => !s.hidden && UiConfig.isKnown(s.type) && (s.type === "search" || hasLibraries))
+    // the header field and the libraries only toggle a delegate; a new model would rebuild every shelf
+    readonly property var shown: shelves.filter(s => !s.hidden && UiConfig.isKnown(s.type))
     readonly property var layouts: ["carousel", "grid", "list"]
     readonly property var sizes: ["s", "m", "l"]
 
@@ -54,6 +55,9 @@ Item {
 
     DFlickable {
         id: flick
+        readonly property PageScroll _scroll: PageScroll {
+            view: flick
+        }
         anchors.fill: parent
         contentHeight: column.height + PlayerMetrics.pagePadding
         contentWidth: width
@@ -93,7 +97,7 @@ Item {
                     required property var modelData
                     width: parent?.width ?? 0
                     // an empty shelf takes no spacing
-                    visible: modelData.type === "search" || ((item as Shelf)?.hasContent ?? false)
+                    visible: modelData.type === "search" ? !Router.headerSearchField : root.hasLibraries && ((item as Shelf)?.hasContent ?? false)
                     sourceComponent: modelData.type === "search" ? searchBox : shelf
 
                     Component {
@@ -195,7 +199,6 @@ Item {
         function show(i) {
             index = i;
             opened = true;
-            forceActiveFocus();
         }
 
         host: root

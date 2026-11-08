@@ -92,6 +92,8 @@ Column {
     readonly property string size: shelf.options.size ?? "m"
     readonly property real tileWidth: size === "s" ? PlayerMetrics.tileSizeS : size === "l" ? PlayerMetrics.tileSizeL : PlayerMetrics.shelfArtSize
     readonly property int listLimit: size === "s" ? 3 : size === "l" ? 10 : 5
+    // a carousel holds enough tiles to fill its width; grid and list shuffle the shelfLimit they always did
+    readonly property int shownLimit: layout === "carousel" ? Math.max(PlayerMetrics.shelfLimit, Math.ceil(carousel.width / (tileWidth + Theme.spacingS * 2 + Theme.spacingXS))) : PlayerMetrics.shelfLimit
     readonly property int gridRows: size === "s" ? 1 : size === "l" ? 3 : 2
     readonly property var seeAll: {
         switch (source.type) {
@@ -147,7 +149,7 @@ Column {
             PlayerService.playTracks(PlayerService.refsOf(items), index, playContext);
     }
 
-    // An album shelf shuffles the tracks of the albums it shows (up to shelfLimit), one
+    // An album shelf shuffles the tracks of the albums it shows (up to shownLimit), one
     // browse.album per album not loaded yet
     function shuffleAll() {
         // favorites and playlists shuffle in the daemon over all they hold; rankings shuffle what they show
@@ -159,7 +161,7 @@ Column {
             PlayerService.shuffleTracks([], playContext, false);
             return;
         }
-        const albums = items.slice(0, PlayerMetrics.shelfLimit);
+        const albums = items.slice(0, shownLimit);
         let left = albums.length;
         let all = [];
         for (const a of albums)
@@ -174,11 +176,15 @@ Column {
     spacing: Theme.spacingS
     readonly property bool hasContent: source.type === "continue" ? PlayerService.current !== null : items.length > 0
     visible: hasContent
-    // albums arrive after the window opens; the order is drawn once they're in
-    readonly property int albumCount: source.type === "randomAlbums" ? PlayerService.albums.length : 0
-    onAlbumCountChanged: {
-        if (randomOrder.length === 0)
-            randomOrder = PlayerService.shuffled(PlayerService.albums.map(a => a.id));
+    // albums arrive after the window opens and with every scan; new ones go in at random places, the rest keep theirs
+    readonly property int albumsRevision: source.type === "randomAlbums" ? CatalogService.albumsRevision : 0
+    onAlbumsRevisionChanged: {
+        const known = new Set(randomOrder);
+        const order = randomOrder.filter(id => CatalogService.album(id));
+        for (const a of CatalogService.albums)
+            if (!known.has(a.id))
+                order.splice(Math.floor(Math.random() * (order.length + 1)), 0, a.id);
+        randomOrder = order;
     }
 
     // the header and tiles bleed into the page padding so their labels and art line up with the page title
@@ -265,7 +271,7 @@ Column {
         visible: root.layout === "carousel" && root.source.type !== "continue"
         height: visible ? root.tileWidth + Theme.spacingS * 2 + PlayerMetrics.gridCaptionHeight : 0
         spacing: Theme.spacingXS
-        model: visible ? root.items.slice(0, PlayerMetrics.shelfLimit) : []
+        model: visible ? root.items.slice(0, root.shownLimit) : []
 
         // ends the row where the user is looking
         footer: StyledButton {

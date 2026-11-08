@@ -283,7 +283,7 @@ func (m *Manager) spawn(f func()) bool {
 const closeWait = 3 * time.Second
 
 // Close cancels the manager's background work and waits up to closeWait for
-// it, so none of it outlives the store.
+// it, then closes the sources, so none of it outlives the store.
 func (m *Manager) Close() {
 	m.workMu.Lock()
 	m.stop()
@@ -298,6 +298,15 @@ func (m *Manager) Close() {
 	case <-time.After(closeWait):
 		log.Infof("libraries: stopped waiting for background work after %s", closeWait)
 	}
+	m.mu.Lock()
+	srcs := m.sources
+	m.sources = make(map[string]source.Source)
+	m.mu.Unlock()
+	var wg sync.WaitGroup
+	for _, src := range srcs {
+		wg.Go(func() { _ = src.Close() })
+	}
+	wg.Wait()
 }
 
 func (m *Manager) Kinds() []string { return m.registry.Kinds() }
@@ -369,10 +378,11 @@ func (m *Manager) build(lib source.Library) {
 	if lib.Enabled {
 		src, err = m.registry.Build(lib, m.env)
 	}
+	// Closing a source waits for its background work, so it runs unlocked.
+	var closing []source.Source
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	if old, ok := m.sources[lib.ID]; ok {
-		_ = old.Close()
+		closing = append(closing, old)
 		delete(m.sources, lib.ID)
 	}
 	delete(m.errs, lib.ID)
@@ -384,8 +394,15 @@ func (m *Manager) build(lib source.Library) {
 	case err != nil:
 		log.Warnf("library %s (%s): %v", lib.Name, lib.Kind, err)
 		m.errs[lib.ID] = err
+	case m.ctx.Err() != nil:
+		// Built after Close took the sources, so nothing else closes it.
+		closing = append(closing, src)
 	default:
 		m.sources[lib.ID] = src
+	}
+	m.mu.Unlock()
+	for _, s := range closing {
+		_ = s.Close()
 	}
 }
 
@@ -511,14 +528,15 @@ func (m *Manager) Remove(ctx context.Context, id string) error {
 		return err
 	}
 	m.mu.Lock()
-	if src, ok := m.sources[id]; ok {
-		_ = src.Close()
-	}
+	src := m.sources[id]
 	delete(m.sources, id)
 	delete(m.errs, id)
 	delete(m.down, id)
 	delete(m.refused, id)
 	m.mu.Unlock()
+	if src != nil {
+		_ = src.Close()
+	}
 	if off := m.offline.Load(); off != nil {
 		if err := (*off).Clear(ctx, id); err != nil {
 			log.Warnf("clear the cache of library %s: %v", id, err)

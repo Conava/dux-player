@@ -12,6 +12,8 @@
 #   pointer m X Y | c | r | d | u | D | U | s MS | w NOTCHES   through a real virtual pointer: move, click, right click,
 #                    left press and release, right press and release, pause, wheel. Lines of one write keep their
 #                    timing: pointer "$(printf 'D\ns 30\nU')"
+#   pointer b | f [MS [DX]]   hold the side button (back) or the extra button (forward) for MS, moving DX halfway
+#   ask NAME ARGS    like ui, but prints the reply: ask route
 #   click X Y        move and click
 #   frames NAME CMD  run CMD and write the ms between UI frames to out/NAME.frames
 #   rclick X Y       move and right click
@@ -38,6 +40,7 @@ print(f.readline().decode().strip()[:2000])
 P
 }
 
+ask() { qs ipc -p "$W/tree" call headless "$@"; }
 ui() { qs ipc -p "$W/tree" call headless "$@" >/dev/null; }
 go() { ui go "$1"; sleep "${SETTLE:-1.5}"; }
 expand() { ui expand "$1"; sleep "${SETTLE:-1.5}"; }

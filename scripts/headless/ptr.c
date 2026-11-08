@@ -32,6 +32,13 @@ int main(void) {
       uint32_t b = line[0] == 'c' ? 272 : 273;
       btn(p, b, 1); wl_display_roundtrip(d); wait_ms(80); btn(p, b, 0);
     }
+    else if (line[0] == 'b' || line[0] == 'f') {
+      /* "b [ms [dx]]": hold the side button for ms, moving dx px halfway through */
+      int b = line[0] == 'b' ? 275 : 276, ms = 80, dx = 0; sscanf(line + 1, "%d %d", &ms, &dx);
+      btn(p, b, 1); wl_display_roundtrip(d); wait_ms(ms / 2);
+      if (dx) { zwlr_virtual_pointer_v1_motion(p, now(), wl_fixed_from_int(dx), 0); zwlr_virtual_pointer_v1_frame(p); wl_display_roundtrip(d); }
+      wait_ms(ms - ms / 2); btn(p, b, 0);
+    }
     wl_display_roundtrip(d);
   }
   return 0;

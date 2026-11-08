@@ -59,7 +59,7 @@ func (c *Cache) SetLimit(ctx context.Context, bytes int64) error {
 	c.limit, c.full = bytes, false
 	c.mu.Unlock()
 	if raised {
-		go c.syncAll(context.WithoutCancel(ctx), all)
+		c.Spawn(func() { c.syncAll(c.ctx, all) })
 	}
 	err := c.evict(ctx, source.Ref{}, false)
 	c.changed()
@@ -144,7 +144,7 @@ func (c *Cache) keepLocal(ctx context.Context, r Rule, keep bool) error {
 	c.mu.Unlock()
 	key := localPrefix + r.ID
 	if keep {
-		go c.syncAll(context.WithoutCancel(ctx), func(k string) bool { return k == key })
+		c.Spawn(func() { c.syncAll(c.ctx, func(k string) bool { return k == key }) })
 	} else {
 		c.syncAll(ctx, none)
 	}
