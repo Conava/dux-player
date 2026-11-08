@@ -145,7 +145,7 @@ A clone without `--recursive` has no `dux-qml-common`: run `git submodule update
 Dux Player only contacts the servers you add, except for these features, each of which can be turned off in Settings:
 
 - **Artist information:** artist names are sent to MusicBrainz, Wikidata and Wikipedia, and to fanart.tv once you add your own API key. Last.fm gets them too, through the app's built-in API key or your own. Biographies from Wikipedia are available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
-- **Lyrics:** on by default. Title, artist, album and length of the playing track, of the next track while lyrics are open, and of downloaded tracks are sent to the enabled lyrics providers. Turn lyrics off in Settings → Lyrics and no provider is contacted; turn off Lyrics for downloaded tracks to send only tracks you play. Matching lyrics timing to the audio runs on this device and sends nothing.
+- **Lyrics:** on by default. Title, artist and length of the playing track, of the next track while lyrics are open, and of downloaded tracks are sent to the enabled lyrics providers. Turn lyrics off in Settings → Lyrics and no provider is contacted; turn off Lyrics for downloaded tracks to send only tracks you play. Matching lyrics timing to the audio runs on this device and sends nothing.
 - **Scrobbling:** played tracks are sent to ListenBrainz or Last.fm when you connect an account, from server libraries too unless you turn that off for a library. Last.fm uses the app's built-in API account; if you prefer, enter your own [API account](https://www.last.fm/api/account/create).
 
 ## Contributing

@@ -452,16 +452,20 @@ func TestAudioFitMovesWordTiming(t *testing.T) {
 		return read(bytes.NewReader(audio))
 	}
 	track := source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"}
+	fitted := func(res *duxlyrics.Result) (float64, bool) {
+		known, ok := s.measure(track, res, true, func() ([]float64, bool) { return s.audioAttacks(context.Background(), track) })
+		return known.Shift, ok && known.Confident
+	}
 	res := &duxlyrics.Result{Found: true, Source: duxlyrics.KuGou, Lyrics: duxlyrics.Lyrics{Synced: lines}}
-	shift, ok := s.fitted(context.Background(), track, res)
+	shift, ok := fitted(res)
 	require.True(t, ok)
 	assert.InDelta(t, 0.9, shift, 0.025)
-	_, ok = s.fitted(context.Background(), track, res)
+	_, ok = fitted(res)
 	require.True(t, ok)
 	assert.Equal(t, 1, decodes, "a track is decoded once")
 
 	res.Source = duxlyrics.Sidecar
-	_, ok = s.fitted(context.Background(), track, res)
+	_, ok = fitted(res)
 	assert.False(t, ok)
 
 	res.Source = duxlyrics.BetterLyrics
@@ -470,12 +474,10 @@ func TestAudioFitMovesWordTiming(t *testing.T) {
 		other = append(other, at)
 	}
 	audio = stereo(other, nil, 44)
-	_, ok = s.fitted(context.Background(), track, res)
+	_, ok = fitted(res)
 	assert.False(t, ok, "audio the words don't fit moves nothing")
 	s.cfg.AudioTiming = func() bool { return false }
-	res.Source = duxlyrics.LRCLIB
-	_, ok = s.fitted(context.Background(), track, res)
-	assert.False(t, ok, "off in settings")
+	assert.False(t, s.canFit(res), "off in settings")
 }
 
 // Lines every few seconds, as sung.
@@ -549,13 +551,146 @@ func TestLineFitCarriesItsShiftToTheShownSource(t *testing.T) {
 	top := &duxlyrics.Result{Found: true, Source: duxlyrics.KuGou, Lyrics: duxlyrics.Lyrics{Synced: shown}}
 	line := &duxlyrics.Result{Found: true, Source: duxlyrics.LRCLIB, Lyrics: duxlyrics.Lyrics{Synced: reference}}
 
-	shift, ok := s.linesFitted(context.Background(), track, top, []*duxlyrics.Result{top, line})
+	attacksOf := func() ([]float64, bool) { return s.audioAttacks(context.Background(), track) }
+	shift, ok := s.linesFitted(track, top, []*duxlyrics.Result{top, line}, attacksOf)
 	require.True(t, ok, "the source that can be measured speaks for the one shown")
 	assert.InDelta(t, 3.7, shift, 0.05)
+}
 
-	own := &duxlyrics.Result{Found: true, Source: duxlyrics.Sidecar, Lyrics: duxlyrics.Lyrics{Synced: shown}}
-	_, ok = s.linesFitted(context.Background(), track, own, []*duxlyrics.Result{own, line})
-	assert.False(t, ok, "a lyrics file of the user's own is never moved")
+// With the audio measured, the source that lands on the recording is shown;
+// when none does, the timing tier and the order decide as before.
+func TestDecidePicksTheSourceOnTheRecording(t *testing.T) {
+	type fit struct {
+		shift     float64
+		confident bool
+	}
+	result := func(src duxlyrics.Provider, words bool) *duxlyrics.Result {
+		lines := make([]duxlyrics.Line, 40)
+		for i := range lines {
+			at := duxlyrics.Seconds(10 + 4*i)
+			lines[i] = duxlyrics.Line{Start: at, Text: fmt.Sprintf("line %d", i)}
+			if words {
+				lines[i].Words = []duxlyrics.Word{{Start: at, Text: "line"}, {Start: at + 1, Text: fmt.Sprint(i)}}
+			}
+		}
+		return &duxlyrics.Result{Found: true, Source: src, Lyrics: duxlyrics.Lyrics{Synced: lines}}
+	}
+	kugou, lrclib, better := duxlyrics.KuGou, duxlyrics.LRCLIB, duxlyrics.BetterLyrics
+	tests := []struct {
+		name  string
+		words []duxlyrics.Provider // word-timed; the others are line-timed
+		fits  map[duxlyrics.Provider]fit
+		want  duxlyrics.Provider
+		shift float64
+	}{
+		{"an on-time word source beats an on-time line source", []duxlyrics.Provider{kugou},
+			map[duxlyrics.Provider]fit{kugou: {0.1, false}, better: {0, false}}, kugou, 0},
+		{"an on-time line source beats a drifting word source", []duxlyrics.Provider{kugou},
+			map[duxlyrics.Provider]fit{kugou: {-1.8, false}, better: {-0.14, false}, lrclib: {-3.08, false}}, better, 0},
+		{"between on-time line sources the order decides", nil,
+			map[duxlyrics.Provider]fit{lrclib: {0.06, false}, better: {-0.3, false}}, better, 0},
+		{"a sure on-time fit is applied", nil,
+			map[duxlyrics.Provider]fit{better: {-0.9, false}, lrclib: {0.3, true}}, lrclib, 0.3},
+		{"none on time: the word source as before", []duxlyrics.Provider{kugou},
+			map[duxlyrics.Provider]fit{kugou: {-1.8, false}, lrclib: {-3.08, false}}, kugou, 0},
+		{"none on time: a sure shift is applied as before", []duxlyrics.Provider{kugou},
+			map[duxlyrics.Provider]fit{kugou: {2, true}, lrclib: {-3.08, false}}, kugou, 2},
+		{"an unsure shift is never applied", []duxlyrics.Provider{kugou},
+			map[duxlyrics.Provider]fit{kugou: {0.3, false}}, kugou, 0},
+		{"a lyrics file beside the track is never overridden", nil,
+			map[duxlyrics.Provider]fit{duxlyrics.Sidecar: {-3, true}, ServerSource: {0, true}}, duxlyrics.Sidecar, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := quietService(t, t.TempDir(), func(string, any) {}, nil)
+			var all []Provider
+			for _, p := range defaultProviders() {
+				all = append(all, Provider{ID: p.ID, Enabled: true})
+			}
+			_, err := s.providers.set(all)
+			require.NoError(t, err)
+			s.cfg.AudioTiming = func() bool { return true }
+			s.cfg.AudioFile = func(context.Context, source.Ref) (string, bool) { return "/x", true }
+			s.cfg.Decode = func(context.Context, string, func(io.Reader) error) error { return errors.New("no audio") }
+			track := source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"}
+			var results []*duxlyrics.Result
+			for src, f := range tt.fits {
+				r := result(src, slices.Contains(tt.words, src))
+				name, _ := fitName(track, r, slices.Contains(tt.words, src))
+				s.storeFit(name, fitResult{Shift: f.shift, Confident: f.confident})
+				results = append(results, r)
+			}
+			got := s.decide(context.Background(), track, results)
+			assert.Equal(t, tt.want, got.Source)
+			assert.InDelta(t, 10+tt.shift, float64(got.Synced[0].Start), 0.001)
+		})
+	}
+}
+
+// Lookups leave the album out, and a song only found without its length or
+// in the cache entries stored with the album is still found.
+func TestFindRetriesWithoutLengthAndAlbum(t *testing.T) {
+	synced := func(text string) *duxlyrics.Lyrics {
+		return &duxlyrics.Lyrics{Synced: []duxlyrics.Line{{Start: 1, Text: text}}}
+	}
+	none := &duxlyrics.Lyrics{}
+	byLength := func(with, without *duxlyrics.Lyrics, err error) func(duxlyrics.Request) (*duxlyrics.Lyrics, error) {
+		return func(r duxlyrics.Request) (*duxlyrics.Lyrics, error) {
+			if r.Duration > 0 {
+				return with, err
+			}
+			return without, nil
+		}
+	}
+	tests := []struct {
+		name   string
+		answer func(duxlyrics.Request) (*duxlyrics.Lyrics, error)
+		cached bool   // the provider answered a lookup with the album once
+		want   string // the synced line shown, "" for none
+	}{
+		{"found with the length", byLength(synced("with"), none, nil), false, "with"},
+		{"found only without the length", byLength(none, synced("without"), nil), false, "without"},
+		{"synced without the length beats plain with it", byLength(&duxlyrics.Lyrics{Plain: "plain"}, synced("without"), nil), false, "without"},
+		{"synced with the length beats other lyrics without it", byLength(synced("with"), synced("without"), nil), false, "with"},
+		{"a failed lookup isn't asked again without the length", byLength(nil, synced("without"), errors.New("offline")), false, ""},
+		{"cached with the album", func(r duxlyrics.Request) (*duxlyrics.Lyrics, error) {
+			if r.Album != "" {
+				return synced("album"), nil
+			}
+			return none, nil
+		}, true, "album"},
+		{"nowhere", byLength(none, none, nil), false, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var albums atomic.Int32
+			client := duxlyrics.New(duxlyrics.Options{CacheDir: t.TempDir(), Resolve: func(duxlyrics.Provider) (duxlyrics.Source, bool) {
+				return duxlyrics.Source{Fetch: func(_ context.Context, r duxlyrics.Request) (*duxlyrics.Lyrics, error) {
+					if r.Album != "" {
+						albums.Add(1)
+					}
+					return tt.answer(r)
+				}}, true
+			}})
+			s := quietService(t, t.TempDir(), func(string, any) {}, nil)
+			track := source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a", Album: "Single", Duration: 236}
+			req, _ := s.request(context.Background(), track, nil)
+			req.Providers = []duxlyrics.Provider{"fake"}
+			if tt.cached {
+				old := req
+				old.Album = track.Album
+				_, err := client.Lookup(context.Background(), old)
+				require.NoError(t, err)
+				albums.Store(0)
+			}
+			got := ""
+			if res, err := find(context.Background(), client, req, track.Album); err == nil && res.Found && len(res.Synced) > 0 {
+				got = res.Synced[0].Text
+			}
+			assert.Equal(t, tt.want, got)
+			assert.Zero(t, albums.Load(), "no provider is asked with the album")
+		})
+	}
 }
 
 type countingLib struct {
