@@ -647,19 +647,22 @@ func TestFindRetriesWithoutLengthAndAlbum(t *testing.T) {
 		answer func(duxlyrics.Request) (*duxlyrics.Lyrics, error)
 		cached bool   // the provider answered a lookup with the album once
 		want   string // the synced line shown, "" for none
+		first  bool   // the first show, which takes the first synced answer
 	}{
-		{"found with the length", byLength(synced("with"), none, nil), false, "with"},
-		{"found only without the length", byLength(none, synced("without"), nil), false, "without"},
-		{"synced without the length beats plain with it", byLength(&duxlyrics.Lyrics{Plain: "plain"}, synced("without"), nil), false, "without"},
-		{"synced with the length beats other lyrics without it", byLength(synced("with"), synced("without"), nil), false, "with"},
-		{"a failed lookup isn't asked again without the length", byLength(nil, synced("without"), errors.New("offline")), false, ""},
+		{"found with the length", byLength(synced("with"), none, nil), false, "with", false},
+		{"found only without the length", byLength(none, synced("without"), nil), false, "without", false},
+		{"synced without the length beats plain with it", byLength(&duxlyrics.Lyrics{Plain: "plain"}, synced("without"), nil), false, "without", false},
+		{"synced with the length beats other lyrics without it", byLength(synced("with"), synced("without"), nil), false, "with", false},
+		{"word timing without the length beats line timing with it", byLength(synced("with"), &duxlyrics.Lyrics{Synced: []duxlyrics.Line{{Start: 1, Text: "words", Words: []duxlyrics.Word{{Start: 1, Text: "words"}}}}}, nil), false, "words", false},
+		{"the first show takes line timing with the length", byLength(synced("with"), &duxlyrics.Lyrics{Synced: []duxlyrics.Line{{Start: 1, Text: "words", Words: []duxlyrics.Word{{Start: 1, Text: "words"}}}}}, nil), false, "with", true},
+		{"a failed lookup isn't asked again without the length", byLength(nil, synced("without"), errors.New("offline")), false, "", false},
 		{"cached with the album", func(r duxlyrics.Request) (*duxlyrics.Lyrics, error) {
 			if r.Album != "" {
 				return synced("album"), nil
 			}
 			return none, nil
-		}, true, "album"},
-		{"nowhere", byLength(none, none, nil), false, ""},
+		}, true, "album", false},
+		{"nowhere", byLength(none, none, nil), false, "", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -684,7 +687,7 @@ func TestFindRetriesWithoutLengthAndAlbum(t *testing.T) {
 				albums.Store(0)
 			}
 			got := ""
-			if res, err := find(context.Background(), client, req, track.Album); err == nil && res.Found && len(res.Synced) > 0 {
+			if res, err := find(context.Background(), client, req, track.Album, !tt.first); err == nil && res.Found && len(res.Synced) > 0 {
 				got = res.Synced[0].Text
 			}
 			assert.Equal(t, tt.want, got)
@@ -898,6 +901,215 @@ func TestTimingOffset(t *testing.T) {
 			if tt.want == 0 && len(tt.steps) > 0 {
 				assert.NoFileExists(t, s.offsetPath(key(track)))
 			}
+		})
+	}
+}
+
+// Word timing that drifts against a line source is laid onto that source's
+// lines one by one, keeping the rhythm within each line.
+func TestAnchoredLaysWordsOnTheLineTiming(t *testing.T) {
+	gap := 0.0 // an instrumental before line 20, in seconds
+	lineAt := func(i int) float64 {
+		if i >= 20 {
+			return 10 + 4*float64(i) + gap
+		}
+		return 10 + 4*float64(i)
+	}
+	plain := func(i int) string { return fmt.Sprintf("Line %d!", i) }
+	lines := func(text func(int) string) []duxlyrics.Line {
+		out := make([]duxlyrics.Line, 40)
+		for i := range out {
+			out[i] = duxlyrics.Line{Start: duxlyrics.Seconds(lineAt(i)), Text: text(i)}
+		}
+		return out
+	}
+	// drift: 6 s late at the start, 8 s at the end
+	words := func(text func(int) string, last float64) []duxlyrics.Line {
+		out := make([]duxlyrics.Line, 40)
+		for i := range out {
+			at := duxlyrics.Seconds(lineAt(i) + 6 + 2*float64(i)/float64(len(out)))
+			if i >= 20 && gap > 0 {
+				at-- // its instrumental is a second shorter
+			}
+			out[i] = duxlyrics.Line{Start: at, Text: text(i), Words: []duxlyrics.Word{
+				{Start: at, Text: "line"}, {Start: at + duxlyrics.Seconds(last), Text: fmt.Sprint(i)},
+			}}
+		}
+		return out
+	}
+	same := func(i int) string { return fmt.Sprintf("line %d", i) }
+	tests := []struct {
+		name  string
+		text  func(int) string
+		last  float64 // when the second word starts within its line
+		ok    bool
+		check func(t *testing.T, got []duxlyrics.Line)
+		lines func(int) string // the line source's text, plain when nil
+		gap   float64
+	}{
+		{"each line lands on the line source's start, its rhythm kept", same, 1, true, func(t *testing.T, got []duxlyrics.Line) {
+			for i, l := range got {
+				assert.InDelta(t, lineAt(i), float64(l.Start), 0.001, "line %d", i)
+				assert.InDelta(t, lineAt(i)+1, float64(l.Words[1].Start), 0.001, "line %d", i)
+			}
+		}, nil, 0},
+		{"unmatched lines move as their matched neighbours do", func(i int) string {
+			if i == 0 || i == 20 || i == 39 {
+				return "something else"
+			}
+			return same(i)
+		}, 1, true, func(t *testing.T, got []duxlyrics.Line) {
+			assert.InDelta(t, lineAt(20), float64(got[20].Start), 0.001, "between two matched lines")
+			assert.InDelta(t, lineAt(0), float64(got[0].Start), 0.06, "before the first matched line")
+			assert.InDelta(t, lineAt(39), float64(got[39].Start), 0.06, "after the last matched line")
+		}, nil, 0},
+		{"a word never runs past the next line", same, 5, true, func(t *testing.T, got []duxlyrics.Line) {
+			for i, l := range got[:len(got)-1] {
+				assert.LessOrEqual(t, float64(l.Words[1].Start), float64(got[i+1].Start), "line %d", i)
+			}
+		}, nil, 0},
+		{"too few lines in common: nothing", func(i int) string {
+			if i%5 == 0 {
+				return same(i)
+			}
+			return fmt.Sprintf("other %d", i)
+		}, 1, false, nil, nil, 0},
+		{"a repeated chorus keeps each repeat on its own line", func(i int) string {
+			// the word source sings the chorus once more, one line early
+			if i >= 9 && i <= 13 {
+				return "chorus"
+			}
+			return same(i)
+		}, 1, true, func(t *testing.T, got []duxlyrics.Line) {
+			for i := 10; i <= 13; i++ {
+				assert.InDelta(t, lineAt(i), float64(got[i].Start), 0.001, "line %d", i)
+			}
+		}, func(i int) string {
+			if i >= 10 && i <= 13 {
+				return "Chorus!"
+			}
+			return plain(i)
+		}, 0},
+		{"no word lands in an instrumental", func(i int) string {
+			if i == 20 {
+				return "something else"
+			}
+			return same(i)
+		}, 1, true, func(t *testing.T, got []duxlyrics.Line) {
+			for i, l := range got {
+				for _, w := range l.Words {
+					if i < 20 {
+						assert.LessOrEqual(t, float64(w.Start), lineAt(19)+1.001, "line %d", i)
+					} else {
+						assert.GreaterOrEqual(t, float64(w.Start), lineAt(20)-0.06, "line %d", i)
+					}
+				}
+			}
+		}, nil, 30},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gap = tt.gap
+			text := tt.lines
+			if text == nil {
+				text = plain
+			}
+			w := &duxlyrics.Result{Found: true, Source: duxlyrics.KuGou, Lyrics: duxlyrics.Lyrics{Synced: words(tt.text, tt.last)}}
+			l := &duxlyrics.Result{Found: true, Source: duxlyrics.LRCLIB, Lyrics: duxlyrics.Lyrics{Synced: lines(text)}}
+			got, ok := anchored(w, l)
+			require.Equal(t, tt.ok, ok)
+			if ok {
+				tt.check(t, got.Synced)
+			}
+		})
+	}
+}
+
+// A line source on the recording takes a word source's words when, laid on
+// its lines, they land on the recording too.
+func TestDecideKeepsWordsLaidOnAnOnTimeLineSource(t *testing.T) {
+	result := func(src duxlyrics.Provider, late float64, words bool) *duxlyrics.Result {
+		lines := make([]duxlyrics.Line, 40)
+		for i := range lines {
+			at := duxlyrics.Seconds(10 + 4*float64(i) + late)
+			lines[i] = duxlyrics.Line{Start: at, Text: fmt.Sprintf("line %d", i)}
+			if words {
+				lines[i].Words = []duxlyrics.Word{{Start: at, Text: "line"}, {Start: at + 1, Text: fmt.Sprint(i)}}
+			}
+		}
+		return &duxlyrics.Result{Found: true, Source: src, Lyrics: duxlyrics.Lyrics{Synced: lines}}
+	}
+	tests := []struct {
+		name     string
+		hasWords bool
+		line     float64 // the line source's measured shift
+		laid     float64 // the laid copy's measured shift
+		words    bool
+		source   duxlyrics.Provider
+		start    float64
+	}{
+		{"laid on time: words on the line timing", true, 0.1, -0.2, true, duxlyrics.LRCLIB, 10},
+		{"laid but off: the line source as before", true, 0.1, -1, false, duxlyrics.LRCLIB, 10},
+		{"no word source: the line source as before", false, 0.1, 0, false, duxlyrics.LRCLIB, 10},
+		{"no line source on time: as before", true, -3, 0, true, duxlyrics.KuGou, 16},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := quietService(t, t.TempDir(), func(string, any) {}, nil)
+			var all []Provider
+			for _, p := range defaultProviders() {
+				all = append(all, Provider{ID: p.ID, Enabled: true})
+			}
+			_, err := s.providers.set(all)
+			require.NoError(t, err)
+			s.cfg.AudioTiming = func() bool { return true }
+			s.cfg.AudioFile = func(context.Context, source.Ref) (string, bool) { return "/x", true }
+			s.cfg.Decode = func(context.Context, string, func(io.Reader) error) error { return errors.New("no audio") }
+			track := source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"}
+			line := result(duxlyrics.LRCLIB, 0, false)
+			name, _ := fitName(track, line, false)
+			s.storeFit(name, fitResult{Shift: tt.line})
+			results := []*duxlyrics.Result{line}
+			if tt.hasWords {
+				word := result(duxlyrics.KuGou, 6, true)
+				name, _ := fitName(track, word, true)
+				s.storeFit(name, fitResult{Shift: -1.8})
+				laid, ok := anchored(word, line)
+				require.True(t, ok)
+				name, _ = anchoredFitName(track, word, laid)
+				s.storeFit(name, fitResult{Shift: tt.laid})
+				results = append(results, word)
+			}
+			got := s.decide(context.Background(), track, results)
+			assert.Equal(t, tt.source, got.Source)
+			assert.Equal(t, tt.words, tier(answer{res: got}) == 2)
+			assert.InDelta(t, tt.start, float64(got.Synced[0].Start), 0.001)
+		})
+	}
+}
+
+// A better pick replaces what is shown, also when only its timing tier differs.
+func TestRetimedSeesABetterPick(t *testing.T) {
+	result := func(src duxlyrics.Provider, start duxlyrics.Seconds, words bool) *duxlyrics.Result {
+		line := duxlyrics.Line{Start: start, Text: "line"}
+		if words {
+			line.Words = []duxlyrics.Word{{Start: start, Text: "line"}}
+		}
+		return &duxlyrics.Result{Found: true, Source: src, Lyrics: duxlyrics.Lyrics{Synced: []duxlyrics.Line{line}}}
+	}
+	tests := []struct {
+		name string
+		a, b *duxlyrics.Result
+		want bool
+	}{
+		{"the same", result(duxlyrics.LRCLIB, 1, false), result(duxlyrics.LRCLIB, 1, false), false},
+		{"another source", result(duxlyrics.LRCLIB, 1, false), result(duxlyrics.KuGou, 1, false), true},
+		{"moved", result(duxlyrics.LRCLIB, 1, false), result(duxlyrics.LRCLIB, 2, false), true},
+		{"word timing on the same lines", result(duxlyrics.LRCLIB, 1, false), result(duxlyrics.LRCLIB, 1, true), true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, retimed(tt.a, tt.b))
 		})
 	}
 }
