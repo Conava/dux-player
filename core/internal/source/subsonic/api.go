@@ -240,7 +240,7 @@ func (c *Client) CreatePlaylist(ctx context.Context, playlistID, name string, so
 	} else {
 		params.Set("name", name)
 	}
-	_, err := c.call(ctx, "createPlaylist", params, &out)
+	_, err := c.callForm(ctx, "createPlaylist", params, &out)
 	if err == nil && playlistID == "" && out.Playlist.ID == "" {
 		return out.Playlist, fmt.Errorf("createPlaylist: server returned no playlist")
 	}
@@ -268,7 +268,7 @@ func (c *Client) UpdatePlaylist(ctx context.Context, id string, name *string, ad
 	for _, i := range removeIdx {
 		params.Add("songIndexToRemove", strconv.Itoa(i))
 	}
-	_, err := c.call(ctx, "updatePlaylist", params, nil)
+	_, err := c.callForm(ctx, "updatePlaylist", params, nil)
 	return err
 }
 

@@ -226,13 +226,19 @@ func (c *Client) authParams(st serverState) url.Values {
 	return q
 }
 
-func (c *Client) endpoint(st serverState, method string, params url.Values) string {
+// restURL is the method's URL and its auth params merged with params.
+func (c *Client) restURL(st serverState, method string, params url.Values) (*url.URL, url.Values) {
 	q := c.authParams(st)
 	for k, vs := range params {
 		q[k] = vs
 	}
 	u := *c.base
 	u.Path += "/rest/" + method
+	return &u, q
+}
+
+func (c *Client) endpoint(st serverState, method string, params url.Values) string {
+	u, q := c.restURL(st, method, params)
 	u.RawQuery = q.Encode()
 	return u.String()
 }
@@ -244,11 +250,22 @@ type httpStatusError struct {
 
 func (e *httpStatusError) Error() string { return fmt.Sprintf("%s: HTTP %d", e.method, e.code) }
 
-// get does one request. Errors never carry the URL: it holds the
-// credentials.
-func (c *Client) get(ctx context.Context, st serverState, method string, params url.Values) (*http.Response, error) {
+// get does one request: a GET, or with post a form POST that keeps the
+// parameters and credentials out of the URL. Errors never carry the URL: it
+// holds the credentials.
+func (c *Client) get(ctx context.Context, st serverState, method string, params url.Values, post bool) (*http.Response, error) {
 	ctx, cancel := context.WithTimeout(ctx, source.CallTimeout)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.endpoint(st, method, params), nil)
+	var req *http.Request
+	var err error
+	if post {
+		u, body := c.restURL(st, method, params)
+		req, err = http.NewRequestWithContext(ctx, http.MethodPost, u.String(), strings.NewReader(body.Encode()))
+		if req != nil {
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		}
+	} else {
+		req, err = http.NewRequestWithContext(ctx, http.MethodGet, c.endpoint(st, method, params), nil)
+	}
 	if err != nil {
 		cancel()
 		return nil, fmt.Errorf("%s: build request", method)
@@ -295,7 +312,11 @@ type envelope struct {
 // raw does a request with the given state and decodes the
 // "subsonic-response" object into out.
 func (c *Client) raw(ctx context.Context, st serverState, method string, params url.Values, out any) (envelope, error) {
-	resp, err := c.get(ctx, st, method, params)
+	return c.rawVia(ctx, st, method, params, out, false)
+}
+
+func (c *Client) rawVia(ctx context.Context, st serverState, method string, params url.Values, out any, post bool) (envelope, error) {
+	resp, err := c.get(ctx, st, method, params, post)
 	if err != nil {
 		return envelope{}, err
 	}
@@ -331,13 +352,24 @@ func (c *Client) unsupported(ctx context.Context, err error) bool {
 
 // call signs in (probing the server on first use) and does one API call.
 func (c *Client) call(ctx context.Context, method string, params url.Values, out any) (envelope, error) {
+	return c.callVia(ctx, method, params, out, false)
+}
+
+// callForm is call for methods that take long parameter lists: it sends a
+// form POST when the server advertises formPost.
+func (c *Client) callForm(ctx context.Context, method string, params url.Values, out any) (envelope, error) {
+	return c.callVia(ctx, method, params, out, true)
+}
+
+func (c *Client) callVia(ctx context.Context, method string, params url.Values, out any, form bool) (envelope, error) {
 	if !c.supports(method) {
 		return envelope{}, fmt.Errorf("%s: %w", method, ErrUnsupported)
 	}
 	if err := c.ensureProbed(ctx); err != nil {
 		return envelope{}, err
 	}
-	env, err := c.raw(ctx, c.state(), method, params, out)
+	st := c.state()
+	env, err := c.rawVia(ctx, st, method, params, out, form && slices.Contains(st.Extensions, "formPost"))
 	if err != nil && c.unsupported(ctx, err) {
 		c.markUnsupported(method)
 		return env, fmt.Errorf("%s: %w", method, ErrUnsupported)
@@ -530,7 +562,7 @@ func (c *Client) CoverArt(ctx context.Context, id string, size int) ([]byte, str
 	if size > 0 {
 		params.Set("size", fmt.Sprint(size))
 	}
-	resp, err := c.get(ctx, c.state(), "getCoverArt", params)
+	resp, err := c.get(ctx, c.state(), "getCoverArt", params, false)
 	if err != nil {
 		return nil, "", err
 	}

@@ -39,6 +39,9 @@ type fakeServer struct {
 	mu         sync.Mutex
 	queries    map[string]url.Values
 	log        []url.Values
+	// verbs and rawQueries record the HTTP method and the URL query of the last request per method.
+	verbs      map[string]string
+	rawQueries map[string]string
 }
 
 func authMode(q url.Values) string {
@@ -63,12 +66,18 @@ func (f *fakeServer) authorized(q url.Values) bool {
 }
 
 func newFake(t *testing.T, password string, bodies map[string]string) *fakeServer {
-	f := &fakeServer{password: password, bodies: bodies, queries: map[string]url.Values{}, accepts: []string{AuthToken}, rejectCode: 40}
+	f := &fakeServer{password: password, bodies: bodies, queries: map[string]url.Values{}, verbs: map[string]string{}, rawQueries: map[string]string{}, accepts: []string{AuthToken}, rejectCode: 40}
 	// TLS: signing in with the password itself needs https.
 	f.Server = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		method := strings.TrimPrefix(r.URL.Path, "/rest/")
 		q := r.URL.Query()
+		rawQuery := r.URL.RawQuery
+		if r.Method == http.MethodPost {
+			_ = r.ParseForm()
+			q = r.PostForm
+		}
 		f.mu.Lock()
+		f.verbs[method], f.rawQueries[method] = r.Method, rawQuery
 		f.queries[method] = q
 		f.log = append(f.log, q)
 		accepts, code := f.accepts, f.rejectCode
@@ -220,6 +229,38 @@ func TestPlaylistEditsSendRepeatedParams(t *testing.T) {
 	assert.Equal(t, "Renamed", q.Get("name"))
 	assert.Equal(t, []string{"c"}, q["songIdToAdd"])
 	assert.Equal(t, []string{"0", "3"}, q["songIndexToRemove"])
+}
+
+func TestPlaylistWritesUseFormPostWhenAdvertised(t *testing.T) {
+	create := strings.Replace(okEnvelope, "%s", `,"playlist":{"id":"p1","name":"Mix","songCount":1,"owner":"demo"}`, 1)
+	ext := strings.Replace(okEnvelope, "%s", `,"openSubsonicExtensions":[{"name":"formPost","versions":[1]}]`, 1)
+	ids := make([]string, 500)
+	for i := range ids {
+		ids[i] = fmt.Sprintf("song-%d", i)
+	}
+	for _, tc := range []struct {
+		name, verb string
+		bodies     map[string]string
+	}{
+		{"advertised", http.MethodPost, map[string]string{"createPlaylist": create, "updatePlaylist": strings.Replace(okEnvelope, "%s", "", 1), "getOpenSubsonicExtensions": ext}},
+		{"classic", http.MethodGet, map[string]string{"createPlaylist": create, "updatePlaylist": strings.Replace(okEnvelope, "%s", "", 1)}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFake(t, "demo", tc.bodies)
+			s := newSource(t, f, "demo")
+			_, err := s.CreatePlaylist(context.Background(), "Mix", ids)
+			require.NoError(t, err)
+			require.NoError(t, s.UpdatePlaylist(context.Background(), "p1", source.PlaylistEdit{Add: ids}))
+			for _, m := range []string{"createPlaylist", "updatePlaylist"} {
+				assert.Equal(t, tc.verb, f.verbs[m], m)
+				if tc.verb == http.MethodPost {
+					assert.Empty(t, f.rawQueries[m], "no parameters or credentials in the URL")
+				}
+			}
+			assert.Equal(t, ids, f.query("createPlaylist")["songId"])
+			assert.Equal(t, ids, f.query("updatePlaylist")["songIdToAdd"])
+		})
+	}
 }
 
 // net/http puts the full request URL, token included, into its errors.
