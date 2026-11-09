@@ -83,11 +83,11 @@ Singleton {
             "queued": 0
         })
     // cache.status: {limit, used, count, queued, downloading, full, pinned, pinnedOverLimit,
-    // libraries: [{library, used, count, rules}], localRules}; a rule: {kind, id, limit, key, local, tracks,
-    // cached, size}
+    // libraries: [{library, used, count, excluded}], rules}; a rule: {library ("" = all servers), kind, id,
+    // limit, key, local (a local playlist), tracks, cached, size}
     property var cache: ({
             "libraries": [],
-            "localRules": []
+            "rules": []
         })
     // "library|key" of rules removed but held back by an Undo toast
     property var hiddenRules: ({})
@@ -261,10 +261,19 @@ Singleton {
 
     // Cache for server libraries
 
-    // a library's offline rules ("" for the local playlists kept on this device), without those held back
-    function cacheRules(libraryId) {
-        const rules = libraryId === "" ? cache.localRules ?? [] : (cache.libraries ?? []).find(c => c.library === libraryId)?.rules ?? [];
-        return rules.filter(r => !hiddenRules[libraryId + "|" + r.key]);
+    // every offline rule, server and local, without those held back
+    function cacheRules() {
+        return (cache.rules ?? []).filter(r => !hiddenRules[(r.library ?? "") + "|" + r.key]);
+    }
+
+    // the rules that apply to one server library: scoped to it, or to all servers
+    function rulesFor(libraryId) {
+        return cacheRules().filter(r => !r.local && (r.library === libraryId || (r.library ?? "") === ""));
+    }
+
+    // a server library's status entry {library, used, count, excluded}, or {}
+    function cacheLibrary(libraryId) {
+        return (cache.libraries ?? []).find(c => c.library === libraryId) ?? {};
     }
 
     // the capability a server needs to list a rule kind's tracks; "" when any server can
@@ -282,10 +291,11 @@ Singleton {
         return "";
     }
 
+    // scope: a server library, "" for all servers (or, with kind playlist, a local playlist);
     // limit: {songs} or {bytes}, for played and mostPlayed
-    function addCacheRule(libraryId, kind, id, limit) {
+    function addCacheRule(scope, kind, id, limit) {
         const params = {
-            "library": libraryId,
+            "library": scope,
             "kind": kind
         };
         if (id)
@@ -295,12 +305,19 @@ Singleton {
         DaemonBridge.request("cache.addRule", params, I18n.tr("Couldn't keep it on this device", "toast when adding an offline rule fails"));
     }
 
-    function updateCacheRule(libraryId, kind, limit) {
-        DaemonBridge.request("cache.updateRule", {
-            "library": libraryId,
-            "kind": kind,
-            "limit": limit
-        }, I18n.tr("Couldn't save the offline setting", "toast when an offline cache setting is refused"));
+    // changes: {limit} and/or {scope}
+    function updateCacheRule(rule, changes) {
+        const params = {
+            "library": rule.library ?? "",
+            "kind": rule.kind
+        };
+        if (rule.id)
+            params.id = rule.id;
+        if (changes.limit !== undefined)
+            params.limit = changes.limit;
+        if (changes.scope !== undefined)
+            params.scope = changes.scope;
+        DaemonBridge.request("cache.updateRule", params, I18n.tr("Couldn't save the offline setting", "toast when an offline cache setting is refused"));
     }
 
     // done() once the status without the rule is in, or the removal failed
@@ -351,7 +368,7 @@ Singleton {
             };
         const lib = id.substring(0, cut);
         const raw = id.substring(cut + 1);
-        const rules = cacheRules(lib);
+        const rules = lib === "" ? cacheRules().filter(r => r.local) : rulesFor(lib);
         const kept = rules.some(r => r.kind === kind && r.id === raw);
         if (lib === "")
             return {
@@ -359,7 +376,7 @@ Singleton {
                 "kept": kept,
                 "blocker": ""
             };
-        const everything = rules.some(r => r.kind === "everything");
+        const everything = rules.some(r => r.kind === "everything") && CatalogService.hasCapability(lib, "browse");
         return {
             "shown": CatalogService.isRemote(lib) && CatalogService.hasCapability(lib, ruleCapability(kind)),
             "kept": kept || everything,
@@ -415,13 +432,33 @@ Singleton {
         }, I18n.tr("Couldn't save the offline setting", "toast when an offline cache setting is refused"));
     }
 
-    // done(list of {track, size, added, used}), most recently used first
-    function cacheList(libraryId, done) {
-        DaemonBridge.request("cache.list", {
-            "library": libraryId
-        }, I18n.tr("Couldn't load downloaded tracks", "toast when the offline cache's track list can't be read"), list => done(list.map(c => Object.assign({}, c, {
-                    "track": Catalog.track(c.track)
-                }))));
+    // failed() on an error; done({total, items}); items are {track, size, added, used, played, rules, excluded}, the excluded tracks
+    // first when excludedOnly is off, then the copies most recently used first
+    function cacheTracks(libraryId, offset, limit, excludedOnly, done, failed) {
+        DaemonBridge.request("cache.tracks", {
+            "library": libraryId,
+            "offset": offset,
+            "limit": limit,
+            "excluded": excludedOnly
+        }, I18n.tr("Couldn't load downloaded tracks", "toast when the offline cache's track list can't be read"), r => done({
+                "total": r.total,
+                "items": (r.items ?? []).map(c => Object.assign({}, c, {
+                        "track": Catalog.track(c.track)
+                    }))
+            }), failed);
+    }
+
+    function deleteDownload(track, exclude, then, failed) {
+        DaemonBridge.request("cache.delete", {
+            "track": Catalog.refsOf([track])[0],
+            "exclude": exclude
+        }, I18n.tr("Couldn't delete the download", "toast when deleting one downloaded track fails"), then, failed);
+    }
+
+    function includeDownload(track, then, failed) {
+        DaemonBridge.request("cache.include", {
+            "track": Catalog.refsOf([track])[0]
+        }, I18n.tr("Couldn't download it again", "toast when lifting a track's exclusion fails"), then, failed);
     }
 
     function clearCache(libraryId) {

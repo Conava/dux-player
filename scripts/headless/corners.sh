@@ -23,9 +23,35 @@ audit "element options"
 shot element-options
 ui elementOptions ""
 
-for page in libraries general appearance pages nowplaying nowplaying/bar nowplaying/side nowplaying/fullBento nowplaying/fullM3e playback lyrics scrobble devices integrations about; do
+for page in libraries downloads general appearance pages nowplaying nowplaying/bar nowplaying/side nowplaying/fullBento nowplaying/fullM3e playback lyrics scrobble devices integrations about; do
     ui settings "$page"
     audit "$page"
+    [ "$page" = downloads ] && shot downloads
 done
+
+server=$(rpc libraries.list '{}' 100000 | python3 -I -c 'import json,sys
+d = json.load(sys.stdin)
+for l in (d.get("result", d) if isinstance(d, dict) else d):
+    if l.get("kind") == "subsonic":
+        print(l["id"]); break')
+if [ -n "$server" ]; then
+    # a rule in General and one in the library card, the card open and then closed
+    rpc cache.addRule '{"kind":"favorites"}' >/dev/null
+    rpc cache.addRule "{\"library\":\"$server\",\"kind\":\"album\",\"id\":\"al-1-2\"}" >/dev/null
+    ui settings downloads
+    audit "downloads with rules"
+    shot downloads-rules
+    ask press Server 0 >/dev/null
+    audit "downloads, library card closed"
+    shot downloads-closed
+    ask press Server 0 >/dev/null
+    for page in "downloads/$server" "downloads/excluded:$server"; do
+        ui settings "$page"
+        audit "$page"
+        shot "$(echo "$page" | tr '/:' '--')"
+    done
+else
+    echo "skip downloads/<server> and downloads/excluded:<server> (no server, run with SERVER=1)" >>"$W/out/facts.txt"
+fi
 
 [ "$failed" = 0 ]

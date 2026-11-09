@@ -27,6 +27,14 @@ DFloatingWindow {
             "icon": "library_music"
         },
         {
+            "id": "downloads",
+            "group": 0,
+            "accent": "green",
+            "label": I18n.tr("Downloads", "the offline downloads: page, settings tab"),
+            "hint": I18n.tr("Storage and offline rules", "settings sidebar tab hint"),
+            "icon": "download"
+        },
+        {
             "id": "general",
             "group": 1,
             "accent": "purple",
@@ -254,6 +262,8 @@ DFloatingWindow {
 
     function pageFile(id) {
         switch (id) {
+        case "downloads":
+            return "DownloadsSettings.qml";
         case "playback":
             return "PlaybackSettings.qml";
         case "lyrics":
@@ -692,10 +702,19 @@ DFloatingWindow {
     }
 
     Connections {
+        target: SettingsService
+
+        function onCacheChanged() {
+            window.markStale("downloads");
+        }
+    }
+
+    Connections {
         target: PlayerService
 
         function onLibrariesChanged() {
             window.markStale("libraries");
+            window.markStale("downloads");
             window.markStale("scrobble");
         }
 

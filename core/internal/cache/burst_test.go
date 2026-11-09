@@ -1,4 +1,4 @@
-package main
+package cache
 
 import (
 	"context"
@@ -16,7 +16,7 @@ func TestBurstRunsOncePerBurst(t *testing.T) {
 	var runs, other atomic.Int32
 	entered := make(chan struct{}, 8)
 	release := make(chan struct{})
-	b := burst{run: func(_ context.Context, key string) {
+	b := Burst{Run: func(_ context.Context, key string) {
 		if key == "other" {
 			other.Add(1)
 			return
@@ -24,14 +24,14 @@ func TestBurstRunsOncePerBurst(t *testing.T) {
 		runs.Add(1)
 		entered <- struct{}{}
 		<-release
-	}, spawn: func(f func()) bool { go f(); return true }}
+	}, Spawn: func(f func()) bool { go f(); return true }}
 	ctx := context.Background()
-	b.trigger(ctx, "lib")
+	b.Trigger(ctx, "lib")
 	<-entered
 	for range 100 {
-		b.trigger(ctx, "lib")
+		b.Trigger(ctx, "lib")
 	}
-	b.trigger(ctx, "other")
+	b.Trigger(ctx, "other")
 	require.Eventually(t, func() bool { return other.Load() == 1 }, time.Second, time.Millisecond, "keys don't wait for each other")
 	close(release)
 
@@ -43,6 +43,6 @@ func TestBurstRunsOncePerBurst(t *testing.T) {
 	require.Eventually(t, idle, time.Second, time.Millisecond)
 	assert.Equal(t, int32(2), runs.Load())
 
-	b.trigger(ctx, "lib")
+	b.Trigger(ctx, "lib")
 	require.Eventually(t, func() bool { return runs.Load() == 3 }, time.Second, time.Millisecond, "a later change runs again")
 }

@@ -100,7 +100,7 @@ func (c *Cache) QueueChanged(ctx context.Context, q player.QueueSnapshot) {
 
 // replan works out the window: nothing while stopped or casting (the cast
 // device fetches for itself), else the current server track and the next
-// ones.
+// ones that aren't excluded.
 func (c *Cache) replan(ctx context.Context) {
 	c.pre.planMu.Lock()
 	defer c.pre.planMu.Unlock()
@@ -110,11 +110,11 @@ func (c *Cache) replan(ctx context.Context) {
 	var cur *source.Track
 	var next []source.Track
 	if st.State != player.StateStopped && !st.Casting && st.Track != nil && q != nil {
-		if c.cfg.Libraries.Server(st.Track.Library) {
+		if c.cfg.Libraries.Server(st.Track.Library) && !c.isExcluded(st.Track.Ref()) {
 			cur = st.Track
 		}
 		for _, t := range q.Upcoming(st.Index, min(n, maxPrefetch)) {
-			if c.cfg.Libraries.Server(t.Library) {
+			if c.cfg.Libraries.Server(t.Library) && !c.isExcluded(t.Ref()) {
 				next = append(next, t)
 			}
 		}

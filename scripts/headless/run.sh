@@ -381,6 +381,63 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function settings(page: string): void {
             Router.openSettings(page);
         }
+        // clicks the nth visible control of the settings window or its dialogs labelled `label` (text, title or tooltip); a negative n counts
+        // from the last. Returns the number of matches, 0 when nothing was pressed.
+        function press(label: string, n: int): int {
+            const hits = [];
+            const walk = item => {
+                if (!item || !item.visible)
+                    return;
+                const match = (item.text === label || item.title === label || item.tooltipText === label) && typeof item.clicked === "function";
+                if (match)
+                    hits.push(item);
+                // a button wrapping another with the same label counts once
+                for (const child of item.children) {
+                    if (match && child.tooltipText === label)
+                        continue;
+                    walk(child);
+                }
+            };
+            // from the window's root item: dialogs move there, next to the content item
+            walk(settingsLoader.item?.contentItem?.Window.window?.contentItem);
+            const hit = hits[n < 0 ? hits.length + n : n];
+            hit?.clicked();
+            return hit ? hits.length : 0;
+        }
+        // the number of visible items of the settings window or its dialogs labelled `label` (text, title or tooltip),
+        // not counting those inside one
+        function shown(label: string): int {
+            let n = 0;
+            const walk = item => {
+                if (!item || !item.visible)
+                    return;
+                if (item.text === label || item.title === label || item.tooltipText === label) {
+                    n++;
+                    return;
+                }
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(settingsLoader.item?.contentItem?.Window.window?.contentItem);
+            return n;
+        }
+        // clicks the row labelled `label` of an open picker sheet in the settings window; true when one was pressed
+        function pick(label: string): bool {
+            let hit = null;
+            const walk = item => {
+                if (!item || !item.visible || hit)
+                    return;
+                if (item.modelData?.label === label && typeof item.clicked === "function") {
+                    hit = item;
+                    return;
+                }
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(settingsLoader.item?.contentItem?.Window.window?.contentItem);
+            hit?.clicked();
+            return hit !== null;
+        }
         function look(mode: string, style: string): void {
             SettingsData.themeMode = mode;
             UiConfig.setNowPlaying({
@@ -470,6 +527,42 @@ for i in 1 2 3 4 5 6 7 8; do
         "$album/$i.flac" || exit 1
 done
 
+# SERVER=1: files and a manifest for fakesubsonic.py, which session.sh adds as a server library.
+if [ -n "${SERVER:-}" ]; then
+    mkdir -p "$W/server"
+    n=0
+    {
+        printf '{"artists": ['
+        sep_artist=
+        for spec in "Server Artist One|First Light:7,Second Wind:6" "Server Artist Two|Night Drive:8"; do
+            artist=${spec%%|*}
+            printf '%s{"name": "%s", "albums": [' "$sep_artist" "$artist"
+            sep_artist=,
+            sep_album=
+            IFS=, read -ra list <<<"${spec#*|}"
+            for entry in "${list[@]}"; do
+                name=${entry%%:*}
+                dir="$W/server/$artist/$name"
+                mkdir -p "$dir"
+                printf '%s{"name": "%s", "year": %d, "genre": "Electronic", "tracks": [' "$sep_album" "$name" "$((2018 + n % 5))"
+                sep_album=,
+                for i in $(seq 1 "${entry#*:}"); do
+                    n=$((n + 1))
+                    duration=$((40 + n * 3))
+                    ffmpeg -loglevel error -f lavfi -i "sine=frequency=$((180 + n * 37)):duration=$duration" \
+                        -metadata title="$name $i" -metadata artist="$artist" -metadata album="$name" -metadata track="$i" \
+                        "$dir/$i.flac" </dev/null || exit 1
+                    [ "$i" -gt 1 ] && printf ','
+                    printf '{"title": "%s %d", "track": %d, "duration": %d, "path": "%s"}' "$name" "$i" "$i" "$duration" "$dir/$i.flac"
+                done
+                printf ']}'
+            done
+            printf ']}'
+        done
+        printf ']}\n'
+    } >"$W/server/manifest.json" || exit 1
+fi
+
 # Icon lookups only cost what they cost on a real desktop with a real theme.
 [ -f "$HOME/.config/qtengine/config.json" ] && cp "$HOME/.config/qtengine/config.json" "$W/config/qtengine/"
 
@@ -477,7 +570,7 @@ env -i LANG=C.UTF-8 USER="$USER" HOME="$W/home" PATH="$W/bin:$repo/core/bin:/usr
     XDG_CONFIG_HOME="$W/config" XDG_STATE_HOME="$W/state" XDG_CACHE_HOME="$W/cache" XDG_DATA_HOME="$W/data" \
     XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/share}" QT_QPA_PLATFORMTHEME=qtengine DPLAYER_WINRULES=off DPLAYER_CAST=off DPLAYER_BACKEND="${DPLAYER_BACKEND:-}" \
     DPLAYER_DISABLE_HOT_RELOAD=1 HYPRLAND_NO_SD_NOTIFY=1 HYPRLAND_NO_SD_VARS=1 HYPRLAND_NO_CRASHREPORTER=1 \
-    W="$W" LIB="$here/lib.sh" SCENARIO="$scenario" \
+    W="$W" LIB="$here/lib.sh" SCENARIO="$scenario" SERVER="${SERVER:-}" \
     timeout -k 30 "${HEADLESS_TIMEOUT:-420}" dbus-run-session -- bash "$here/session.sh"
 status=$?
 

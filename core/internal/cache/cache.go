@@ -1,10 +1,11 @@
 // Package cache keeps copies of server tracks on disk, so they play while the
-// server is unreachable. Each server library has offline rules; a copy stays
-// while a rule holds it. The size limit evicts only what the dynamic rules
-// (played, mostPlayed) hold, least recently played first.
+// server is unreachable. Offline rules cover one server library or all of
+// them; a copy stays while a rule holds it. The size limit evicts only what
+// the dynamic rules (played, mostPlayed) hold, least recently played first.
 package cache
 
 import (
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"database/sql"
@@ -38,7 +39,8 @@ const (
 	// TopicStored carries each source.Track that was just kept on this device.
 	TopicStored = "cacheStored"
 
-	// configKey holds a library's offline rules in its library config.
+	// configKey held a library's offline rules in its library config, before
+	// they moved to cache.json.
 	configKey = "cache"
 
 	DefaultLimit = 10e9
@@ -92,6 +94,13 @@ var migrations = []string{
 		gain       REAL NOT NULL,
 		PRIMARY KEY (library_id, id)
 	);`,
+	// Tracks no rule or prefetch downloads; track is the last copy's snapshot.
+	`CREATE TABLE excluded (
+		library_id TEXT NOT NULL,
+		id         TEXT NOT NULL,
+		track      TEXT NOT NULL,
+		PRIMARY KEY (library_id, id)
+	);`,
 }
 
 type Config struct {
@@ -128,14 +137,27 @@ type Cache struct {
 	client *http.Client
 	stall  time.Duration
 
-	mu      sync.Mutex
-	limit   int64
-	queue   []job
-	queued  map[source.Ref]bool
-	wanted  map[source.Ref]bool
-	current *job
-	// top is each library's tracks by play count, for mostPlayed rules.
+	mu     sync.Mutex
+	limit  int64
+	queue  []job
+	queued map[source.Ref]bool
+	wanted map[source.Ref]bool
+	// excluded mirrors the excluded table.
+	excluded map[source.Ref]bool
+	current  *job
+	// top is each library's tracks by play count, for mostPlayed rules; ""
+	// holds those of every server library.
 	top map[string][]source.Track
+	// topFailed is when reading the play counts last failed; zero after a
+	// success.
+	topFailed time.Time
+	// ruleList holds the offline rules, as saved in cache.json;
+	// unknownRules the saved entries this version can't read.
+	ruleList     []Rule
+	unknownRules []any
+	// rulesUnread is set while cache.json couldn't be read at the start:
+	// the rules are unknown, not gone, so nothing is dropped for them.
+	rulesUnread bool
 	// cancel stops the current download.
 	cancel context.CancelFunc
 	full   bool
@@ -145,9 +167,16 @@ type Cache struct {
 	wake   chan struct{}
 	// probing holds one probe at a time.
 	probing chan struct{}
-	// fileMu orders the read-modify-writes of cache.json.
-	fileMu sync.Mutex
-	pre    prefetch
+	// fileMu orders the read-modify-writes of cache.json; rulesMu the rule
+	// edits; exMu the exclusion edits against setCover and store, so no rule
+	// covers and no copy is stored of a track that was just excluded. exMu
+	// goes before mu.
+	fileMu  sync.Mutex
+	rulesMu sync.Mutex
+	exMu    sync.Mutex
+	pre     prefetch
+	// includes coalesces the syncs Include starts per library.
+	includes Burst
 
 	// ctx ends at Close; work holds the goroutines Close waits for.
 	ctx    context.Context
@@ -167,10 +196,18 @@ func Open(ctx context.Context, cfg Config) (*Cache, error) {
 	tr := http.DefaultTransport.(*http.Transport).Clone()
 	tr.ResponseHeaderTimeout = 30 * time.Second
 	c := &Cache{cfg: cfg, db: db, client: &http.Client{Transport: tr, CheckRedirect: source.SameOrigin}, stall: stallTimeout, limit: loadLimit(cfg.ConfigDir),
-		queued: map[source.Ref]bool{}, wanted: map[source.Ref]bool{}, online: map[string]bool{}, top: map[string][]source.Track{},
+		queued: map[source.Ref]bool{}, wanted: map[source.Ref]bool{}, excluded: map[source.Ref]bool{}, online: map[string]bool{}, top: map[string][]source.Track{},
 		wake: make(chan struct{}, 1), probing: make(chan struct{}, 1),
 		pre: prefetch{buf: map[source.Ref]*buffered{}, wake: make(chan struct{}, 1), tracks: 1}}
 	c.ctx, c.stop = context.WithCancel(context.Background())
+	c.includes.Run = func(ctx context.Context, lib string) { c.Sync(ctx, lib, all) }
+	c.includes.Spawn = c.Spawn
+	c.loadRules()
+	if err := c.loadExcluded(ctx); err != nil {
+		c.stop()
+		db.Close()
+		return nil, fmt.Errorf("read the excluded tracks: %w", err)
+	}
 	if err := c.migrate(ctx); err != nil {
 		c.stop()
 		db.Close()
@@ -315,7 +352,18 @@ func (c *Cache) Snapshot(ctx context.Context, ref source.Ref) (source.Track, boo
 	return t, json.Unmarshal([]byte(data), &t) == nil
 }
 
-// rules reads a library's offline rules; only server libraries cache.
+func (c *Cache) loadRules() {
+	m, err := readFile(c.cfg.ConfigDir)
+	if err != nil {
+		log.Warnf("cache: the rules in cache.json are unreadable: %v", err)
+	}
+	c.ruleList, c.unknownRules = parseRules(m["rules"], "")
+	c.rulesUnread = err != nil
+}
+
+// rules lists the rules that apply to a server library: its own and those
+// for all server libraries it can resolve. Only enabled server libraries
+// cache.
 func (c *Cache) rules(ctx context.Context, libID string) ([]Rule, source.Source, bool) {
 	lib, err := c.cfg.Libraries.Library(ctx, libID)
 	if err != nil || !lib.Enabled {
@@ -328,54 +376,98 @@ func (c *Cache) rules(ctx context.Context, libID string) ([]Rule, source.Source,
 	if _, remote := src.(source.Pinger); !remote {
 		return nil, nil, false
 	}
-	return parseRules(lib.Config[configKey]), src, true
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	out := []Rule{}
+	for _, r := range c.ruleList {
+		if r.Library == libID || (r.Library == "" && supports(src, r.Kind)) {
+			out = append(out, r)
+		}
+	}
+	return out, src, true
 }
 
-// editRules applies edit to a server library's rules and saves them, keeping
-// the config keys this version doesn't know.
-func (c *Cache) editRules(ctx context.Context, libID string, edit func([]Rule, source.Source) ([]Rule, error)) error {
-	rules, src, ok := c.rules(ctx, libID)
-	if !ok {
-		return fmt.Errorf("library %s isn't a working server library", libID)
+// servers lists the libraries rules apply to.
+func (c *Cache) servers(ctx context.Context) ([]string, error) {
+	infos, err := c.cfg.Libraries.List(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list the libraries: %w", err)
 	}
-	rules, err := edit(rules, src)
+	var out []string
+	for _, info := range infos {
+		if _, _, ok := c.rules(ctx, info.ID); ok {
+			out = append(out, info.ID)
+		}
+	}
+	return out, nil
+}
+
+// editRules applies edit to the rules and saves them to cache.json.
+func (c *Cache) editRules(edit func([]Rule) ([]Rule, error)) error {
+	return c.editAll(func(list []Rule, unknown []any) ([]Rule, []any, error) {
+		list, err := edit(list)
+		return list, unknown, err
+	})
+}
+
+// editAll is editRules with the entries this version can't read.
+func (c *Cache) editAll(edit func([]Rule, []any) ([]Rule, []any, error)) error {
+	c.rulesMu.Lock()
+	defer c.rulesMu.Unlock()
+	c.mu.Lock()
+	list, unknown := slices.Clone(c.ruleList), slices.Clone(c.unknownRules)
+	c.mu.Unlock()
+	list, unknown, err := edit(list, unknown)
 	if err != nil {
 		return err
 	}
-	lib, err := c.cfg.Libraries.Library(ctx, libID)
-	if err != nil {
-		return err
+	out := make([]any, 0, len(list)+len(unknown))
+	for _, r := range list {
+		out = append(out, r.saved())
 	}
-	m := map[string]any{}
-	if old, ok := lib.Config[configKey].(map[string]any); ok {
-		maps.Copy(m, old)
-	}
-	m["rules"] = rules
-	if err := c.cfg.Libraries.SetConfig(ctx, libID, configKey, m); err != nil {
+	if err := c.writeKey("rules", append(out, unknown...)); err != nil {
 		return err
 	}
 	c.mu.Lock()
-	c.full = false
+	c.ruleList, c.unknownRules, c.full, c.rulesUnread = list, unknown, false, false
 	c.mu.Unlock()
-	c.cfg.Libraries.PublishChanges(ctx)
 	return nil
 }
 
-// AddRule adds an offline rule and syncs it; lib "" with kind playlist keeps
-// a local playlist, which can hold tracks of every server library.
-func (c *Cache) AddRule(ctx context.Context, libID string, r Rule) error {
+// checkScope says whether a rule of kind can cover scope: a working server
+// library that resolves it, or "" for all of them.
+func (c *Cache) checkScope(ctx context.Context, scope, kind string) error {
+	if scope == "" {
+		return nil
+	}
+	_, src, ok := c.rules(ctx, scope)
+	if !ok {
+		return fmt.Errorf("library %s isn't a working server library", scope)
+	}
+	if !supports(src, kind) {
+		return fmt.Errorf("this server can't keep %s offline", kind)
+	}
+	return nil
+}
+
+// AddRule adds an offline rule for library scope, "" for all server
+// libraries, and syncs it; scope "" with kind playlist keeps a local
+// playlist, which can hold tracks of every server library.
+func (c *Cache) AddRule(ctx context.Context, scope string, r Rule) error {
+	r.ID = source.Clean(r.ID)
+	if scope == "" && r.Kind == KindPlaylist {
+		return c.keepLocal(ctx, r, true)
+	}
+	r.Library = scope
 	r, err := validRule(r)
 	if err != nil {
 		return err
 	}
-	if libID == "" {
-		return c.keepLocal(ctx, r, true)
+	if err := c.checkScope(ctx, r.Library, r.Kind); err != nil {
+		return err
 	}
-	err = c.editRules(ctx, libID, func(rules []Rule, src source.Source) ([]Rule, error) {
-		if !supports(src, r.Kind) {
-			return nil, fmt.Errorf("this server can't keep %s offline", r.Kind)
-		}
-		if slices.ContainsFunc(rules, func(x Rule) bool { return x.key() == r.key() }) {
+	err = c.editRules(func(rules []Rule) ([]Rule, error) {
+		if slices.ContainsFunc(rules, r.same) {
 			return nil, errUnchanged
 		}
 		return append(rules, r), nil
@@ -386,49 +478,154 @@ func (c *Cache) AddRule(ctx context.Context, libID string, r Rule) error {
 	if err != nil {
 		return err
 	}
-	c.Spawn(func() { c.Sync(c.ctx, libID, func(k string) bool { return k == r.key() }) })
+	c.Spawn(func() {
+		for _, lib := range c.scopeLibraries(c.ctx, r.Library) {
+			c.Sync(c.ctx, lib, func(k string) bool { return k == r.key() })
+		}
+	})
 	c.changed()
 	return nil
 }
 
+// scopeLibraries lists the libraries a rule of scope covers.
+func (c *Cache) scopeLibraries(ctx context.Context, scope string) []string {
+	if scope != "" {
+		return []string{scope}
+	}
+	libs, err := c.servers(ctx)
+	if err != nil {
+		log.Warnf("cache: %v", err)
+	}
+	return libs
+}
+
 var errUnchanged = errors.New("unchanged")
 
-// UpdateRule changes a dynamic rule's limit.
-func (c *Cache) UpdateRule(ctx context.Context, libID, kind string, l Limit) error {
-	if err := validLimit(&l); err != nil {
-		return err
-	}
-	err := c.editRules(ctx, libID, func(rules []Rule, _ source.Source) ([]Rule, error) {
-		i := slices.IndexFunc(rules, func(x Rule) bool { return x.Kind == kind && x.dynamic() })
-		if i < 0 {
-			return nil, fmt.Errorf("the library has no %s rule", kind)
+// globalKinds can cover all server libraries at once.
+var globalKinds = []string{KindEverything, KindFavorites, KindPlayed, KindMostPlayed}
+
+// UpdateRule changes a dynamic rule's limit, or moves a rule to another
+// scope ("" for all server libraries); nil leaves either as it is.
+func (c *Cache) UpdateRule(ctx context.Context, scope, kind, id string, limit *Limit, newScope *string) error {
+	old := Rule{Kind: kind, ID: source.Clean(id), Library: scope}
+	if limit != nil {
+		if err := validLimit(limit); err != nil {
+			return err
 		}
-		rules[i].Limit = &l
+	}
+	moved := newScope != nil && *newScope != scope
+	if moved {
+		if !slices.Contains(globalKinds, kind) {
+			return fmt.Errorf("a %s rule can't change its library", kind)
+		}
+		if err := c.checkScope(ctx, *newScope, kind); err != nil {
+			return err
+		}
+	}
+	var r Rule
+	err := c.editRules(func(rules []Rule) ([]Rule, error) {
+		i := slices.IndexFunc(rules, old.same)
+		if i < 0 {
+			return nil, errors.New("there is no such rule")
+		}
+		r = rules[i]
+		if limit != nil {
+			if !r.dynamic() {
+				return nil, fmt.Errorf("a %s rule has no limit", kind)
+			}
+			l := *limit
+			r.Limit = &l
+		}
+		if moved {
+			r.Library = *newScope
+			if slices.ContainsFunc(rules, r.same) {
+				return nil, errors.New("that library already has this rule")
+			}
+			// Before the rule changes, so no sync drops the old key first: the
+			// new key takes over its rows in the library both scopes reach,
+			// and the copies stay even when the server can't be listed now.
+			if lib := cmp.Or(scope, *newScope); scope == "" || *newScope == "" {
+				if _, err := c.db.ExecContext(ctx, `INSERT OR IGNORE INTO covers (library_id, id, rule, static)
+					SELECT library_id, id, ?, static FROM covers WHERE library_id = ? AND rule = ?`, r.key(), lib, old.key()); err != nil {
+					return nil, err
+				}
+			}
+		}
+		rules[i] = r
 		return rules, nil
 	})
 	if err != nil {
 		return err
 	}
-	c.Spawn(func() { c.Sync(c.ctx, libID, none) })
+	libs := c.scopeLibraries(ctx, scope)
+	if moved {
+		libs = c.scopeLibraries(ctx, "")
+		if scope != "" && *newScope != "" {
+			libs = []string{scope, *newScope}
+		}
+	}
+	// The new key covers its tracks before the old one is dropped, so the
+	// copies both hold stay.
+	c.Spawn(func() {
+		for _, lib := range libs {
+			if r.dynamic() {
+				c.refresh(c.ctx, lib, true)
+			}
+			c.Sync(c.ctx, lib, func(k string) bool { return k == r.key() })
+		}
+	})
 	c.changed()
 	return nil
 }
 
 // RemoveRule removes a rule and deletes the copies no other rule holds.
-func (c *Cache) RemoveRule(ctx context.Context, libID string, r Rule) error {
+func (c *Cache) RemoveRule(ctx context.Context, scope string, r Rule) error {
 	r.ID = source.Clean(r.ID)
-	if libID == "" {
+	if scope == "" && r.Kind == KindPlaylist {
 		return c.keepLocal(ctx, r, false)
 	}
-	err := c.editRules(ctx, libID, func(rules []Rule, _ source.Source) ([]Rule, error) {
-		return slices.DeleteFunc(rules, func(x Rule) bool { return x.key() == r.key() }), nil
+	r.Library = scope
+	err := c.editRules(func(rules []Rule) ([]Rule, error) {
+		return slices.DeleteFunc(rules, r.same), nil
 	})
 	if err != nil {
 		return err
 	}
-	c.Sync(ctx, libID, none)
+	for _, lib := range c.scopeLibraries(ctx, scope) {
+		c.Sync(ctx, lib, none)
+	}
 	c.changed()
 	return nil
+}
+
+// forgetLibraries drops the rules and exclusions of libraries that were
+// removed; infos lists every library.
+func (c *Cache) forgetLibraries(infos []library.Info) {
+	known := map[string]bool{}
+	for _, info := range infos {
+		known[info.ID] = true
+	}
+	c.forgetExclusions(known)
+	gone := func(r Rule) bool { return r.Library != "" && !known[r.Library] }
+	goneRaw := func(v any) bool {
+		m, _ := v.(map[string]any)
+		lib, _ := m["library"].(string)
+		return lib != "" && !known[lib]
+	}
+	c.mu.Lock()
+	stale := slices.ContainsFunc(c.ruleList, gone) || slices.ContainsFunc(c.unknownRules, goneRaw)
+	c.mu.Unlock()
+	if !stale {
+		return
+	}
+	err := c.editAll(func(rules []Rule, unknown []any) ([]Rule, []any, error) {
+		return slices.DeleteFunc(rules, gone), slices.DeleteFunc(unknown, goneRaw), nil
+	})
+	if err != nil {
+		log.Warnf("cache: drop the rules of removed libraries: %v", err)
+		return
+	}
+	c.changed()
 }
 
 func hasKind(rules []Rule, kind string) bool {
@@ -463,12 +660,14 @@ func (c *Cache) HistoryChanged(ctx context.Context, libID string) {
 	}
 }
 
-// LibrariesChanged syncs the libraries that just became available.
+// LibrariesChanged drops the rules and exclusions of removed libraries and
+// syncs the libraries that just became available.
 func (c *Cache) LibrariesChanged(ctx context.Context) {
 	infos, err := c.cfg.Libraries.List(ctx)
 	if err != nil {
 		return
 	}
+	c.forgetLibraries(infos)
 	var back []string
 	c.mu.Lock()
 	for _, info := range infos {
@@ -485,7 +684,7 @@ func (c *Cache) LibrariesChanged(ctx context.Context) {
 
 // Favorited resyncs a library's favorites rule after a favorite changed.
 func (c *Cache) Favorited(ctx context.Context, libID string) {
-	c.Sync(ctx, libID, func(k string) bool { return k == KindFavorites })
+	c.Sync(ctx, libID, func(k string) bool { return k == KindFavorites || k == allPrefix+KindFavorites })
 }
 
 // PlaylistChanged resyncs a server playlist's rule after it was edited.
@@ -551,27 +750,103 @@ func (c *Cache) Sync(ctx context.Context, libID string, match func(key string) b
 
 // refresh recomputes a library's dynamic rules (reading the play counts
 // again when top is set), deletes what they let go and updates the queue.
+// The rules for all server libraries rank the copies of every library, so
+// they are recomputed in each.
 func (c *Cache) refresh(ctx context.Context, libID string, top bool) {
 	rules, _, ok := c.rules(ctx, libID)
 	if !ok {
 		return
 	}
-	if top && hasKind(rules, KindMostPlayed) && c.cfg.MostPlayed != nil {
-		if list, err := c.cfg.MostPlayed(ctx); err != nil {
-			log.Warnf("cache: read play counts: %v", err)
-		} else {
-			mine := []source.Track{}
-			for _, t := range list {
-				if t.Library == libID && len(mine) < maxSongs {
-					mine = append(mine, t)
-				}
-			}
-			c.mu.Lock()
-			c.top[libID] = mine
-			c.mu.Unlock()
+	global := slices.ContainsFunc(rules, func(r Rule) bool { return r.dynamic() && r.Library == "" })
+	var servers []string
+	if global {
+		var err error
+		if servers, err = c.servers(ctx); err != nil {
+			// Unknown, not empty: ranking without them would let copies go.
+			log.Warnf("cache: library %s: %v", libID, err)
+			return
 		}
 	}
-	lost, fetch, err := c.dynamic(ctx, libID, rules)
+	libs := servers
+	if !slices.Contains(libs, libID) {
+		libs = append(slices.Clone(libs), libID)
+	}
+	if c.cfg.MostPlayed != nil && ((top && hasKind(rules, KindMostPlayed)) || c.needTop(libs, global)) {
+		c.readTop(ctx, libs, global)
+	}
+	c.recompute(ctx, libID, rules, servers)
+	for _, lib := range servers {
+		if lib == libID {
+			continue
+		}
+		if rules, _, ok := c.rules(ctx, lib); ok {
+			c.recompute(ctx, lib, rules, servers)
+		}
+	}
+}
+
+// topRetry is how long a failed read of the play counts waits before a
+// refresh that doesn't ask for them reads them again.
+const topRetry = time.Minute
+
+// needTop says whether a mostPlayed rule exists while the play counts of
+// libs (and of every server library when global) aren't read yet, as after
+// the start or a clear.
+func (c *Cache) needTop(libs []string, global bool) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !hasKind(c.ruleList, KindMostPlayed) || time.Since(c.topFailed) < topRetry {
+		return false
+	}
+	_, have := c.top[""]
+	missing := global && !have
+	for _, lib := range libs {
+		_, have := c.top[lib]
+		missing = missing || !have
+	}
+	return missing
+}
+
+// readTop reads the play counts into top: each library's of libs, and when
+// global those of all of them together.
+func (c *Cache) readTop(ctx context.Context, libs []string, global bool) {
+	list, err := c.cfg.MostPlayed(ctx)
+	c.mu.Lock()
+	first := c.topFailed.IsZero()
+	c.topFailed = time.Time{}
+	if err != nil {
+		c.topFailed = time.Now()
+	}
+	c.mu.Unlock()
+	if err != nil {
+		if first {
+			log.Warnf("cache: read play counts: %v", err)
+		}
+		return
+	}
+	each := map[string][]source.Track{}
+	every := []source.Track{}
+	for _, lib := range libs {
+		each[lib] = []source.Track{}
+	}
+	for _, t := range list {
+		if mine, ok := each[t.Library]; ok && len(mine) < maxSongs {
+			each[t.Library] = append(mine, t)
+		}
+		if global && slices.Contains(libs, t.Library) && len(every) < maxSongs {
+			every = append(every, t)
+		}
+	}
+	c.mu.Lock()
+	maps.Copy(c.top, each)
+	if global {
+		c.top[""] = every
+	}
+	c.mu.Unlock()
+}
+
+func (c *Cache) recompute(ctx context.Context, libID string, rules []Rule, servers []string) {
+	lost, fetch, err := c.dynamic(ctx, libID, rules, servers)
 	if err != nil {
 		log.Warnf("cache: library %s: dynamic rules: %v", libID, err)
 	}
@@ -643,7 +918,7 @@ func (c *Cache) enqueue(tracks []source.Track, sync bool) {
 	c.mu.Lock()
 	for _, t := range tracks {
 		ref := t.Ref()
-		if c.queued[ref] || (sync && c.full) || have[ref.Library][ref.ID] {
+		if c.queued[ref] || c.excluded[ref] || (sync && c.full) || have[ref.Library][ref.ID] {
 			continue
 		}
 		c.queued[ref] = true
@@ -730,15 +1005,7 @@ func (c *Cache) fetch(ctx context.Context, j job) error {
 		}
 		m = c.measure(ctx, t, file)
 	}
-	data, _ := json.Marshal(t)
-	played := "0"
-	if !j.sync {
-		played = "unixepoch()"
-	}
-	if _, err := c.db.ExecContext(ctx, `INSERT OR REPLACE INTO entries (library_id, id, file, size, added, used, track, gain, played,
-		silence_start, silence_end) VALUES (?, ?, ?, ?, unixepoch(), unixepoch(), ?, ?, `+played+`, ?, ?)`,
-		ref.Library, ref.ID, file, size, string(data), m.gain, m.start, m.end); err != nil {
-		os.Remove(file)
+	if stored, err := c.store(ctx, j, file, size, m); !stored {
 		return err
 	}
 	if cov, ok := src.(source.CoverArt); ok && t.CoverID != "" {
@@ -754,6 +1021,31 @@ func (c *Cache) fetch(ctx context.Context, j job) error {
 		c.cfg.Publish(TopicStored, t)
 	}
 	return nil
+}
+
+// store adds a downloaded copy to the index, unless it was excluded while
+// it downloaded; exMu keeps Delete from running between the check and the
+// row.
+func (c *Cache) store(ctx context.Context, j job, file string, size int64, m measured) (bool, error) {
+	ref := j.track.Ref()
+	c.exMu.Lock()
+	defer c.exMu.Unlock()
+	if c.isExcluded(ref) {
+		os.Remove(file)
+		return false, nil
+	}
+	data, _ := json.Marshal(j.track)
+	played := "0"
+	if !j.sync {
+		played = "unixepoch()"
+	}
+	if _, err := c.db.ExecContext(ctx, `INSERT OR REPLACE INTO entries (library_id, id, file, size, added, used, track, gain, played,
+		silence_start, silence_end) VALUES (?, ?, ?, ?, unixepoch(), unixepoch(), ?, ?, `+played+`, ?, ?)`,
+		ref.Library, ref.ID, file, size, string(data), m.gain, m.start, m.end); err != nil {
+		os.Remove(file)
+		return false, err
+	}
+	return true, nil
 }
 
 // measured is a measurement for the index; nil fields weren't measured.
@@ -1182,12 +1474,12 @@ type RuleStatus struct {
 	Size   int64  `json:"size"`
 }
 
-// LibraryStatus is one server library's rules and usage.
+// LibraryStatus is one server library's usage.
 type LibraryStatus struct {
-	Library string       `json:"library"`
-	Rules   []RuleStatus `json:"rules"`
-	Used    int64        `json:"used"`
-	Count   int          `json:"count"`
+	Library  string `json:"library"`
+	Used     int64  `json:"used"`
+	Count    int    `json:"count"`
+	Excluded int    `json:"excluded"`
 }
 
 type Status struct {
@@ -1203,8 +1495,9 @@ type Status struct {
 	Pinned          int64           `json:"pinned"`
 	PinnedOverLimit bool            `json:"pinnedOverLimit"`
 	Libraries       []LibraryStatus `json:"libraries"`
-	// LocalRules are the local playlists kept on this device.
-	LocalRules []RuleStatus `json:"localRules"`
+	// Rules are the server rules, then the local playlists kept on this
+	// device.
+	Rules []RuleStatus `json:"rules"`
 }
 
 type usage struct {
@@ -1213,7 +1506,7 @@ type usage struct {
 }
 
 // ruleUsage adds up each rule's coverage per library ("" for local
-// playlists, summed over libraries).
+// playlists and rules for all server libraries, summed over libraries).
 func (c *Cache) ruleUsage(ctx context.Context) (map[string]map[string]usage, error) {
 	rows, err := c.db.QueryContext(ctx, `SELECT c.library_id, c.rule, count(*), count(e.id), coalesce(sum(e.size), 0)
 		FROM covers c LEFT JOIN entries e USING (library_id, id) GROUP BY c.library_id, c.rule`)
@@ -1228,7 +1521,7 @@ func (c *Cache) ruleUsage(ctx context.Context) (map[string]map[string]usage, err
 		if err := rows.Scan(&lib, &key, &u.tracks, &u.cached, &u.size); err != nil {
 			return nil, err
 		}
-		if strings.HasPrefix(key, localPrefix) {
+		if strings.HasPrefix(key, localPrefix) || strings.HasPrefix(key, allPrefix) {
 			lib = ""
 		}
 		if out[lib] == nil {
@@ -1249,7 +1542,7 @@ func ruleStatus(r Rule, u usage) RuleStatus {
 }
 
 func (c *Cache) Status(ctx context.Context) (Status, error) {
-	st := Status{Libraries: []LibraryStatus{}, LocalRules: []RuleStatus{}}
+	st := Status{Libraries: []LibraryStatus{}, Rules: []RuleStatus{}}
 	usageOf := map[string]LibraryStatus{}
 	rows, err := c.db.QueryContext(ctx, "SELECT library_id, sum(size), count(*) FROM entries GROUP BY library_id")
 	if err != nil {
@@ -1268,6 +1561,19 @@ func (c *Cache) Status(ctx context.Context) (Status, error) {
 		(SELECT 1 FROM covers WHERE covers.library_id = e.library_id AND covers.id = e.id AND covers.static)`).Scan(&st.Pinned); err != nil {
 		return st, err
 	}
+	excluded := map[string]int{}
+	rows, err = c.db.QueryContext(ctx, "SELECT library_id, count(*) FROM excluded GROUP BY library_id")
+	if err != nil {
+		return st, err
+	}
+	for rows.Next() {
+		var lib string
+		var n int
+		if rows.Scan(&lib, &n) == nil {
+			excluded[lib] = n
+		}
+	}
+	rows.Close()
 	rules, err := c.ruleUsage(ctx)
 	if err != nil {
 		return st, err
@@ -1281,16 +1587,19 @@ func (c *Cache) Status(ctx context.Context) (Status, error) {
 			continue
 		}
 		u := usageOf[info.ID]
-		u.Library, u.Rules = info.ID, []RuleStatus{}
-		for _, r := range parseRules(info.Config[configKey]) {
-			u.Rules = append(u.Rules, ruleStatus(r, rules[info.ID][r.key()]))
-		}
+		u.Library, u.Excluded = info.ID, excluded[info.ID]
 		st.Libraries = append(st.Libraries, u)
+	}
+	c.mu.Lock()
+	list := slices.Clone(c.ruleList)
+	c.mu.Unlock()
+	for _, r := range list {
+		st.Rules = append(st.Rules, ruleStatus(r, rules[r.Library][r.key()]))
 	}
 	for _, id := range c.localPlaylists() {
 		rs := ruleStatus(Rule{Kind: KindPlaylist, ID: id}, rules[""][localPrefix+id])
 		rs.Key, rs.Local = localPrefix+id, true
-		st.LocalRules = append(st.LocalRules, rs)
+		st.Rules = append(st.Rules, rs)
 	}
 	c.mu.Lock()
 	st.Limit, st.Queued, st.Full = c.limit, len(c.queue), c.full

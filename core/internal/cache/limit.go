@@ -104,13 +104,18 @@ func (c *Cache) editFile(edit func(m map[string]any)) error {
 }
 
 func (c *Cache) localPlaylists() []string {
-	c.fileMu.Lock()
-	defer c.fileMu.Unlock()
-	m, err := readFile(c.cfg.ConfigDir)
+	ids, err := c.readPlaylists()
 	if err != nil {
 		log.Warnf("cache: the playlists in cache.json are unreadable: %v", err)
 	}
-	return playlistIDs(m)
+	return ids
+}
+
+func (c *Cache) readPlaylists() ([]string, error) {
+	c.fileMu.Lock()
+	defer c.fileMu.Unlock()
+	m, err := readFile(c.cfg.ConfigDir)
+	return playlistIDs(m), err
 }
 
 func playlistIDs(m map[string]any) []string {

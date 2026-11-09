@@ -6,35 +6,36 @@ import qs.Services
 import qs.Modules
 import qs.DCommon.Widgets
 
-// Picks a playlist, album or artist of one server library to keep on this device.
+// Picks a playlist, album or artist of one server library, or a local playlist, to keep on this device.
 WindowDialog {
     id: root
 
-    property string libraryId: ""
     // "playlist" | "album" | "artist"
     property string kind: "playlist"
+    // a server library, or "" for local playlists
+    property string scope: ""
     property string filterText: ""
 
-    readonly property var items: {
+    readonly property var matches: {
         if (!opened)
             return [];
-        const lib = libraryId;
-        const all = kind === "playlist" ? PlaylistService.playlists.filter(p => p.library === lib && p.kind === "server") : kind === "album" ? CatalogService.albums.filter(a => a.library === lib) : CatalogService.artists.filter(a => a.library === lib);
+        const all = kind === "playlist" ? PlaylistService.playlists.filter(p => p.kind === (scope === "" ? "local" : "server")) : kind === "album" ? CatalogService.albums : CatalogService.artists;
         const needle = filterText.trim().toLowerCase();
-        const kept = SettingsService.cacheRules(lib).filter(r => r.kind === kind).map(r => r.id);
-        return all.filter(i => needle === "" || label(i).toLowerCase().indexOf(needle) >= 0).map(i => ({
-                    "item": i,
-                    "kept": kept.indexOf(i.rawId) >= 0
-                }));
+        return all.filter(i => i.library === scope && (needle === "" || label(i).toLowerCase().indexOf(needle) >= 0));
     }
+    readonly property var keptRules: !opened ? [] : scope === "" ? SettingsService.cacheRules().filter(r => r.local) : SettingsService.rulesFor(scope)
+    readonly property var items: matches.slice(0, PlayerMetrics.offlinePickerLimit).map(i => ({
+                "item": i,
+                "kept": keptRules.some(r => r.kind === kind && r.id === i.rawId)
+            }))
 
     function label(i) {
         return kind === "album" ? Phrases.join(i.title, i.artist) : i.name;
     }
 
-    function open(libraryId, kind) {
-        root.libraryId = libraryId;
+    function open(kind, scope) {
         root.kind = kind;
+        root.scope = scope;
         filterText = "";
         search.text = "";
         opened = true;
@@ -58,7 +59,7 @@ WindowDialog {
         spacing: Theme.groupedListGap
 
         Repeater {
-            model: root.items.slice(0, PlayerMetrics.offlinePickerLimit)
+            model: root.items
 
             DListItem {
                 id: row
@@ -68,10 +69,10 @@ WindowDialog {
                 enabled: !modelData.kept
                 surfaceColor: SettingsMetrics.rowColor
                 firstInGroup: index === 0
-                lastInGroup: index === Math.min(root.items.length, PlayerMetrics.offlinePickerLimit) - 1
+                lastInGroup: index === root.items.length - 1
                 Accessible.name: rowLabel.text
                 onClicked: {
-                    SettingsService.addCacheRule(root.libraryId, root.kind, row.modelData.item.rawId);
+                    SettingsService.addCacheRule(row.modelData.item.library, root.kind, row.modelData.item.rawId);
                     root.opened = false;
                 }
 
@@ -80,7 +81,7 @@ WindowDialog {
                     anchors.left: parent.left
                     anchors.leftMargin: Theme.spacingL
                     anchors.verticalCenter: parent.verticalCenter
-                    name: row.modelData.kept ? "offline_pin" : root.kind === "playlist" ? "cloud" : root.kind === "album" ? "album" : "artist"
+                    name: row.modelData.kept ? "offline_pin" : root.kind === "playlist" ? (root.scope === "" ? "queue_music" : "cloud") : root.kind === "album" ? "album" : "artist"
                     size: Theme.iconSize
                     color: row.contentColor
                 }
@@ -106,7 +107,7 @@ WindowDialog {
     StyledText {
         width: parent.width
         visible: text !== ""
-        text: root.items.length === 0 ? I18n.tr("Nothing matches.", "offline rule picker empty result") : root.items.length > PlayerMetrics.offlinePickerLimit ? I18n.tr("Showing %1 of %2 matches", "offline rule picker overflow").arg(PlayerMetrics.offlinePickerLimit).arg(root.items.length) : ""
+        text: root.matches.length === 0 ? I18n.tr("Nothing matches.", "offline rule picker empty result") : root.matches.length > root.items.length ? I18n.tr("Showing %1 of %2 matches", "offline rule picker overflow").arg(root.items.length).arg(root.matches.length) : ""
         font.pixelSize: Theme.fontSizeSmall
         color: Theme.surfaceVariantText
         wrapMode: Text.WordWrap

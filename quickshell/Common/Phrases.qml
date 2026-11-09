@@ -80,6 +80,33 @@ Singleton {
         return n === 1 ? I18n.tr("1 selected", "selection count, singular") : I18n.tr("%1 selected", "selection count, plural").arg(n);
     }
 
+    // a download's or the offline storage's size: "412 MB", "1.6 GB"
+    function size(bytes) {
+        return bytes >= 1e9 ? I18n.tr("%1 GB", "file size").arg((bytes / 1e9).toFixed(1)) : I18n.tr("%1 MB", "file size").arg(Math.round(bytes / 1e6));
+    }
+
+    // An offline rule's name. ref: "library:id" of its playlist, album or artist (":id" for a local playlist); id is
+    // shown while the item isn't known.
+    function offlineRule(kind, ref, id) {
+        switch (kind) {
+        case "everything":
+            return I18n.tr("Everything", "offline rule: the whole library");
+        case "favorites":
+            return I18n.tr("Favorites", "favorite tracks: page, cache mode, library feature");
+        case "played":
+            return I18n.tr("Recently played", "offline rule: the tracks you played last");
+        case "mostPlayed":
+            return I18n.tr("Most played", "home shelf and page of the most played tracks");
+        case "playlist":
+            return join(I18n.tr("Playlist", "home shelf source kind"), PlaylistService.playlist(ref)?.name ?? id);
+        case "album":
+            return join(I18n.tr("Album", "an album: page label, list column, ReplayGain mode"), CatalogService.album(ref)?.title ?? id);
+        case "artist":
+            return join(I18n.tr("Artist", "track list column"), CatalogService.artist(ref)?.name ?? id);
+        }
+        return kind;
+    }
+
     function libraryTrackCount(libraryId) {
         return PlayerService.albums.filter(a => a.library === libraryId).reduce((sum, a) => sum + a.trackCount, 0);
     }

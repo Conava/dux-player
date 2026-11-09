@@ -15,8 +15,8 @@ import (
 // listed with them, and clearing the downloads ends it.
 const keptKey = "track"
 
-// Keep keeps server tracks on this device or lets them go. A track a rule
-// holds too stays until the rule goes.
+// Keep keeps server tracks on this device, lifting their exclusions, or lets
+// them go. A track a rule holds too stays until the rule goes.
 func (c *Cache) Keep(ctx context.Context, refs []source.Ref, keep bool) error {
 	byLibrary := map[string][]string{}
 	for _, ref := range refs {
@@ -28,6 +28,9 @@ func (c *Cache) Keep(ctx context.Context, refs []source.Ref, keep bool) error {
 	if keep {
 		if _, err := c.cfg.Libraries.Tracks(ctx, refs); errors.Is(err, source.ErrNotFound) {
 			return fmt.Errorf("a track to keep: %w", err)
+		}
+		if _, err := c.lift(ctx, refs); err != nil {
+			return err
 		}
 	}
 	// room may have been made or the copy may fit now; evict marks it full again

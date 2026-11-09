@@ -1,5 +1,8 @@
 # Helpers for scenarios. The window sits on a 2560x1440 output.
 # DPLAYER_BACKEND=builtin make headless also starts a private sound server with the sinks headless_a, _b and _c.
+# SERVER=1 make headless also adds the (Open)Subsonic library "Server" from a fake server (fakesubsonic.py) with two
+#   artists, three albums, 21 tracks and the playlist "Server Mix"; its password sits in a fresh keyring on the private
+#   bus. The session waits for its catalog sync. Needs gnome-keyring-daemon.
 #   shot NAME        screenshot to out/NAME.png
 #   go PAGE          show a page: home, libraries, history, search, ...
 #   expand true|false  open or close the full now playing view
@@ -8,7 +11,7 @@
 #   ui NAME ARGS     any function of the headless IPC target in run.sh: ui open album ID, ui settings PAGE, ui playerLook attached,
 #                    ui pageOptions tracks '{"lines":["format"]}', ui addElement fullBento title '{"type":"text"}'
 #   dp ARGS          the dplayer CLI against this sandbox: dp play "$W/music", dp pause
-#   rpc METHOD JSON  one daemon IPC call; prints the reply
+#   rpc METHOD JSON [MAX]  one daemon IPC call; prints the reply, cut at MAX characters (2000)
 #   pointer m X Y | c | r | d | u | D | U | s MS | w NOTCHES   through a real virtual pointer: move, click, right click,
 #                    left press and release, right press and release, pause, wheel. Lines of one write keep their
 #                    timing: pointer "$(printf 'D\ns 30\nU')"
@@ -28,7 +31,7 @@ wait_for_daemon() {
 }
 
 rpc() {
-    python3 -I - "$1" "$2" <<'P'
+    python3 -I - "$1" "$2" "${3:-2000}" <<'P'
 import glob, json, os, socket, sys
 s = socket.socket(socket.AF_UNIX)
 s.connect(sorted(glob.glob(os.environ["XDG_RUNTIME_DIR"] + "/dplayer*.sock"))[-1])
@@ -36,7 +39,7 @@ f = s.makefile("rwb")
 f.readline()
 f.write(json.dumps({"id": 1, "method": sys.argv[1], "params": json.loads(sys.argv[2])}).encode() + b"\n")
 f.flush()
-print(f.readline().decode().strip()[:2000])
+print(f.readline().decode().strip()[:int(sys.argv[3])])
 P
 }
 

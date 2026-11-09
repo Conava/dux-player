@@ -23,7 +23,7 @@ cleanup() {
     daemon=${sock%.sock}
     dplayer-dev quit >/dev/null 2>&1
     case "$daemon" in '' | *[!0-9]*) daemon= ;; esac
-    stop ${SHOW:-} $daemon ${H:-} ${K:-} ${AUDIO_PIDS:-}
+    stop ${SHOW:-} $daemon ${H:-} ${K:-} ${AUDIO_PIDS:-} ${SERVER_PIDS:-}
 }
 trap cleanup EXIT
 trap 'exit 124' TERM
@@ -43,12 +43,46 @@ export WAYLAND_DISPLAY=$(ls -t "$XDG_RUNTIME_DIR" | grep -E '^wayland-[0-9]+$' |
 
 hyprctl dismissnotify >/dev/null
 [ "${DPLAYER_BACKEND:-}" = builtin ] && . "$(dirname "$LIB")/audio.sh"
+# SERVER=1: a fake Subsonic server, and a fresh keyring in the sandbox HOME on this private bus for its password.
+if [ -n "${SERVER:-}" ]; then
+    command -v gnome-keyring-daemon >/dev/null || { echo "SERVER=1 needs gnome-keyring-daemon (the gnome-keyring package)"; exit 1; }
+    # An empty password creates no login keyring, and without one storing a secret waits on a prompt.
+    printf headless | gnome-keyring-daemon --foreground --unlock --components=secrets >"$W/out/keyring.log" 2>&1 &
+    keyring=$!
+    SERVER_PIDS=$keyring
+    export GNOME_KEYRING_CONTROL="$XDG_RUNTIME_DIR/keyring"
+    python3 -I "$(dirname "$LIB")/fakesubsonic.py" "$W/server/manifest.json" "$W/server/port" 2>"$W/out/fakesubsonic.log" &
+    SERVER_PIDS="$SERVER_PIDS $!"
+    owned=
+    for _ in $(seq 1 20); do
+        gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
+            --method org.freedesktop.DBus.GetConnectionUnixProcessID org.freedesktop.secrets 2>/dev/null | grep -qx "(uint32 $keyring,)" && owned=1 && break
+        sleep 0.25
+    done
+    [ -n "$owned" ] || { echo "the keyring did not take org.freedesktop.secrets on the private bus"; exit 1; }
+fi
 dplayer-dev show -c "$W/tree" >"$W/out/show.log" 2>&1 &
 SHOW=$!
 . "$LIB"
 wait_for_daemon || echo "the daemon did not come up"
 rpc libraries.add "{\"kind\":\"local\",\"name\":\"Test\",\"folders\":[\"$W/music\"]}"
 sleep 4
+if [ -n "${SERVER:-}" ]; then
+    for _ in $(seq 1 40); do
+        [ -s "$W/server/port" ] && break
+        sleep 0.25
+    done
+    [ -s "$W/server/port" ] || { echo "the fake server did not start: $(tail -3 "$W/out/fakesubsonic.log")"; exit 1; }
+    added=$(rpc libraries.add "{\"kind\":\"subsonic\",\"name\":\"Server\",\"url\":\"http://127.0.0.1:$(cat "$W/server/port")\",\"username\":\"headless\",\"password\":\"headless\",\"auth\":\"token\"}")
+    server=$(printf '%s' "$added" | python3 -Ic 'import json, sys; print(json.load(sys.stdin).get("result", {}).get("id", ""))' 2>/dev/null)
+    [ -n "$server" ] || { echo "couldn't add the server library: $added"; exit 1; }
+    synced=
+    for _ in $(seq 1 120); do
+        rpc libraries.list '{}' 1000000 | python3 -Ic 'import json, sys; sys.exit(not any(l.get("synced") for l in json.load(sys.stdin)["result"] if l["id"] == sys.argv[1]))' "$server" && synced=1 && break
+        sleep 0.5
+    done
+    [ -n "$synced" ] || { echo "the server library did not finish its catalog sync"; exit 1; }
+fi
 . "$SCENARIO"
 status=$?
 qs log -p "$W/tree" >"$W/out/ui.log" 2>&1

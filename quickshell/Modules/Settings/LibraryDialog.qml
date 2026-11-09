@@ -40,6 +40,8 @@ WindowDialog {
     // the accounts that take plays: signed in and switched on
     readonly property bool listenbrainz: PlayerService.scrobble.listenbrainz?.connected === true && PlayerService.scrobble.listenbrainz?.enabled === true
     readonly property bool lastfm: PlayerService.scrobble.lastfm?.connected === true && PlayerService.scrobble.lastfm?.enabled === true
+    // signed in to an account, switched on or not
+    readonly property bool signedInAccount: PlayerService.scrobble.listenbrainz?.connected === true || PlayerService.scrobble.lastfm?.connected === true
     // the kinds the daemon can add, in the order offered
     readonly property var kinds: ["local", "subsonic", "jellyfin"].filter(k => PlayerService.libraryKinds.indexOf(k) >= 0)
     readonly property var quickConnect: CatalogService.quickConnect
@@ -611,7 +613,7 @@ WindowDialog {
         SettingsToggleRow {
             // brand names stay untranslated
             text: root.listenbrainz === root.lastfm ? I18n.tr("Scrobble to ListenBrainz and Last.fm", "library setting") : root.listenbrainz ? I18n.tr("Scrobble to ListenBrainz", "scrobbling setting") : I18n.tr("Scrobble to Last.fm", "scrobbling setting")
-            description: !enabled ? I18n.tr("Sign in on the Scrobbling page first.", "why a library's scrobbling setting is unavailable") : root.toServer ? I18n.tr("Turn off when the server sends its plays to the same accounts.", "scrobbling server library row") : ""
+            description: !enabled ? (root.signedInAccount ? I18n.tr("Turn on an account on the Scrobbling page first.", "why a library's scrobbling setting is unavailable") : I18n.tr("Sign in on the Scrobbling page first.", "why a library's scrobbling setting is unavailable")) : root.toServer ? I18n.tr("Plays may count twice if the server also scrobbles.", "scrobbling server library row") : ""
             enabled: root.listenbrainz || root.lastfm
             checked: enabled && (PlayerService.scrobble.noAccountsLibraries ?? []).indexOf(root.editingId) < 0
             onToggled: value => PlayerService.setScrobbleLibraryAccounts(root.editingId, value)

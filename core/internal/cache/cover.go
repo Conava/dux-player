@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"database/sql"
+	"slices"
 
 	"github.com/Conava/dux-player/core/internal/source"
 )
@@ -12,8 +13,13 @@ import (
 // no rule ever claimed (an older version's) stay until the size limit
 // evicts them.
 
-// setCover replaces what a rule covers and returns the ids it no longer does.
+// setCover replaces what a rule covers, less the excluded tracks, and
+// returns the ids it no longer does.
 func (c *Cache) setCover(ctx context.Context, lib, key string, ids []string, static bool) ([]string, error) {
+	// One lock for every library's covers writes, which SQLite
+	// serialises anyway; per-library locks if that ever shows.
+	c.exMu.Lock()
+	defer c.exMu.Unlock()
 	tx, err := c.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -27,8 +33,9 @@ func (c *Cache) setCover(ctx context.Context, lib, key string, ids []string, sta
 		return nil, err
 	}
 	now := map[string]bool{}
+	excluded := c.excludedIn(lib)
 	for _, id := range ids {
-		if now[id] {
+		if now[id] || excluded[id] {
 			continue
 		}
 		now[id] = true
@@ -71,15 +78,20 @@ func column(ctx context.Context, q querier, query string, args ...any) ([]string
 // rereads the rules, so a rule added while a sync ran is kept.
 func (c *Cache) dropStale(ctx context.Context, lib string) ([]string, error) {
 	rules, _, ok := c.rules(ctx, lib)
-	if !ok {
-		// The library went away mid-sync: its rules are unknown, not gone.
+	c.mu.Lock()
+	unread := c.rulesUnread
+	c.mu.Unlock()
+	local, err := c.readPlaylists()
+	if !ok || unread || err != nil {
+		// The library went away mid-sync or cache.json is unreadable: the
+		// rules are unknown, not gone.
 		return nil, nil
 	}
 	keep := map[string]bool{keptKey: true}
 	for _, r := range rules {
 		keep[r.key()] = true
 	}
-	for _, id := range c.localPlaylists() {
+	for _, id := range local {
 		keep[localPrefix+id] = true
 	}
 	keys, err := column(ctx, c.db, "SELECT DISTINCT rule FROM covers WHERE library_id = ?", lib)
@@ -113,27 +125,46 @@ func (c *Cache) prune(ctx context.Context, lib string, ids []string) error {
 
 // dynamic recomputes what a library's played and mostPlayed rules hold:
 // the most recently played copies, and the top of the play counts, each cut
-// to its rule's limit. It returns the ids they let go and the mostPlayed
-// tracks to fetch.
-func (c *Cache) dynamic(ctx context.Context, lib string, rules []Rule) ([]string, []source.Track, error) {
+// to its rule's limit. A rule for all server libraries ranks those of
+// servers together and holds this library's share. It returns the ids they
+// let go and the mostPlayed tracks to fetch.
+func (c *Cache) dynamic(ctx context.Context, lib string, rules []Rule, servers []string) ([]string, []source.Track, error) {
 	var lost []string
 	var fetch []source.Track
 	for _, r := range rules {
 		if !r.dynamic() {
 			continue
 		}
-		var ids []string
-		var err error
-		if r.Kind == KindPlayed {
-			ids, err = c.recentlyPlayed(ctx, lib, *r.Limit)
-		} else {
-			fetch, err = c.mostPlayed(ctx, lib, *r.Limit)
-			for _, t := range fetch {
-				ids = append(ids, t.ID)
+		in := []string{lib}
+		if r.Library == "" {
+			if !slices.Contains(servers, lib) {
+				// lib's rules couldn't be read just now: keep what it holds.
+				continue
 			}
+			in = servers
 		}
-		if err != nil {
-			return lost, nil, err
+		var ids []string
+		if r.Kind == KindPlayed {
+			refs, err := c.recentlyPlayed(ctx, in, *r.Limit)
+			if err != nil {
+				return lost, nil, err
+			}
+			for _, ref := range refs {
+				if ref.Library == lib {
+					ids = append(ids, ref.ID)
+				}
+			}
+		} else {
+			top, known := c.mostPlayed(ctx, in, lib, r.Library == "", *r.Limit)
+			if !known {
+				// Unread play counts are unknown, not empty: keep what it holds.
+				continue
+			}
+			for _, t := range top {
+				if t.Library == lib {
+					ids, fetch = append(ids, t.ID), append(fetch, t)
+				}
+			}
 		}
 		l, err := c.setCover(ctx, lib, r.key(), ids, false)
 		if err != nil {
@@ -144,45 +175,61 @@ func (c *Cache) dynamic(ctx context.Context, lib string, rules []Rule) ([]string
 	return lost, fetch, nil
 }
 
-func (c *Cache) recentlyPlayed(ctx context.Context, lib string, l Limit) ([]string, error) {
-	rows, err := c.db.QueryContext(ctx, "SELECT id, size FROM entries WHERE library_id = ? AND played > 0 ORDER BY played DESC, id", lib)
+// recentlyPlayed cuts the played copies of libs, most recent first, to the
+// limit.
+func (c *Cache) recentlyPlayed(ctx context.Context, libs []string, l Limit) ([]source.Ref, error) {
+	rows, err := c.db.QueryContext(ctx, "SELECT library_id, id, size FROM entries WHERE played > 0 ORDER BY played DESC, library_id, id")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var ids []string
+	var refs []source.Ref
 	var sizes []int64
 	for rows.Next() {
-		var id string
+		var ref source.Ref
 		var size int64
-		if err := rows.Scan(&id, &size); err != nil {
+		if err := rows.Scan(&ref.Library, &ref.ID, &size); err != nil {
 			return nil, err
 		}
-		ids, sizes = append(ids, id), append(sizes, size)
-	}
-	return ids[:cut(l, sizes)], rows.Err()
-}
-
-// mostPlayed cuts the library's top tracks, as last read from the play
-// history, to the limit; tracks not cached yet count with a guessed size.
-func (c *Cache) mostPlayed(ctx context.Context, lib string, l Limit) ([]source.Track, error) {
-	c.mu.Lock()
-	top := c.top[lib]
-	c.mu.Unlock()
-	sizes := make([]int64, len(top))
-	for i, t := range top {
-		sizes[i] = guessSize
-		if l.Bytes > 0 {
-			_ = c.db.QueryRowContext(ctx, "SELECT size FROM entries WHERE library_id = ? AND id = ?", lib, t.ID).Scan(&sizes[i])
+		if slices.Contains(libs, ref.Library) {
+			refs, sizes = append(refs, ref), append(sizes, size)
 		}
 	}
-	return top[:cut(l, sizes)], nil
+	return refs[:cut(l, sizes)], rows.Err()
+}
+
+// mostPlayed cuts the top tracks of libs, as last read from the play
+// history, to the limit: from the list of every server library when
+// global, else lib's own; known is false while they aren't read. Tracks
+// not cached yet count with a guessed size.
+func (c *Cache) mostPlayed(ctx context.Context, libs []string, lib string, global bool, l Limit) (top []source.Track, known bool) {
+	if global {
+		lib = ""
+	}
+	c.mu.Lock()
+	list, known := c.top[lib]
+	if len(c.excluded) > 0 {
+		list = slices.DeleteFunc(slices.Clone(list), func(t source.Track) bool { return c.excluded[t.Ref()] })
+	}
+	c.mu.Unlock()
+	var sizes []int64
+	for _, t := range list {
+		if !slices.Contains(libs, t.Library) {
+			continue
+		}
+		size := int64(guessSize)
+		if l.Bytes > 0 {
+			_ = c.db.QueryRowContext(ctx, "SELECT size FROM entries WHERE library_id = ? AND id = ?", t.Library, t.ID).Scan(&size)
+		}
+		top, sizes = append(top, t), append(sizes, size)
+	}
+	return top[:cut(l, sizes)], known
 }
 
 // wantedIDs are the tracks a sync fetches: everything covered except what
 // only played holds, which is fetched as it plays.
 func (c *Cache) wantedIDs(ctx context.Context, lib string) []source.Track {
-	ids, _ := column(ctx, c.db, "SELECT DISTINCT id FROM covers WHERE library_id = ? AND rule != ?", lib, KindPlayed)
+	ids, _ := column(ctx, c.db, "SELECT DISTINCT id FROM covers WHERE library_id = ? AND rule NOT IN (?, ?)", lib, KindPlayed, allPrefix+KindPlayed)
 	out := make([]source.Track, len(ids))
 	for i, id := range ids {
 		out[i] = source.Track{Library: lib, ID: id}

@@ -194,7 +194,6 @@ Singleton {
     // the folder watcher reports changes every few seconds while files move
     readonly property int indexSettleDelay: 3000
     readonly property int trackPage: 500
-    readonly property int cacheListLimit: 500
     // the daemon's bounds for a Played / Most played offline rule (10 MB to 100000 tracks), and the defaults
     readonly property real offlineRuleMinGB: 0.01
     readonly property int offlineRuleMaxTracks: 100000

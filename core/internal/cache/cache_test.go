@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -125,6 +126,8 @@ type env struct {
 	m   *library.Manager
 	lib string
 	cat *catalog
+	// cfgDir holds cache.json.
+	cfgDir string
 }
 
 func newCatalog() *catalog {
@@ -142,7 +145,7 @@ func newCatalog() *catalog {
 // setup opens a cache over one fake server library; dir holds the cache,
 // libCfg is the library's config and prep runs before the cache opens, for
 // migrations.
-func setup(t *testing.T, dir string, libCfg map[string]any, prep func(lib string)) *env {
+func setup(t *testing.T, dir string, libCfg map[string]any, prep func(e *env)) *env {
 	t.Helper()
 	ctx := context.Background()
 	cat := newCatalog()
@@ -193,20 +196,29 @@ func setup(t *testing.T, dir string, libCfg map[string]any, prep func(lib string
 	if dir == "" {
 		dir = filepath.Join(t.TempDir(), "tracks")
 	}
+	e := &env{m: m, lib: lib.ID, cat: cat, cfgDir: t.TempDir()}
 	if prep != nil {
-		prep(lib.ID)
+		prep(e)
 	}
-	c, err := Open(ctx, Config{Dir: dir, ConfigDir: t.TempDir(), Libraries: m})
+	c, err := Open(ctx, Config{Dir: dir, ConfigDir: e.cfgDir, Libraries: m})
 	require.NoError(t, err)
 	t.Cleanup(func() { c.Close() })
 	m.SetOffline(c)
 	c.limit = 1000
-	return &env{c: c, m: m, lib: lib.ID, cat: cat}
+	e.c = c
+	return e
 }
 
+// setRules replaces the rules; a rule without a library gets the env's.
 func (e *env) setRules(t *testing.T, rules ...Rule) {
 	t.Helper()
-	require.NoError(t, e.m.SetConfig(context.Background(), e.lib, configKey, map[string]any{"rules": rules}))
+	rules = slices.Clone(rules)
+	for i := range rules {
+		if rules[i].Library == "" {
+			rules[i].Library = e.lib
+		}
+	}
+	require.NoError(t, e.c.editRules(func([]Rule) ([]Rule, error) { return rules, nil }))
 }
 
 // drain downloads everything queued, as run would.
@@ -535,7 +547,8 @@ func TestMigrationKeepsCopies(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "tracks")
 	require.NoError(t, os.MkdirAll(filepath.Join(dir, "x"), 0o700))
 	var files []string
-	old := func(lib string) {
+	old := func(e *env) {
+		lib := e.lib
 		db, err := library.OpenDB(ctx, filepath.Join(dir, "index.db"), migrations[:1])
 		require.NoError(t, err)
 		defer db.Close()
@@ -551,9 +564,8 @@ func TestMigrationKeepsCopies(t *testing.T) {
 	e := setup(t, dir, map[string]any{configKey: map[string]any{"mode": "favorites", "playlists": []any{"P"}, "extra": true}}, old)
 	lib, err := e.m.Library(ctx, e.lib)
 	require.NoError(t, err)
-	cfg := lib.Config[configKey].(map[string]any)
-	assert.Equal(t, true, cfg["extra"], "unknown keys survive")
-	assert.Len(t, parseRules(cfg), 2)
+	assert.Equal(t, map[string]any{"extra": true}, lib.Config[configKey], "unknown keys survive")
+	assert.Len(t, e.c.ruleList, 2)
 
 	var playedAt int64
 	require.NoError(t, e.c.db.QueryRow("SELECT played FROM entries WHERE id = 'z'").Scan(&playedAt))
@@ -674,6 +686,43 @@ func TestDropStaleNeedsTheRules(t *testing.T) {
 			lost, err := e.c.dropStale(ctx, e.lib)
 			require.NoError(t, err)
 			assert.ElementsMatch(t, tt.lost, lost)
+		})
+	}
+}
+
+// An unreadable cache.json leaves the rules unknown, not empty: a sync
+// deletes no copy until the rules are written again.
+func TestUnreadableRulesKeepCopies(t *testing.T) {
+	tests := []struct {
+		name   string
+		reopen bool
+	}{
+		{"unreadable at the start", true},
+		{"unreadable later", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := setup(t, "", nil, nil)
+			e.c.cfg.LocalPlaylist = func(context.Context, string) ([]source.Track, error) {
+				return []source.Track{{Library: e.lib, ID: "c"}}, nil
+			}
+			e.setRules(t, album("A1"))
+			require.NoError(t, e.c.writeKey("localPlaylists", []string{"L"}))
+			e.sync(t)
+			require.ElementsMatch(t, []string{"a", "b", "c"}, cached(t, e.c))
+
+			require.NoError(t, os.WriteFile(limitPath(e.cfgDir), []byte(`{"rules": [`), 0o600))
+			if tt.reopen {
+				e.c.loadRules()
+				// Moves the file aside: the rules stay unknown, not empty.
+				require.NoError(t, e.c.writeKey("limitBytes", 1000))
+			}
+			e.sync(t)
+			assert.ElementsMatch(t, []string{"a", "b", "c"}, cached(t, e.c))
+
+			e.setRules(t)
+			e.sync(t)
+			assert.Empty(t, cached(t, e.c), "written rules are known again")
 		})
 	}
 }

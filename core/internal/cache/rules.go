@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -25,6 +27,8 @@ const (
 	// localPrefix keys the coverage of a local playlist, which can hold
 	// tracks of every server library.
 	localPrefix = "localPlaylist:"
+	// allPrefix keys the coverage of a rule for all server libraries.
+	allPrefix = "all:"
 
 	maxSongs     = 100_000
 	minRuleBytes = 10 << 20
@@ -41,32 +45,65 @@ type Limit struct {
 	Bytes int64 `json:"bytes,omitempty"`
 }
 
+// Rule is an offline rule of one server library, or of all of them when
+// Library is "".
 type Rule struct {
-	Kind  string `json:"kind"`
-	ID    string `json:"id,omitempty"`
-	Limit *Limit `json:"limit,omitempty"`
+	Kind    string `json:"kind"`
+	ID      string `json:"id,omitempty"`
+	Library string `json:"library,omitempty"`
+	Limit   *Limit `json:"limit,omitempty"`
+	// extra holds the saved fields this version doesn't know.
+	extra map[string]any
+}
+
+// saved is the rule as cache.json stores it, with its unknown fields.
+func (r Rule) saved() any {
+	if len(r.extra) == 0 {
+		return r
+	}
+	data, _ := json.Marshal(r)
+	m := map[string]any{}
+	_ = json.Unmarshal(data, &m)
+	for k, v := range r.extra {
+		if _, ok := m[k]; !ok {
+			m[k] = v
+		}
+	}
+	return m
 }
 
 func (r Rule) dynamic() bool { return r.Kind == KindPlayed || r.Kind == KindMostPlayed }
 
+// key names the rule's rows in covers. A rule of one library keeps the key
+// older versions gave it, so its copies stay covered.
 func (r Rule) key() string {
-	if r.ID == "" {
+	switch {
+	case r.Library == "":
+		return allPrefix + r.Kind
+	case r.ID == "":
 		return r.Kind
 	}
 	return r.Kind + ":" + r.ID
 }
 
-// RuleRef names a rule that holds a track; Local marks a local playlist.
+func (r Rule) same(x Rule) bool { return r.Library == x.Library && r.key() == x.key() }
+
+// RuleRef names a rule that holds a track; Local marks a local playlist,
+// Global a rule for all server libraries.
 type RuleRef struct {
-	Key   string `json:"key"`
-	Kind  string `json:"kind"`
-	ID    string `json:"id,omitempty"`
-	Local bool   `json:"local,omitempty"`
+	Key    string `json:"key"`
+	Kind   string `json:"kind"`
+	ID     string `json:"id,omitempty"`
+	Local  bool   `json:"local,omitempty"`
+	Global bool   `json:"global,omitempty"`
 }
 
 func refOf(key string) RuleRef {
 	if id, ok := strings.CutPrefix(key, localPrefix); ok {
 		return RuleRef{Key: key, Kind: KindPlaylist, ID: id, Local: true}
+	}
+	if kind, ok := strings.CutPrefix(key, allPrefix); ok {
+		return RuleRef{Key: key, Kind: kind, Global: true}
 	}
 	kind, id, _ := strings.Cut(key, ":")
 	return RuleRef{Key: key, Kind: kind, ID: id}
@@ -74,10 +111,14 @@ func refOf(key string) RuleRef {
 
 func validRule(r Rule) (Rule, error) {
 	r.ID = source.Clean(r.ID)
+	r.Library = source.Clean(r.Library)
 	if !slices.Contains(kinds, r.Kind) {
 		return r, fmt.Errorf("kind must be one of %s", strings.Join(kinds, ", "))
 	}
 	needsID := r.Kind == KindPlaylist || r.Kind == KindAlbum || r.Kind == KindArtist
+	if needsID && r.Library == "" {
+		return r, fmt.Errorf("a %s rule belongs to one library", r.Kind)
+	}
 	if needsID != (r.ID != "") {
 		if needsID {
 			return r, fmt.Errorf("a %s rule needs an id", r.Kind)
@@ -103,21 +144,45 @@ func validLimit(l *Limit) error {
 	return nil
 }
 
-// parseRules reads a library's rules from its config; invalid and repeated
-// rules are skipped.
-func parseRules(raw any) []Rule {
-	m, _ := raw.(map[string]any)
-	data, _ := json.Marshal(m["rules"])
-	var list []Rule
+// parseRules reads a list of saved rules, all of library lib unless it is
+// "". Repeated rules are dropped; entries this version can't read come back
+// in unknown, scoped to lib, to be saved again as they are.
+func parseRules(raw any, lib string) (rules []Rule, unknown []any) {
+	var list []any
+	data, _ := json.Marshal(raw)
 	_ = json.Unmarshal(data, &list)
-	out := []Rule{}
-	for _, r := range list {
+	rules = []Rule{}
+	for _, v := range list {
+		m, isMap := v.(map[string]any)
+		if isMap && lib != "" {
+			m = maps.Clone(m)
+			m["library"] = lib
+			v = m
+		}
+		var r Rule
+		data, _ := json.Marshal(v)
+		if !isMap || json.Unmarshal(data, &r) != nil {
+			unknown = append(unknown, v)
+			continue
+		}
 		r, err := validRule(r)
-		if err == nil && !slices.ContainsFunc(out, func(x Rule) bool { return x.key() == r.key() }) {
-			out = append(out, r)
+		if err != nil {
+			unknown = append(unknown, v)
+			continue
+		}
+		for k, x := range m {
+			if !slices.Contains([]string{"kind", "id", "library", "limit"}, k) {
+				if r.extra == nil {
+					r.extra = map[string]any{}
+				}
+				r.extra[k] = x
+			}
+		}
+		if !slices.ContainsFunc(rules, r.same) {
+			rules = append(rules, r)
 		}
 	}
-	return out
+	return rules, unknown
 }
 
 // migrateConfig turns the old cache config (one mode plus chosen playlists)
@@ -155,17 +220,56 @@ func migrateConfig(raw any, limit int64) (map[string]any, bool) {
 	return out, true
 }
 
-// migrate rewrites the libraries still on the old cache config.
+// migrate moves the rules out of the library configs (older ones as a mode
+// plus playlists) into cache.json. cache.json is written first, so a crash
+// in between only repeats the move, which skips the rules it already has.
 func (c *Cache) migrate(ctx context.Context) error {
 	infos, err := c.cfg.Libraries.List(ctx)
 	if err != nil {
 		return err
 	}
+	var moved []Rule
+	var movedUnknown []any
+	rest := map[string]map[string]any{}
 	for _, info := range infos {
-		if m, ok := migrateConfig(info.Config[configKey], c.limit); ok {
-			if err := c.cfg.Libraries.SetConfig(ctx, info.ID, configKey, m); err != nil {
-				return err
+		m, _ := info.Config[configKey].(map[string]any)
+		if mm, ok := migrateConfig(m, c.limit); ok {
+			m = mm
+		}
+		if _, ok := m["rules"]; !ok {
+			continue
+		}
+		rules, unknown := parseRules(m["rules"], info.ID)
+		moved, movedUnknown = append(moved, rules...), append(movedUnknown, unknown...)
+		rest[info.ID] = map[string]any{}
+		for k, v := range m {
+			if k != "rules" && k != "mode" && k != "playlists" {
+				rest[info.ID][k] = v
 			}
+		}
+	}
+	if len(rest) == 0 {
+		return nil
+	}
+	err = c.editAll(func(list []Rule, unknown []any) ([]Rule, []any, error) {
+		for _, r := range moved {
+			if !slices.ContainsFunc(list, r.same) {
+				list = append(list, r)
+			}
+		}
+		for _, v := range movedUnknown {
+			if !slices.ContainsFunc(unknown, func(x any) bool { return reflect.DeepEqual(x, v) }) {
+				unknown = append(unknown, v)
+			}
+		}
+		return list, unknown, nil
+	})
+	if err != nil {
+		return err
+	}
+	for id, m := range rest {
+		if err := c.cfg.Libraries.SetConfig(ctx, id, configKey, m); err != nil {
+			return err
 		}
 	}
 	return nil
