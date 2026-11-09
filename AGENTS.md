@@ -142,8 +142,32 @@ The whole Dux suite follows Google's Material 3 Expressive (M3E). The app must l
 - Every user-facing string goes through `I18n.tr("Text", "translator context")`. Search `quickshell/translations/en.json` first and reuse an existing term where it reads right. Strings under `DCommon/` belong to dux-qml-common.
 - Every new string costs a translation per language. Labels carry a dropdown; per-option descriptions belong in docs. A label that names a bare parameter (Intensity, Level) gets one short description.
 - Toast titles state the result ("Couldn't connect to server"), never a bare feature name or the raw error.
-- Write like a shipped desktop app (GNOME, KDE, Android settings): correct, concise, neutral. Labels are sentence case noun or verb phrases. A description is one plain sentence on what the setting changes, only when the label doesn't already say it. No chatty or casual tone, no figurative phrasing, no addressing the user as a friend, no explaining how the app works inside. Credits name the role in standard terms ("Audio playback", "Tag reading").
 - IPC and CLI replies stay plain English. Never edit translation catalogs by hand.
+
+### Writing UI text
+
+Write like a shipped desktop app (GNOME, KDE, Android settings): correct, concise, neutral. Agent-written text has needed rewriting again and again for being too long; check every new string against these rules before showing it.
+
+- **Labels** are sentence case noun or verb phrases, two to five words: "Download on metered connections", "Play next order". Options are one or two words: "Off", "Now playing", "Whole app".
+- **Descriptions are optional.** Leave one out when the label says it. When needed, one sentence of at most about ten words on what the setting does, never two sentences. Fragments are fine: "Shown on keyboard focus.", "Same as the ⋮ menu".
+- **Start with the verb or the fact.** "Resets the bar, side panel and both full views." not "The bar, the side panel and both full views return to their defaults." "Holds tracks from any library." not "Can hold tracks from any library."
+- **No "you" or "your".** "the music files", not "your music files"; "It can be added again with Add shelf.", not "You can add it again…".
+- **Only what the app knows.** Never describe conditions the app can't detect ("when the server sends its plays to the same accounts"). If it is uncertain, say so in a few words: "Plays may count twice if the server also scrobbles."
+- **No mechanics or UI tours.** Don't explain how the feature works inside, which other control changes it ("Turn off the switch above…"), or what each button in view does. The control's own label covers that.
+- **Dialogs:** the title names the thing or asks the question; supporting text says only what the buttons can't: usually one short sentence, two when each choice has a consequence to name ("A rule keeps this track and may download it again. Exclude creates an exception for this track from all rules."). Button labels are verbs: "Delete", "Keep", "Delete and exclude".
+- **Toasts** state the result in a few words ("Removed Favorites", "Couldn't connect to server"); no second sentence explaining side effects.
+- **Disabled reasons** are one imperative sentence: "Turn on a server library first."
+- Credits name the role in standard terms ("Audio playback", "Tag reading").
+
+Rewrites the maintainer made, for calibration:
+
+| Written | Shipped |
+|---|---|
+| Drag to set the navigation order; the eye shows or hides a page there. Select an entry to rename it. Edit opens the page in its edit mode. | Drag to reorder. Use the pencil to rename an entry. |
+| Highlights the focused control when using the keyboard. | Shown on keyboard focus. |
+| The playlist is deleted from %1 and every device that uses it. The tracks stay in their libraries. | Deletes the playlist from %1 on all devices. Tracks stay in their libraries. |
+| A Dux Shell theme file with light and dark palettes. Export the current colors to use as a starting point. | Dux Shell theme file with light and dark palettes. |
+| Turn off when the server sends its plays to the same accounts. | Plays may count twice if the server also scrobbles. |
 
 ## Markdown
 
