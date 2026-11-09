@@ -44,7 +44,7 @@ func RegisterPlayer(r *Registry, d *Deps) {
 	})
 	r.Group("player", func(ctx context.Context, w *ConnWriter, req Request) { handlePlayer(ctx, w, req, *d) },
 		MethodSpec{Name: "player.status", Desc: "Playback state, position, volume, modes and current track", Read: true},
-		MethodSpec{Name: "player.play", Desc: "Replace the queue and play; with nothing given, resume", Params: []ParamSpec{Opt("tracks", tracksDesc), Opt("paths", pathsDesc), Opt("album", albumDesc), Opt("playlist", "library:playlistId, a server playlist"), Opt("library", listDesc), Opt("sort", "with library"), Opt("artist", "with library"), Opt("favorites", "true: every favorite track"), Opt("index", "queue index (with library or favorites: list row) to start at"), Opt("shuffle", "true: shuffle these tracks; otherwise they play in order with shuffle off"), Opt("origin", "{kind,library,id,name}: what the UI is playing (playlist, favorites, …)")}},
+		MethodSpec{Name: "player.play", Desc: "Replace the queue and play; with nothing given, resume. Files in paths whose tags can't be read are left out; the reply's skipped counts them", Params: []ParamSpec{Opt("tracks", tracksDesc), Opt("paths", pathsDesc), Opt("album", albumDesc), Opt("playlist", "library:playlistId, a server playlist"), Opt("library", listDesc), Opt("sort", "with library"), Opt("artist", "with library"), Opt("favorites", "true: every favorite track"), Opt("index", "queue index (with library or favorites: list row) to start at"), Opt("shuffle", "true: shuffle these tracks; otherwise they play in order with shuffle off"), Opt("origin", "{kind,library,id,name}: what the UI is playing (playlist, favorites, …)")}},
 		MethodSpec{Name: "player.resume", Desc: "Play the saved queue from the saved position"},
 		MethodSpec{Name: "player.shuffleFrom", Desc: "Replace the queue with shuffled tracks and play; a named library is shuffled even when the skip rules list it", Params: []ParamSpec{Req("from", "tracks|favorites|library|playlist"), Opt("name", "library or playlist name (or id)")}},
 		MethodSpec{Name: "player.shuffle", Desc: "Shuffle the queue, or restore its order", Params: []ParamSpec{Req("on", "true|false")}},
@@ -77,23 +77,23 @@ var originKinds = map[string]bool{"track": true, "album": true, "playlist": true
 // params, in that order, or a whole list (library or favorites), and works
 // out where they came from. An explicit origin param wins. A list is cut to
 // maxListTracks around row index; skip is the rows cut before it.
-func tracksFrom(ctx context.Context, p map[string]any, deps Deps, index int) ([]source.Track, player.Origin, int, error) {
+func tracksFrom(ctx context.Context, p map[string]any, deps Deps, index int) ([]source.Track, player.Origin, int, int, error) {
 	var tracks []source.Track
 	var origin player.Origin
-	var skip int
+	var skip, skipped int
 	var err error
 	if Str(p, "library") != "" || params.BoolLoose(p, "favorites") {
 		tracks, origin, skip, err = listFrom(ctx, p, deps, index)
 	} else {
-		tracks, origin, err = pickedFrom(ctx, p, deps)
+		tracks, origin, skipped, err = pickedFrom(ctx, p, deps)
 	}
 	if err != nil {
-		return nil, origin, 0, err
+		return nil, origin, 0, 0, err
 	}
 	if o, ok, oerr := originParam(p); oerr != nil || ok {
-		return tracks, o, skip, oerr
+		return tracks, o, skip, skipped, oerr
 	}
-	return tracks, origin, skip, nil
+	return tracks, origin, skip, skipped, nil
 }
 
 // originParam is the origin the UI says it plays from, if it sent one.
@@ -152,31 +152,42 @@ func pathRef(ctx context.Context, store *library.Store, path string) source.Ref 
 	return source.Ref{Library: local.FilesLibrary, ID: path}
 }
 
-func pickedFrom(ctx context.Context, p map[string]any, deps Deps) ([]source.Track, player.Origin, error) {
+func pickedFrom(ctx context.Context, p map[string]any, deps Deps) ([]source.Track, player.Origin, int, error) {
 	var origin player.Origin
 	rs, err := Refs(p, "tracks")
 	if err != nil {
-		return nil, origin, err
+		return nil, origin, 0, err
 	}
 	paths := Strs(p, "paths")
+	var pathRefs []source.Ref
 	for _, path := range paths {
 		if !filepath.IsAbs(path) {
-			return nil, origin, fmt.Errorf("path %q is not absolute", path)
+			return nil, origin, 0, fmt.Errorf("path %q is not absolute", path)
 		}
 		files, err := local.Collect(ctx, filepath.Clean(path))
 		if err != nil {
-			return nil, origin, err
+			return nil, origin, 0, err
 		}
 		for _, f := range files {
-			rs = append(rs, pathRef(ctx, deps.Libraries.Store(), f))
+			pathRefs = append(pathRefs, pathRef(ctx, deps.Libraries.Store(), f))
 		}
-		if len(rs) > maxPathTracks {
-			return nil, origin, fmt.Errorf("more than %d files; add a library for this folder instead", maxPathTracks)
+		if len(rs)+len(pathRefs) > maxPathTracks {
+			return nil, origin, 0, fmt.Errorf("more than %d files; add a library for this folder instead", maxPathTracks)
 		}
 	}
 	tracks, err := deps.Libraries.Tracks(ctx, rs)
 	if err != nil {
-		return nil, origin, err
+		return nil, origin, 0, err
+	}
+	// A file with unreadable tags is left out instead of refusing the folder.
+	found, skipped := resolveEach(ctx, deps, pathRefs)
+	tracks = append(tracks, found...)
+	switch {
+	case len(paths) == 0 || len(tracks) > 0:
+	case len(pathRefs) == 0:
+		return nil, origin, 0, errors.New("no audio files in these folders")
+	default:
+		return nil, origin, 0, errors.New("none of these files could be read")
 	}
 	switch {
 	case len(tracks) == 1 && len(paths) == 0:
@@ -189,15 +200,15 @@ func pickedFrom(ctx context.Context, p map[string]any, deps Deps) ([]source.Trac
 	if album := Str(p, "album"); album != "" {
 		lib, id, ok := strings.Cut(album, ":")
 		if !ok {
-			return nil, origin, fmt.Errorf("album %q is not library:id", album)
+			return nil, origin, 0, fmt.Errorf("album %q is not library:id", album)
 		}
 		b, err := browser(deps, lib)
 		if err != nil {
-			return nil, origin, err
+			return nil, origin, 0, err
 		}
 		a, err := b.Album(ctx, id)
 		if err != nil {
-			return nil, origin, err
+			return nil, origin, 0, err
 		}
 		if len(tracks) == 0 {
 			origin = player.Origin{Kind: "album", Library: lib, ID: id, Name: a.Name}
@@ -209,15 +220,15 @@ func pickedFrom(ctx context.Context, p map[string]any, deps Deps) ([]source.Trac
 	if ref := Str(p, "playlist"); ref != "" {
 		lib, id, ok := strings.Cut(ref, ":")
 		if !ok {
-			return nil, origin, fmt.Errorf("playlist %q is not library:id", ref)
+			return nil, origin, 0, fmt.Errorf("playlist %q is not library:id", ref)
 		}
 		pls, err := Capability[source.Playlists](deps.Libraries, lib, "server playlists")
 		if err != nil {
-			return nil, origin, err
+			return nil, origin, 0, err
 		}
 		pl, err := pls.Playlist(ctx, id)
 		if err != nil {
-			return nil, origin, err
+			return nil, origin, 0, err
 		}
 		if len(tracks) == 0 {
 			origin = player.Origin{Kind: "playlist", Library: lib, ID: id, Name: pl.Name}
@@ -226,13 +237,14 @@ func pickedFrom(ctx context.Context, p map[string]any, deps Deps) ([]source.Trac
 		}
 		tracks = append(tracks, pl.Tracks...)
 	}
-	return tracks, origin, nil
+	return tracks, origin, skipped, nil
 }
 
 func handlePlayer(ctx context.Context, w *ConnWriter, req Request, deps Deps) {
 	pl := deps.Player
 	p := req.Params
 	var err error
+	var skipped int
 	switch req.Method {
 	case "player.status":
 	case "player.play":
@@ -246,7 +258,11 @@ func handlePlayer(ctx context.Context, w *ConnWriter, req Request, deps Deps) {
 			}
 			break
 		}
-		tracks, origin, skip, terr := tracksFrom(ctx, p, deps, index)
+		var tracks []source.Track
+		var origin player.Origin
+		var skip int
+		var terr error
+		tracks, origin, skip, skipped, terr = tracksFrom(ctx, p, deps, index)
 		if err = terr; err != nil {
 			break
 		}
@@ -346,7 +362,10 @@ func handlePlayer(ctx context.Context, w *ConnWriter, req Request, deps Deps) {
 		w.RespondError(req.ID, err.Error())
 		return
 	}
-	w.Respond(req.ID, st)
+	w.Respond(req.ID, struct {
+		player.Status
+		Skipped int `json:"skipped,omitempty"`
+	}{st, skipped})
 }
 
 func handleQueue(ctx context.Context, w *ConnWriter, req Request, deps Deps) {
@@ -356,7 +375,7 @@ func handleQueue(ctx context.Context, w *ConnWriter, req Request, deps Deps) {
 	switch req.Method {
 	case "queue.list":
 	case "queue.add":
-		tracks, _, _, terr := tracksFrom(ctx, p, deps, 0)
+		tracks, _, _, _, terr := tracksFrom(ctx, p, deps, 0)
 		if err = terr; err == nil {
 			if len(tracks) == 0 {
 				err = errors.New("nothing to add")

@@ -235,7 +235,20 @@ var playCmd = &cobra.Command{
 			}
 			paths = append(paths, abs)
 		}
-		return statusCall("player.play", map[string]any{"paths": paths})
+		var reply struct {
+			player.Status
+			Skipped int `json:"skipped"`
+		}
+		if err := call(true, "player.play", map[string]any{"paths": paths}, &reply); err != nil {
+			return err
+		}
+		if reply.Skipped > 0 {
+			fmt.Fprintf(os.Stderr, "skipped %d files whose tags couldn't be read\n", reply.Skipped)
+		}
+		if jsonOutput {
+			return printJSON(reply)
+		}
+		return printStatus(reply.Status)
 	},
 }
 
