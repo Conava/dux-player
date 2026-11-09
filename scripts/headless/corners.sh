@@ -29,6 +29,16 @@ for page in libraries downloads general appearance pages nowplaying nowplaying/b
     [ "$page" = downloads ] && shot downloads
 done
 
+# a library's own page: the local one always, the server's with SERVER=1
+libs=$(rpc libraries.list '{}' 100000 | python3 -I -c 'import json,sys
+d = json.load(sys.stdin)
+for l in (d.get("result", d) if isinstance(d, dict) else d):
+    print(l["kind"], l["id"])')
+local=$(echo "$libs" | awk '$1 == "local" {print $2; exit}')
+ui settings "libraries/$local"
+audit "libraries/<local>"
+shot library-local
+
 server=$(rpc libraries.list '{}' 100000 | python3 -I -c 'import json,sys
 d = json.load(sys.stdin)
 for l in (d.get("result", d) if isinstance(d, dict) else d):
@@ -45,13 +55,13 @@ if [ -n "$server" ]; then
     audit "downloads, library card closed"
     shot downloads-closed
     ask press Server 0 >/dev/null
-    for page in "downloads/$server" "downloads/excluded:$server"; do
+    for page in "libraries/$server" "downloads/$server" "downloads/excluded:$server"; do
         ui settings "$page"
         audit "$page"
         shot "$(echo "$page" | tr '/:' '--')"
     done
 else
-    echo "skip downloads/<server> and downloads/excluded:<server> (no server, run with SERVER=1)" >>"$W/out/facts.txt"
+    echo "skip libraries/<server>, downloads/<server> and downloads/excluded:<server> (no server, run with SERVER=1)" >>"$W/out/facts.txt"
 fi
 
 [ "$failed" = 0 ]

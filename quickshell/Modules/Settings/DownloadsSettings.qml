@@ -9,7 +9,8 @@ import qs.DCommon.Widgets
 Item {
     id: root
 
-    // "" for the overview, a server library id for its downloaded tracks, "excluded:<id>" for its excluded ones
+    // "" for the overview, a server library id for its downloaded tracks, "excluded:<id>" for its excluded ones;
+    // openSubView also takes "library:<id>", the overview with that library's card open and in view
     property string subPage: ""
     // the settings search reading a sub-page: it fetches nothing
     property bool quiet: false
@@ -27,6 +28,13 @@ Item {
     property var expandedLibraries: ({})
     readonly property bool expandedByDefault: servers.length === 1
     readonly property string excludedPrefix: "excluded:"
+    readonly property string libraryPrefix: "library:"
+    // the card to bring into view, polled while the page lays out until it stays put
+    property string revealLibrary: ""
+    property int revealTries: 0
+    property real revealLastY: -1
+    readonly property int revealPollInterval: 50
+    readonly property int revealMaxTries: 20
     readonly property real gigabyte: 1e9
 
     function supports(libraryId, kind) {
@@ -141,7 +149,32 @@ Item {
 
     function openSubView(id, quiet) {
         root.quiet = quiet === true;
-        subPage = id;
+        if (!id.startsWith(libraryPrefix)) {
+            subPage = id;
+            return;
+        }
+        const library = id.substring(libraryPrefix.length);
+        const next = Object.assign({}, expandedLibraries);
+        next[library] = true;
+        expandedLibraries = next;
+        subPage = "";
+        revealLibrary = library;
+        revealTries = 0;
+        revealLastY = -1;
+        revealTimer.restart();
+    }
+
+    function revealCard() {
+        const card = libraryCards.itemAt(servers.findIndex(l => l.id === revealLibrary));
+        if (++revealTries >= revealMaxTries)
+            revealTimer.stop();
+        if (!card)
+            return;
+        const y = card.mapToItem(page.contentItem, 0, 0).y;
+        page.revealRange(y, y + card.height);
+        if (y === revealLastY)
+            revealTimer.stop();
+        revealLastY = y;
     }
 
     SettingsPage {
@@ -276,6 +309,7 @@ Item {
                 spacing: Theme.spacingM
 
                 Repeater {
+                    id: libraryCards
                     model: root.subPage === "" ? root.servers : []
 
                     SettingsGroup {
@@ -399,6 +433,13 @@ Item {
             Accessible.name: Phrases.named(tooltipText, ruleRow.title)
             onClicked: root.removeRule(ruleRow.modelData)
         }
+    }
+
+    Timer {
+        id: revealTimer
+        interval: root.revealPollInterval
+        repeat: true
+        onTriggered: root.revealCard()
     }
 
     ConfirmDialog {

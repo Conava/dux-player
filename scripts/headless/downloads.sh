@@ -156,11 +156,11 @@ shot downloads-library-off
 fact "turned-off card says so" "$(ask shown "Turned off in settings")" 1
 fact "no Add rule in the turned-off card" "$(ask shown "Add rule")" 1
 
-# the library dialog's scrobbling rows
+# the library's page and its scrobbling rows
 ui settings libraries
 sleep 2
 ask press Server 0 >/dev/null
 sleep 2
-shot library-dialog
+shot library-page
 
 [ "$failed" = 0 ]

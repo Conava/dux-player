@@ -30,7 +30,7 @@ PAGES = {
 }
 
 # component files whose rows belong to a page's sub-pages
-EXTRA_FILES = {"downloads": ["DownloadedTracks.qml"]}
+EXTRA_FILES = {"libraries": ["LibraryPage.qml"], "downloads": ["DownloadedTracks.qml"]}
 
 CARD = "SettingsCard"
 # element type → (title property, description property)

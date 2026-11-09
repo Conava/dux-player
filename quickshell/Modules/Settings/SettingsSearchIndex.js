@@ -5,6 +5,17 @@
 
 var entries = [
     {"page": "libraries", "title": ["Add library", "libraries settings primary action"]},
+    {"page": "libraries", "title": ["Enabled", "library row switch"], "text": [["Off. Its tracks are hidden and skipped in playlists.", "disabled library status"]]},
+    {"page": "libraries", "title": ["Name", "a name: field label, sort key"]},
+    {"page": "libraries", "title": ["Server", "details field: the server address"], "text": [["Signed in as %1", "scrobbling account state, %1 is the user name"]]},
+    {"page": "libraries", "title": ["Folders", "library kind option"], "text": [["Includes subfolders. Changes are detected automatically.", "library dialog folders hint"]]},
+    {"page": "libraries", "title": ["Add folder", "library dialog folder action"], "text": [["Enter a path", "library dialog action that shows a folder path field"]]},
+    {"page": "libraries", "title": ["Ratings in files", "library page section"]},
+    {"page": "libraries", "title": ["Write ratings and favorites to files", "local library setting"], "section": ["Ratings in files", "library page section"], "text": [["Stores ratings and favorites in the tags of the music files.", "local library setting description"]]},
+    {"page": "libraries", "title": ["Write existing ratings now", "local library action"], "section": ["Ratings in files", "library page section"], "text": [["Write", "button that writes ratings to files"]]},
+    {"page": "libraries", "title": ["Scrobbling", "scrobbling: feature and settings tab"]},
+    {"page": "libraries", "title": ["Downloads", "the offline downloads: page, settings tab"]},
+    {"page": "libraries", "title": ["Remove library", "library page action"], "text": [["Remove", "button that removes an item"]]},
     {"page": "downloads", "title": ["Storage", "downloads settings section: space used and its limit"]},
     {"page": "downloads", "title": ["Space used", "offline storage usage row"], "section": ["Storage", "downloads settings section: space used and its limit"], "text": [["%1 of %2", "storage usage: used of limit"]], "keywords": "cache download storage disk"},
     {"page": "downloads", "title": ["Size limit", "offline storage limit slider"], "section": ["Storage", "downloads settings section: space used and its limit"], "text": [["Recently played and Most played tracks are removed first.", "offline storage limit description"]], "keywords": "cache download storage disk"},
