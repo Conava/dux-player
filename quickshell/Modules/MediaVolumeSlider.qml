@@ -1,11 +1,11 @@
 import QtQuick
 import qs.Common
+import qs.DCommon.Widgets
 import qs.Services
-import qs.Widgets
 
-// The player's volume as a handle-less pill: the fill is the level, the speaker icon inside mutes. Bento fills
-// with the accent, M3E is tonal with the level as text.
-DPillSlider {
+// The player's volume: a filled track with the speaker icon inset at the start of the fill and a handle bar at its
+// edge. The icon mutes. Bento fills with the accent, M3E is tonal with the level as text.
+DSlider {
     id: root
 
     readonly property real volume: PlayerService.volume
@@ -13,18 +13,18 @@ DPillSlider {
     readonly property bool tonal: UiConfig.nowPlaying.style === "m3e"
     property string accessibleName: I18n.tr("Volume", "audio volume: settings section, slider")
 
-    implicitHeight: tonal ? Theme.buttonHeightXS : Theme.buttonHeightS
+    size: "s"
     value: muted ? 0 : Math.round(volume * 100)
     maximum: Math.max(1, Math.round(PlayerService.volumeMax * 100))
-    iconName: muted ? "volume_off" : volume < 0.5 ? "volume_down" : "volume_up"
-    iconClickable: true
+    insetIcon: muted ? "volume_off" : volume < 0.5 ? "volume_down" : "volume_up"
+    insetIconClickable: true
     showValue: tonal
     unit: "%"
     fillColor: tonal ? ArtColors.accentContainer : ArtColors.accent
-    fillContentColor: tonal ? ArtColors.onAccentContainer : ArtColors.onAccent
+    fillTextColor: tonal ? ArtColors.onAccentContainer : ArtColors.onAccent
     trackColor: tonal ? ArtColors.accentSecondaryContainer : ArtColors.accentTrack
-    trackContentColor: tonal ? ArtColors.onAccentSecondaryContainer : ArtColors.accent
+    trackTextColor: tonal ? ArtColors.onAccentSecondaryContainer : ArtColors.accent
     Accessible.name: accessibleName
-    onMoved: value => PlayerService.setVolume(value / 100)
-    onIconClicked: PlayerService.setMuted(!PlayerService.muted)
+    onSliderValueChanged: v => PlayerService.setVolume(v / 100)
+    onInsetIconClicked: PlayerService.setMuted(!PlayerService.muted)
 }
