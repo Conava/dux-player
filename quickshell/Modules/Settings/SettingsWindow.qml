@@ -254,8 +254,9 @@ DFloatingWindow {
                 });
             if (row)
                 return;
+            const own = card && it.title ? it.title : (it.searchSection ?? section);
             for (let i = 0; i < it.children.length; i++)
-                walk(it.children[i], card ? it.title : section, reason);
+                walk(it.children[i], own, reason);
         };
         walk(item, "", "");
         return rows;

@@ -266,18 +266,6 @@ Item {
         id: page
         visible: root.target === null
 
-        SectionLabel {
-            text: root.title
-
-            actions: DButton {
-                text: I18n.tr("Reset", "button that restores the defaults")
-                iconName: "restart_alt"
-                backgroundColor: "transparent"
-                textColor: Theme.primary
-                onClicked: resetDialog.ask()
-            }
-        }
-
         SurfaceCard.Preview {
             width: parent.width
             height: Math.min(implicitHeight, root.height / 3)
@@ -335,6 +323,16 @@ Item {
             onHiddenToggled: (zone, index, hidden) => root.setHidden(zone, index, hidden)
             onOptionsRequested: (zone, index) => root.optionsId = root.surface.zones[zone][index].id
             onAddRequested: zone => root.openPicker(zone)
+        }
+
+        SettingsCard {
+            SettingsRow {
+                title: I18n.tr("Reset", "button that restores the defaults")
+                searchable: false
+                iconName: "restart_alt"
+                clickable: true
+                onClicked: resetDialog.ask()
+            }
         }
     }
 

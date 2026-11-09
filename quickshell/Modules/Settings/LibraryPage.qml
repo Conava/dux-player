@@ -80,12 +80,12 @@ Column {
     }
 
     onLibraryIdChanged: typingPath = false
+    // the settings search's section for this page's rows: the page header shows the name
+    readonly property string searchSection: library?.name ?? ""
     width: parent?.width ?? 0
     spacing: Theme.spacingL
 
     SettingsCard {
-        title: root.library?.name ?? ""
-
         SettingsToggleRow {
             text: I18n.tr("Enabled", "library row switch")
             description: checked ? "" : I18n.tr("Off. Its tracks are hidden and skipped in playlists.", "disabled library status")
