@@ -50,7 +50,8 @@ Pages, columns and the full view can be customized.
 ## Features
 - Local libraries (several folders, indexed and watched) and any number of server libraries; Jellyfin also signs in with Quick Connect, so no password is stored
 - Local playlists that mix tracks from any library, plus server native playlists; add a track to several at once and see which ones hold it
-- Offline rules per server library, caching and preloading the next songs for a seamless experience; favorites and ratings set while a server is unreachable are sent once it is back
+- Downloads in Settings keep server tracks on the device: rules for favorites, recently or most played tracks and everything cover all servers or one, rules for an album, artist or playlist cover that one; a size limit, and the next songs preload for a seamless experience. Favorites and ratings set while a server is unreachable are sent once it is back
+- Each server library's downloaded tracks are listed in Downloads, where a track can be deleted, or deleted and excluded so no rule downloads it again until Download again
 - Server catalogs are kept on the device once a first sync finishes: browsing and search are instant and work while the server is unreachable, where tracks without a cached copy show that they can't play. Checked every 15 minutes, read in full when the server reports a change (at most hourly), at least daily, and on Rescan; the sync waits on a metered connection unless started by hand
 - Gapless playback, crossfade, volume normalization, skipping leading and trailing silence, equalizer several outputs at once
 - Optional synced lyrics with word-by-word fill, in the full view and as one line in the bar, on by default, with a choice of source (each with what the timing match to the audio found and changed) and a timing offset per song of up to ±10 s that holds for the lyrics it was set against (also `dplayer lyrics offset 2` to set it, `+0.5` or `-0.5` to move it; a signed number always moves it), scrobbling (to ListenBrainz, Last.fm and the server), casting through [dux-cast](https://github.com/Conava/dux-cast)
@@ -66,9 +67,12 @@ Pages, columns and the full view can be customized.
 - Text templates for a now-playing line and for custom columns in track lists; each column has its own title, Sort by field and width (small, medium or large, or drag the border between two columns; Length takes the three sizes only)
 - Filter rules for track, album and artist pages: match all or any of a list of conditions on fields such as genre, library, rating, year, length, plays, date added and last played
 - Stop after a chosen queue entry, shuffle by album, and rules for what shuffle all and auto-continue skip (genres, libraries, low ratings, short tracks); shuffling a named library ignores that library's skip entry
+- When the queue ends it stops or continues with random or similar tracks, a set number at a time (1 to 50, 5 by default); similar picks by the artists, genres and playlists of the whole session and the server's similar tracks, familiar, balanced or adventurous, in Settings → Playback
+- The queue marks tracks you added and tracks it added by itself; Play next lines tracks up in the order you add them or newest first, in Settings → Playback
 - Keep a single song on the device for offline play, from its menu; track tiles can open the album instead of playing; `dplayer keep library:id…` and `dplayer unkeep library:id…` do the same from the CLI
 - When a track has no lyrics, the full view can fall back to the cover
 - Now-playing bar, side panel and full view in Bento or Material design, with arrangeable elements, also in lines above and below the seekbar, a customizable home page and track lists, custom pages with their own rules, columns, limit, random order, grouping and icon, and searchable settings
+- Density sets the spacing of lists, tiles, sections and navigation; colors from the cover are off, for now playing only or for the whole app, in Settings → Appearance
 
 ## Requirements
 
