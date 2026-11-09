@@ -91,6 +91,14 @@ DFloatingWindow {
             "icon": "speaker"
         },
         {
+            "id": "integrations",
+            "group": 2,
+            "accent": "blue",
+            "label": I18n.tr("Integrations", "settings sidebar tab label"),
+            "hint": I18n.tr("Discord", "settings sidebar tab hint"),
+            "icon": "extension"
+        },
+        {
             "id": "about",
             "group": 3,
             "accent": "pink",
@@ -262,6 +270,8 @@ DFloatingWindow {
             return "PagesSettings.qml";
         case "appearance":
             return "AppearanceSettings.qml";
+        case "integrations":
+            return "IntegrationsSettings.qml";
         case "about":
             return "AboutSettings.qml";
         }

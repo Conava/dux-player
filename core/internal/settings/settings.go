@@ -63,6 +63,8 @@ type Settings struct {
 	LyricsForDownloads bool `json:"lyricsForDownloads"`
 	// LyricsAudioTiming fits word timing to the audio of tracks on this device.
 	LyricsAudioTiming bool `json:"lyricsAudioTiming"`
+	// DiscordPresence shows the playing track in Discord.
+	DiscordPresence bool `json:"discordPresence"`
 	// PrefetchTracks is how many upcoming server tracks are downloaded
 	// ahead, 0-3; PrefetchOnMetered keeps doing it on a metered connection.
 	PrefetchTracks    int  `json:"prefetchTracks"`
@@ -363,6 +365,8 @@ func apply(s Settings, key string, v any) (Settings, error) {
 		s.LyricsForDownloads, err = toBool(key, v)
 	case "lyricsAudioTiming":
 		s.LyricsAudioTiming, err = toBool(key, v)
+	case "discordPresence":
+		s.DiscordPresence, err = toBool(key, v)
 	case "volumeTarget":
 		s.VolumeTarget, err = oneOf(key, v, player.VolumeApp, player.VolumeSystem)
 	case "equalizer":

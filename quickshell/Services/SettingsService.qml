@@ -43,6 +43,7 @@ Singleton {
             "previousThreshold": 5,
             // months of play history kept, 0 keeps it forever
             "historyMonths": 12,
+            "discordPresence": false,
             "allowVolumeBoost": false,
             // "app" (mpv's own volume) | "system" (the default output's)
             "volumeTarget": "app",
@@ -147,6 +148,7 @@ Singleton {
         case "crossfade":
         case "previousThreshold":
         case "historyMonths":
+        case "discordPresence":
         case "allowVolumeBoost":
         case "volumeTarget":
         case "artistInfoOnline":
@@ -490,6 +492,7 @@ Singleton {
             "crossfade": s.crossfade ?? settings.crossfade,
             "previousThreshold": s.previousThreshold ?? 5,
             "historyMonths": s.historyMonths ?? 12,
+            "discordPresence": s.discordPresence === true,
             "allowVolumeBoost": s.allowVolumeBoost === true,
             "volumeTarget": s.volumeTarget === "system" ? "system" : "app",
             "artistInfoOnline": s.artistInfoOnline !== false,

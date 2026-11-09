@@ -24,6 +24,7 @@ PAGES = {
     "lyrics": "LyricsSettings.qml",
     "scrobble": "ScrobbleSettings.qml",
     "devices": "DevicesSettings.qml",
+    "integrations": "IntegrationsSettings.qml",
     "about": "AboutSettings.qml",
 }
 

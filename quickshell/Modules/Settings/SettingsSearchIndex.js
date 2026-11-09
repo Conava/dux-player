@@ -125,6 +125,7 @@ var entries = [
     {"page": "devices", "title": ["Sync", "playback device sync page"], "section": ["Multiple outputs", "playback device settings section"], "text": [["Adjust the delay of each output", "playback device sync row"], ["Select at least two outputs", "why the sync page is disabled"]], "keywords": "delay latency bluetooth"},
     {"page": "devices", "title": ["Delay", "playback device sync section"]},
     {"page": "devices", "title": ["Test tone", "playback device sync action"], "section": ["Delay", "playback device sync section"], "text": [["Plays a short click on every output.", "playback device sync action description"], ["Available when multiple outputs are on", "why the test tone is disabled"], ["Playing…", "test tone state"], ["Play", "button that starts playback"]]},
+    {"page": "integrations", "title": ["Discord Rich Presence", "integrations setting"], "text": [["Shows the playing track on your Discord profile.", "discord presence description"]], "keywords": "discord status activity"},
     {"page": "about", "title": ["By Marlon Kranz", "about page author row"]},
     {"page": "about", "title": ["Source code", "about page link to the repository"], "keywords": "github repository"},
     {"page": "about", "title": ["Report an issue", "about page link to the issue tracker"], "keywords": "bug github"},

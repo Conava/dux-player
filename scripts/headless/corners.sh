@@ -23,7 +23,7 @@ audit "element options"
 shot element-options
 ui elementOptions ""
 
-for page in libraries general appearance pages nowplaying nowplaying/bar nowplaying/side nowplaying/fullBento nowplaying/fullM3e playback lyrics scrobble devices about; do
+for page in libraries general appearance pages nowplaying nowplaying/bar nowplaying/side nowplaying/fullBento nowplaying/fullM3e playback lyrics scrobble devices integrations about; do
     ui settings "$page"
     audit "$page"
 done
