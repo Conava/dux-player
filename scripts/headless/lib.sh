@@ -18,7 +18,7 @@
 #   pointer b | f [MS [DX]]   hold the side button (back) or the extra button (forward) for MS, moving DX halfway
 #   ask NAME ARGS    like ui, but prints the reply: ask route
 #   click X Y        move and click
-#   frames NAME CMD  run CMD and write the ms between UI frames to out/NAME.frames
+#   frames NAME CMD  run CMD and write the ms between the main window's frames while its moving parts move to out/NAME.frames
 #   rclick X Y       move and right click
 #   dimmed A B       1 when the settings window's left edge is darker in out/B.png than in out/A.png: a dialog opened
 #                    between the shots really draws its scrim, rather than only reporting itself open
@@ -52,7 +52,7 @@ expand() { ui expand "$1"; sleep "${SETTLE:-1.5}"; }
 look() { ui look "$1" "$2"; sleep "${SETTLE:-1.5}"; }
 element() { ui element "$1" "$2"; }
 shot() { grim "$W/out/$1.png"; }
-# frames NAME CMD...: runs CMD, then records the ms between UI frames for 1.5 s in out/NAME.frames
+# frames NAME CMD...: runs CMD, then records for 1.5 s the ms between frames, from the first to the last one in which the main window's moving parts moved, in out/NAME.frames
 frames() {
     local name=$1
     shift

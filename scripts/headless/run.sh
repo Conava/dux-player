@@ -62,29 +62,14 @@ cat >>"$W/tree/shell.qml" <<'Q'
                 view: all.find(i => i.entry !== undefined)
             };
         }
-    }
-
-    IpcHandler {
-        target: "headless"
-        function framesStart(): void {
-            frameProbe.times = [];
-            frameProbe.target = frameProbe.window();
-            frameProbe.target.frameSwapped.connect(frameProbe, frameProbe.swapped);
-        }
-        function framesStop(): string {
-            frameProbe.target.frameSwapped.disconnect(frameProbe, frameProbe.swapped);
-            return frameProbe.times.slice(1).map((t, i) => t - frameProbe.times[i]).join(" ");
-        }
-        // one JSON line per presented frame with where the moving parts are
-        function trackStart(): void {
-            const p = frameProbe.parts();
+        // where the moving parts are now
+        function sampler() {
+            const p = parts();
             const panel = Array.from(p.host.children).find(c => c.sourceComponent !== undefined);
-            frameProbe.samples = [];
-            frameProbe.tracked = () => {
+            return () => {
                 const host = p.host.mapToItem(p.card.parent, 0, 0);
                 const bar = p.bar.mapToItem(p.card.parent, 0, 0);
-                return JSON.stringify({
-                    t: Date.now(),
+                return {
                     bar: p.bar.y,
                     barShows: p.bar.visible,
                     barX: bar.x,
@@ -104,9 +89,42 @@ cat >>"$W/tree/shell.qml" <<'Q'
                     cardY: p.card.y,
                     cardW: p.card.width,
                     cardH: p.card.height,
+                    remaining: p.card.remaining,
+                    fullW: p.card.parent.width,
+                    fullH: p.card.parent.height,
                     view: p.view.opacity
-                });
+                };
             };
+        }
+    }
+
+    IpcHandler {
+        target: "headless"
+        // only the frames from the first to the last one where a moving part moved: the wait for the move to start is
+        // input latency, and a stray repaint before or after it would otherwise count that idle time as a gap
+        function framesStart(): void {
+            const sample = frameProbe.sampler();
+            frameProbe.times = [];
+            frameProbe.samples = [JSON.stringify(sample())];
+            frameProbe.tracked = () => JSON.stringify(sample());
+            frameProbe.target = frameProbe.window();
+            frameProbe.target.frameSwapped.connect(frameProbe, frameProbe.swapped);
+        }
+        function framesStop(): string {
+            frameProbe.target.frameSwapped.disconnect(frameProbe, frameProbe.swapped);
+            frameProbe.tracked = null;
+            const s = frameProbe.samples;
+            const moved = frameProbe.times.map((_, i) => s[i + 1] !== s[i]);
+            const t = frameProbe.times.slice(moved.indexOf(true), moved.lastIndexOf(true) + 1);
+            return t.slice(1).map((x, i) => x - t[i]).join(" ");
+        }
+        // one JSON line per presented frame with where the moving parts are
+        function trackStart(): void {
+            const sample = frameProbe.sampler();
+            frameProbe.samples = [];
+            frameProbe.tracked = () => JSON.stringify(Object.assign({
+                    t: Date.now()
+                }, sample()));
             frameProbe.target = frameProbe.window();
             frameProbe.target.frameSwapped.connect(frameProbe, frameProbe.swapped);
         }

@@ -32,19 +32,12 @@ cap() { grim -g "$(geometry '%d,%d %dx%d')" "$W/out/$1.png"; }
 # crop NAME FROM X Y W H: a region of a window shot, relative to the window
 crop() { magick "$W/out/$2.png" -crop "$5x$6+$3+$4" +repage -strip "$W/out/$1.png"; }
 
-# gaps NAME: the longest gap between frames inside a slide. Idle time before the first frame at pace and after the
-# last one is not a gap, and a leg without a single frame at pace is a failure.
+# gaps NAME: the longest gap between frames of a move, from the first frame where something moved to the last one
 gaps() {
     local worst
-    worst=$(python3 -I - "$W/out/$1.frames" <<'P'
-import sys
-g = [int(x) for x in open(sys.argv[1]).read().split()]
-pace = [i for i, x in enumerate(g) if x <= 25]
-print(max(g[pace[0]:pace[-1] + 1]) if pace else -1)
-P
-    )
-    fact "gap $1: worst $worst ms of $(wc -w <"$W/out/$1.frames") frames"
-    if [ "$worst" -lt 0 ]; then fail "gap $1: no frames"; elif [ "$worst" -gt "$GAP_MAX" ]; then fail "gap $1: $worst ms over $GAP_MAX"; fi
+    worst=$(tr ' ' '\n' <"$W/out/$1.frames" | sort -n | tail -1)
+    fact "gap $1: worst ${worst:--} ms of $(wc -w <"$W/out/$1.frames") frames"
+    if [ -z "$worst" ]; then fail "gap $1: no frames"; elif [ "$worst" -gt "$GAP_MAX" ]; then fail "gap $1: $worst ms over $GAP_MAX"; fi
 }
 leg() { # NAME CMD...: frames around CMD, then the check
     local name=$1
@@ -183,10 +176,14 @@ ui expand false
 sleep 2.5
 tracked morph-side
 settled morph-side host
-starts() { # NAME X Y W H: the first frame showing the card has it on that rectangle, whatever the layout direction
+# starts NAME X Y W H: the first frame showing the card has it where the morph from that rectangle to the full size
+# is at that frame's progress, whatever the layout direction. Qt advances animations one vsync per frame and the first
+# frames after idle can render back to back, so how far along the first frame is says nothing about the source.
+starts() {
     judge "$1" "
 x = next(x for x in s if x['card'])
-d = max(abs(x['cardX'] - ($2)), abs(x['cardY'] - ($3)), abs(x['cardW'] - ($4)), abs(x['cardH'] - ($5)))
+r = x['remaining']
+d = max(abs(x['cardX'] - ($2) * r), abs(x['cardY'] - ($3) * r), abs(x['cardW'] - x['fullW'] - (($4) - x['fullW']) * r), abs(x['cardH'] - x['fullH'] - (($5) - x['fullH']) * r))
 d <= 12 or print(d, 'px off', x)" "the morph starts on its source"
 }
 starts morph-side "x['hostX']" "x['hostY']" "x['host']" "x['hostH']"
