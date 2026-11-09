@@ -112,7 +112,7 @@ func (s *server) Playlists(context.Context) ([]source.Playlist, error) { return 
 func (s *server) Playlist(_ context.Context, id string) (source.Playlist, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return source.Playlist{ID: id, Tracks: s.tracks(s.playlists[id])}, s.err()
+	return source.Playlist{ID: id, Name: "List " + id, Tracks: s.tracks(s.playlists[id])}, s.err()
 }
 
 type noSecrets struct{}

@@ -101,6 +101,14 @@ var migrations = []string{
 		track      TEXT NOT NULL,
 		PRIMARY KEY (library_id, id)
 	);`,
+	// A server playlist's name as its rule last read it, for when its
+	// library is off: the library index holds no server playlists.
+	`CREATE TABLE names (
+		library_id TEXT NOT NULL,
+		rule       TEXT NOT NULL,
+		name       TEXT NOT NULL,
+		PRIMARY KEY (library_id, rule)
+	);`,
 }
 
 type Config struct {
@@ -727,8 +735,11 @@ func (c *Cache) Sync(ctx context.Context, libID string, match func(key string) b
 	}
 	for _, r := range rules {
 		if !r.dynamic() && match(r.key()) {
-			tracks, err := scope(ctx, src, r)
+			tracks, name, err := scope(ctx, src, r)
 			cover(r.key(), tracks, err)
+			if err == nil && name != "" {
+				c.setName(ctx, libID, r.key(), name)
+			}
 		}
 	}
 	for _, id := range c.localPlaylists() {
@@ -1402,7 +1413,7 @@ func (c *Cache) Clear(ctx context.Context, libID string) error {
 	}
 	c.mu.Unlock()
 	err := c.remove(ctx, "? = '' OR library_id = ?", libID, libID)
-	for _, table := range []string{"covers", "probes"} {
+	for _, table := range []string{"covers", "probes", "names"} {
 		if err == nil {
 			_, err = c.db.ExecContext(ctx, "DELETE FROM "+table+" WHERE ? = '' OR library_id = ?", libID, libID)
 		}
@@ -1467,7 +1478,9 @@ func (c *Cache) List(ctx context.Context, libID string) ([]Entry, error) {
 // the copies it holds), Cached of them and their Size.
 type RuleStatus struct {
 	Rule
-	Key    string `json:"key"`
+	Key string `json:"key"`
+	// Name is the album's, artist's or server playlist's, as last known.
+	Name   string `json:"name,omitempty"`
 	Local  bool   `json:"local,omitempty"`
 	Tracks int    `json:"tracks"`
 	Cached int    `json:"cached"`
@@ -1594,7 +1607,9 @@ func (c *Cache) Status(ctx context.Context) (Status, error) {
 	list := slices.Clone(c.ruleList)
 	c.mu.Unlock()
 	for _, r := range list {
-		st.Rules = append(st.Rules, ruleStatus(r, rules[r.Library][r.key()]))
+		rs := ruleStatus(r, rules[r.Library][r.key()])
+		rs.Name = c.ruleName(ctx, r)
+		st.Rules = append(st.Rules, rs)
 	}
 	for _, id := range c.localPlaylists() {
 		rs := ruleStatus(Rule{Kind: KindPlaylist, ID: id}, rules[""][localPrefix+id])

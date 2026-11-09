@@ -831,6 +831,18 @@ func (s *Store) Album(ctx context.Context, libID, id string) (source.Album, erro
 	return a, err
 }
 
+// ItemName is the stored name of an album or artist, whether or not its
+// library is on; "" when the index doesn't have it.
+func (s *Store) ItemName(ctx context.Context, libID, kind, id string) string {
+	table := "artists"
+	if kind == source.ItemAlbum {
+		table = "albums"
+	}
+	var name string
+	_ = s.db.QueryRowContext(ctx, "SELECT name FROM "+table+" WHERE library_id = ? AND id = ?", libID, id).Scan(&name)
+	return name
+}
+
 // Cover returns the stored cover file of an album, if any.
 func (s *Store) Cover(ctx context.Context, libID, albumID string) (string, error) {
 	var cover string

@@ -291,7 +291,20 @@ func cut(l Limit, sizes []int64) int {
 
 // scope lists the tracks a static rule covers. Any failure fails the whole
 // list, so a flaky server never shrinks a rule and deletes its copies.
-func scope(ctx context.Context, src source.Source, r Rule) ([]source.Track, error) {
+func scope(ctx context.Context, src source.Source, r Rule) ([]source.Track, string, error) {
+	if r.Kind != KindPlaylist {
+		tracks, err := scopeTracks(ctx, src, r)
+		return tracks, "", err
+	}
+	pls, ok := src.(source.Playlists)
+	if !ok {
+		return nil, "", errors.New("the server has no playlists")
+	}
+	p, err := pls.Playlist(ctx, r.ID)
+	return p.Tracks, source.Clean(p.Name), err
+}
+
+func scopeTracks(ctx context.Context, src source.Source, r Rule) ([]source.Track, error) {
 	b, isBrowser := src.(source.Browser)
 	switch r.Kind {
 	case KindEverything:
@@ -310,13 +323,6 @@ func scope(ctx context.Context, src source.Source, r Rule) ([]source.Track, erro
 		}
 		a, err := b.Album(ctx, r.ID)
 		return a.Tracks, err
-	case KindPlaylist:
-		pls, ok := src.(source.Playlists)
-		if !ok {
-			return nil, errors.New("the server has no playlists")
-		}
-		p, err := pls.Playlist(ctx, r.ID)
-		return p.Tracks, err
 	case KindFavorites:
 		f, ok := src.(source.Favorites)
 		if !ok {

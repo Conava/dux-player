@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"slices"
 
+	"github.com/duxlabs-dev/dux-go/log"
+
 	"github.com/Conava/dux-player/core/internal/source"
 )
 
@@ -235,4 +237,24 @@ func (c *Cache) wantedIDs(ctx context.Context, lib string) []source.Track {
 		out[i] = source.Track{Library: lib, ID: id}
 	}
 	return out
+}
+
+func (c *Cache) setName(ctx context.Context, lib, key, name string) {
+	if _, err := c.db.ExecContext(ctx, "INSERT OR REPLACE INTO names (library_id, rule, name) VALUES (?, ?, ?)", lib, key, name); err != nil {
+		log.Warnf("cache: library %s, rule %s: keep its name: %v", lib, key, err)
+	}
+}
+
+// ruleName names a rule's album, artist or server playlist, also while its
+// library is off; "" when nothing is known.
+func (c *Cache) ruleName(ctx context.Context, r Rule) string {
+	switch r.Kind {
+	case KindAlbum, KindArtist:
+		return c.cfg.Libraries.Store().ItemName(ctx, r.Library, r.Kind, r.ID)
+	case KindPlaylist:
+		var name string
+		_ = c.db.QueryRowContext(ctx, "SELECT name FROM names WHERE library_id = ? AND rule = ?", r.Library, r.key()).Scan(&name)
+		return name
+	}
+	return ""
 }

@@ -304,3 +304,29 @@ func TestAllServersRuleNeedsTheLibraryListed(t *testing.T) {
 	e.c.recompute(ctx, e.lib, rules, nil)
 	assert.Equal(t, []string{"x"}, cached(t, e.c))
 }
+
+// A turned-off library's rules keep the names of what they hold: albums and
+// artists from the library's index, a server playlist from its last sync.
+func TestRuleNamesOfATurnedOffLibrary(t *testing.T) {
+	ctx := context.Background()
+	e := setup(t, "", nil, nil)
+	batch := e.m.Store().BeginCatalog(e.lib, 1, 0)
+	require.NoError(t, batch.PutServerAlbum(ctx, source.Album{ID: "A1", Name: "First Light"}, false))
+	require.NoError(t, batch.PutServerArtist(ctx, source.Artist{ID: "R", Name: "Artist R"}, false))
+	require.NoError(t, batch.Commit())
+	for _, r := range []Rule{album("A1"), {Kind: KindArtist, ID: "R"}, playlist("P")} {
+		require.NoError(t, e.c.AddRule(ctx, e.lib, r))
+	}
+	e.settle(t)
+	require.NoError(t, e.m.SetEnabled(ctx, e.lib, false))
+	e.c.LibrariesChanged(ctx)
+	e.settle(t)
+
+	st, err := e.c.Status(ctx)
+	require.NoError(t, err)
+	names := map[string]string{}
+	for _, r := range st.Rules {
+		names[r.Kind] = r.Name
+	}
+	assert.Equal(t, map[string]string{KindAlbum: "First Light", KindArtist: "Artist R", KindPlaylist: "List P"}, names)
+}

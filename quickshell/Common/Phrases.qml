@@ -85,9 +85,9 @@ Singleton {
         return bytes >= 1e9 ? I18n.tr("%1 GB", "file size").arg((bytes / 1e9).toFixed(1)) : I18n.tr("%1 MB", "file size").arg(Math.round(bytes / 1e6));
     }
 
-    // An offline rule's name. ref: "library:id" of its playlist, album or artist (":id" for a local playlist); id is
-    // shown while the item isn't known.
-    function offlineRule(kind, ref, id) {
+    // An offline rule's name. ref: "library:id" of its playlist, album or artist (":id" for a local playlist); fallback
+    // is shown while the item isn't loaded: its last known name, else its id.
+    function offlineRule(kind, ref, fallback) {
         switch (kind) {
         case "everything":
             return I18n.tr("Everything", "offline rule: the whole library");
@@ -98,11 +98,11 @@ Singleton {
         case "mostPlayed":
             return I18n.tr("Most played", "home shelf and page of the most played tracks");
         case "playlist":
-            return join(I18n.tr("Playlist", "home shelf source kind"), PlaylistService.playlist(ref)?.name ?? id);
+            return join(I18n.tr("Playlist", "home shelf source kind"), PlaylistService.playlist(ref)?.name ?? fallback);
         case "album":
-            return join(I18n.tr("Album", "an album: page label, list column, ReplayGain mode"), CatalogService.album(ref)?.title ?? id);
+            return join(I18n.tr("Album", "an album: page label, list column, ReplayGain mode"), CatalogService.album(ref)?.title ?? fallback);
         case "artist":
-            return join(I18n.tr("Artist", "track list column"), CatalogService.artist(ref)?.name ?? id);
+            return join(I18n.tr("Artist", "track list column"), CatalogService.artist(ref)?.name ?? fallback);
         }
         return kind;
     }

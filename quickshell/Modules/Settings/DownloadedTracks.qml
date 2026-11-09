@@ -54,7 +54,8 @@ Column {
 
     // a rule reference {kind, id, local, global} that holds a track of this library
     function ruleLabel(ref) {
-        const label = Phrases.offlineRule(ref.kind, (ref.local ? "" : libraryId) + ":" + ref.id, ref.id);
+        const name = ref.local ? "" : SettingsService.cacheRules().find(r => r.library === libraryId && r.key === ref.key)?.name;
+        const label = Phrases.offlineRule(ref.kind, (ref.local ? "" : libraryId) + ":" + ref.id, name || ref.id);
         return ref.global ? I18n.tr("%1 (all servers)", "an offline rule that covers every server library, %1 is the rule").arg(label) : label;
     }
 

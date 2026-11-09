@@ -71,7 +71,7 @@ Item {
 
     // local playlists have library ""
     function ruleLabel(rule) {
-        return Phrases.offlineRule(rule.kind, (rule.library ?? "") + ":" + rule.id, rule.id);
+        return Phrases.offlineRule(rule.kind, (rule.library ?? "") + ":" + rule.id, rule.name || rule.id);
     }
 
     function ruleIcon(kind) {
