@@ -114,8 +114,6 @@ var entries = [
     {"page": "scrobble", "title": ["Approve Dux Player on Last.fm", "Last.fm sign-in step"], "section": ["Last.fm", ""], "text": [["Approve access in your browser, then select Finish sign-in.", "Last.fm sign-in step description"], ["Finish sign-in", "Last.fm sign-in action"]]},
     {"page": "scrobble", "title": ["API key", "API key field"], "section": ["Last.fm", ""], "text": [["Create an API account at last.fm/api. The key and secret are stored in the system keyring.", "Last.fm sign-in hint"]]},
     {"page": "scrobble", "title": ["Shared secret", "Last.fm sign-in field"], "section": ["Last.fm", ""]},
-    {"page": "scrobble", "title": ["Server libraries on your accounts", "scrobbling settings section: whether a server's plays also go to the accounts"]},
-    {"page": "scrobble", "title": ["Libraries", "the music libraries: page, settings tab, section"]},
     {"page": "devices", "title": ["Outputs", "playback device settings section"], "keywords": "speaker headphones audio cast"},
     {"page": "devices", "title": ["When outputs change", "playback device settings section"]},
     {"page": "devices", "title": ["Pause when the output disconnects", "playback device setting"], "section": ["When outputs change", "playback device settings section"], "text": [["When off, playback moves to the system default output.", "playback device setting description"]], "keywords": "bluetooth headphones unplug"},

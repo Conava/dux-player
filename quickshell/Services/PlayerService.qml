@@ -1070,8 +1070,8 @@ Singleton {
     function setScrobbleLibraryAccounts(libraryId, enabled) {
         SettingsService.setScrobbleLibraryAccounts(libraryId, enabled);
     }
-    function setScrobbleLibrary(libraryId, enabled) {
-        SettingsService.setScrobbleLibrary(libraryId, enabled);
+    function setScrobbleLibraryServer(libraryId, enabled) {
+        SettingsService.setScrobbleLibraryServer(libraryId, enabled);
     }
     function output(id) {
         return OutputService.output(id);

@@ -3,7 +3,6 @@ package scrobble
 import (
 	"context"
 	"errors"
-	"slices"
 	"strings"
 
 	"github.com/Conava/dux-player/core/internal/lastfm"
@@ -152,27 +151,18 @@ func (s *Service) SetEnabled(service string, on bool) error {
 	})
 }
 
-// SetLibraryAccounts says whether a server library's plays also go to the accounts.
+// SetLibraryServer says whether a library's plays go to its own server.
+func (s *Service) SetLibraryServer(id string, on bool) error {
+	if id == "" {
+		return errors.New("library is required")
+	}
+	return s.update(func(st *Settings) { st.NoServerLibraries = switchOff(st.NoServerLibraries, id, !on) })
+}
+
+// SetLibraryAccounts says whether a library's plays go to the accounts.
 func (s *Service) SetLibraryAccounts(id string, on bool) error {
 	if id == "" {
 		return errors.New("library is required")
 	}
-	return s.update(func(st *Settings) {
-		st.ServerOnlyLibraries = slices.DeleteFunc(st.ServerOnlyLibraries, func(x string) bool { return x == id })
-		if !on {
-			st.ServerOnlyLibraries = append(st.ServerOnlyLibraries, id)
-		}
-	})
-}
-
-func (s *Service) SetLibrary(id string, on bool) error {
-	if id == "" {
-		return errors.New("library is required")
-	}
-	return s.update(func(st *Settings) {
-		st.DisabledLibraries = slices.DeleteFunc(st.DisabledLibraries, func(x string) bool { return x == id })
-		if !on {
-			st.DisabledLibraries = append(st.DisabledLibraries, id)
-		}
-	})
+	return s.update(func(st *Settings) { st.NoAccountsLibraries = switchOff(st.NoAccountsLibraries, id, !on) })
 }

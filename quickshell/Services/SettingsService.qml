@@ -74,11 +74,12 @@ Singleton {
 
     // [{id, name, enabled}] in priority order
     property var lyricsProviders: []
-    // scrobble.status: {listenbrainz, lastfm, lastfmBuiltIn, disabledLibraries, queued}
+    // scrobble.status: {listenbrainz, lastfm, lastfmBuiltIn, noServerLibraries, noAccountsLibraries, queued}
     property var scrobble: ({
             "listenbrainz": {},
             "lastfm": {},
-            "disabledLibraries": [],
+            "noServerLibraries": [],
+            "noAccountsLibraries": [],
             "queued": 0
         })
     // cache.status: {limit, used, count, queued, downloading, full, pinned, pinnedOverLimit,
@@ -251,8 +252,8 @@ Singleton {
         }, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"), s => root._applyScrobble(s));
     }
 
-    function setScrobbleLibrary(libraryId, enabled) {
-        DaemonBridge.request("scrobble.setLibrary", {
+    function setScrobbleLibraryServer(libraryId, enabled) {
+        DaemonBridge.request("scrobble.setLibraryServer", {
             "library": libraryId,
             "enabled": enabled
         }, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"), result => root._applyScrobble(result));

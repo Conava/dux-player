@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"sort"
 	"sync"
 	"testing"
@@ -221,11 +223,69 @@ func TestPlaysGoToTheRightPlace(t *testing.T) {
 	assert.Equal(t, []string{"server song", "kept on the server"}, server.plays)
 	require.NoError(t, s.SetLibraryAccounts("srv", true))
 
-	require.NoError(t, s.SetLibrary("loc", false))
+	require.NoError(t, s.SetLibraryServer("srv", false))
+	s.report(track("srv", "accounts only"), false, time.Now())
+	lb, fm = f.take()
+	assert.Equal(t, []string{"single accounts only"}, lb)
+	assert.Equal(t, []string{"track.scrobble accounts only"}, fm)
+	assert.Equal(t, []string{"server song", "kept on the server"}, server.plays, "the server doesn't hear of it")
+
+	require.NoError(t, s.SetLibraryAccounts("srv", false))
+	s.report(track("srv", "nowhere"), false, time.Now())
+	lb, fm = f.take()
+	assert.Empty(t, lb)
+	assert.Empty(t, fm)
+	assert.Equal(t, []string{"server song", "kept on the server"}, server.plays)
+
+	require.NoError(t, s.SetLibraryAccounts("loc", false))
 	s.report(track("loc", "muted library"), false, time.Now())
 	lb, fm = f.take()
 	assert.Empty(t, lb)
 	assert.Empty(t, fm)
+}
+
+// The old lists become the two switches: a library that was off reports
+// nowhere, a server-only one keeps its server. Keys this version doesn't
+// know survive a save.
+func TestLibrarySwitchesMigrate(t *testing.T) {
+	cases := []struct {
+		name                 string
+		file                 string
+		noServer, noAccounts []string
+	}{
+		{"library off", `{"disabledLibraries":["a"]}`, []string{"a"}, []string{"a"}},
+		{"server only", `{"serverOnlyLibraries":["b"]}`, []string{}, []string{"b"}},
+		{"both lists", `{"disabledLibraries":["a"],"serverOnlyLibraries":["a","b"]}`, []string{"a"}, []string{"a", "b"}},
+		{"current format", `{"noServerLibraries":["c"],"noAccountsLibraries":["d"]}`, []string{"c"}, []string{"d"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			dir := t.TempDir()
+			file := filepath.Join(dir, settingsFile)
+			var raw map[string]any
+			require.NoError(t, json.Unmarshal([]byte(c.file), &raw))
+			raw["future"] = "kept"
+			data, err := json.Marshal(raw)
+			require.NoError(t, err)
+			require.NoError(t, os.WriteFile(file, data, 0o600))
+
+			s := newTestService(t, libs{}, &fakeServices{}, dir)
+			st := s.Status()
+			assert.Equal(t, c.noServer, st.NoServerLibraries)
+			assert.ElementsMatch(t, c.noAccounts, st.NoAccountsLibraries)
+
+			require.NoError(t, s.SetLibraryServer("other", true))
+			data, err = os.ReadFile(file)
+			require.NoError(t, err)
+			var saved map[string]any
+			require.NoError(t, json.Unmarshal(data, &saved))
+			assert.Equal(t, "kept", saved["future"])
+			assert.NotContains(t, saved, "disabledLibraries")
+			assert.NotContains(t, saved, "serverOnlyLibraries")
+			assert.Equal(t, st.NoServerLibraries, newTestService(t, libs{}, &fakeServices{}, dir).Status().NoServerLibraries)
+			assert.ElementsMatch(t, c.noAccounts, newTestService(t, libs{}, &fakeServices{}, dir).Status().NoAccountsLibraries)
+		})
+	}
 }
 
 func TestFailedPlaysWaitAndSurviveARestart(t *testing.T) {
@@ -249,6 +309,16 @@ func TestFailedPlaysWaitAndSurviveARestart(t *testing.T) {
 		"sent what it could; the down library's play waits for it")
 	lb, _ := f.take()
 	assert.Equal(t, []string{"single one", "single two"}, lb)
+
+	// Turning a destination off drops its waiting plays.
+	f.setOffline(true)
+	s.report(track("loc", "three"), false, time.Now())
+	require.Equal(t, 2, s.Status().Queued)
+	require.NoError(t, s.SetLibraryAccounts("loc", false))
+	f.setOffline(false)
+	assert.Eventually(t, func() bool { s.Flush(); return s.Status().Queued == 1 }, 5*time.Second, 10*time.Millisecond)
+	lb, _ = f.take()
+	assert.Empty(t, lb)
 
 	q := openQueue(dir + "/" + queueFile)
 	for range maxQueued + 5 {

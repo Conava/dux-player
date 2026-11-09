@@ -1,6 +1,7 @@
-// Package scrobble reports plays. A server track goes only to its own server
-// (which may forward it), so nothing counts twice; any other track goes to
-// the ListenBrainz and Last.fm accounts set up here.
+// Package scrobble reports plays to a server track's own server and to the
+// ListenBrainz and Last.fm accounts set up here. Each library turns either
+// destination off on its own, so a server that forwards plays to the same
+// accounts doesn't count them twice.
 package scrobble
 
 import (
@@ -61,11 +62,10 @@ type Account struct {
 }
 
 type Settings struct {
-	ListenBrainz      Account  `json:"listenbrainz"`
-	LastFM            Account  `json:"lastfm"`
-	DisabledLibraries []string `json:"disabledLibraries"`
-	// ServerOnlyLibraries report to their server and not to the accounts, for a server that forwards plays itself.
-	ServerOnlyLibraries []string `json:"serverOnlyLibraries"`
+	ListenBrainz        Account  `json:"listenbrainz"`
+	LastFM              Account  `json:"lastfm"`
+	NoServerLibraries   []string `json:"noServerLibraries"`
+	NoAccountsLibraries []string `json:"noAccountsLibraries"`
 }
 
 type Status struct {
@@ -83,7 +83,9 @@ type Service struct {
 
 	mu       sync.Mutex
 	settings Settings
-	fmToken  string // a Last.fm token waiting for the user's approval
+	// raw is the settings file as read, so a save keeps keys this version doesn't know.
+	raw     map[string]json.RawMessage
+	fmToken string // a Last.fm token waiting for the user's approval
 	// fmBuiltIn: fmToken came from the built-in account, not a key in the keyring.
 	fmBuiltIn bool
 
@@ -114,8 +116,12 @@ func New(ctx context.Context, cfg Config) *Service {
 		fm:    lastFM{base: cfg.LastFMURL, authBase: cfg.LastFMAuthURL, http: cfg.HTTP},
 		queue: openQueue(filepath.Join(cfg.StateDir, queueFile)),
 	}
-	if data, err := os.ReadFile(filepath.Join(cfg.ConfigDir, settingsFile)); err == nil && json.Unmarshal(data, &s.settings) != nil {
-		setAside(filepath.Join(cfg.ConfigDir, settingsFile))
+	s.raw = map[string]json.RawMessage{}
+	if data, err := os.ReadFile(filepath.Join(cfg.ConfigDir, settingsFile)); err == nil {
+		if s.settings, s.raw, err = loadSettings(data); err != nil {
+			s.settings, s.raw = Settings{}, map[string]json.RawMessage{}
+			setAside(filepath.Join(cfg.ConfigDir, settingsFile))
+		}
 	}
 	if s.queue.len() > 0 {
 		go s.Flush()
@@ -157,15 +163,15 @@ func (s *Service) Position(pos float64) {
 func (s *Service) Status() Status {
 	s.mu.Lock()
 	st := Status{Settings: s.settings, LastFMBuiltIn: lastfm.APIKey != "" && lastfm.APISecret != ""}
-	st.DisabledLibraries = slices.Clone(s.settings.DisabledLibraries)
-	st.ServerOnlyLibraries = slices.Clone(s.settings.ServerOnlyLibraries)
+	st.NoServerLibraries = slices.Clone(s.settings.NoServerLibraries)
+	st.NoAccountsLibraries = slices.Clone(s.settings.NoAccountsLibraries)
 	st.LastFM.AwaitingApproval = s.fmToken != ""
 	s.mu.Unlock()
-	if st.DisabledLibraries == nil {
-		st.DisabledLibraries = []string{}
+	if st.NoServerLibraries == nil {
+		st.NoServerLibraries = []string{}
 	}
-	if st.ServerOnlyLibraries == nil {
-		st.ServerOnlyLibraries = []string{}
+	if st.NoAccountsLibraries == nil {
+		st.NoAccountsLibraries = []string{}
 	}
 	st.Queued = s.queue.len()
 	return st
@@ -177,15 +183,19 @@ func (s *Service) publish() { s.cfg.Publish(Topic, s.Status()) }
 func (s *Service) update(fn func(*Settings)) error {
 	s.mu.Lock()
 	next := s.settings
-	next.DisabledLibraries = slices.Clone(s.settings.DisabledLibraries)
-	next.ServerOnlyLibraries = slices.Clone(s.settings.ServerOnlyLibraries)
+	next.NoServerLibraries = slices.Clone(s.settings.NoServerLibraries)
+	next.NoAccountsLibraries = slices.Clone(s.settings.NoAccountsLibraries)
 	fn(&next)
-	data, err := json.MarshalIndent(next, "", "  ")
+	raw, err := mergeSettings(s.raw, next)
+	var data []byte
+	if err == nil {
+		data, err = json.MarshalIndent(raw, "", "  ")
+	}
 	if err == nil {
 		err = atomicfile.WriteFile(filepath.Join(s.cfg.ConfigDir, settingsFile), append(data, '\n'), 0o600)
 	}
 	if err == nil {
-		s.settings = next
+		s.settings, s.raw = next, raw
 	}
 	s.mu.Unlock()
 	if err != nil {
@@ -193,6 +203,68 @@ func (s *Service) update(fn func(*Settings)) error {
 	}
 	s.publish()
 	return nil
+}
+
+// loadSettings reads the settings file. Before the server and the accounts
+// were separate switches, disabledLibraries reported nowhere and
+// serverOnlyLibraries only to the server.
+func loadSettings(data []byte) (Settings, map[string]json.RawMessage, error) {
+	var st Settings
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return st, nil, err
+	}
+	if raw == nil {
+		raw = map[string]json.RawMessage{}
+	}
+	if err := json.Unmarshal(data, &st); err != nil {
+		return st, nil, err
+	}
+	var off, serverOnly []string
+	for key, list := range map[string]*[]string{"disabledLibraries": &off, "serverOnlyLibraries": &serverOnly} {
+		if v, ok := raw[key]; ok {
+			if err := json.Unmarshal(v, list); err != nil {
+				return st, nil, fmt.Errorf("%s: %w", key, err)
+			}
+			delete(raw, key)
+		}
+	}
+	for _, id := range off {
+		st.NoServerLibraries = switchOff(st.NoServerLibraries, id, true)
+	}
+	for _, id := range append(off, serverOnly...) {
+		st.NoAccountsLibraries = switchOff(st.NoAccountsLibraries, id, true)
+	}
+	return st, raw, nil
+}
+
+// mergeSettings lays the known settings over the file as read.
+func mergeSettings(old map[string]json.RawMessage, st Settings) (map[string]json.RawMessage, error) {
+	known, err := json.Marshal(st)
+	if err != nil {
+		return nil, err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(known, &fields); err != nil {
+		return nil, err
+	}
+	raw := make(map[string]json.RawMessage, len(old)+len(fields))
+	for k, v := range old {
+		raw[k] = v
+	}
+	for k, v := range fields {
+		raw[k] = v
+	}
+	return raw, nil
+}
+
+// switchOff puts id in the list of libraries with a destination off, or takes it out.
+func switchOff(list []string, id string, off bool) []string {
+	list = slices.DeleteFunc(list, func(x string) bool { return x == id })
+	if off {
+		list = append(list, id)
+	}
+	return list
 }
 
 func listenOf(t source.Track, at time.Time) Listen {
@@ -210,15 +282,16 @@ func listenOf(t source.Track, at time.Time) Listen {
 }
 
 // targets says where a track's plays go: its server when it scrobbles, and
-// the enabled accounts unless the library keeps its plays on the server.
+// the enabled accounts, each unless the library turned it off.
 func (s *Service) targets(src source.Source, library string) []string {
 	var out []string
-	if slices.Contains(source.Capabilities(src), source.CapScrobble) {
-		out = append(out, targetLibrary)
-	}
+	scrobbles := slices.Contains(source.Capabilities(src), source.CapScrobble)
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if slices.Contains(s.settings.ServerOnlyLibraries, library) {
+	if scrobbles && !slices.Contains(s.settings.NoServerLibraries, library) {
+		out = append(out, targetLibrary)
+	}
+	if slices.Contains(s.settings.NoAccountsLibraries, library) {
 		return out
 	}
 	if a := s.settings.ListenBrainz; a.Connected && a.Enabled {
@@ -230,14 +303,28 @@ func (s *Service) targets(src source.Source, library string) []string {
 	return out
 }
 
-func (s *Service) libraryEnabled(id string) bool {
+// silent: the library has both destinations off, so its plays aren't even queued.
+func (s *Service) silent(id string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return !slices.Contains(s.settings.DisabledLibraries, id)
+	return slices.Contains(s.settings.NoServerLibraries, id) && slices.Contains(s.settings.NoAccountsLibraries, id)
+}
+
+// switchedOff: the library turned this destination off since the play was queued.
+func (s *Service) switchedOff(library, target string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	switch target {
+	case targetLibrary:
+		return slices.Contains(s.settings.NoServerLibraries, library)
+	case ListenBrainz, LastFM:
+		return slices.Contains(s.settings.NoAccountsLibraries, library)
+	}
+	return false
 }
 
 func (s *Service) report(t source.Track, nowPlaying bool, at time.Time) {
-	if !s.libraryEnabled(t.Library) || t.Title == "" {
+	if s.silent(t.Library) || t.Title == "" {
 		return
 	}
 	li := listenOf(t, at)
@@ -346,6 +433,10 @@ func (s *Service) Flush() {
 	var done []pending
 	sent := false
 	for _, p := range s.queue.snapshot() {
+		if s.switchedOff(p.Library, p.Target) {
+			done = append(done, p)
+			continue
+		}
 		src, err := s.cfg.Libraries.Get(p.Library)
 		if err != nil {
 			continue

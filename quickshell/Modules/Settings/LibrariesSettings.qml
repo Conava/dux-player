@@ -232,6 +232,8 @@ Item {
 
                         title: modelData.name
                         subtitle: root.describe(modelData)
+                        // its settings hold the scrobbling switches
+                        keywords: "scrobble scrobbling listenbrainz last.fm lastfm"
                         clickable: true
                         onClicked: dialog.edit(modelData)
 

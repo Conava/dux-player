@@ -36,6 +36,10 @@ WindowDialog {
     // the daemon keeps the last problems of every library; these are the ones in this library's folders
     readonly property var marksProblems: (SettingsService.markFiles.problems ?? []).filter(pr => (library?.folders ?? []).some(f => pr.path.startsWith(f.replace(/\/?$/, "/"))))
     readonly property bool remote: kind !== "local"
+    readonly property bool toServer: (library?.capabilities ?? []).indexOf("scrobble") >= 0 && (PlayerService.scrobble.noServerLibraries ?? []).indexOf(editingId) < 0
+    // the accounts that take plays: signed in and switched on
+    readonly property bool listenbrainz: PlayerService.scrobble.listenbrainz?.connected === true && PlayerService.scrobble.listenbrainz?.enabled === true
+    readonly property bool lastfm: PlayerService.scrobble.lastfm?.connected === true && PlayerService.scrobble.lastfm?.enabled === true
     // the kinds the daemon can add, in the order offered
     readonly property var kinds: ["local", "subsonic", "jellyfin"].filter(k => PlayerService.libraryKinds.indexOf(k) >= 0)
     readonly property var quickConnect: CatalogService.quickConnect
@@ -589,6 +593,28 @@ WindowDialog {
                 iconColor: modelData.skipped ? Theme.surfaceVariantText : Theme.error
                 Accessible.description: Phrases.join(modelData.path, subtitle)
             }
+        }
+    }
+
+    // where the library's plays are reported; applies at once, not on Save
+    SettingsGroup {
+        visible: root.editing
+        width: parent.width
+
+        SettingsToggleRow {
+            visible: (root.library?.capabilities ?? []).indexOf("scrobble") >= 0
+            text: I18n.tr("Report plays to %1", "library setting, %1 is the server library").arg(root.library?.name ?? "")
+            checked: root.toServer
+            onToggled: value => PlayerService.setScrobbleLibraryServer(root.editingId, value)
+        }
+
+        SettingsToggleRow {
+            // brand names stay untranslated
+            text: root.listenbrainz === root.lastfm ? I18n.tr("Scrobble to ListenBrainz and Last.fm", "library setting") : root.listenbrainz ? I18n.tr("Scrobble to ListenBrainz", "scrobbling setting") : I18n.tr("Scrobble to Last.fm", "scrobbling setting")
+            description: !enabled ? I18n.tr("Sign in on the Scrobbling page first.", "why a library's scrobbling setting is unavailable") : root.toServer ? I18n.tr("Turn off when the server sends its plays to the same accounts.", "scrobbling server library row") : ""
+            enabled: root.listenbrainz || root.lastfm
+            checked: enabled && (PlayerService.scrobble.noAccountsLibraries ?? []).indexOf(root.editingId) < 0
+            onToggled: value => PlayerService.setScrobbleLibraryAccounts(root.editingId, value)
         }
     }
 

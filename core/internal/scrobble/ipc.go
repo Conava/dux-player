@@ -43,8 +43,8 @@ func Register(r *ipc.Registry, svc func() *Service) {
 			}
 		case "scrobble.setEnabled":
 			err = s.SetEnabled(service, params.BoolLoose(p, "enabled"))
-		case "scrobble.setLibrary":
-			err = s.SetLibrary(ipc.Str(p, "library"), params.BoolLoose(p, "enabled"))
+		case "scrobble.setLibraryServer":
+			err = s.SetLibraryServer(ipc.Str(p, "library"), params.BoolLoose(p, "enabled"))
 		case "scrobble.setLibraryAccounts":
 			err = s.SetLibraryAccounts(ipc.Str(p, "library"), params.BoolLoose(p, "enabled"))
 		}
@@ -63,7 +63,7 @@ func Register(r *ipc.Registry, svc func() *Service) {
 		ipc.MethodSpec{Name: "scrobble.disconnect", Desc: "Forget an account", Params: []ipc.ParamSpec{ipc.Req("service", "listenbrainz|lastfm")}},
 		ipc.MethodSpec{Name: "scrobble.test", Desc: "Check an account's credentials", Params: []ipc.ParamSpec{ipc.Req("service", "listenbrainz|lastfm")}},
 		ipc.MethodSpec{Name: "scrobble.setEnabled", Desc: "Turn scrobbling to an account on or off", Params: []ipc.ParamSpec{ipc.Req("service", "listenbrainz|lastfm"), ipc.Req("enabled", "true|false")}},
-		ipc.MethodSpec{Name: "scrobble.setLibrary", Desc: "Scrobble plays from a library or not", Params: []ipc.ParamSpec{ipc.Req("library", ""), ipc.Req("enabled", "true|false")}},
-		ipc.MethodSpec{Name: "scrobble.setLibraryAccounts", Desc: "Send a server library's plays to the accounts too or not", Params: []ipc.ParamSpec{ipc.Req("library", ""), ipc.Req("enabled", "true|false")}},
+		ipc.MethodSpec{Name: "scrobble.setLibraryServer", Desc: "Report a library's plays to its own server or not", Params: []ipc.ParamSpec{ipc.Req("library", ""), ipc.Req("enabled", "true|false")}},
+		ipc.MethodSpec{Name: "scrobble.setLibraryAccounts", Desc: "Send a library's plays to the accounts or not", Params: []ipc.ParamSpec{ipc.Req("library", ""), ipc.Req("enabled", "true|false")}},
 	)
 }

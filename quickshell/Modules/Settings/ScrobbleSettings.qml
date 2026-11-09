@@ -5,7 +5,7 @@ import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
 
-// ListenBrainz and Last.fm accounts for plays; server libraries also report to their server.
+// ListenBrainz and Last.fm accounts for plays; each library picks its destinations in its own settings.
 SettingsPage {
     id: root
 
@@ -14,9 +14,6 @@ SettingsPage {
     readonly property bool builtIn: PlayerService.scrobble.lastfmBuiltIn === true
     property bool ownKey: false
     readonly property bool keyFields: !builtIn || ownKey
-    readonly property var disabled: PlayerService.scrobble.disabledLibraries ?? []
-    readonly property var serverOnly: PlayerService.scrobble.serverOnlyLibraries ?? []
-    readonly property var serverLibraries: PlayerService.libraries.filter(l => PlayerService.isRemote(l.id))
     readonly property string signInFirst: I18n.tr("Available after signing in.", "why a scrobbling setting is hidden")
 
     function accountLine(account) {
@@ -24,7 +21,17 @@ SettingsPage {
     }
 
     SettingsPageIntro {
-        text: I18n.tr("A play is scrobbled after half the track or four minutes, whichever comes first. Plays go to the accounts below, and server libraries report them to their server too.", "scrobbling settings intro")
+        text: I18n.tr("A play is scrobbled after half the track or four minutes, whichever comes first. Each library chooses where its plays go.", "scrobbling settings intro")
+    }
+
+    SettingsCard {
+        visible: (PlayerService.scrobble.queued ?? 0) > 0
+
+        SettingsRow {
+            searchable: false
+            title: PlayerService.scrobble.queued === 1 ? I18n.tr("1 scrobble pending", "scrobbling queue state, singular") : I18n.tr("%1 scrobbles pending", "scrobbling queue state, plural").arg(PlayerService.scrobble.queued ?? 0)
+            subtitle: I18n.tr("Sent automatically when the connection is restored.", "scrobbling queue state description")
+        }
     }
 
     // brand names stay untranslated
@@ -191,52 +198,6 @@ SettingsPage {
                     } : {}, () => secretRow.field.text = "")
                 }
             }
-        }
-    }
-
-    SettingsCard {
-        visible: root.serverLibraries.length > 0
-        title: I18n.tr("Server libraries on your accounts", "scrobbling settings section: whether a server's plays also go to the accounts")
-
-        Repeater {
-            model: root.serverLibraries
-
-            SettingsToggleRow {
-                required property var modelData
-                readonly property bool libraryOn: root.disabled.indexOf(modelData.id) < 0
-                text: modelData.name
-                searchable: false
-                description: libraryOn ? I18n.tr("Turn off when the server sends its plays to the same accounts.", "scrobbling server library row") : I18n.tr("Scrobbling is off for this library.", "why a scrobbling setting is unavailable")
-                enabled: libraryOn
-                checked: root.serverOnly.indexOf(modelData.id) < 0
-                onToggled: value => PlayerService.setScrobbleLibraryAccounts(modelData.id, value)
-            }
-        }
-    }
-
-    SettingsCard {
-        visible: PlayerService.libraries.length > 0 || (PlayerService.scrobble.queued ?? 0) > 0
-        title: I18n.tr("Libraries", "the music libraries: page, settings tab, section")
-
-        Repeater {
-            model: PlayerService.libraries
-
-            SettingsToggleRow {
-                required property var modelData
-                readonly property bool viaServer: PlayerService.hasCapability(modelData.id, "scrobble")
-                readonly property bool silentServer: PlayerService.isRemote(modelData.id) && !viaServer
-                text: modelData.name
-                description: viaServer ? I18n.tr("Scrobbled to the server", "scrobbling library row") : silentServer ? I18n.tr("This server doesn't support scrobbling", "scrobbling library row") : I18n.tr("Scrobbled to your accounts", "scrobbling library row")
-                checked: root.disabled.indexOf(modelData.id) < 0
-                onToggled: value => PlayerService.setScrobbleLibrary(modelData.id, value)
-            }
-        }
-
-        SettingsRow {
-            visible: (PlayerService.scrobble.queued ?? 0) > 0
-            searchable: false
-            title: PlayerService.scrobble.queued === 1 ? I18n.tr("1 scrobble pending", "scrobbling queue state, singular") : I18n.tr("%1 scrobbles pending", "scrobbling queue state, plural").arg(PlayerService.scrobble.queued ?? 0)
-            subtitle: I18n.tr("Sent automatically when the connection is restored.", "scrobbling queue state description")
         }
     }
 }
