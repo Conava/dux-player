@@ -14,6 +14,20 @@ SettingsPage {
     readonly property var replayGainModes: ["off", "track", "album"]
     readonly property var continueModes: ["off", "random", "similar"]
     readonly property var shuffleModes: ["tracks", "albums"]
+    readonly property var historyOptionMonths: [1, 3, 6, 12, 60, 0]
+
+    // 0 is Forever; any other stored value shows the closest listed number of months
+    function nearestHistoryMonths(months) {
+        if (months <= 0)
+            return 0;
+        let best = historyOptionMonths[0];
+        for (const m of historyOptionMonths) {
+            if (m > 0 && Math.abs(m - months) < Math.abs(best - months))
+                best = m;
+        }
+        return best;
+    }
+
     // skip changes the daemon hasn't answered yet, so quick ticks in a sheet build on each other
     property var skipGenres: []
     property var skipLibraries: []
@@ -426,6 +440,30 @@ SettingsPage {
 
     SettingsPageIntro {
         text: I18n.tr("Applies to Shuffle all and to playback after the queue ends.", "playback settings section description")
+    }
+
+    SettingsCard {
+        title: I18n.tr("History", "navigation destination")
+
+        SettingsRow {
+            title: I18n.tr("Keep play history", "playback setting")
+            keywords: "history plays forget delete"
+
+            DDropdown {
+                id: historyDropdown
+                dropdownWidth: SettingsMetrics.dropdownWidth
+                options: [I18n.tr("1 month", "play history duration"), I18n.tr("3 months", "play history duration"), I18n.tr("6 months", "play history duration"), I18n.tr("1 year", "play history duration"), I18n.tr("5 years", "play history duration"), I18n.tr("Forever", "play history duration")]
+                // DDropdown's currentValue is a string
+                optionValues: root.historyOptionMonths.map(m => String(m))
+                onValueChanged: value => SettingsService.setSetting("historyMonths", parseInt(value))
+            }
+
+            Binding {
+                target: historyDropdown
+                property: "currentValue"
+                value: String(root.nearestHistoryMonths(SettingsService.settings.historyMonths))
+            }
+        }
     }
 
     PickerSheet {

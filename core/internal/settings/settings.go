@@ -42,7 +42,7 @@ type Settings struct {
 	ShuffleMode string `json:"shuffleMode"`
 	// SkipRules apply to what the daemon picks by itself.
 	SkipRules shuffle.SkipRules `json:"skipRules"`
-	// HistoryMonths is how long plays are kept.
+	// HistoryMonths is how long plays are kept; 0 keeps them forever.
 	HistoryMonths int `json:"historyMonths"`
 	// MpvIdleExit is how many minutes mpv stays with nothing playing; 0
 	// keeps it running.
@@ -331,8 +331,8 @@ func apply(s Settings, key string, v any) (Settings, error) {
 		s.SkipRules, err = toSkipRules(s.SkipRules, v)
 	case "historyMonths":
 		var f float64
-		if f, err = toFloat(key, v); err == nil && (f != float64(int(f)) || f < 1 || f > 120) {
-			err = fmt.Errorf("%s must be a whole number from 1 to 120", key)
+		if f, err = toFloat(key, v); err == nil && (f != float64(int(f)) || f < 0 || f > 120) {
+			err = fmt.Errorf("%s must be a whole number from 0 (keep forever) to 120", key)
 		}
 		s.HistoryMonths = int(f)
 	case "mpvIdleExit":

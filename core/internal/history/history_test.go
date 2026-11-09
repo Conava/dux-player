@@ -71,6 +71,21 @@ func TestPlaysCountAndAge(t *testing.T) {
 	assert.Zero(t, album.PlayCount)
 }
 
+func TestPruneZeroKeepsEverything(t *testing.T) {
+	ctx := context.Background()
+	s, err := Open(ctx, filepath.Join(t.TempDir(), "history.db"))
+	require.NoError(t, err)
+	defer s.Close()
+	now := time.Unix(1_800_000_000, 0)
+	s.now = func() time.Time { return now }
+	tr := source.Track{Library: "l", ID: "a1", AlbumID: "A", Title: "one"}
+	require.NoError(t, s.Add(ctx, tr, now.Add(-5*365*24*time.Hour)))
+	require.NoError(t, s.Prune(ctx, 0))
+	page, err := s.List(ctx, 10, 0)
+	require.NoError(t, err)
+	assert.Len(t, page, 1)
+}
+
 func TestAnnotateKeepsServerCounts(t *testing.T) {
 	ctx := context.Background()
 	s, err := Open(ctx, filepath.Join(t.TempDir(), "history.db"))

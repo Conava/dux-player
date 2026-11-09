@@ -41,6 +41,8 @@ Singleton {
             },
             // seconds into a track after which Previous restarts it
             "previousThreshold": 5,
+            // months of play history kept, 0 keeps it forever
+            "historyMonths": 12,
             "allowVolumeBoost": false,
             // "app" (mpv's own volume) | "system" (the default output's)
             "volumeTarget": "app",
@@ -144,6 +146,7 @@ Singleton {
         case "skipRules":
         case "crossfade":
         case "previousThreshold":
+        case "historyMonths":
         case "allowVolumeBoost":
         case "volumeTarget":
         case "artistInfoOnline":
@@ -486,6 +489,7 @@ Singleton {
             "skipRules": s.skipRules ?? settings.skipRules,
             "crossfade": s.crossfade ?? settings.crossfade,
             "previousThreshold": s.previousThreshold ?? 5,
+            "historyMonths": s.historyMonths ?? 12,
             "allowVolumeBoost": s.allowVolumeBoost === true,
             "volumeTarget": s.volumeTarget === "system" ? "system" : "app",
             "artistInfoOnline": s.artistInfoOnline !== false,

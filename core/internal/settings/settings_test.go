@@ -47,6 +47,19 @@ func TestSetValidatesAndKeepsUnknownKeys(t *testing.T) {
 	assert.Equal(t, 8.0, s.Get().PreviousThreshold)
 }
 
+func TestHistoryMonthsAllowsZero(t *testing.T) {
+	s, err := Open(t.TempDir())
+	require.NoError(t, err)
+	got, err := s.Set(map[string]any{"historyMonths": 0.0})
+	require.NoError(t, err)
+	assert.Equal(t, 0, got.HistoryMonths)
+	for _, v := range []any{121.0, 1.5, -1.0} {
+		_, err = s.Set(map[string]any{"historyMonths": v})
+		assert.Error(t, err, "%v", v)
+	}
+	assert.Equal(t, 0, s.Get().HistoryMonths)
+}
+
 func TestPlayerOptions(t *testing.T) {
 	s := Defaults()
 	o := s.PlayerOptions()

@@ -177,8 +177,11 @@ func (s *Store) Add(ctx context.Context, t source.Track, at time.Time) error {
 	return nil
 }
 
-// Prune drops plays older than months.
+// Prune drops plays older than months; 0 keeps everything.
 func (s *Store) Prune(ctx context.Context, months int) error {
+	if months <= 0 {
+		return nil
+	}
 	cut := s.now().AddDate(0, -months, 0).Unix()
 	res, err := s.db.ExecContext(ctx, "DELETE FROM plays WHERE played_at < ?", cut)
 	if err != nil {
