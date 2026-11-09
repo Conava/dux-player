@@ -94,7 +94,7 @@ Column {
     readonly property real captionHeight: size === "l" ? PlayerMetrics.gridCaptionHeightL : PlayerMetrics.gridCaptionHeight
     readonly property int listLimit: size === "s" ? 3 : size === "l" ? 10 : 5
     // a carousel holds enough tiles to fill its width; grid and list shuffle the shelfLimit they always did
-    readonly property int shownLimit: layout === "carousel" ? Math.max(PlayerMetrics.shelfLimit, Math.ceil(carousel.width / (tileWidth + Theme.spacingS * 2 + Theme.spacingXS))) : PlayerMetrics.shelfLimit
+    readonly property int shownLimit: layout === "carousel" ? Math.max(PlayerMetrics.shelfLimit, Math.ceil(carousel.width / (tileWidth + PlayerMetrics.tileInset * 2 + Theme.spacingXS))) : PlayerMetrics.shelfLimit
     readonly property int gridRows: size === "s" ? 1 : size === "l" ? 3 : 2
     readonly property var seeAll: {
         switch (source.type) {
@@ -267,17 +267,17 @@ Column {
 
     DHorizontalList {
         id: carousel
-        x: -Theme.spacingS
-        width: parent.width + Theme.spacingS * 2
+        x: -PlayerMetrics.tileInset
+        width: parent.width + PlayerMetrics.tileInset * 2
         visible: root.layout === "carousel" && root.source.type !== "continue"
-        height: visible ? root.tileWidth + Theme.spacingS * 2 + root.captionHeight : 0
+        height: visible ? root.tileWidth + PlayerMetrics.tileInset * 2 + root.captionHeight : 0
         spacing: Theme.spacingXS
         model: visible ? root.items.slice(0, root.shownLimit) : []
 
         // ends the row where the user is looking
         footer: StyledButton {
             id: seeAllTile
-            width: root.tileWidth + Theme.spacingS * 2
+            width: root.tileWidth + PlayerMetrics.tileInset * 2
             height: carousel.height
             radius: Theme.cornerRadiusL
             color: "transparent"
@@ -324,7 +324,7 @@ Column {
         delegate: MediaTile {
             required property var modelData
             required property int index
-            width: root.tileWidth + Theme.spacingS * 2
+            width: root.tileWidth + PlayerMetrics.tileInset * 2
             tileSize: root.size
             kind: root.kind
             item: modelData
@@ -336,10 +336,10 @@ Column {
 
     Flow {
         id: flow
-        x: -Theme.spacingS
-        width: parent.width + Theme.spacingS * 2
+        x: -PlayerMetrics.tileInset
+        width: parent.width + PlayerMetrics.tileInset * 2
         visible: root.layout === "grid" && root.source.type !== "continue"
-        readonly property int columns: Math.max(1, Math.floor(width / (root.tileWidth + Theme.spacingS * 2)))
+        readonly property int columns: Math.max(1, Math.floor(width / (root.tileWidth + PlayerMetrics.tileInset * 2)))
 
         Repeater {
             model: flow.visible ? root.items.slice(0, flow.columns * root.gridRows) : []

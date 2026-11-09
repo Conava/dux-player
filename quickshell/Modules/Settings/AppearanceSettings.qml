@@ -420,12 +420,12 @@ SettingsPage {
     }
 
     SettingsCard {
-        title: I18n.tr("Lists", "appearance settings section label")
+        title: I18n.tr("Layout", "appearance settings section label")
 
         SettingsButtonGroupRow {
             readonly property var densities: ["compact", "comfortable", "spacious"]
-            text: I18n.tr("Density", "appearance setting for the height of list rows")
-            description: I18n.tr("Height of the rows in track lists and the queue.", "appearance density description")
+            text: I18n.tr("Density", "appearance setting for the spacing of lists, tiles, sections and navigation")
+            description: I18n.tr("Spacing of lists, tiles, sections and navigation.", "appearance density description")
             keywords: "row height compact spacious spacing size"
             model: [I18n.tr("Compact", "density option"), I18n.tr("Default", "density option"), I18n.tr("Spacious", "density option")]
             // an unknown stored value counts as the default, as in Theme.densityLevel

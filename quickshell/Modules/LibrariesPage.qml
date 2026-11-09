@@ -21,7 +21,7 @@ DFlickable {
         id: column
         x: PlayerMetrics.pagePadding
         width: root.width - PlayerMetrics.pagePadding * 2
-        spacing: Theme.spacingL
+        spacing: PlayerMetrics.sectionSpacing
 
         PageHeader {
             title: I18n.tr("Libraries", "the music libraries: page, settings tab, section")

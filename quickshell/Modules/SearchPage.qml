@@ -154,7 +154,7 @@ Item {
             id: column
             x: PlayerMetrics.pagePadding
             width: parent.width - PlayerMetrics.pagePadding * 2
-            spacing: Theme.spacingL
+            spacing: PlayerMetrics.sectionSpacing
 
             StyledText {
                 width: parent.width
@@ -192,7 +192,7 @@ Item {
         id: artistsSection
 
         Column {
-            spacing: Theme.spacingL
+            spacing: PlayerMetrics.sectionSpacing
 
             SectionTitle {
                 text: UiConfig.typeLabel("artists")
@@ -253,7 +253,7 @@ Item {
         id: albumsSection
 
         Column {
-            spacing: Theme.spacingL
+            spacing: PlayerMetrics.sectionSpacing
 
             SectionTitle {
                 text: UiConfig.typeLabel("albums")
@@ -280,7 +280,7 @@ Item {
         id: playlistsSection
 
         Column {
-            spacing: Theme.spacingL
+            spacing: PlayerMetrics.sectionSpacing
 
             SectionTitle {
                 text: UiConfig.typeLabel("playlists")
@@ -307,7 +307,7 @@ Item {
         id: tracksSection
 
         Column {
-            spacing: Theme.spacingL
+            spacing: PlayerMetrics.sectionSpacing
 
             SectionTitle {
                 text: UiConfig.typeLabel("tracks")

@@ -23,9 +23,14 @@ Singleton {
     readonly property real pagePadding: Theme.spacingXL
     readonly property real pageHeaderHeight: Theme.fontSizeXXLarge + Theme.spacingXL + Theme.spacingM
     readonly property real gridCellWidth: 184
-    readonly property real gridCaptionHeight: Theme.fontSizeMedium + Theme.fontSizeSmall + Theme.spacingM * 2
+    // Appearance → Density also sets the gap around a tile's art, the caption padding and the spacing between sections
+    readonly property real tileInset: Theme.spacingS + Theme.densityLevel * Theme.spacingXS
+    readonly property real captionPadding: Theme.spacingM * 2 + Theme.densityLevel * Theme.spacingXS
+    readonly property real sectionSpacing: Theme.spacingL + Theme.densityLevel * Theme.spacingS
+    readonly property real shelfSpacing: Theme.spacingXL + Theme.densityLevel * Theme.spacingS
+    readonly property real gridCaptionHeight: Theme.fontSizeMedium + Theme.fontSizeSmall + captionPadding
     // tile size Large draws its caption a step larger
-    readonly property real gridCaptionHeightL: Theme.fontSizeLarge + Theme.fontSizeMedium + Theme.spacingM * 2
+    readonly property real gridCaptionHeightL: Theme.fontSizeLarge + Theme.fontSizeMedium + captionPadding
     // a tile's play button at tile sizes Medium and Large, between the S and M button heights
     readonly property real tilePlayButtonSize: (Theme.buttonHeightS + Theme.buttonHeightM) / 2
     readonly property real shelfArtSize: 152

@@ -78,8 +78,8 @@ Item {
 
     component Header: Column {
         width: parent?.width ?? 0
-        spacing: Theme.spacingL
-        bottomPadding: Theme.spacingL
+        spacing: PlayerMetrics.sectionSpacing
+        bottomPadding: PlayerMetrics.sectionSpacing
 
         PageHeader {
             title: root.editing ? root.playlist?.name ?? "" : ""

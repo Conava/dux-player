@@ -44,8 +44,8 @@ Item {
         header: Component {
             Column {
                 width: list.width
-                spacing: Theme.spacingL
-                bottomPadding: Theme.spacingL
+                spacing: PlayerMetrics.sectionSpacing
+                bottomPadding: PlayerMetrics.sectionSpacing
 
                 PageHeader {
                     title: root.editing ? root.album?.title ?? "" : ""

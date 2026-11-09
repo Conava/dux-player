@@ -167,8 +167,8 @@ Item {
         header: Component {
             Column {
                 width: list.width
-                spacing: Theme.spacingL
-                bottomPadding: Theme.spacingL
+                spacing: PlayerMetrics.sectionSpacing
+                bottomPadding: PlayerMetrics.sectionSpacing
 
                 PageHeader {
                     title: root.editing ? root.artist?.name ?? "" : ""
@@ -330,13 +330,13 @@ Item {
                 DHorizontalList {
                     width: parent.width
                     visible: root.playlists.length > 0 && !root.editing
-                    height: visible ? PlayerMetrics.tileSizeS + Theme.spacingS * 2 + PlayerMetrics.gridCaptionHeight : 0
+                    height: visible ? PlayerMetrics.tileSizeS + PlayerMetrics.tileInset * 2 + PlayerMetrics.gridCaptionHeight : 0
                     spacing: Theme.spacingXS
                     model: root.playlists
 
                     delegate: MediaTile {
                         required property var modelData
-                        width: PlayerMetrics.tileSizeS + Theme.spacingS * 2
+                        width: PlayerMetrics.tileSizeS + PlayerMetrics.tileInset * 2
                         kind: "playlist"
                         item: modelData
                         lines: UiConfig.pageOptions("playlists", "").lines
@@ -351,13 +351,13 @@ Item {
                 DHorizontalList {
                     width: parent.width
                     visible: (root.info?.similar ?? []).length > 0 && !root.editing
-                    height: visible ? PlayerMetrics.tileSizeS + Theme.spacingS * 2 + PlayerMetrics.gridCaptionHeight : 0
+                    height: visible ? PlayerMetrics.tileSizeS + PlayerMetrics.tileInset * 2 + PlayerMetrics.gridCaptionHeight : 0
                     spacing: Theme.spacingXS
                     model: root.info?.similar ?? []
 
                     delegate: MediaTile {
                         required property var modelData
-                        width: PlayerMetrics.tileSizeS + Theme.spacingS * 2
+                        width: PlayerMetrics.tileSizeS + PlayerMetrics.tileInset * 2
                         kind: "artist"
                         item: modelData
                     }

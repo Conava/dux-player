@@ -75,9 +75,9 @@ StyledButton {
 
     MediaArt {
         id: art
-        x: Theme.spacingS
-        y: Theme.spacingS
-        width: parent.width - Theme.spacingS * 2
+        x: PlayerMetrics.tileInset
+        y: PlayerMetrics.tileInset
+        width: parent.width - PlayerMetrics.tileInset * 2
         height: width
         kind: root.kind
         item: root.item
@@ -87,7 +87,7 @@ StyledButton {
             id: playButton
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            anchors.margins: Theme.spacingS
+            anchors.margins: PlayerMetrics.tileInset
             buttonSize: root.tileSize === "s" ? Theme.buttonHeightS : PlayerMetrics.tilePlayButtonSize
             width: buttonSize
             variant: "filled"
@@ -111,7 +111,7 @@ StyledButton {
             id: moreButton
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: Theme.spacingS
+            anchors.margins: PlayerMetrics.tileInset
             visible: root.active
             buttonSize: root.tileSize === "s" ? Theme.buttonHeightXS : Theme.buttonHeightS
             iconSize: root.tileSize === "s" ? Theme.iconSizeSmall : Theme.iconSize
@@ -125,7 +125,7 @@ StyledButton {
         DIcon {
             anchors.left: parent.left
             anchors.top: parent.top
-            anchors.margins: Theme.spacingS
+            anchors.margins: PlayerMetrics.tileInset
             visible: root.item?.favorite === true
             name: "favorite"
             filled: true
@@ -138,7 +138,7 @@ StyledButton {
         anchors.left: art.left
         anchors.right: art.right
         anchors.top: art.bottom
-        anchors.topMargin: Theme.spacingS
+        anchors.topMargin: PlayerMetrics.tileInset
         spacing: Theme.spacingXXS
 
         StyledText {

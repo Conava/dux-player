@@ -69,7 +69,7 @@ Item {
             id: column
             x: PlayerMetrics.pagePadding
             width: flick.width - PlayerMetrics.pagePadding * 2
-            spacing: Theme.spacingXL
+            spacing: PlayerMetrics.shelfSpacing
 
             PageHeader {
                 title: I18n.tr("Home", "navigation destination")

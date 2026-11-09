@@ -439,12 +439,12 @@ Singleton {
     readonly property real pressScale: 0.98
     readonly property real iconEnterScale: 0.6
     readonly property real dialogMaxWidth: 560
-    readonly property real navigationHeight: 64
+    readonly property real navigationHeight: 64 + densityLevel * spacingS
     readonly property real navigationRailWidth: 96
     readonly property real navigationItemMinWidth: 80
     readonly property real navigationIndicatorWidth: 56
     readonly property real navigationIndicatorHeight: 32
-    readonly property real navigationVerticalPadding: 6
+    readonly property real navigationVerticalPadding: 6 + densityLevel * spacingXS
     readonly property real popupEnterScale: 0.92
     readonly property real pendingOpacity: 0.6
     readonly property real spinnerStrokeWidth: 2
