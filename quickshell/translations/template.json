@@ -35,6 +35,13 @@
     "comment": ""
   },
   {
+    "term": "%1 (all servers)",
+    "translation": "",
+    "context": "an offline rule that covers every server library, %1 is the rule",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "%1 (already in this zone)",
     "translation": "",
     "context": "picker item that is already in the zone",
@@ -94,6 +101,13 @@
     "term": "%1 albums",
     "translation": "",
     "context": "album count, plural",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1 already has this rule.",
+    "translation": "",
+    "context": "offline rule dialog, why save is disabled, %1 is a server library",
     "reference": "",
     "comment": ""
   },
@@ -455,6 +469,13 @@
     "comment": ""
   },
   {
+    "term": "1 month",
+    "translation": "",
+    "context": "play history duration",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "1 more track",
     "translation": "",
     "context": "list overflow, singular",
@@ -497,9 +518,44 @@
     "comment": ""
   },
   {
-    "term": "A play is scrobbled after half the track or four minutes, whichever comes first. Plays go to the accounts below, and server libraries report them to their server too.",
+    "term": "1 year",
+    "translation": "",
+    "context": "play history duration",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "3 months",
+    "translation": "",
+    "context": "play history duration",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "5 years",
+    "translation": "",
+    "context": "play history duration",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "6 months",
+    "translation": "",
+    "context": "play history duration",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "A play is scrobbled after half the track or four minutes, whichever comes first. Each library chooses where its plays go.",
     "translation": "",
     "context": "scrobbling settings intro",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "A rule keeps this track and may download it again. Exclude creates an exception for this track from all rules.",
+    "translation": "",
+    "context": "asks how to delete a downloaded track an offline rule keeps",
     "reference": "",
     "comment": ""
   },
@@ -714,9 +770,23 @@
     "comment": ""
   },
   {
+    "term": "Added automatically",
+    "translation": "",
+    "context": "queue row: a track the queue continued with",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Added by you",
     "translation": "",
     "context": "queue row: a track put in with play next or add to queue",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Added to the queue",
+    "translation": "",
+    "context": "row element: the mark on queue rows for tracks added by you or automatically",
     "reference": "",
     "comment": ""
   },
@@ -738,6 +808,13 @@
     "term": "Adjusts word-by-word lyrics to the singing in tracks stored on this device.",
     "translation": "",
     "context": "lyrics setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Adventurous",
+    "translation": "",
+    "context": "similar tracks option",
     "reference": "",
     "comment": ""
   },
@@ -854,6 +931,13 @@
     "comment": ""
   },
   {
+    "term": "All servers",
+    "translation": "",
+    "context": "offline rule scope: every server library",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "All style settings come from Dux Shell.",
     "translation": "",
     "context": "appearance note while following the shell",
@@ -955,13 +1039,6 @@
     "term": "Applies to Shuffle all and to playback after the queue ends.",
     "translation": "",
     "context": "playback settings section description",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Applies to now playing and the now-playing bar.",
-    "translation": "",
-    "context": "appearance setting description",
     "reference": "",
     "comment": ""
   },
@@ -1186,6 +1263,13 @@
     "term": "Background vocals",
     "translation": "",
     "context": "lyrics setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Balanced",
+    "translation": "",
+    "context": "similar tracks option",
     "reference": "",
     "comment": ""
   },
@@ -1421,13 +1505,6 @@
     "comment": ""
   },
   {
-    "term": "Change limit",
-    "translation": "",
-    "context": "offline rule action",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Changed",
     "translation": "",
     "context": "settings pages: a page or type with changes",
@@ -1582,23 +1659,16 @@
     "comment": ""
   },
   {
+    "term": "Color from the cover",
+    "translation": "",
+    "context": "appearance setting: album art colors",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Color mode",
     "translation": "",
     "context": "appearance setting for light or dark",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Color now playing from the cover",
-    "translation": "",
-    "context": "appearance setting",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Color the whole app",
-    "translation": "",
-    "context": "appearance setting: album art colors everywhere",
     "reference": "",
     "comment": ""
   },
@@ -1883,9 +1953,23 @@
     "comment": ""
   },
   {
+    "term": "Couldn't delete the download",
+    "translation": "",
+    "context": "toast when deleting one downloaded track fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Couldn't delete the playlist",
     "translation": "",
     "context": "toast when deleting a playlist fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't download it again",
+    "translation": "",
+    "context": "toast when lifting a track's exclusion fails",
     "reference": "",
     "comment": ""
   },
@@ -2436,6 +2520,20 @@
     "comment": ""
   },
   {
+    "term": "Delete and exclude",
+    "translation": "",
+    "context": "dialog button that deletes a downloaded track and keeps rules from downloading it",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Delete now",
+    "translation": "",
+    "context": "dialog button that deletes a downloaded track a rule may download again",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Delete page",
     "translation": "",
     "context": "custom page action",
@@ -2473,7 +2571,7 @@
   {
     "term": "Density",
     "translation": "",
-    "context": "appearance setting for the height of list rows",
+    "context": "appearance setting for the spacing of lists, tiles, sections and navigation",
     "reference": "",
     "comment": ""
   },
@@ -2513,6 +2611,20 @@
     "comment": ""
   },
   {
+    "term": "Discord",
+    "translation": "",
+    "context": "settings sidebar tab hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Discord Rich Presence",
+    "translation": "",
+    "context": "integrations setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Display",
     "translation": "",
     "context": "lyrics settings section label | title style option: the display caps face",
@@ -2548,6 +2660,13 @@
     "comment": ""
   },
   {
+    "term": "Download again",
+    "translation": "",
+    "context": "button that lets offline rules download an excluded track again",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Download on metered connections",
     "translation": "",
     "context": "offline setting: keep downloading upcoming tracks on a metered connection",
@@ -2576,9 +2695,23 @@
     "comment": ""
   },
   {
+    "term": "Downloads",
+    "translation": "",
+    "context": "the offline downloads: page, settings tab",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Downloads are paused. Raise the size limit or remove a rule.",
     "translation": "",
     "context": "offline warning: the cache is full",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Downloads keep tracks from server libraries on this device.",
+    "translation": "",
+    "context": "downloads settings page without a server library",
     "reference": "",
     "comment": ""
   },
@@ -2704,14 +2837,7 @@
   {
     "term": "Edit",
     "translation": "",
-    "context": "settings pages: opens the page in edit mode in the main window",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Edit library",
-    "translation": "",
-    "context": "library dialog title",
+    "context": "offline rule action: change its scope or limit | settings pages: opens the page in edit mode in the main window",
     "reference": "",
     "comment": ""
   },
@@ -2877,6 +3003,20 @@
     "comment": ""
   },
   {
+    "term": "Excluded",
+    "translation": "",
+    "context": "a downloaded track no offline rule may keep",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Excluded tracks",
+    "translation": "",
+    "context": "offline tracks no rule may download",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Export",
     "translation": "",
     "context": "custom theme action",
@@ -2943,6 +3083,13 @@
     "term": "Failed",
     "translation": "",
     "context": "a file that couldn't be written",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Familiar",
+    "translation": "",
+    "context": "similar tracks option",
     "reference": "",
     "comment": ""
   },
@@ -3199,6 +3346,13 @@
     "comment": ""
   },
   {
+    "term": "Forever",
+    "translation": "",
+    "context": "play history duration",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Format",
     "translation": "",
     "context": "details field: codec or file type",
@@ -3409,13 +3563,6 @@
     "comment": ""
   },
   {
-    "term": "Height of the rows in track lists and the queue.",
-    "translation": "",
-    "context": "appearance density description",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Hex color",
     "translation": "",
     "context": "appearance seed color field",
@@ -3493,6 +3640,13 @@
     "comment": ""
   },
   {
+    "term": "How close picks stay to this session.",
+    "translation": "",
+    "context": "playback setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Icon",
     "translation": "",
     "context": "custom page option: the icon in the navigation",
@@ -3552,6 +3706,13 @@
     "term": "In the last",
     "translation": "",
     "context": "filter rule condition, followed by a number of days",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "In the order you add them",
+    "translation": "",
+    "context": "play next order option",
     "reference": "",
     "comment": ""
   },
@@ -3633,6 +3794,13 @@
     "comment": ""
   },
   {
+    "term": "Integrations",
+    "translation": "",
+    "context": "settings sidebar tab label",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Is",
     "translation": "",
     "context": "filter rule condition",
@@ -3696,13 +3864,6 @@
     "comment": ""
   },
   {
-    "term": "Its downloaded tracks are deleted unless another rule keeps them.",
-    "translation": "",
-    "context": "remove offline rule confirmation",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Its options and page changes are reset.",
     "translation": "",
     "context": "settings pages: reset confirmation",
@@ -3731,6 +3892,13 @@
     "comment": ""
   },
   {
+    "term": "Keep",
+    "translation": "",
+    "context": "dialog button that keeps a downloaded track",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Keep albums gapless",
     "translation": "",
     "context": "playback setting",
@@ -3741,6 +3909,13 @@
     "term": "Keep on this device",
     "translation": "",
     "context": "toggle that caches an item's tracks for offline play",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Keep play history",
+    "translation": "",
+    "context": "playback setting",
     "reference": "",
     "comment": ""
   },
@@ -3859,7 +4034,7 @@
   {
     "term": "Layout",
     "translation": "",
-    "context": "element picker group: spacer and divider | general setting: every customization as one file | view options section",
+    "context": "appearance settings section label | element picker group: spacer and divider | general setting: every customization as one file | view options section",
     "reference": "",
     "comment": ""
   },
@@ -4004,13 +4179,6 @@
     "comment": ""
   },
   {
-    "term": "Lists",
-    "translation": "",
-    "context": "appearance settings section label",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Loading",
     "translation": "",
     "context": "something still waiting for data: the play button, a list",
@@ -4035,13 +4203,6 @@
     "term": "Local playlist",
     "translation": "",
     "context": "playlist kind label",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Local playlists",
-    "translation": "",
-    "context": "offline section for local playlists kept on this device",
     "reference": "",
     "comment": ""
   },
@@ -4417,6 +4578,13 @@
     "comment": ""
   },
   {
+    "term": "Newest first",
+    "translation": "",
+    "context": "play next order option",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Next",
     "translation": "",
     "context": "transport button",
@@ -4476,6 +4644,13 @@
     "term": "No downloaded tracks",
     "translation": "",
     "context": "why clearing the cache is disabled",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No excluded tracks",
+    "translation": "",
+    "context": "the offline tracks list filtered to exclusions, empty",
     "reference": "",
     "comment": ""
   },
@@ -4553,20 +4728,6 @@
     "term": "No playlists",
     "translation": "",
     "context": "browse page empty state | library feature missing",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "No rule",
-    "translation": "",
-    "context": "offline song row for a song no rule holds",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "No rules",
-    "translation": "",
-    "context": "a server library without offline rules",
     "reference": "",
     "comment": ""
   },
@@ -4732,6 +4893,13 @@
     "comment": ""
   },
   {
+    "term": "Not kept by a rule",
+    "translation": "",
+    "context": "offline song row for a song no rule holds",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Not measured",
     "translation": "",
     "context": "lyrics source status: timing not measured against the audio",
@@ -4833,20 +5001,6 @@
     "term": "Offer undo",
     "translation": "",
     "context": "removal mode option",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Offline",
-    "translation": "",
-    "context": "libraries settings section about cached server tracks",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Offline rules for %1",
-    "translation": "",
-    "context": "library offline overview section, %1 is the library",
     "reference": "",
     "comment": ""
   },
@@ -5173,6 +5327,13 @@
     "comment": ""
   },
   {
+    "term": "Play next order",
+    "translation": "",
+    "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Play on",
     "translation": "",
     "context": "now playing sheet choosing the playback device",
@@ -5383,6 +5544,13 @@
     "comment": ""
   },
   {
+    "term": "Plays may count twice if the server also scrobbles.",
+    "translation": "",
+    "context": "scrobbling server library row",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Pop",
     "translation": "",
     "context": "equalizer preset",
@@ -5533,6 +5701,13 @@
     "term": "Ratings are already being written",
     "translation": "",
     "context": "why writing ratings to files couldn't start",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Ratings in files",
+    "translation": "",
+    "context": "library page section",
     "reference": "",
     "comment": ""
   },
@@ -5712,6 +5887,13 @@
     "comment": ""
   },
   {
+    "term": "Remove library",
+    "translation": "",
+    "context": "library page action",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Removed \"%1\" from home",
     "translation": "",
     "context": "toast after removing a home shelf",
@@ -5728,14 +5910,7 @@
   {
     "term": "Removed %1",
     "translation": "",
-    "context": "toast after removing an element from a now-playing surface, %1 is the element",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Removed %1. Tracks kept by other rules stay downloaded.",
-    "translation": "",
-    "context": "toast after removing an offline rule, %1 is the rule",
+    "context": "toast after removing an element from a now-playing surface, %1 is the element | toast after removing an offline rule, %1 is the rule",
     "reference": "",
     "comment": ""
   },
@@ -5785,6 +5960,13 @@
     "term": "Rename entry",
     "translation": "",
     "context": "navigation rename dialog title",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Rename library",
+    "translation": "",
+    "context": "library page: the rename dialog title",
     "reference": "",
     "comment": ""
   },
@@ -5876,6 +6058,13 @@
     "term": "Report an issue",
     "translation": "",
     "context": "about page link to the issue tracker",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Report plays to %1",
+    "translation": "",
+    "context": "library setting, %1 is the server library",
     "reference": "",
     "comment": ""
   },
@@ -6188,6 +6377,13 @@
     "comment": ""
   },
   {
+    "term": "Scope",
+    "translation": "",
+    "context": "offline rule dialog: which servers a rule covers",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Scrobble to Last.fm",
     "translation": "",
     "context": "scrobbling setting",
@@ -6202,16 +6398,9 @@
     "comment": ""
   },
   {
-    "term": "Scrobbled to the server",
+    "term": "Scrobble to ListenBrainz and Last.fm",
     "translation": "",
-    "context": "scrobbling library row",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Scrobbled to your accounts",
-    "translation": "",
-    "context": "scrobbling library row",
+    "context": "library setting",
     "reference": "",
     "comment": ""
   },
@@ -6226,13 +6415,6 @@
     "term": "Scrobbling (requires sign-in)",
     "translation": "",
     "context": "about page credit",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Scrobbling is off for this library.",
-    "translation": "",
-    "context": "why a scrobbling setting is unavailable",
     "reference": "",
     "comment": ""
   },
@@ -6440,13 +6622,6 @@
     "comment": ""
   },
   {
-    "term": "Server libraries on your accounts",
-    "translation": "",
-    "context": "scrobbling settings section: whether a server's plays also go to the accounts",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Server passwords and service keys",
     "translation": "",
     "context": "about page: what the keyring is used for",
@@ -6601,6 +6776,13 @@
     "comment": ""
   },
   {
+    "term": "Shows the playing track on your Discord profile.",
+    "translation": "",
+    "context": "discord presence description",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Shuffle",
     "translation": "",
     "context": "button or mode that plays in random order",
@@ -6639,6 +6821,13 @@
     "term": "Sign in",
     "translation": "",
     "context": "scrobbling account action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sign in on the Scrobbling page first.",
+    "translation": "",
+    "context": "why a library's scrobbling setting is unavailable",
     "reference": "",
     "comment": ""
   },
@@ -6706,9 +6895,16 @@
     "comment": ""
   },
   {
-    "term": "Similar picks tracks by the same artist or genre.",
+    "term": "Similar picks tracks by the artists, genres and playlists of this session.",
     "translation": "",
     "context": "playback setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Similar tracks",
+    "translation": "",
+    "context": "playback setting",
     "reference": "",
     "comment": ""
   },
@@ -6895,6 +7091,13 @@
     "comment": ""
   },
   {
+    "term": "Spacing of lists, tiles, sections and navigation.",
+    "translation": "",
+    "context": "appearance density description",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Spacious",
     "translation": "",
     "context": "density option",
@@ -6975,6 +7178,20 @@
     "term": "Stops here",
     "translation": "",
     "context": "queue divider after the track playback stops at",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Storage",
+    "translation": "",
+    "context": "downloads settings section: space used and its limit",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Storage and offline rules",
+    "translation": "",
+    "context": "settings sidebar tab hint",
     "reference": "",
     "comment": ""
   },
@@ -7406,9 +7623,9 @@
     "comment": ""
   },
   {
-    "term": "This server doesn't support scrobbling",
+    "term": "This rule already exists.",
     "translation": "",
-    "context": "scrobbling library row",
+    "context": "offline rule dialog, why save is disabled",
     "reference": "",
     "comment": ""
   },
@@ -7525,9 +7742,16 @@
     "comment": ""
   },
   {
-    "term": "Tracks without a rule are removed first when the size limit is reached.",
+    "term": "Tracks added at a time",
     "translation": "",
-    "context": "library offline overview without rules",
+    "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Tracks kept by other rules stay downloaded.",
+    "translation": "",
+    "context": "remove offline rule confirmation",
     "reference": "",
     "comment": ""
   },
@@ -7588,9 +7812,9 @@
     "comment": ""
   },
   {
-    "term": "Turn off when the server sends its plays to the same accounts.",
+    "term": "Turn on an account on the Scrobbling page first.",
     "translation": "",
-    "context": "scrobbling server library row",
+    "context": "why a library's scrobbling setting is unavailable",
     "reference": "",
     "comment": ""
   },
@@ -7836,6 +8060,13 @@
     "term": "When the queue ends",
     "translation": "",
     "context": "playback setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Whole app",
+    "translation": "",
+    "context": "cover color option: album art colors everywhere",
     "reference": "",
     "comment": ""
   },

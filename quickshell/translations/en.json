@@ -2,19 +2,19 @@
   {
     "term": " GB",
     "context": " GB",
-    "reference": "Modules/Settings/LibrariesSettings.qml:407",
+    "reference": "Modules/Settings/DownloadsSettings.qml:238",
     "comment": "unit suffix for gigabytes with a space"
   },
   {
     "term": " dB",
     "context": " dB",
-    "reference": "Modules/Settings/PlaybackSettings.qml:294",
+    "reference": "Modules/Settings/PlaybackSettings.qml:310",
     "comment": "unit suffix for decibels"
   },
   {
     "term": " ms",
     "context": " ms",
-    "reference": "Modules/Settings/AppearanceSettings.qml:373, Modules/Settings/DevicesSettings.qml:221",
+    "reference": "Modules/Settings/AppearanceSettings.qml:373, Modules/Settings/DevicesSettings.qml:222",
     "comment": "unit suffix for milliseconds with a space"
   },
   {
@@ -30,9 +30,15 @@
     "comment": "picker entry already in place, %1 is its name"
   },
   {
+    "term": "%1 (all servers)",
+    "context": "%1 (all servers)",
+    "reference": "Modules/Settings/DownloadedTracks.qml:58",
+    "comment": "an offline rule that covers every server library, %1 is the rule"
+  },
+  {
     "term": "%1 (already in this zone)",
     "context": "%1 (already in this zone)",
-    "reference": "Modules/Settings/SurfaceEditor.qml:351",
+    "reference": "Modules/Settings/SurfaceEditor.qml:345",
     "comment": "picker item that is already in the zone"
   },
   {
@@ -44,7 +50,7 @@
   {
     "term": "%1 (already on this device)",
     "context": "%1 (already on this device)",
-    "reference": "Modules/Settings/OfflineItemPicker.qml:95",
+    "reference": "Modules/Settings/OfflineItemPicker.qml:96",
     "comment": "offline rule picker item that is already kept"
   },
   {
@@ -62,19 +68,19 @@
   {
     "term": "%1 GB",
     "context": "%1 GB",
-    "reference": "Modules/DetailsDialog.qml:48, Modules/Settings/LibrariesSettings.qml:40",
+    "reference": "Common/Phrases.qml:85, Modules/DetailsDialog.qml:48",
     "comment": "file size"
   },
   {
     "term": "%1 Hz",
     "context": "%1 Hz",
-    "reference": "Modules/Settings/PlaybackSettings.qml:275",
+    "reference": "Modules/Settings/PlaybackSettings.qml:291",
     "comment": "equalizer band"
   },
   {
     "term": "%1 MB",
     "context": "%1 MB",
-    "reference": "Modules/DetailsDialog.qml:48, Modules/Settings/LibrariesSettings.qml:40",
+    "reference": "Common/Phrases.qml:85, Modules/DetailsDialog.qml:48",
     "comment": "file size"
   },
   {
@@ -82,6 +88,12 @@
     "context": "%1 albums",
     "reference": "Common/Phrases.qml:41",
     "comment": "album count, plural"
+  },
+  {
+    "term": "%1 already has this rule.",
+    "context": "%1 already has this rule.",
+    "reference": "Modules/Settings/OfflineRuleDialog.qml:30",
+    "comment": "offline rule dialog, why save is disabled, %1 is a server library"
   },
   {
     "term": "%1 artists",
@@ -92,7 +104,7 @@
   {
     "term": "%1 at %2",
     "context": "%1 at %2",
-    "reference": "Modules/Settings/LibrariesSettings.qml:192",
+    "reference": "Modules/Settings/LibrariesSettings.qml:41",
     "comment": "server account: user at address"
   },
   {
@@ -110,7 +122,7 @@
   {
     "term": "%1 can't go in %2",
     "context": "%1 can't go in %2",
-    "reference": "Modules/PageEditor.qml:249, Modules/Settings/SurfaceEditor.qml:169",
+    "reference": "Modules/PageEditor.qml:249, Modules/Settings/SurfaceEditor.qml:168",
     "comment": "toast when an element is dropped on a zone that doesn't take it; %1 is the element, %2 the zone"
   },
   {
@@ -158,19 +170,19 @@
   {
     "term": "%1 elements",
     "context": "%1 elements",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:73",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:74",
     "comment": "now playing surface summary, plural"
   },
   {
     "term": "%1 files written",
     "context": "%1 files written",
-    "reference": "Modules/Settings/LibraryDialog.qml:565",
+    "reference": "Modules/Settings/LibraryPage.qml:213",
     "comment": "ratings written to files"
   },
   {
     "term": "%1 files written, %2 failed",
     "context": "%1 files written, %2 failed",
-    "reference": "Modules/Settings/LibraryDialog.qml:565",
+    "reference": "Modules/Settings/LibraryPage.qml:213",
     "comment": "ratings written to files"
   },
   {
@@ -194,7 +206,7 @@
   {
     "term": "%1 kHz",
     "context": "%1 kHz",
-    "reference": "Modules/DetailsDialog.qml:70, Modules/Settings/PlaybackSettings.qml:275",
+    "reference": "Modules/DetailsDialog.qml:70, Modules/Settings/PlaybackSettings.qml:291",
     "comment": "equalizer band | sample rate"
   },
   {
@@ -206,7 +218,7 @@
   {
     "term": "%1 left",
     "context": "%1 left",
-    "reference": "Modules/QueueList.qml:234",
+    "reference": "Modules/QueueList.qml:245",
     "comment": "time left in the queue, %1 is a duration"
   },
   {
@@ -230,7 +242,7 @@
   {
     "term": "%1 of %2",
     "context": "%1 of %2",
-    "reference": "Modules/BrowsePage.qml:285, Modules/Settings/LibrariesSettings.qml:109, Modules/Settings/LibrariesSettings.qml:355",
+    "reference": "Modules/BrowsePage.qml:285, Modules/Settings/DownloadsSettings.qml:107, Modules/Settings/DownloadsSettings.qml:202",
     "comment": "browse page count on a filtered page, %2 is the whole count with its noun: 312 of 1105 tracks | offline rule progress: cached of all, %2 is a track count | storage usage: used of limit"
   },
   {
@@ -272,7 +284,7 @@
   {
     "term": "%1 scrobbles pending",
     "context": "%1 scrobbles pending",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:238",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:32",
     "comment": "scrobbling queue state, plural"
   },
   {
@@ -314,7 +326,7 @@
   {
     "term": "%1 · follows the bar",
     "context": "%1 · follows the bar",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:74",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:75",
     "comment": "side panel summary, %1 is the element count"
   },
   {
@@ -350,13 +362,13 @@
   {
     "term": "%1, see all",
     "context": "%1, see all",
-    "reference": "Modules/Shelf.qml:207",
+    "reference": "Modules/Shelf.qml:208",
     "comment": "home shelf title link"
   },
   {
     "term": "%1×",
     "context": "%1×",
-    "reference": "Modules/Settings/PlaybackSettings.qml:335, Modules/SpeedDialog.qml:18",
+    "reference": "Modules/Settings/PlaybackSettings.qml:351, Modules/SpeedDialog.qml:18",
     "comment": "playback speed option"
   },
   {
@@ -380,7 +392,7 @@
   {
     "term": "1 element",
     "context": "1 element",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:73",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:74",
     "comment": "now playing surface summary, singular"
   },
   {
@@ -388,6 +400,12 @@
     "context": "1 genre",
     "reference": "Common/Phrases.qml:53",
     "comment": "genre count, singular"
+  },
+  {
+    "term": "1 month",
+    "context": "1 month",
+    "reference": "Modules/Settings/PlaybackSettings.qml:489",
+    "comment": "play history duration"
   },
   {
     "term": "1 more track",
@@ -410,7 +428,7 @@
   {
     "term": "1 scrobble pending",
     "context": "1 scrobble pending",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:238",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:32",
     "comment": "scrobbling queue state, singular"
   },
   {
@@ -426,15 +444,45 @@
     "comment": "track count, singular"
   },
   {
-    "term": "A play is scrobbled after half the track or four minutes, whichever comes first. Plays go to the accounts below, and server libraries report them to their server too.",
-    "context": "A play is scrobbled after half the track or four minutes, whichever comes first. Plays go to the accounts below, and server libraries report them to their server too.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:27",
+    "term": "1 year",
+    "context": "1 year",
+    "reference": "Modules/Settings/PlaybackSettings.qml:489",
+    "comment": "play history duration"
+  },
+  {
+    "term": "3 months",
+    "context": "3 months",
+    "reference": "Modules/Settings/PlaybackSettings.qml:489",
+    "comment": "play history duration"
+  },
+  {
+    "term": "5 years",
+    "context": "5 years",
+    "reference": "Modules/Settings/PlaybackSettings.qml:489",
+    "comment": "play history duration"
+  },
+  {
+    "term": "6 months",
+    "context": "6 months",
+    "reference": "Modules/Settings/PlaybackSettings.qml:489",
+    "comment": "play history duration"
+  },
+  {
+    "term": "A play is scrobbled after half the track or four minutes, whichever comes first. Each library chooses where its plays go.",
+    "context": "A play is scrobbled after half the track or four minutes, whichever comes first. Each library chooses where its plays go.",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:24",
     "comment": "scrobbling settings intro"
+  },
+  {
+    "term": "A rule keeps this track and may download it again. Exclude creates an exception for this track from all rules.",
+    "context": "A rule keeps this track and may download it again. Exclude creates an exception for this track from all rules.",
+    "reference": "Modules/Settings/DownloadedTracks.qml:326",
+    "comment": "asks how to delete a downloaded track an offline rule keeps"
   },
   {
     "term": "API key",
     "context": "API key",
-    "reference": "Modules/Settings/GeneralSettings.qml:99, Modules/Settings/ScrobbleSettings.qml:151",
+    "reference": "Modules/Settings/GeneralSettings.qml:99, Modules/Settings/ScrobbleSettings.qml:158",
     "comment": "API key field"
   },
   {
@@ -446,7 +494,7 @@
   {
     "term": "About",
     "context": "About",
-    "reference": "Modules/Settings/SettingsWindow.qml:97",
+    "reference": "Modules/Settings/SettingsWindow.qml:114",
     "comment": "settings sidebar tab label"
   },
   {
@@ -458,25 +506,25 @@
   {
     "term": "Account",
     "context": "Account",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:47, Modules/Settings/ScrobbleSettings.qml:112",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:54, Modules/Settings/ScrobbleSettings.qml:119",
     "comment": "scrobbling settings row"
   },
   {
     "term": "Account has no password",
     "context": "Account has no password",
-    "reference": "Modules/Settings/LibraryDialog.qml:502",
+    "reference": "Modules/Settings/ServerSignIn.qml:305",
     "comment": "edit server dialog toggle"
   },
   {
     "term": "Adaptive width",
     "context": "Adaptive width",
-    "reference": "Modules/Settings/ElementOptionsPage.qml:52",
+    "reference": "Modules/Settings/ElementOptionsPage.qml:50",
     "comment": "element option: the track info fits the title instead of keeping a fixed width"
   },
   {
     "term": "Add",
     "context": "Add",
-    "reference": "Modules/Settings/LibraryDialog.qml:621, Modules/Settings/OfflineLimitDialog.qml:95",
+    "reference": "Modules/Settings/LibraryDialog.qml:251, Modules/Settings/OfflineRuleDialog.qml:168",
     "comment": "dialog confirm button"
   },
   {
@@ -488,25 +536,25 @@
   {
     "term": "Add a server library first.",
     "context": "Add a server library first.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:21",
+    "reference": "Modules/Settings/DownloadsSettings.qml:20",
     "comment": "why the offline settings are hidden"
   },
   {
     "term": "Add album",
     "context": "Add album",
-    "reference": "Modules/Settings/OfflineItemPicker.qml:45",
+    "reference": "Modules/Settings/OfflineItemPicker.qml:46",
     "comment": "offline rule picker title"
   },
   {
     "term": "Add artist",
     "context": "Add artist",
-    "reference": "Modules/Settings/OfflineItemPicker.qml:45",
+    "reference": "Modules/Settings/OfflineItemPicker.qml:46",
     "comment": "offline rule picker title"
   },
   {
     "term": "Add at least one folder.",
     "context": "Add at least one folder.",
-    "reference": "Modules/Settings/LibraryDialog.qml:70",
+    "reference": "Modules/Settings/LibraryDialog.qml:32",
     "comment": "add local library dialog, why add is disabled"
   },
   {
@@ -518,7 +566,7 @@
   {
     "term": "Add element",
     "context": "Add element",
-    "reference": "Modules/PageEditor.qml:285, Modules/Settings/SurfaceEditor.qml:350, Widgets/DZoneEditor.qml:19",
+    "reference": "Modules/PageEditor.qml:285, Modules/Settings/SurfaceEditor.qml:344, Widgets/DZoneEditor.qml:19",
     "comment": "button under a zone in a layout editor"
   },
   {
@@ -530,13 +578,13 @@
   {
     "term": "Add folder",
     "context": "Add folder",
-    "reference": "Modules/Settings/LibraryDialog.qml:319",
+    "reference": "Modules/Settings/LibraryDialog.qml:174, Modules/Settings/LibraryPage.qml:148",
     "comment": "library dialog folder action"
   },
   {
     "term": "Add library",
     "context": "Add library",
-    "reference": "Modules/BrowsePage.qml:415, Modules/HomePage.qml:125, Modules/LibrariesPage.qml:45, Modules/Settings/LibrariesSettings.qml:614, Modules/Settings/LibraryDialog.qml:190",
+    "reference": "Modules/BrowsePage.qml:415, Modules/HomePage.qml:125, Modules/LibrariesPage.qml:45, Modules/Settings/LibrariesSettings.qml:152, Modules/Settings/LibraryDialog.qml:79",
     "comment": "libraries settings primary action"
   },
   {
@@ -548,13 +596,13 @@
   {
     "term": "Add playlist",
     "context": "Add playlist",
-    "reference": "Modules/Settings/OfflineItemPicker.qml:45",
+    "reference": "Modules/Settings/OfflineItemPicker.qml:46",
     "comment": "offline rule picker title"
   },
   {
     "term": "Add rule",
     "context": "Add rule",
-    "reference": "Modules/RuleEditor.qml:481, Modules/Settings/LibrariesSettings.qml:493, Modules/Settings/LibrariesSettings.qml:645",
+    "reference": "Modules/RuleEditor.qml:481, Modules/Settings/DownloadsSettings.qml:294, Modules/Settings/DownloadsSettings.qml:386, Modules/Settings/DownloadsSettings.qml:456",
     "comment": "button under the filter rules in a page's edit mode | offline action that keeps more of a library on this device"
   },
   {
@@ -596,7 +644,7 @@
   {
     "term": "Add to playlist…",
     "context": "Add to playlist…",
-    "reference": "Common/UiConfig.qml:1163, Common/UiConfig.qml:1266, Modules/SelectionBar.qml:111",
+    "reference": "Common/UiConfig.qml:1163, Common/UiConfig.qml:1266, Modules/QueueList.qml:206, Modules/SelectionBar.qml:111",
     "comment": "track menu action"
   },
   {
@@ -612,10 +660,22 @@
     "comment": "empty playlist hint"
   },
   {
+    "term": "Added automatically",
+    "context": "Added automatically",
+    "reference": "Modules/QueueList.qml:453, Modules/RowEnd.qml:224",
+    "comment": "queue row: a track the queue continued with"
+  },
+  {
     "term": "Added by you",
     "context": "Added by you",
-    "reference": "Common/UiConfig.qml:1304, Modules/QueueList.qml:441, Modules/RowEnd.qml:220",
+    "reference": "Modules/QueueList.qml:453, Modules/RowEnd.qml:224",
     "comment": "queue row: a track put in with play next or add to queue"
+  },
+  {
+    "term": "Added to the queue",
+    "context": "Added to the queue",
+    "reference": "Common/UiConfig.qml:1304",
+    "comment": "row element: the mark on queue rows for tracks added by you or automatically"
   },
   {
     "term": "Adds a window rule through Dux Shell.",
@@ -626,7 +686,7 @@
   {
     "term": "Adjust the delay of each output",
     "context": "Adjust the delay of each output",
-    "reference": "Modules/Settings/DevicesSettings.qml:187",
+    "reference": "Modules/Settings/DevicesSettings.qml:193",
     "comment": "playback device sync row"
   },
   {
@@ -636,9 +696,15 @@
     "comment": "lyrics setting description"
   },
   {
+    "term": "Adventurous",
+    "context": "Adventurous",
+    "reference": "Modules/Settings/PlaybackSettings.qml:375",
+    "comment": "similar tracks option"
+  },
+  {
     "term": "Album",
     "context": "Album",
-    "reference": "Common/UiConfig.qml:82, Common/UiConfig.qml:360, Common/UiConfig.qml:731, Common/UiConfig.qml:1115, Modules/AlbumPage.qml:91, Modules/DetailsDialog.qml:67, Modules/Settings/LibrariesSettings.qml:78, Modules/Settings/PlaybackSettings.qml:187",
+    "reference": "Common/Phrases.qml:103, Common/UiConfig.qml:82, Common/UiConfig.qml:360, Common/UiConfig.qml:731, Common/UiConfig.qml:1115, Modules/AlbumPage.qml:91, Modules/DetailsDialog.qml:67, Modules/Settings/PlaybackSettings.qml:203",
     "comment": "an album: page label, list column, ReplayGain mode"
   },
   {
@@ -668,19 +734,19 @@
   {
     "term": "Albums",
     "context": "Albums",
-    "reference": "Common/UiConfig.qml:44, Modules/DetailsDialog.qml:65, Modules/Settings/PlaybackSettings.qml:359",
+    "reference": "Common/UiConfig.qml:44, Modules/DetailsDialog.qml:65, Modules/Settings/PlaybackSettings.qml:407",
     "comment": "navigation destination"
   },
   {
     "term": "Albums mixes the order of whole albums instead of single tracks.",
     "context": "Albums mixes the order of whole albums instead of single tracks.",
-    "reference": "Modules/Settings/PlaybackSettings.qml:358",
+    "reference": "Modules/Settings/PlaybackSettings.qml:406",
     "comment": "playback setting description"
   },
   {
     "term": "Album…",
     "context": "Album…",
-    "reference": "Modules/Settings/LibrariesSettings.qml:64",
+    "reference": "Modules/Settings/DownloadsSettings.qml:66",
     "comment": "offline rule kind that asks which album"
   },
   {
@@ -716,7 +782,7 @@
   {
     "term": "All of %1 is kept on this device",
     "context": "All of %1 is kept on this device",
-    "reference": "Services/SettingsService.qml:360",
+    "reference": "Services/SettingsService.qml:391",
     "comment": "why Keep on this device is locked on, %1 is the library"
   },
   {
@@ -732,6 +798,12 @@
     "comment": "filter rules: every rule must hold"
   },
   {
+    "term": "All servers",
+    "context": "All servers",
+    "reference": "Modules/Settings/DownloadsSettings.qml:98, Modules/Settings/OfflineRuleDialog.qml:106, Modules/Settings/OfflineRuleDialog.qml:108",
+    "comment": "offline rule scope: every server library"
+  },
+  {
     "term": "All style settings come from Dux Shell.",
     "context": "All style settings come from Dux Shell.",
     "reference": "Modules/Settings/AppearanceSettings.qml:72, Modules/Settings/AppearanceSettings.qml:117",
@@ -740,7 +812,7 @@
   {
     "term": "Allow volume above 100%",
     "context": "Allow volume above 100%",
-    "reference": "Modules/Settings/PlaybackSettings.qml:209",
+    "reference": "Modules/Settings/PlaybackSettings.qml:225",
     "comment": "playback setting"
   },
   {
@@ -770,13 +842,13 @@
   {
     "term": "Always in ⋮",
     "context": "Always in ⋮",
-    "reference": "Modules/Settings/ElementOptionsPage.qml:28",
+    "reference": "Modules/Settings/ElementOptionsPage.qml:26",
     "comment": "element placement: always in the ⋮ menu"
   },
   {
     "term": "Always shown",
     "context": "Always shown",
-    "reference": "Modules/Settings/ElementOptionsPage.qml:26",
+    "reference": "Modules/Settings/ElementOptionsPage.qml:24",
     "comment": "element placement: never moved into the ⋮ menu"
   },
   {
@@ -806,26 +878,20 @@
   {
     "term": "App volume",
     "context": "App volume",
-    "reference": "Modules/Settings/PlaybackSettings.qml:200",
+    "reference": "Modules/Settings/PlaybackSettings.qml:216",
     "comment": "volume controls option"
   },
   {
     "term": "Appearance",
     "context": "Appearance",
-    "reference": "Modules/Settings/SettingsWindow.qml:41",
+    "reference": "Modules/Settings/SettingsWindow.qml:50",
     "comment": "settings sidebar tab label"
   },
   {
     "term": "Applies to Shuffle all and to playback after the queue ends.",
     "context": "Applies to Shuffle all and to playback after the queue ends.",
-    "reference": "Modules/Settings/PlaybackSettings.qml:428",
+    "reference": "Modules/Settings/PlaybackSettings.qml:476",
     "comment": "playback settings section description"
-  },
-  {
-    "term": "Applies to now playing and the now-playing bar.",
-    "context": "Applies to now playing and the now-playing bar.",
-    "reference": "Modules/Settings/AppearanceSettings.qml:449",
-    "comment": "appearance setting description"
   },
   {
     "term": "Applies to tracks, playlists, shelves and navigation entries.",
@@ -836,25 +902,25 @@
   {
     "term": "Approve Dux Player on Last.fm",
     "context": "Approve Dux Player on Last.fm",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:137",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:144",
     "comment": "Last.fm sign-in step"
   },
   {
     "term": "Approve access in your browser, then select Finish sign-in.",
     "context": "Approve access in your browser, then select Finish sign-in.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:138",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:145",
     "comment": "Last.fm sign-in step description"
   },
   {
     "term": "Approved. Signing in…",
     "context": "Approved. Signing in…",
-    "reference": "Modules/Settings/LibraryDialog.qml:402",
+    "reference": "Modules/Settings/ServerSignIn.qml:205",
     "comment": "Quick Connect state"
   },
   {
     "term": "Artist",
     "context": "Artist",
-    "reference": "Common/UiConfig.qml:80, Common/UiConfig.qml:358, Common/UiConfig.qml:677, Common/UiConfig.qml:735, Modules/ArtistPage.qml:213, Modules/DetailsDialog.qml:63, Modules/Settings/LibrariesSettings.qml:80",
+    "reference": "Common/Phrases.qml:105, Common/UiConfig.qml:80, Common/UiConfig.qml:358, Common/UiConfig.qml:677, Common/UiConfig.qml:735, Modules/ArtistPage.qml:213, Modules/DetailsDialog.qml:63",
     "comment": "track list column"
   },
   {
@@ -896,7 +962,7 @@
   {
     "term": "Artist…",
     "context": "Artist…",
-    "reference": "Modules/Settings/LibrariesSettings.qml:66",
+    "reference": "Modules/Settings/DownloadsSettings.qml:68",
     "comment": "offline rule kind that asks which artist"
   },
   {
@@ -932,7 +998,7 @@
   {
     "term": "Attached",
     "context": "Attached",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:116, Modules/Settings/NowPlayingSettings.qml:129",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:126, Modules/Settings/NowPlayingSettings.qml:139",
     "comment": "player look option"
   },
   {
@@ -944,13 +1010,13 @@
   {
     "term": "Auto",
     "context": "Auto",
-    "reference": "Modules/Settings/ElementOptionsPage.qml:30",
+    "reference": "Modules/Settings/ElementOptionsPage.qml:28",
     "comment": "element placement: moved into ⋮ when the row runs short"
   },
   {
     "term": "Auto moves it to ⋮ when space runs out.",
     "context": "Auto moves it to ⋮ when space runs out.",
-    "reference": "Modules/Settings/ElementOptionsPage.qml:95",
+    "reference": "Modules/Settings/ElementOptionsPage.qml:88",
     "comment": "element placement description"
   },
   {
@@ -962,25 +1028,25 @@
   {
     "term": "Automatic picks",
     "context": "Automatic picks",
-    "reference": "Modules/Settings/PlaybackSettings.qml:380",
+    "reference": "Modules/Settings/PlaybackSettings.qml:428",
     "comment": "playback settings section label"
   },
   {
     "term": "Available after signing in.",
     "context": "Available after signing in.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:20",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:17",
     "comment": "why a scrobbling setting is hidden"
   },
   {
     "term": "Available offline",
     "context": "Available offline",
-    "reference": "Modules/RowEnd.qml:167",
+    "reference": "Modules/RowEnd.qml:171",
     "comment": "track row cloud icon while the server is down"
   },
   {
     "term": "Available when Download upcoming tracks is on.",
     "context": "Available when Download upcoming tracks is on.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:436",
+    "reference": "Modules/Settings/DownloadsSettings.qml:257",
     "comment": "why the metered connections setting is unavailable"
   },
   {
@@ -992,13 +1058,13 @@
   {
     "term": "Available when multiple outputs are on",
     "context": "Available when multiple outputs are on",
-    "reference": "Modules/Settings/DevicesSettings.qml:229",
+    "reference": "Modules/Settings/DevicesSettings.qml:230",
     "comment": "why the test tone is disabled"
   },
   {
     "term": "Back",
     "context": "Back",
-    "reference": "Modules/PageHeader.qml:42, Modules/PlayOnSheet.qml:141, Modules/Settings/SettingsBackRow.qml:7",
+    "reference": "Modules/PageHeader.qml:42, Modules/PlayOnSheet.qml:141, Modules/Settings/SettingsWindow.qml:691",
     "comment": "page header back button"
   },
   {
@@ -1010,7 +1076,7 @@
   {
     "term": "Background and windows",
     "context": "Background and windows",
-    "reference": "Modules/Settings/SettingsWindow.qml:34",
+    "reference": "Modules/Settings/SettingsWindow.qml:43",
     "comment": "settings sidebar tab hint"
   },
   {
@@ -1020,9 +1086,15 @@
     "comment": "lyrics setting"
   },
   {
+    "term": "Balanced",
+    "context": "Balanced",
+    "reference": "Modules/Settings/PlaybackSettings.qml:375",
+    "comment": "similar tracks option"
+  },
+  {
     "term": "Bands",
     "context": "Bands",
-    "reference": "Modules/Settings/PlaybackSettings.qml:260",
+    "reference": "Modules/Settings/PlaybackSettings.qml:276",
     "comment": "equalizer setting"
   },
   {
@@ -1040,13 +1112,13 @@
   {
     "term": "Bass boost",
     "context": "Bass boost",
-    "reference": "Modules/Settings/PlaybackSettings.qml:96",
+    "reference": "Modules/Settings/PlaybackSettings.qml:112",
     "comment": "equalizer preset"
   },
   {
     "term": "Before this point, Previous goes to the previous track.",
     "context": "Before this point, Previous goes to the previous track.",
-    "reference": "Modules/Settings/PlaybackSettings.qml:370",
+    "reference": "Modules/Settings/PlaybackSettings.qml:418",
     "comment": "playback setting description"
   },
   {
@@ -1082,7 +1154,7 @@
   {
     "term": "Bluetooth outputs play later than wired ones. Delay the others until the test tone is in sync.",
     "context": "Bluetooth outputs play later than wired ones. Delay the others until the test tone is in sync.",
-    "reference": "Modules/Settings/DevicesSettings.qml:204",
+    "reference": "Modules/Settings/DevicesSettings.qml:205",
     "comment": "playback device sync intro"
   },
   {
@@ -1106,7 +1178,7 @@
   {
     "term": "Bottom bar",
     "context": "Bottom bar",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:38, Modules/Settings/NowPlayingSettings.qml:103, Modules/Settings/NowPlayingSettings.qml:165",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:39, Modules/Settings/NowPlayingSettings.qml:113, Modules/Settings/NowPlayingSettings.qml:175",
     "comment": "now playing placement option"
   },
   {
@@ -1142,7 +1214,7 @@
   {
     "term": "Buttons",
     "context": "Buttons",
-    "reference": "Modules/Settings/SurfaceEditor.qml:233",
+    "reference": "Modules/Settings/SurfaceEditor.qml:232",
     "comment": "element picker group"
   },
   {
@@ -1154,19 +1226,19 @@
   {
     "term": "Can't seek in a track the server converts while it plays",
     "context": "Can't seek in a track the server converts while it plays",
-    "reference": "Services/PlayerService.qml:649",
+    "reference": "Services/PlayerService.qml:650",
     "comment": "snackbar when the seekbar is used on a stream that can't seek"
   },
   {
     "term": "Cancel",
     "context": "Cancel",
-    "reference": "Modules/ConfirmDialog.qml:25, Modules/NewPageDialog.qml:64, Modules/NewPlaylistDialog.qml:89, Modules/Settings/LibraryDialog.qml:615, Modules/Settings/OfflineItemPicker.qml:117, Modules/Settings/OfflineLimitDialog.qml:89, Modules/TextPromptDialog.qml:46",
+    "reference": "Modules/ConfirmDialog.qml:25, Modules/NewPageDialog.qml:64, Modules/NewPlaylistDialog.qml:89, Modules/Settings/LibraryDialog.qml:245, Modules/Settings/LibraryServerDialog.qml:68, Modules/Settings/OfflineItemPicker.qml:118, Modules/Settings/OfflineRuleDialog.qml:162, Modules/TextPromptDialog.qml:46",
     "comment": "dialog dismiss button"
   },
   {
     "term": "Card",
     "context": "Card",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:116, Modules/Settings/NowPlayingSettings.qml:129",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:126, Modules/Settings/NowPlayingSettings.qml:139",
     "comment": "player look option"
   },
   {
@@ -1208,7 +1280,7 @@
   {
     "term": "Center title and artist",
     "context": "Center title and artist",
-    "reference": "Modules/Settings/SurfaceEditor.qml:322",
+    "reference": "Modules/Settings/SurfaceEditor.qml:316",
     "comment": "now playing editor setting"
   },
   {
@@ -1216,12 +1288,6 @@
     "context": "Change cover",
     "reference": "Modules/PlaylistPage.qml:269",
     "comment": "playlist menu action"
-  },
-  {
-    "term": "Change limit",
-    "context": "Change limit",
-    "reference": "Modules/Settings/LibrariesSettings.qml:688",
-    "comment": "offline rule action"
   },
   {
     "term": "Changed",
@@ -1232,13 +1298,13 @@
   {
     "term": "Changes on disk show only after a rescan",
     "context": "Changes on disk show only after a rescan",
-    "reference": "Common/Phrases.qml:173",
+    "reference": "Common/Phrases.qml:200",
     "comment": "library notice"
   },
   {
     "term": "Changing a band switches the preset to Custom.",
     "context": "Changing a band switches the preset to Custom.",
-    "reference": "Modules/Settings/PlaybackSettings.qml:262",
+    "reference": "Modules/Settings/PlaybackSettings.qml:278",
     "comment": "equalizer setting description"
   },
   {
@@ -1250,7 +1316,7 @@
   {
     "term": "Choose folder",
     "context": "Choose folder",
-    "reference": "Modules/Settings/LibraryDialog.qml:607",
+    "reference": "Modules/Settings/LibraryDialog.qml:237, Modules/Settings/LibraryPage.qml:326",
     "comment": "library dialog folder action"
   },
   {
@@ -1268,7 +1334,7 @@
   {
     "term": "Chromecast",
     "context": "Chromecast",
-    "reference": "Common/Phrases.qml:114",
+    "reference": "Common/Phrases.qml:141",
     "comment": "playback device note"
   },
   {
@@ -1280,25 +1346,25 @@
   {
     "term": "Classical",
     "context": "Classical",
-    "reference": "Modules/Settings/PlaybackSettings.qml:106",
+    "reference": "Modules/Settings/PlaybackSettings.qml:122",
     "comment": "equalizer preset"
   },
   {
     "term": "Clear",
     "context": "Clear",
-    "reference": "Modules/HistoryPage.qml:97, Modules/QueueList.qml:251, Modules/Settings/LibrariesSettings.qml:450, Modules/Settings/LibrariesSettings.qml:555",
+    "reference": "Modules/HistoryPage.qml:97, Modules/QueueList.qml:262, Modules/Settings/DownloadedTracks.qml:205, Modules/Settings/DownloadsSettings.qml:271",
     "comment": "button that empties a list"
   },
   {
     "term": "Clear all downloads",
     "context": "Clear all downloads",
-    "reference": "Modules/Settings/LibrariesSettings.qml:443",
+    "reference": "Modules/Settings/DownloadsSettings.qml:264",
     "comment": "offline action"
   },
   {
     "term": "Clear downloads",
     "context": "Clear downloads",
-    "reference": "Modules/Settings/LibrariesSettings.qml:549",
+    "reference": "Modules/Settings/DownloadedTracks.qml:199",
     "comment": "offline action for one library"
   },
   {
@@ -1322,7 +1388,7 @@
   {
     "term": "Clear selection",
     "context": "Clear selection",
-    "reference": "Modules/QueueList.qml:293, Modules/SelectionBar.qml:48",
+    "reference": "Modules/QueueList.qml:304, Modules/SelectionBar.qml:48",
     "comment": "selection bar action"
   },
   {
@@ -1356,22 +1422,16 @@
     "comment": "cover dialog section"
   },
   {
+    "term": "Color from the cover",
+    "context": "Color from the cover",
+    "reference": "Modules/Settings/AppearanceSettings.qml:448",
+    "comment": "appearance setting: album art colors"
+  },
+  {
     "term": "Color mode",
     "context": "Color mode",
     "reference": "Modules/Settings/AppearanceSettings.qml:269",
     "comment": "appearance setting for light or dark"
-  },
-  {
-    "term": "Color now playing from the cover",
-    "context": "Color now playing from the cover",
-    "reference": "Modules/Settings/AppearanceSettings.qml:447",
-    "comment": "appearance setting"
-  },
-  {
-    "term": "Color the whole app",
-    "context": "Color the whole app",
-    "reference": "Modules/Settings/AppearanceSettings.qml:455",
-    "comment": "appearance setting: album art colors everywhere"
   },
   {
     "term": "Colors",
@@ -1418,13 +1478,13 @@
   {
     "term": "Connect",
     "context": "Connect",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:183, Modules/Settings/ScrobbleSettings.qml:184",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:190, Modules/Settings/ScrobbleSettings.qml:191",
     "comment": "Last.fm sign-in action"
   },
   {
     "term": "Connected",
     "context": "Connected",
-    "reference": "Modules/Settings/LibraryDialog.qml:527",
+    "reference": "Modules/Settings/ServerSignIn.qml:330",
     "comment": "add server dialog, connection test passed"
   },
   {
@@ -1442,7 +1502,7 @@
   {
     "term": "Continue with similar tracks",
     "context": "Continue with similar tracks",
-    "reference": "Modules/QueueList.qml:379",
+    "reference": "Modules/QueueList.qml:390",
     "comment": "queue end button that keeps filling the queue"
   },
   {
@@ -1460,13 +1520,13 @@
   {
     "term": "Copied",
     "context": "Copied",
-    "reference": "Modules/DetailsDialog.qml:138, Modules/Settings/GeneralSettings.qml:166, Modules/Settings/LibraryDialog.qml:432",
+    "reference": "Modules/DetailsDialog.qml:138, Modules/Settings/GeneralSettings.qml:166, Modules/Settings/ServerSignIn.qml:235",
     "comment": "toast after text was copied to the clipboard"
   },
   {
     "term": "Copy",
     "context": "Copy",
-    "reference": "Modules/DetailsDialog.qml:134, Modules/Settings/GeneralSettings.qml:160, Modules/Settings/LibraryDialog.qml:428",
+    "reference": "Modules/DetailsDialog.qml:134, Modules/Settings/GeneralSettings.qml:160, Modules/Settings/ServerSignIn.qml:231",
     "comment": "copy a config snippet"
   },
   {
@@ -1544,13 +1604,13 @@
   {
     "term": "Couldn't change the lyrics",
     "context": "Couldn't change the lyrics",
-    "reference": "Services/PlayerService.qml:636",
+    "reference": "Services/PlayerService.qml:637",
     "comment": "toast when a lyrics source can't be kept for a track"
   },
   {
     "term": "Couldn't change the lyrics timing",
     "context": "Couldn't change the lyrics timing",
-    "reference": "Services/PlayerService.qml:644",
+    "reference": "Services/PlayerService.qml:645",
     "comment": "toast when the lyrics timing of a track can't be changed"
   },
   {
@@ -1574,7 +1634,7 @@
   {
     "term": "Couldn't clear downloads",
     "context": "Couldn't clear downloads",
-    "reference": "Services/SettingsService.qml:424",
+    "reference": "Services/SettingsService.qml:475",
     "comment": "toast when emptying the offline cache fails"
   },
   {
@@ -1592,13 +1652,13 @@
   {
     "term": "Couldn't connect to server",
     "context": "Couldn't connect to server",
-    "reference": "Modules/Settings/LibraryDialog.qml:527",
+    "reference": "Modules/Settings/ServerSignIn.qml:330",
     "comment": "add server dialog, connection test failed title"
   },
   {
     "term": "Couldn't connect to this server",
     "context": "Couldn't connect to this server",
-    "reference": "Common/Phrases.qml:193",
+    "reference": "Common/Phrases.qml:220",
     "comment": "why a server connection test failed"
   },
   {
@@ -1614,10 +1674,22 @@
     "comment": "toast when making a new playlist fails"
   },
   {
+    "term": "Couldn't delete the download",
+    "context": "Couldn't delete the download",
+    "reference": "Services/SettingsService.qml:463",
+    "comment": "toast when deleting one downloaded track fails"
+  },
+  {
     "term": "Couldn't delete the playlist",
     "context": "Couldn't delete the playlist",
     "reference": "Services/PlaylistService.qml:189, Services/PlaylistService.qml:194",
     "comment": "toast when deleting a playlist fails"
+  },
+  {
+    "term": "Couldn't download it again",
+    "context": "Couldn't download it again",
+    "reference": "Services/SettingsService.qml:469",
+    "comment": "toast when lifting a track's exclusion fails"
   },
   {
     "term": "Couldn't duplicate the playlist",
@@ -1634,13 +1706,13 @@
   {
     "term": "Couldn't export to %1",
     "context": "Couldn't export to %1",
-    "reference": "Modules/Settings/AppearanceSettings.qml:508, Modules/Settings/GeneralSettings.qml:333",
+    "reference": "Modules/Settings/AppearanceSettings.qml:504, Modules/Settings/GeneralSettings.qml:333",
     "comment": "export failed status"
   },
   {
     "term": "Couldn't finish the sign-in",
     "context": "Couldn't finish the sign-in",
-    "reference": "Services/SettingsService.qml:216",
+    "reference": "Services/SettingsService.qml:230",
     "comment": "snackbar when finishing the Last.fm sign-in fails"
   },
   {
@@ -1658,19 +1730,19 @@
   {
     "term": "Couldn't import the theme: %1",
     "context": "Couldn't import the theme: %1",
-    "reference": "Modules/Settings/AppearanceSettings.qml:483",
+    "reference": "Modules/Settings/AppearanceSettings.qml:479",
     "comment": "custom theme import failed, %1 is the reason"
   },
   {
     "term": "Couldn't keep it on this device",
     "context": "Couldn't keep it on this device",
-    "reference": "Services/SettingsService.qml:289, Services/SettingsService.qml:316",
+    "reference": "Services/SettingsService.qml:313, Services/SettingsService.qml:347",
     "comment": "toast when adding an offline rule fails"
   },
   {
     "term": "Couldn't list the lyrics sources",
     "context": "Couldn't list the lyrics sources",
-    "reference": "Services/PlayerService.qml:626",
+    "reference": "Services/PlayerService.qml:627",
     "comment": "toast when the lyrics sources can't be read"
   },
   {
@@ -1682,7 +1754,7 @@
   {
     "term": "Couldn't load downloaded tracks",
     "context": "Couldn't load downloaded tracks",
-    "reference": "Services/SettingsService.qml:416",
+    "reference": "Services/SettingsService.qml:451",
     "comment": "toast when the offline cache's track list can't be read"
   },
   {
@@ -1718,7 +1790,7 @@
   {
     "term": "Couldn't open the library",
     "context": "Couldn't open the library",
-    "reference": "Common/Phrases.qml:133",
+    "reference": "Common/Phrases.qml:160",
     "comment": "library error"
   },
   {
@@ -1742,7 +1814,7 @@
   {
     "term": "Couldn't reach the account",
     "context": "Couldn't reach the account",
-    "reference": "Services/SettingsService.qml:232",
+    "reference": "Services/SettingsService.qml:246",
     "comment": "snackbar after a failed scrobbling account test"
   },
   {
@@ -1754,13 +1826,13 @@
   {
     "term": "Couldn't read the library's marked tracks",
     "context": "Couldn't read the library's marked tracks",
-    "reference": "Common/Phrases.qml:167",
+    "reference": "Common/Phrases.qml:194",
     "comment": "why writing ratings to files couldn't start"
   },
   {
     "term": "Couldn't read the theme file",
     "context": "Couldn't read the theme file",
-    "reference": "Modules/Settings/AppearanceSettings.qml:493",
+    "reference": "Modules/Settings/AppearanceSettings.qml:489",
     "comment": "custom theme import failed"
   },
   {
@@ -1772,7 +1844,7 @@
   {
     "term": "Couldn't remove it from this device",
     "context": "Couldn't remove it from this device",
-    "reference": "Services/SettingsService.qml:306, Services/SettingsService.qml:316",
+    "reference": "Services/SettingsService.qml:337, Services/SettingsService.qml:347",
     "comment": "toast when removing an offline rule fails"
   },
   {
@@ -1790,7 +1862,7 @@
   {
     "term": "Couldn't save the API key",
     "context": "Couldn't save the API key",
-    "reference": "Services/SettingsService.qml:118",
+    "reference": "Services/SettingsService.qml:127",
     "comment": "toast when storing an artist info API key fails"
   },
   {
@@ -1814,7 +1886,7 @@
   {
     "term": "Couldn't save the offline setting",
     "context": "Couldn't save the offline setting",
-    "reference": "Services/SettingsService.qml:297, Services/SettingsService.qml:409",
+    "reference": "Services/SettingsService.qml:328, Services/SettingsService.qml:440",
     "comment": "toast when an offline cache setting is refused"
   },
   {
@@ -1826,7 +1898,7 @@
   {
     "term": "Couldn't save the setting",
     "context": "Couldn't save the setting",
-    "reference": "Services/OutputService.qml:72, Services/OutputService.qml:80, Services/OutputService.qml:86, Services/SettingsService.qml:163, Services/SettingsService.qml:239, Services/SettingsService.qml:246, Services/SettingsService.qml:253, Services/SettingsService.qml:379, Services/SettingsService.qml:451, Services/SettingsService.qml:470",
+    "reference": "Services/OutputService.qml:72, Services/OutputService.qml:80, Services/OutputService.qml:86, Services/SettingsService.qml:177, Services/SettingsService.qml:253, Services/SettingsService.qml:260, Services/SettingsService.qml:267, Services/SettingsService.qml:410, Services/SettingsService.qml:502, Services/SettingsService.qml:521",
     "comment": "toast when the daemon refuses a settings change"
   },
   {
@@ -1838,7 +1910,7 @@
   {
     "term": "Couldn't scan the library",
     "context": "Couldn't scan the library",
-    "reference": "Common/Phrases.qml:169",
+    "reference": "Common/Phrases.qml:196",
     "comment": "library error"
   },
   {
@@ -1868,25 +1940,25 @@
   {
     "term": "Couldn't sign in",
     "context": "Couldn't sign in",
-    "reference": "Services/SettingsService.qml:202",
+    "reference": "Services/SettingsService.qml:216",
     "comment": "toast when connecting a scrobbling account fails"
   },
   {
     "term": "Couldn't sign in with Quick Connect",
     "context": "Couldn't sign in with Quick Connect",
-    "reference": "Modules/Settings/LibraryDialog.qml:451",
+    "reference": "Modules/Settings/ServerSignIn.qml:254",
     "comment": "Quick Connect state"
   },
   {
     "term": "Couldn't sign out",
     "context": "Couldn't sign out",
-    "reference": "Services/SettingsService.qml:226",
+    "reference": "Services/SettingsService.qml:240",
     "comment": "toast when disconnecting a scrobbling account fails"
   },
   {
     "term": "Couldn't start playback",
     "context": "Couldn't start playback",
-    "reference": "Services/PlayerService.qml:103, Services/PlayerService.qml:210, Services/PlayerService.qml:231, Services/PlayerService.qml:257, Services/PlayerService.qml:269, Services/PlayerService.qml:283, Services/PlayerService.qml:292, Services/PlayerService.qml:706",
+    "reference": "Services/PlayerService.qml:103, Services/PlayerService.qml:210, Services/PlayerService.qml:231, Services/PlayerService.qml:257, Services/PlayerService.qml:269, Services/PlayerService.qml:283, Services/PlayerService.qml:292, Services/PlayerService.qml:707",
     "comment": "toast when the daemon refuses to play"
   },
   {
@@ -1898,7 +1970,7 @@
   {
     "term": "Couldn't switch outputs",
     "context": "Couldn't switch outputs",
-    "reference": "Common/Phrases.qml:147",
+    "reference": "Common/Phrases.qml:174",
     "comment": "playback device error"
   },
   {
@@ -1910,19 +1982,19 @@
   {
     "term": "Couldn't use the audio output",
     "context": "Couldn't use the audio output",
-    "reference": "Services/PlayerService.qml:659",
+    "reference": "Services/PlayerService.qml:660",
     "comment": "snackbar when playback pauses because the sound output failed"
   },
   {
     "term": "Couldn't write ratings to files",
     "context": "Couldn't write ratings to files",
-    "reference": "Services/SettingsService.qml:387",
+    "reference": "Services/SettingsService.qml:418",
     "comment": "toast when writing ratings and favorites to files can't start"
   },
   {
     "term": "Couldn't write the file",
     "context": "Couldn't write the file",
-    "reference": "Common/Phrases.qml:165",
+    "reference": "Common/Phrases.qml:192",
     "comment": "why ratings weren't written to a file"
   },
   {
@@ -1940,7 +2012,7 @@
   {
     "term": "Cover only",
     "context": "Cover only",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:145",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:155",
     "comment": "full view opens with: no lyrics or queue pane"
   },
   {
@@ -1952,7 +2024,7 @@
   {
     "term": "Create an API account at last.fm/api. The key and secret are stored in the system keyring.",
     "context": "Create an API account at last.fm/api. The key and secret are stored in the system keyring.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:152",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:159",
     "comment": "Last.fm sign-in hint"
   },
   {
@@ -1964,19 +2036,19 @@
   {
     "term": "Crossfade",
     "context": "Crossfade",
-    "reference": "Modules/Settings/PlaybackSettings.qml:126",
+    "reference": "Modules/Settings/PlaybackSettings.qml:142",
     "comment": "playback setting"
   },
   {
     "term": "Crossfade duration",
     "context": "Crossfade duration",
-    "reference": "Modules/Settings/PlaybackSettings.qml:137",
+    "reference": "Modules/Settings/PlaybackSettings.qml:153",
     "comment": "playback setting"
   },
   {
     "term": "Custom",
     "context": "Custom",
-    "reference": "Modules/Settings/AppearanceSettings.qml:76, Modules/Settings/PlaybackSettings.qml:242",
+    "reference": "Modules/Settings/AppearanceSettings.qml:76, Modules/Settings/PlaybackSettings.qml:258",
     "comment": "option for your own values"
   },
   {
@@ -2066,26 +2138,38 @@
   {
     "term": "Default",
     "context": "Default",
-    "reference": "Modules/Settings/AppearanceSettings.qml:292, Modules/Settings/AppearanceSettings.qml:297, Modules/Settings/AppearanceSettings.qml:430, Modules/Settings/NowPlayingSettings.qml:67, Modules/Settings/PagesSettings.qml:289, Modules/Settings/PagesSettings.qml:322",
+    "reference": "Modules/Settings/AppearanceSettings.qml:292, Modules/Settings/AppearanceSettings.qml:297, Modules/Settings/AppearanceSettings.qml:430, Modules/Settings/NowPlayingSettings.qml:68, Modules/Settings/PagesSettings.qml:289, Modules/Settings/PagesSettings.qml:322",
     "comment": "density option | font family dropdown option for the bundled font | now playing surface badge: the start surface, or the player style in use | settings pages: a page nobody has changed"
   },
   {
     "term": "Delay",
     "context": "Delay",
-    "reference": "Modules/Settings/DevicesSettings.qml:210",
+    "reference": "Modules/Settings/DevicesSettings.qml:211",
     "comment": "playback device sync section"
   },
   {
     "term": "Delete",
     "context": "Delete",
-    "reference": "Common/UiConfig.qml:1296, Modules/PageEditor.qml:941, Modules/Router.qml:475",
+    "reference": "Common/UiConfig.qml:1296, Modules/PageEditor.qml:941, Modules/Router.qml:475, Modules/Settings/DownloadedTracks.qml:294, Modules/Settings/DownloadedTracks.qml:317",
     "comment": "confirm button that deletes an item"
   },
   {
     "term": "Delete \"%1\"?",
     "context": "Delete \"%1\"?",
-    "reference": "Modules/Router.qml:475",
+    "reference": "Modules/Router.qml:475, Modules/Settings/DownloadedTracks.qml:171",
     "comment": "delete playlist confirmation title"
+  },
+  {
+    "term": "Delete and exclude",
+    "context": "Delete and exclude",
+    "reference": "Modules/Settings/DownloadedTracks.qml:346",
+    "comment": "dialog button that deletes a downloaded track and keeps rules from downloading it"
+  },
+  {
+    "term": "Delete now",
+    "context": "Delete now",
+    "reference": "Modules/Settings/DownloadedTracks.qml:337",
+    "comment": "dialog button that deletes a downloaded track a rule may download again"
   },
   {
     "term": "Delete page",
@@ -2102,13 +2186,13 @@
   {
     "term": "Deleted \"%1\"",
     "context": "Deleted \"%1\"",
-    "reference": "Modules/Router.qml:469",
+    "reference": "Modules/Router.qml:469, Modules/Settings/DownloadedTracks.qml:155",
     "comment": "toast after deleting a playlist"
   },
   {
     "term": "Deletes downloaded tracks. Rules are kept.",
     "context": "Deletes downloaded tracks. Rules are kept.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:445, Modules/Settings/LibrariesSettings.qml:550",
+    "reference": "Modules/Settings/DownloadedTracks.qml:200, Modules/Settings/DownloadsSettings.qml:266",
     "comment": "offline clear action description"
   },
   {
@@ -2121,7 +2205,7 @@
     "term": "Density",
     "context": "Density",
     "reference": "Modules/Settings/AppearanceSettings.qml:427",
-    "comment": "appearance setting for the height of list rows"
+    "comment": "appearance setting for the spacing of lists, tiles, sections and navigation"
   },
   {
     "term": "Descending",
@@ -2154,6 +2238,18 @@
     "comment": "template field"
   },
   {
+    "term": "Discord",
+    "context": "Discord",
+    "reference": "Modules/Settings/SettingsWindow.qml:107",
+    "comment": "settings sidebar tab hint"
+  },
+  {
+    "term": "Discord Rich Presence",
+    "context": "Discord Rich Presence",
+    "reference": "Modules/Settings/IntegrationsSettings.qml:13",
+    "comment": "integrations setting"
+  },
+  {
     "term": "Display",
     "context": "Display",
     "reference": "Common/UiConfig.qml:1085, Modules/Settings/LyricsSettings.qml:47",
@@ -2174,25 +2270,31 @@
   {
     "term": "Don't stop",
     "context": "Don't stop",
-    "reference": "Modules/QueueList.qml:634, Modules/TrackMenu.qml:127",
+    "reference": "Modules/QueueList.qml:646, Modules/TrackMenu.qml:127",
     "comment": "queue row action that clears stop after this track"
   },
   {
     "term": "Done",
     "context": "Done",
-    "reference": "Modules/AddToPlaylistDialog.qml:218, Modules/PageHeader.qml:121, Modules/PlaylistPage.qml:188, Modules/QueueList.qml:311",
+    "reference": "Modules/AddToPlaylistDialog.qml:218, Modules/PageHeader.qml:121, Modules/PlaylistPage.qml:188, Modules/QueueList.qml:322",
     "comment": "edit mode finish button"
+  },
+  {
+    "term": "Download again",
+    "context": "Download again",
+    "reference": "Modules/Settings/DownloadedTracks.qml:303",
+    "comment": "button that lets offline rules download an excluded track again"
   },
   {
     "term": "Download on metered connections",
     "context": "Download on metered connections",
-    "reference": "Modules/Settings/LibrariesSettings.qml:434",
+    "reference": "Modules/Settings/DownloadsSettings.qml:255",
     "comment": "offline setting: keep downloading upcoming tracks on a metered connection"
   },
   {
     "term": "Download upcoming tracks",
     "context": "Download upcoming tracks",
-    "reference": "Modules/Settings/LibrariesSettings.qml:423",
+    "reference": "Modules/Settings/DownloadsSettings.qml:244",
     "comment": "offline setting: how many of the next server tracks download ahead"
   },
   {
@@ -2204,19 +2306,31 @@
   {
     "term": "Downloaded tracks",
     "context": "Downloaded tracks",
-    "reference": "Modules/Settings/LibrariesSettings.qml:571, Modules/Settings/LibrariesSettings.qml:571",
+    "reference": "Modules/Settings/DownloadsSettings.qml:32, Modules/Settings/DownloadsSettings.qml:375",
     "comment": "library offline overview section"
+  },
+  {
+    "term": "Downloads",
+    "context": "Downloads",
+    "reference": "Modules/Settings/LibraryPage.qml:272, Modules/Settings/SettingsWindow.qml:34",
+    "comment": "the offline downloads: page, settings tab"
   },
   {
     "term": "Downloads are paused. Raise the size limit or remove a rule.",
     "context": "Downloads are paused. Raise the size limit or remove a rule.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:379",
+    "reference": "Modules/Settings/DownloadsSettings.qml:226",
     "comment": "offline warning: the cache is full"
+  },
+  {
+    "term": "Downloads keep tracks from server libraries on this device.",
+    "context": "Downloads keep tracks from server libraries on this device.",
+    "reference": "Modules/Settings/DownloadsSettings.qml:191",
+    "comment": "downloads settings page without a server library"
   },
   {
     "term": "Drag to reorder or move between zones. Select an element for its options.",
     "context": "Drag to reorder or move between zones. Select an element for its options.",
-    "reference": "Modules/Settings/SurfaceEditor.qml:332",
+    "reference": "Modules/Settings/SurfaceEditor.qml:326",
     "comment": "now playing editor hint"
   },
   {
@@ -2264,7 +2378,7 @@
   {
     "term": "Dux Player Settings",
     "context": "Dux Player Settings",
-    "reference": "Modules/Settings/SettingsWindow.qml:352",
+    "reference": "Modules/Settings/SettingsWindow.qml:410",
     "comment": "settings window title"
   },
   {
@@ -2318,14 +2432,8 @@
   {
     "term": "Edit",
     "context": "Edit",
-    "reference": "Modules/Settings/PagesSettings.qml:128",
-    "comment": "settings pages: opens the page in edit mode in the main window"
-  },
-  {
-    "term": "Edit library",
-    "context": "Edit library",
-    "reference": "Modules/Settings/LibraryDialog.qml:190",
-    "comment": "library dialog title"
+    "reference": "Modules/Settings/DownloadsSettings.qml:424, Modules/Settings/PagesSettings.qml:128",
+    "comment": "offline rule action: change its scope or limit | settings pages: opens the page in edit mode in the main window"
   },
   {
     "term": "Edit page",
@@ -2354,7 +2462,7 @@
   {
     "term": "Electronic",
     "context": "Electronic",
-    "reference": "Modules/Settings/PlaybackSettings.qml:108",
+    "reference": "Modules/Settings/PlaybackSettings.qml:124",
     "comment": "equalizer preset"
   },
   {
@@ -2366,7 +2474,7 @@
   {
     "term": "Enabled",
     "context": "Enabled",
-    "reference": "Modules/Settings/LibrariesSettings.qml:328",
+    "reference": "Modules/Settings/LibrariesSettings.qml:118, Modules/Settings/LibraryPage.qml:81",
     "comment": "library row switch"
   },
   {
@@ -2384,86 +2492,98 @@
   {
     "term": "Enter 1 to %1 tracks.",
     "context": "Enter 1 to %1 tracks.",
-    "reference": "Modules/Settings/OfflineLimitDialog.qml:22",
+    "reference": "Modules/Settings/OfflineRuleDialog.qml:37",
     "comment": "offline rule limit dialog, why save is disabled"
   },
   {
     "term": "Enter a name.",
     "context": "Enter a name.",
-    "reference": "Modules/Settings/LibraryDialog.qml:68",
+    "reference": "Modules/Settings/LibraryDialog.qml:30",
     "comment": "add local library dialog, why add is disabled"
   },
   {
     "term": "Enter a path",
     "context": "Enter a path",
-    "reference": "Modules/Settings/LibraryDialog.qml:328",
+    "reference": "Modules/Settings/LibraryDialog.qml:183, Modules/Settings/LibraryPage.qml:156",
     "comment": "library dialog action that shows a folder path field"
   },
   {
     "term": "Enter at least %1 GB.",
     "context": "Enter at least %1 GB.",
-    "reference": "Modules/Settings/OfflineLimitDialog.qml:21",
+    "reference": "Modules/Settings/OfflineRuleDialog.qml:36",
     "comment": "offline rule limit dialog, why save is disabled"
   },
   {
     "term": "Enter the API key and shared secret first.",
     "context": "Enter the API key and shared secret first.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:167",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:174",
     "comment": "why Last.fm sign-in is disabled"
   },
   {
     "term": "Enter the password again for a new server address.",
     "context": "Enter the password again for a new server address.",
-    "reference": "Modules/Settings/LibraryDialog.qml:64",
+    "reference": "Modules/Settings/ServerSignIn.qml:52",
     "comment": "edit server dialog, why save is disabled"
   },
   {
     "term": "Enter the password.",
     "context": "Enter the password.",
-    "reference": "Modules/Settings/LibraryDialog.qml:60",
+    "reference": "Modules/Settings/ServerSignIn.qml:48",
     "comment": "edit server dialog, why save is disabled"
   },
   {
     "term": "Enter the server address and user name.",
     "context": "Enter the server address and user name.",
-    "reference": "Modules/Settings/LibraryDialog.qml:62",
+    "reference": "Modules/Settings/ServerSignIn.qml:50",
     "comment": "add server dialog, why add is disabled"
   },
   {
     "term": "Enter the server address.",
     "context": "Enter the server address.",
-    "reference": "Modules/Settings/LibraryDialog.qml:413",
+    "reference": "Modules/Settings/ServerSignIn.qml:216",
     "comment": "Quick Connect state before a code can be asked for"
   },
   {
     "term": "Enter the user name and password in their own fields, not in the server address",
     "context": "Enter the user name and password in their own fields, not in the server address",
-    "reference": "Common/Phrases.qml:189",
+    "reference": "Common/Phrases.qml:216",
     "comment": "why a server connection test failed"
   },
   {
     "term": "Enter your user token first.",
     "context": "Enter your user token first.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:82",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:89",
     "comment": "why ListenBrainz sign-in is disabled"
   },
   {
     "term": "Equalizer",
     "context": "Equalizer",
-    "reference": "Modules/Settings/PlaybackSettings.qml:218",
+    "reference": "Modules/Settings/PlaybackSettings.qml:234",
     "comment": "playback settings section label"
   },
   {
     "term": "Equalizer, crossfade, speed",
     "context": "Equalizer, crossfade, speed",
-    "reference": "Modules/Settings/SettingsWindow.qml:66",
+    "reference": "Modules/Settings/SettingsWindow.qml:75",
     "comment": "settings sidebar tab hint"
   },
   {
     "term": "Everything",
     "context": "Everything",
-    "reference": "Modules/Settings/LibrariesSettings.qml:54",
+    "reference": "Common/Phrases.qml:93, Modules/Settings/OfflineRuleDialog.qml:50",
     "comment": "offline rule: the whole library"
+  },
+  {
+    "term": "Excluded",
+    "context": "Excluded",
+    "reference": "Modules/Settings/DownloadedTracks.qml:64",
+    "comment": "a downloaded track no offline rule may keep"
+  },
+  {
+    "term": "Excluded tracks",
+    "context": "Excluded tracks",
+    "reference": "Modules/Settings/DownloadedTracks.qml:195, Modules/Settings/DownloadsSettings.qml:32, Modules/Settings/DownloadsSettings.qml:364",
+    "comment": "offline tracks no rule may download"
   },
   {
     "term": "Export",
@@ -2486,7 +2606,7 @@
   {
     "term": "Export theme",
     "context": "Export theme",
-    "reference": "Modules/Settings/AppearanceSettings.qml:524",
+    "reference": "Modules/Settings/AppearanceSettings.qml:520",
     "comment": "file picker title"
   },
   {
@@ -2504,7 +2624,7 @@
   {
     "term": "Exported to %1",
     "context": "Exported to %1",
-    "reference": "Modules/Settings/AppearanceSettings.qml:503, Modules/Settings/GeneralSettings.qml:330",
+    "reference": "Modules/Settings/AppearanceSettings.qml:499, Modules/Settings/GeneralSettings.qml:330",
     "comment": "custom theme export status"
   },
   {
@@ -2522,8 +2642,14 @@
   {
     "term": "Failed",
     "context": "Failed",
-    "reference": "Modules/Settings/LibraryDialog.qml:587",
+    "reference": "Modules/Settings/LibraryPage.qml:236",
     "comment": "a file that couldn't be written"
+  },
+  {
+    "term": "Familiar",
+    "context": "Familiar",
+    "reference": "Modules/Settings/PlaybackSettings.qml:375",
+    "comment": "similar tracks option"
   },
   {
     "term": "Family",
@@ -2552,7 +2678,7 @@
   {
     "term": "Favorites",
     "context": "Favorites",
-    "reference": "Common/UiConfig.qml:653, Common/UiConfig.qml:768, Modules/Settings/LibrariesSettings.qml:56, Services/CatalogService.qml:191",
+    "reference": "Common/Phrases.qml:95, Common/UiConfig.qml:653, Common/UiConfig.qml:768, Modules/Settings/OfflineRuleDialog.qml:48, Services/CatalogService.qml:191",
     "comment": "favorite tracks: page, cache mode, library feature"
   },
   {
@@ -2618,13 +2744,13 @@
   {
     "term": "Find it in your ListenBrainz profile settings. Stored in the system keyring.",
     "context": "Find it in your ListenBrainz profile settings. Stored in the system keyring.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:74",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:81",
     "comment": "ListenBrainz sign-in hint"
   },
   {
     "term": "Finish sign-in",
     "context": "Finish sign-in",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:142",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:149",
     "comment": "Last.fm sign-in action"
   },
   {
@@ -2642,7 +2768,7 @@
   {
     "term": "Flat",
     "context": "Flat",
-    "reference": "Modules/Settings/PlaybackSettings.qml:94",
+    "reference": "Modules/Settings/PlaybackSettings.qml:110",
     "comment": "equalizer preset"
   },
   {
@@ -2660,37 +2786,37 @@
   {
     "term": "Folder",
     "context": "Folder",
-    "reference": "Modules/Settings/LibraryDialog.qml:343",
+    "reference": "Modules/Settings/LibraryDialog.qml:198, Modules/Settings/LibraryPage.qml:169",
     "comment": "library dialog folder field"
   },
   {
     "term": "Folder not found. It was removed or its drive isn't mounted.",
     "context": "Folder not found. It was removed or its drive isn't mounted.",
-    "reference": "Common/Phrases.qml:141",
+    "reference": "Common/Phrases.qml:168",
     "comment": "why a track can't play"
   },
   {
     "term": "Folder not found: %1. It was removed or its drive isn't mounted.",
     "context": "Folder not found: %1. It was removed or its drive isn't mounted.",
-    "reference": "Common/Phrases.qml:136",
+    "reference": "Common/Phrases.qml:163",
     "comment": "library error, %1 is the folder"
   },
   {
     "term": "Folders",
     "context": "Folders",
-    "reference": "Services/CatalogService.qml:177",
+    "reference": "Modules/Settings/LibraryPage.qml:120, Services/CatalogService.qml:177",
     "comment": "library kind option"
   },
   {
     "term": "Folders and servers",
     "context": "Folders and servers",
-    "reference": "Modules/LibrariesPage.qml:28, Modules/Settings/SettingsWindow.qml:26",
+    "reference": "Modules/LibrariesPage.qml:28, Modules/Settings/SettingsWindow.qml:27",
     "comment": "libraries page subtitle | settings sidebar tab hint"
   },
   {
     "term": "Folders not found. They were removed or their drive isn't mounted.",
     "context": "Folders not found. They were removed or their drive isn't mounted.",
-    "reference": "Common/Phrases.qml:139",
+    "reference": "Common/Phrases.qml:166",
     "comment": "library error"
   },
   {
@@ -2708,31 +2834,31 @@
   {
     "term": "Follow the bottom bar",
     "context": "Follow the bottom bar",
-    "reference": "Modules/Settings/SurfaceEditor.qml:315",
+    "reference": "Modules/Settings/SurfaceEditor.qml:309",
     "comment": "side panel editor setting"
   },
   {
     "term": "Following Dux Shell",
     "context": "Following Dux Shell",
-    "reference": "Modules/Settings/SettingsWindow.qml:42",
+    "reference": "Modules/Settings/SettingsWindow.qml:51",
     "comment": "settings sidebar tab hint"
   },
   {
     "term": "Follows the bottom bar",
     "context": "Follows the bottom bar",
-    "reference": "Modules/Settings/SurfaceEditor.qml:120",
+    "reference": "Modules/Settings/SurfaceEditor.qml:119",
     "comment": "side panel editor: a zone taken from the bar"
   },
   {
     "term": "Follows the bottom bar: %1",
     "context": "Follows the bottom bar: %1",
-    "reference": "Modules/Settings/SurfaceEditor.qml:104",
+    "reference": "Modules/Settings/SurfaceEditor.qml:103",
     "comment": "side panel panes zone note, %1 lists the panes in order"
   },
   {
     "term": "Follows the system setting",
     "context": "Follows the system setting",
-    "reference": "Common/Phrases.qml:110",
+    "reference": "Common/Phrases.qml:137",
     "comment": "playback device note"
   },
   {
@@ -2740,6 +2866,12 @@
     "context": "Font",
     "reference": "Modules/Settings/AppearanceSettings.qml:36",
     "comment": "appearance style group"
+  },
+  {
+    "term": "Forever",
+    "context": "Forever",
+    "reference": "Modules/Settings/PlaybackSettings.qml:489",
+    "comment": "play history duration"
   },
   {
     "term": "Format",
@@ -2774,37 +2906,37 @@
   {
     "term": "Full view",
     "context": "Full view",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:103, Modules/Settings/NowPlayingSettings.qml:191",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:113, Modules/Settings/NowPlayingSettings.qml:201",
     "comment": "now playing placement option | now playing start option"
   },
   {
     "term": "Full view opens with",
     "context": "Full view opens with",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:140",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:150",
     "comment": "now playing setting"
   },
   {
     "term": "Full view · Bento",
     "context": "Full view · Bento",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:34",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:35",
     "comment": "now playing surface: the full view in the Bento style"
   },
   {
     "term": "Full view · Material",
     "context": "Full view · Material",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:36",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:37",
     "comment": "now playing surface: the full view in the Material style"
   },
   {
     "term": "Gapless playback",
     "context": "Gapless playback",
-    "reference": "Modules/Settings/PlaybackSettings.qml:119",
+    "reference": "Modules/Settings/PlaybackSettings.qml:135",
     "comment": "playback setting"
   },
   {
     "term": "General",
     "context": "General",
-    "reference": "Modules/Settings/SettingsWindow.qml:33",
+    "reference": "Modules/Settings/DownloadsSettings.qml:283, Modules/Settings/SettingsWindow.qml:42",
     "comment": "settings sidebar tab label"
   },
   {
@@ -2822,25 +2954,25 @@
   {
     "term": "Genres",
     "context": "Genres",
-    "reference": "Common/UiConfig.qml:52, Modules/PinTargetSheet.qml:37, Modules/Settings/PlaybackSettings.qml:438",
+    "reference": "Common/UiConfig.qml:52, Modules/PinTargetSheet.qml:37, Modules/Settings/PlaybackSettings.qml:510",
     "comment": "navigation destination"
   },
   {
     "term": "Get a code",
     "context": "Get a code",
-    "reference": "Modules/Settings/LibraryDialog.qml:461",
+    "reference": "Modules/Settings/ServerSignIn.qml:264",
     "comment": "Quick Connect action"
   },
   {
     "term": "Get a new code",
     "context": "Get a new code",
-    "reference": "Modules/Settings/LibraryDialog.qml:461",
+    "reference": "Modules/Settings/ServerSignIn.qml:264",
     "comment": "Quick Connect action"
   },
   {
     "term": "Getting a code…",
     "context": "Getting a code…",
-    "reference": "Modules/Settings/LibraryDialog.qml:402",
+    "reference": "Modules/Settings/ServerSignIn.qml:205",
     "comment": "Quick Connect state"
   },
   {
@@ -2894,7 +3026,7 @@
   {
     "term": "Has other hard links",
     "context": "Has other hard links",
-    "reference": "Common/Phrases.qml:159",
+    "reference": "Common/Phrases.qml:186",
     "comment": "why ratings weren't written to a file"
   },
   {
@@ -2922,12 +3054,6 @@
     "comment": "custom page icon choice"
   },
   {
-    "term": "Height of the rows in track lists and the queue.",
-    "context": "Height of the rows in track lists and the queue.",
-    "reference": "Modules/Settings/AppearanceSettings.qml:428",
-    "comment": "appearance density description"
-  },
-  {
     "term": "Hex color",
     "context": "Hex color",
     "reference": "Modules/Settings/AppearanceSettings.qml:212",
@@ -2948,7 +3074,7 @@
   {
     "term": "Hide while lyrics are open",
     "context": "Hide while lyrics are open",
-    "reference": "Modules/Settings/ElementOptionsPage.qml:50",
+    "reference": "Modules/Settings/ElementOptionsPage.qml:48",
     "comment": "element option: the lyric line goes while the lyrics pane shows"
   },
   {
@@ -2960,7 +3086,7 @@
   {
     "term": "History",
     "context": "History",
-    "reference": "Common/UiConfig.qml:766, Modules/HistoryPage.qml:55, Modules/HomePage.qml:86",
+    "reference": "Common/UiConfig.qml:766, Modules/HistoryPage.qml:55, Modules/HomePage.qml:86, Modules/Settings/PlaybackSettings.qml:480",
     "comment": "navigation destination"
   },
   {
@@ -2994,6 +3120,12 @@
     "comment": "reset home confirmation"
   },
   {
+    "term": "How close picks stay to this session.",
+    "context": "How close picks stay to this session.",
+    "reference": "Modules/Settings/PlaybackSettings.qml:374",
+    "comment": "playback setting description"
+  },
+  {
     "term": "Icon",
     "context": "Icon",
     "reference": "Modules/PageEditor.qml:319, Modules/PageEditor.qml:542",
@@ -3020,13 +3152,13 @@
   {
     "term": "Import theme",
     "context": "Import theme",
-    "reference": "Modules/Settings/AppearanceSettings.qml:515",
+    "reference": "Modules/Settings/AppearanceSettings.qml:511",
     "comment": "file picker title"
   },
   {
     "term": "Imported %1",
     "context": "Imported %1",
-    "reference": "Modules/Settings/AppearanceSettings.qml:489",
+    "reference": "Modules/Settings/AppearanceSettings.qml:485",
     "comment": "custom theme import status"
   },
   {
@@ -3048,6 +3180,12 @@
     "comment": "filter rule condition, followed by a number of days"
   },
   {
+    "term": "In the order you add them",
+    "context": "In the order you add them",
+    "reference": "Modules/Settings/PlaybackSettings.qml:395",
+    "comment": "play next order option"
+  },
+  {
     "term": "Include Ctrl, Alt or Super",
     "context": "Include Ctrl, Alt or Super",
     "reference": "Common/UiConfig.qml:1388",
@@ -3056,13 +3194,13 @@
   {
     "term": "Includes subfolders. Changes are detected automatically.",
     "context": "Includes subfolders. Changes are detected automatically.",
-    "reference": "Modules/Settings/LibraryDialog.qml:353",
+    "reference": "Modules/Settings/LibraryDialog.qml:208, Modules/Settings/LibraryPage.qml:121",
     "comment": "library dialog folders hint"
   },
   {
     "term": "Incorrect user name or password",
     "context": "Incorrect user name or password",
-    "reference": "Common/Phrases.qml:181",
+    "reference": "Common/Phrases.qml:208",
     "comment": "why a server connection test failed"
   },
   {
@@ -3110,8 +3248,14 @@
   {
     "term": "Instrumental",
     "context": "Instrumental",
-    "reference": "Modules/LyricsLine.qml:95, Services/PlayerService.qml:589",
+    "reference": "Modules/LyricsLine.qml:95, Services/PlayerService.qml:590",
     "comment": "track has no lyrics because it is instrumental"
+  },
+  {
+    "term": "Integrations",
+    "context": "Integrations",
+    "reference": "Modules/Settings/SettingsWindow.qml:106",
+    "comment": "settings sidebar tab label"
   },
   {
     "term": "Is",
@@ -3164,14 +3308,8 @@
   {
     "term": "It wasn't approved in time.",
     "context": "It wasn't approved in time.",
-    "reference": "Modules/Settings/LibraryDialog.qml:452",
+    "reference": "Modules/Settings/ServerSignIn.qml:255",
     "comment": "Quick Connect state"
-  },
-  {
-    "term": "Its downloaded tracks are deleted unless another rule keeps them.",
-    "context": "Its downloaded tracks are deleted unless another rule keeps them.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:637",
-    "comment": "remove offline rule confirmation"
   },
   {
     "term": "Its options and page changes are reset.",
@@ -3188,7 +3326,7 @@
   {
     "term": "Jazz",
     "context": "Jazz",
-    "reference": "Modules/Settings/PlaybackSettings.qml:104",
+    "reference": "Modules/Settings/PlaybackSettings.qml:120",
     "comment": "equalizer preset"
   },
   {
@@ -3198,21 +3336,33 @@
     "comment": "library kind option"
   },
   {
+    "term": "Keep",
+    "context": "Keep",
+    "reference": "Modules/Settings/DownloadedTracks.qml:331",
+    "comment": "dialog button that keeps a downloaded track"
+  },
+  {
     "term": "Keep albums gapless",
     "context": "Keep albums gapless",
-    "reference": "Modules/Settings/PlaybackSettings.qml:170",
+    "reference": "Modules/Settings/PlaybackSettings.qml:186",
     "comment": "playback setting"
   },
   {
     "term": "Keep on this device",
     "context": "Keep on this device",
-    "reference": "Common/UiConfig.qml:1284, Modules/KeepOfflineRow.qml:33, Modules/Settings/LibrariesSettings.qml:648",
+    "reference": "Common/UiConfig.qml:1284, Modules/KeepOfflineRow.qml:33, Modules/Settings/DownloadsSettings.qml:459",
     "comment": "toggle that caches an item's tracks for offline play"
+  },
+  {
+    "term": "Keep play history",
+    "context": "Keep play history",
+    "reference": "Modules/Settings/PlaybackSettings.qml:483",
+    "comment": "playback setting"
   },
   {
     "term": "Keep playing",
     "context": "Keep playing",
-    "reference": "Modules/Settings/DevicesSettings.qml:143",
+    "reference": "Modules/Settings/DevicesSettings.qml:149",
     "comment": "on-disconnect option: the other outputs keep playing"
   },
   {
@@ -3224,19 +3374,19 @@
   {
     "term": "Keeps the most played tracks up to this limit.",
     "context": "Keeps the most played tracks up to this limit.",
-    "reference": "Modules/Settings/OfflineLimitDialog.qml:52",
+    "reference": "Modules/Settings/OfflineRuleDialog.qml:93",
     "comment": "offline rule limit dialog text"
   },
   {
     "term": "Keeps the most recently played tracks up to this limit.",
     "context": "Keeps the most recently played tracks up to this limit.",
-    "reference": "Modules/Settings/OfflineLimitDialog.qml:52",
+    "reference": "Modules/Settings/OfflineRuleDialog.qml:93",
     "comment": "offline rule limit dialog text"
   },
   {
     "term": "Kept by %1",
     "context": "Kept by %1",
-    "reference": "Modules/Settings/LibrariesSettings.qml:47",
+    "reference": "Modules/Settings/DownloadedTracks.qml:67",
     "comment": "offline song row, %1 lists the rules holding it"
   },
   {
@@ -3248,19 +3398,19 @@
   {
     "term": "Kept on this device",
     "context": "Kept on this device",
-    "reference": "Modules/Settings/LibrariesSettings.qml:48",
+    "reference": "Modules/Settings/DownloadedTracks.qml:68",
     "comment": "offline song row for a song kept on its own"
   },
   {
     "term": "Kept tracks exceed the size limit",
     "context": "Kept tracks exceed the size limit",
-    "reference": "Modules/Settings/LibrariesSettings.qml:378",
+    "reference": "Modules/Settings/DownloadsSettings.qml:225",
     "comment": "offline warning title"
   },
   {
     "term": "Kept tracks use %1, over the %2 limit. Downloads are paused.",
     "context": "Kept tracks use %1, over the %2 limit. Downloads are paused.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:379",
+    "reference": "Modules/Settings/DownloadsSettings.qml:226",
     "comment": "offline warning: pinned songs exceed the size limit"
   },
   {
@@ -3296,25 +3446,25 @@
   {
     "term": "Last scanned %1",
     "context": "Last scanned %1",
-    "reference": "Modules/Settings/LibrariesSettings.qml:205",
+    "reference": "Modules/Settings/LibraryPage.qml:52",
     "comment": "library row status, %1 is a date and time"
   },
   {
     "term": "Last used",
     "context": "Last used",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:142",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:152",
     "comment": "full view opens with: the pane used last"
   },
   {
     "term": "Layout",
     "context": "Layout",
-    "reference": "Modules/HomePage.qml:214, Modules/PageEditor.qml:462, Modules/Settings/GeneralSettings.qml:194, Modules/Settings/SurfaceEditor.qml:233",
-    "comment": "element picker group: spacer and divider | general setting: every customization as one file | view options section"
+    "reference": "Modules/HomePage.qml:214, Modules/PageEditor.qml:462, Modules/Settings/AppearanceSettings.qml:423, Modules/Settings/GeneralSettings.qml:194, Modules/Settings/SurfaceEditor.qml:232",
+    "comment": "appearance settings section label | element picker group: spacer and divider | general setting: every customization as one file | view options section"
   },
   {
     "term": "Layout and controls",
     "context": "Layout and controls",
-    "reference": "Modules/Settings/SettingsWindow.qml:58",
+    "reference": "Modules/Settings/SettingsWindow.qml:67",
     "comment": "settings sidebar tab hint"
   },
   {
@@ -3332,13 +3482,13 @@
   {
     "term": "Leave empty if the account has none. Stored in the system keyring.",
     "context": "Leave empty if the account has none. Stored in the system keyring.",
-    "reference": "Modules/Settings/LibraryDialog.qml:487",
+    "reference": "Modules/Settings/ServerSignIn.qml:290",
     "comment": "add server dialog password hint"
   },
   {
     "term": "Leave empty to keep the saved password. Stored in the system keyring.",
     "context": "Leave empty to keep the saved password. Stored in the system keyring.",
-    "reference": "Modules/Settings/LibraryDialog.qml:487",
+    "reference": "Modules/Settings/ServerSignIn.qml:290",
     "comment": "edit server dialog password hint"
   },
   {
@@ -3356,7 +3506,7 @@
   {
     "term": "Libraries",
     "context": "Libraries",
-    "reference": "Common/UiConfig.qml:96, Common/UiConfig.qml:764, Modules/LibrariesPage.qml:27, Modules/PinTargetSheet.qml:41, Modules/Settings/PlaybackSettings.qml:453, Modules/Settings/ScrobbleSettings.qml:219, Modules/Settings/SettingsWindow.qml:25",
+    "reference": "Common/UiConfig.qml:96, Common/UiConfig.qml:764, Modules/LibrariesPage.qml:27, Modules/PinTargetSheet.qml:41, Modules/Settings/DownloadsSettings.qml:309, Modules/Settings/PlaybackSettings.qml:525, Modules/Settings/SettingsWindow.qml:26",
     "comment": "navigation destination | the music libraries: page, settings tab, section"
   },
   {
@@ -3374,7 +3524,7 @@
   {
     "term": "Library turned off or removed",
     "context": "Library turned off or removed",
-    "reference": "Common/Phrases.qml:145",
+    "reference": "Common/Phrases.qml:172",
     "comment": "why a track can't play"
   },
   {
@@ -3410,7 +3560,7 @@
   {
     "term": "Limit %1",
     "context": "Limit %1",
-    "reference": "Modules/Settings/LibrariesSettings.qml:112",
+    "reference": "Modules/Settings/DownloadsSettings.qml:110",
     "comment": "dynamic offline rule, %1 is its limit"
   },
   {
@@ -3428,19 +3578,13 @@
   {
     "term": "ListenBrainz and Last.fm",
     "context": "ListenBrainz and Last.fm",
-    "reference": "Modules/Settings/SettingsWindow.qml:82",
+    "reference": "Modules/Settings/SettingsWindow.qml:91",
     "comment": "settings sidebar tab hint"
-  },
-  {
-    "term": "Lists",
-    "context": "Lists",
-    "reference": "Modules/Settings/AppearanceSettings.qml:423",
-    "comment": "appearance settings section label"
   },
   {
     "term": "Loading",
     "context": "Loading",
-    "reference": "Modules/AddToPlaylistDialog.qml:179, Modules/NowPlayingElement.qml:684, Modules/Settings/LibrariesSettings.qml:575",
+    "reference": "Modules/AddToPlaylistDialog.qml:179, Modules/NowPlayingElement.qml:684, Modules/Settings/DownloadedTracks.qml:215",
     "comment": "something still waiting for data: the play button, a list"
   },
   {
@@ -3458,14 +3602,8 @@
   {
     "term": "Local playlist",
     "context": "Local playlist",
-    "reference": "Modules/AddToPlaylistDialog.qml:183, Modules/PlaylistPage.qml:123",
+    "reference": "Modules/AddToPlaylistDialog.qml:183, Modules/PlaylistPage.qml:123, Modules/Settings/DownloadsSettings.qml:98",
     "comment": "playlist kind label"
-  },
-  {
-    "term": "Local playlists",
-    "context": "Local playlists",
-    "reference": "Modules/Settings/LibrariesSettings.qml:508",
-    "comment": "offline section for local playlists kept on this device"
   },
   {
     "term": "Look up artist info online",
@@ -3494,7 +3632,7 @@
   {
     "term": "Lost the connection to the player",
     "context": "Lost the connection to the player",
-    "reference": "Common/Phrases.qml:195",
+    "reference": "Common/Phrases.qml:222",
     "comment": "why a request to the player daemon failed"
   },
   {
@@ -3512,13 +3650,13 @@
   {
     "term": "Lyrics",
     "context": "Lyrics",
-    "reference": "Common/UiConfig.qml:1155, Modules/LyricsView.qml:62, Modules/NowPlayingSide.qml:28, Modules/Settings/AboutSettings.qml:191, Modules/Settings/NowPlayingSettings.qml:143, Modules/Settings/SettingsWindow.qml:73, Modules/SidePanel.qml:21",
+    "reference": "Common/UiConfig.qml:1155, Modules/LyricsView.qml:62, Modules/NowPlayingSide.qml:28, Modules/Settings/AboutSettings.qml:191, Modules/Settings/NowPlayingSettings.qml:153, Modules/Settings/SettingsWindow.qml:82, Modules/SidePanel.qml:21",
     "comment": "song lyrics: page, toggle, settings tab"
   },
   {
     "term": "Lyrics and queue look",
     "context": "Lyrics and queue look",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:127",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:137",
     "comment": "now playing setting"
   },
   {
@@ -3554,7 +3692,7 @@
   {
     "term": "Lyrics unavailable",
     "context": "Lyrics unavailable",
-    "reference": "Services/PlayerService.qml:591",
+    "reference": "Services/PlayerService.qml:592",
     "comment": "lyrics lookup failed"
   },
   {
@@ -3608,7 +3746,7 @@
   {
     "term": "Menu",
     "context": "Menu",
-    "reference": "Modules/Settings/SettingsWindow.qml:395",
+    "reference": "Modules/Settings/SettingsWindow.qml:464",
     "comment": "settings header button that shows the section list on narrow windows"
   },
   {
@@ -3632,19 +3770,19 @@
   {
     "term": "More",
     "context": "More",
-    "reference": "Common/UiConfig.qml:1306, Modules/AlbumPage.qml:62, Modules/ArtistPage.qml:189, Modules/MainWindow.qml:253, Modules/MediaTile.qml:114, Modules/NowPlayingZone.qml:484, Modules/PlaylistPage.qml:101, Modules/QueueList.qml:264, Modules/RowEnd.qml:248",
+    "reference": "Common/UiConfig.qml:1306, Modules/AlbumPage.qml:62, Modules/ArtistPage.qml:189, Modules/MainWindow.qml:253, Modules/MediaTile.qml:120, Modules/NowPlayingZone.qml:484, Modules/PlaylistPage.qml:101, Modules/QueueList.qml:275, Modules/RowEnd.qml:252",
     "comment": "track row menu button"
   },
   {
     "term": "Most played",
     "context": "Most played",
-    "reference": "Common/UiConfig.qml:661, Common/UiConfig.qml:770, Modules/Settings/LibrariesSettings.qml:60",
+    "reference": "Common/Phrases.qml:99, Common/UiConfig.qml:661, Common/UiConfig.qml:770",
     "comment": "home shelf and page of the most played tracks"
   },
   {
     "term": "Most played limit",
     "context": "Most played limit",
-    "reference": "Modules/Settings/OfflineLimitDialog.qml:51",
+    "reference": "Modules/Settings/OfflineRuleDialog.qml:46",
     "comment": "offline rule limit dialog title"
   },
   {
@@ -3686,7 +3824,7 @@
   {
     "term": "Multiple outputs",
     "context": "Multiple outputs",
-    "reference": "Modules/Settings/DevicesSettings.qml:155",
+    "reference": "Modules/Settings/DevicesSettings.qml:161",
     "comment": "playback device settings section"
   },
   {
@@ -3740,19 +3878,19 @@
   {
     "term": "Mute",
     "context": "Mute",
-    "reference": "Modules/Settings/DevicesSettings.qml:70",
+    "reference": "Modules/Settings/DevicesSettings.qml:76",
     "comment": "volume button"
   },
   {
     "term": "Name",
     "context": "Name",
-    "reference": "Common/UiConfig.qml:356, Modules/NewPageDialog.qml:38, Modules/NewPlaylistDialog.qml:57, Modules/Settings/LibraryDialog.qml:254, Modules/TextPromptDialog.qml:16",
+    "reference": "Common/UiConfig.qml:356, Modules/NewPageDialog.qml:38, Modules/NewPlaylistDialog.qml:57, Modules/Settings/LibraryDialog.qml:109, Modules/Settings/LibraryPage.qml:88, Modules/TextPromptDialog.qml:16",
     "comment": "a name: field label, sort key"
   },
   {
     "term": "Name (optional)",
     "context": "Name (optional)",
-    "reference": "Modules/Settings/LibraryDialog.qml:254",
+    "reference": "Modules/Settings/LibraryDialog.qml:109",
     "comment": "library dialog field"
   },
   {
@@ -3764,7 +3902,7 @@
   {
     "term": "Navigation and page layout",
     "context": "Navigation and page layout",
-    "reference": "Modules/Settings/SettingsWindow.qml:50",
+    "reference": "Modules/Settings/SettingsWindow.qml:59",
     "comment": "settings sidebar tab hint"
   },
   {
@@ -3782,8 +3920,14 @@
   {
     "term": "New playlist",
     "context": "New playlist",
-    "reference": "Modules/AddToPlaylistDialog.qml:88, Modules/BrowsePage.qml:542, Modules/NewPlaylistDialog.qml:48",
+    "reference": "Modules/AddToPlaylistDialog.qml:88, Modules/BrowsePage.qml:543, Modules/NewPlaylistDialog.qml:48",
     "comment": "action and dialog that create a playlist"
+  },
+  {
+    "term": "Newest first",
+    "context": "Newest first",
+    "reference": "Modules/Settings/PlaybackSettings.qml:395",
+    "comment": "play next order option"
   },
   {
     "term": "Next",
@@ -3824,7 +3968,7 @@
   {
     "term": "No crossfade or silence skipping within an album.",
     "context": "No crossfade or silence skipping within an album.",
-    "reference": "Modules/Settings/PlaybackSettings.qml:172",
+    "reference": "Modules/Settings/PlaybackSettings.qml:188",
     "comment": "playback setting description"
   },
   {
@@ -3836,8 +3980,14 @@
   {
     "term": "No downloaded tracks",
     "context": "No downloaded tracks",
-    "reference": "Modules/Settings/LibrariesSettings.qml:445, Modules/Settings/LibrariesSettings.qml:585",
+    "reference": "Modules/Settings/DownloadedTracks.qml:200, Modules/Settings/DownloadedTracks.qml:225, Modules/Settings/DownloadsSettings.qml:266",
     "comment": "why clearing the cache is disabled"
+  },
+  {
+    "term": "No excluded tracks",
+    "context": "No excluded tracks",
+    "reference": "Modules/Settings/DownloadedTracks.qml:225",
+    "comment": "the offline tracks list filtered to exclusions, empty"
   },
   {
     "term": "No favorites",
@@ -3872,7 +4022,7 @@
   {
     "term": "No libraries",
     "context": "No libraries",
-    "reference": "Modules/LibrariesPage.qml:43, Modules/Settings/LibrariesSettings.qml:339",
+    "reference": "Modules/LibrariesPage.qml:43, Modules/Settings/LibrariesSettings.qml:129",
     "comment": "libraries page empty state | libraries settings empty state"
   },
   {
@@ -3884,7 +4034,7 @@
   {
     "term": "No lyrics available",
     "context": "No lyrics available",
-    "reference": "Services/PlayerService.qml:593",
+    "reference": "Services/PlayerService.qml:594",
     "comment": "lyrics lookup found nothing"
   },
   {
@@ -3906,18 +4056,6 @@
     "comment": "browse page empty state | library feature missing"
   },
   {
-    "term": "No rule",
-    "context": "No rule",
-    "reference": "Modules/Settings/LibrariesSettings.qml:48",
-    "comment": "offline song row for a song no rule holds"
-  },
-  {
-    "term": "No rules",
-    "context": "No rules",
-    "reference": "Modules/Settings/LibrariesSettings.qml:476, Modules/Settings/LibrariesSettings.qml:542",
-    "comment": "a server library without offline rules"
-  },
-  {
     "term": "No scrobbling",
     "context": "No scrobbling",
     "reference": "Services/CatalogService.qml:191",
@@ -3932,7 +4070,7 @@
   {
     "term": "No system keyring is running",
     "context": "No system keyring is running",
-    "reference": "Common/Phrases.qml:131",
+    "reference": "Common/Phrases.qml:158",
     "comment": "why a server library can't sign in"
   },
   {
@@ -3956,7 +4094,7 @@
   {
     "term": "Normalize volume",
     "context": "Normalize volume",
-    "reference": "Modules/Settings/PlaybackSettings.qml:184",
+    "reference": "Modules/Settings/PlaybackSettings.qml:200",
     "comment": "playback setting: ReplayGain mode"
   },
   {
@@ -3974,25 +4112,25 @@
   {
     "term": "Not a regular file",
     "context": "Not a regular file",
-    "reference": "Common/Phrases.qml:155",
+    "reference": "Common/Phrases.qml:182",
     "comment": "why ratings weren't written to a file"
   },
   {
     "term": "Not a theme file",
     "context": "Not a theme file",
-    "reference": "Modules/Settings/AppearanceSettings.qml:472",
+    "reference": "Modules/Settings/AppearanceSettings.qml:468",
     "comment": "why a theme file can't be imported"
   },
   {
     "term": "Not approved on Last.fm yet",
     "context": "Not approved on Last.fm yet",
-    "reference": "Services/SettingsService.qml:216",
+    "reference": "Services/SettingsService.qml:230",
     "comment": "snackbar when the Last.fm sign-in isn't approved"
   },
   {
     "term": "Not available in this version",
     "context": "Not available in this version",
-    "reference": "Modules/HomePage.qml:158, Modules/PageEditor.qml:230, Modules/RuleEditor.qml:286, Modules/Settings/SurfaceEditor.qml:78",
+    "reference": "Modules/HomePage.qml:158, Modules/PageEditor.qml:230, Modules/RuleEditor.qml:286, Modules/Settings/SurfaceEditor.qml:77",
     "comment": "an element saved by a newer version of the app | editor row of an element saved by a newer version"
   },
   {
@@ -4004,13 +4142,13 @@
   {
     "term": "Not connected",
     "context": "Not connected",
-    "reference": "Common/Phrases.qml:108, Modules/Settings/DevicesSettings.qml:166",
+    "reference": "Common/Phrases.qml:135, Modules/Settings/DevicesSettings.qml:172",
     "comment": "playback device state"
   },
   {
     "term": "Not connected to the player",
     "context": "Not connected to the player",
-    "reference": "Common/Phrases.qml:199, Modules/MainWindow.qml:637",
+    "reference": "Common/Phrases.qml:226, Modules/MainWindow.qml:637",
     "comment": "main window state when the daemon is unreachable | why a request to the player daemon failed"
   },
   {
@@ -4056,6 +4194,12 @@
     "comment": "about page: mpv is missing"
   },
   {
+    "term": "Not kept by a rule",
+    "context": "Not kept by a rule",
+    "reference": "Modules/Settings/DownloadedTracks.qml:68",
+    "comment": "offline song row for a song no rule holds"
+  },
+  {
     "term": "Not measured",
     "context": "Not measured",
     "reference": "Modules/LyricsView.qml:456",
@@ -4088,7 +4232,7 @@
   {
     "term": "Nothing matches.",
     "context": "Nothing matches.",
-    "reference": "Modules/Settings/OfflineItemPicker.qml:109, Modules/Settings/SettingsWindow.qml:535",
+    "reference": "Modules/Settings/OfflineItemPicker.qml:110, Modules/Settings/SettingsWindow.qml:604",
     "comment": "offline rule picker empty result | settings search empty result"
   },
   {
@@ -4106,7 +4250,7 @@
   {
     "term": "Now playing",
     "context": "Now playing",
-    "reference": "Modules/QueueList.qml:658, Modules/Settings/SettingsWindow.qml:57, Modules/Settings/SurfaceEditor.qml:271",
+    "reference": "Modules/QueueList.qml:670, Modules/Settings/AppearanceSettings.qml:450, Modules/Settings/SettingsWindow.qml:66",
     "comment": "Now playing | settings sidebar tab label"
   },
   {
@@ -4118,7 +4262,7 @@
   {
     "term": "Number of tracks",
     "context": "Number of tracks",
-    "reference": "Modules/Settings/OfflineLimitDialog.qml:81",
+    "reference": "Modules/Settings/OfflineRuleDialog.qml:154",
     "comment": "offline rule limit field"
   },
   {
@@ -4130,13 +4274,13 @@
   {
     "term": "Off",
     "context": "Off",
-    "reference": "Modules/Settings/AboutSettings.qml:192, Modules/Settings/AppearanceSettings.qml:369, Modules/Settings/LibrariesSettings.qml:425, Modules/Settings/PlaybackSettings.qml:187",
+    "reference": "Modules/Settings/AboutSettings.qml:192, Modules/Settings/AppearanceSettings.qml:369, Modules/Settings/AppearanceSettings.qml:450, Modules/Settings/DownloadsSettings.qml:246, Modules/Settings/PlaybackSettings.qml:203",
     "comment": "option that turns something off"
   },
   {
     "term": "Off. Its tracks are hidden and skipped in playlists.",
     "context": "Off. Its tracks are hidden and skipped in playlists.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:198",
+    "reference": "Modules/Settings/LibraryPage.qml:82",
     "comment": "disabled library status"
   },
   {
@@ -4146,21 +4290,9 @@
     "comment": "removal mode option"
   },
   {
-    "term": "Offline",
-    "context": "Offline",
-    "reference": "Modules/Settings/LibrariesSettings.qml:350",
-    "comment": "libraries settings section about cached server tracks"
-  },
-  {
-    "term": "Offline rules for %1",
-    "context": "Offline rules for %1",
-    "reference": "Modules/Settings/LibrariesSettings.qml:529",
-    "comment": "library offline overview section, %1 is the library"
-  },
-  {
     "term": "Offline storage is full",
     "context": "Offline storage is full",
-    "reference": "Modules/Settings/LibrariesSettings.qml:378",
+    "reference": "Modules/Settings/DownloadsSettings.qml:225",
     "comment": "offline warning title"
   },
   {
@@ -4172,7 +4304,7 @@
   {
     "term": "On a signed-in device, open Settings, then Quick Connect, and enter this code.",
     "context": "On a signed-in device, open Settings, then Quick Connect, and enter this code.",
-    "reference": "Modules/Settings/LibraryDialog.qml:422",
+    "reference": "Modules/Settings/ServerSignIn.qml:225",
     "comment": "Quick Connect instructions"
   },
   {
@@ -4214,7 +4346,7 @@
   {
     "term": "Only for the cookie shape",
     "context": "Only for the cookie shape",
-    "reference": "Modules/Settings/ElementOptionsPage.qml:65",
+    "reference": "Modules/Settings/ElementOptionsPage.qml:63",
     "comment": "why the rotate artwork option is unavailable"
   },
   {
@@ -4274,19 +4406,19 @@
   {
     "term": "Outputs",
     "context": "Outputs",
-    "reference": "Modules/Settings/DevicesSettings.qml:26",
+    "reference": "Modules/Settings/DevicesSettings.qml:32",
     "comment": "playback device settings section"
   },
   {
     "term": "Outputs, casting and sync",
     "context": "Outputs, casting and sync",
-    "reference": "Modules/Settings/SettingsWindow.qml:90",
+    "reference": "Modules/Settings/SettingsWindow.qml:99",
     "comment": "settings sidebar tab hint"
   },
   {
     "term": "Owned by another user",
     "context": "Owned by another user",
-    "reference": "Common/Phrases.qml:157",
+    "reference": "Common/Phrases.qml:184",
     "comment": "why ratings weren't written to a file"
   },
   {
@@ -4298,7 +4430,7 @@
   {
     "term": "Pages",
     "context": "Pages",
-    "reference": "Modules/Settings/PagesSettings.qml:398, Modules/Settings/SettingsWindow.qml:49",
+    "reference": "Modules/Settings/PagesSettings.qml:398, Modules/Settings/SettingsWindow.qml:58",
     "comment": "add entry section | settings sidebar tab label"
   },
   {
@@ -4316,25 +4448,25 @@
   {
     "term": "Password",
     "context": "Password",
-    "reference": "Modules/Settings/LibraryDialog.qml:381, Modules/Settings/LibraryDialog.qml:486",
+    "reference": "Modules/Settings/ServerSignIn.qml:184, Modules/Settings/ServerSignIn.qml:289",
     "comment": "add server dialog field"
   },
   {
     "term": "Pause",
     "context": "Pause",
-    "reference": "Modules/ContinueCard.qml:94, Modules/ContinueCard.qml:96, Modules/NowPlayingElement.qml:684, Modules/Settings/DevicesSettings.qml:143",
+    "reference": "Modules/ContinueCard.qml:94, Modules/ContinueCard.qml:96, Modules/NowPlayingElement.qml:684, Modules/Settings/DevicesSettings.qml:149",
     "comment": "transport button"
   },
   {
     "term": "Pause when the output disconnects",
     "context": "Pause when the output disconnects",
-    "reference": "Modules/Settings/DevicesSettings.qml:117",
+    "reference": "Modules/Settings/DevicesSettings.qml:123",
     "comment": "playback device setting"
   },
   {
     "term": "Paused because the output disconnected",
     "context": "Paused because the output disconnected",
-    "reference": "Services/PlayerService.qml:663",
+    "reference": "Services/PlayerService.qml:664",
     "comment": "snackbar when the playing output goes away"
   },
   {
@@ -4376,13 +4508,13 @@
   {
     "term": "PipeWire filter failed to start",
     "context": "PipeWire filter failed to start",
-    "reference": "Common/Phrases.qml:153",
+    "reference": "Common/Phrases.qml:180",
     "comment": "why the equalizer can't start"
   },
   {
     "term": "PipeWire isn't running",
     "context": "PipeWire isn't running",
-    "reference": "Common/Phrases.qml:151",
+    "reference": "Common/Phrases.qml:178",
     "comment": "why the equalizer can't start"
   },
   {
@@ -4394,25 +4526,25 @@
   {
     "term": "Placed by the style. They can be shown or hidden.",
     "context": "Placed by the style. They can be shown or hidden.",
-    "reference": "Modules/Settings/SurfaceEditor.qml:120",
+    "reference": "Modules/Settings/SurfaceEditor.qml:119",
     "comment": "layout editor note on the seekbar row"
   },
   {
     "term": "Placement",
     "context": "Placement",
-    "reference": "Modules/Settings/ElementOptionsPage.qml:94",
+    "reference": "Modules/Settings/ElementOptionsPage.qml:87",
     "comment": "element option: where an element goes when its row runs short"
   },
   {
     "term": "Play",
     "context": "Play",
-    "reference": "Common/UiConfig.qml:1254, Modules/ContinueCard.qml:94, Modules/ContinueCard.qml:96, Modules/NowPlayingElement.qml:684, Modules/PlayButtons.qml:37, Modules/SelectionBar.qml:75, Modules/Settings/DevicesSettings.qml:233, Modules/Settings/DevicesSettings.qml:235",
+    "reference": "Common/UiConfig.qml:1254, Modules/ContinueCard.qml:94, Modules/ContinueCard.qml:96, Modules/NowPlayingElement.qml:684, Modules/PlayButtons.qml:37, Modules/SelectionBar.qml:75, Modules/Settings/DevicesSettings.qml:234, Modules/Settings/DevicesSettings.qml:236",
     "comment": "button that starts playback"
   },
   {
     "term": "Play %1",
     "context": "Play %1",
-    "reference": "Modules/MediaTile.qml:95, Modules/RowEnd.qml:201",
+    "reference": "Modules/MediaTile.qml:99, Modules/RowEnd.qml:205",
     "comment": "play button, %1 is the album or playlist"
   },
   {
@@ -4432,6 +4564,12 @@
     "context": "Play next",
     "reference": "Common/UiConfig.qml:1258, Modules/SelectionBar.qml:87",
     "comment": "track row action"
+  },
+  {
+    "term": "Play next order",
+    "context": "Play next order",
+    "reference": "Modules/Settings/PlaybackSettings.qml:393",
+    "comment": "playback setting"
   },
   {
     "term": "Play on",
@@ -4454,7 +4592,7 @@
   {
     "term": "Playback",
     "context": "Playback",
-    "reference": "Modules/Settings/SettingsWindow.qml:65, Modules/Settings/SurfaceEditor.qml:233",
+    "reference": "Modules/Settings/SettingsWindow.qml:74, Modules/Settings/SurfaceEditor.qml:232",
     "comment": "element picker group: transport and seek | settings sidebar tab label"
   },
   {
@@ -4466,13 +4604,13 @@
   {
     "term": "Playback device",
     "context": "Playback device",
-    "reference": "Common/UiConfig.qml:1157, Modules/DeviceButton.qml:17, Modules/DevicePickerDialog.qml:13, Modules/NowPlayingElement.qml:632, Modules/Settings/SettingsWindow.qml:89",
+    "reference": "Common/UiConfig.qml:1157, Modules/DeviceButton.qml:17, Modules/DevicePickerDialog.qml:13, Modules/NowPlayingElement.qml:632, Modules/Settings/SettingsWindow.qml:98",
     "comment": "playback device: settings tab, button, dialog"
   },
   {
     "term": "Playback speed",
     "context": "Playback speed",
-    "reference": "Common/UiConfig.qml:1161, Modules/Settings/PlaybackSettings.qml:331, Modules/SpeedDialog.qml:12",
+    "reference": "Common/UiConfig.qml:1161, Modules/Settings/PlaybackSettings.qml:347, Modules/SpeedDialog.qml:12",
     "comment": "now playing button"
   },
   {
@@ -4484,7 +4622,7 @@
   {
     "term": "Playback stopped because of an error",
     "context": "Playback stopped because of an error",
-    "reference": "Services/PlayerService.qml:678",
+    "reference": "Services/PlayerService.qml:679",
     "comment": "toast when the player itself fails"
   },
   {
@@ -4496,7 +4634,7 @@
   {
     "term": "Player look",
     "context": "Player look",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:114",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:124",
     "comment": "now playing setting"
   },
   {
@@ -4514,7 +4652,7 @@
   {
     "term": "Playing now",
     "context": "Playing now",
-    "reference": "Common/Phrases.qml:112",
+    "reference": "Common/Phrases.qml:139",
     "comment": "playback device note for the device being cast to"
   },
   {
@@ -4538,13 +4676,13 @@
   {
     "term": "Playing…",
     "context": "Playing…",
-    "reference": "Modules/Settings/DevicesSettings.qml:233, Modules/Settings/DevicesSettings.qml:235",
+    "reference": "Modules/Settings/DevicesSettings.qml:234, Modules/Settings/DevicesSettings.qml:236",
     "comment": "test tone state"
   },
   {
     "term": "Playlist",
     "context": "Playlist",
-    "reference": "Common/UiConfig.qml:669, Common/UiConfig.qml:733, Modules/Settings/LibrariesSettings.qml:76",
+    "reference": "Common/Phrases.qml:101, Common/UiConfig.qml:669, Common/UiConfig.qml:733",
     "comment": "home shelf source kind"
   },
   {
@@ -4598,7 +4736,7 @@
   {
     "term": "Playlist…",
     "context": "Playlist…",
-    "reference": "Modules/Settings/LibrariesSettings.qml:62",
+    "reference": "Modules/Settings/DownloadsSettings.qml:64",
     "comment": "offline rule kind that asks which playlist"
   },
   {
@@ -4610,13 +4748,19 @@
   {
     "term": "Plays a short click on every output.",
     "context": "Plays a short click on every output.",
-    "reference": "Modules/Settings/DevicesSettings.qml:229",
+    "reference": "Modules/Settings/DevicesSettings.qml:230",
     "comment": "playback device sync action description"
+  },
+  {
+    "term": "Plays may count twice if the server also scrobbles.",
+    "context": "Plays may count twice if the server also scrobbles.",
+    "reference": "Modules/Settings/LibraryPage.qml:260",
+    "comment": "scrobbling server library row"
   },
   {
     "term": "Pop",
     "context": "Pop",
-    "reference": "Modules/Settings/PlaybackSettings.qml:110",
+    "reference": "Modules/Settings/PlaybackSettings.qml:126",
     "comment": "equalizer preset"
   },
   {
@@ -4628,13 +4772,13 @@
   {
     "term": "Preset",
     "context": "Preset",
-    "reference": "Modules/Settings/AppearanceSettings.qml:128, Modules/Settings/AppearanceSettings.qml:140, Modules/Settings/AppearanceSettings.qml:141, Modules/Settings/PlaybackSettings.qml:234",
+    "reference": "Modules/Settings/AppearanceSettings.qml:128, Modules/Settings/AppearanceSettings.qml:140, Modules/Settings/AppearanceSettings.qml:141, Modules/Settings/PlaybackSettings.qml:250",
     "comment": "appearance setting | color scheme option | equalizer setting"
   },
   {
     "term": "Press Enter to add the folder.",
     "context": "Press Enter to add the folder.",
-    "reference": "Modules/Settings/LibraryDialog.qml:345",
+    "reference": "Modules/Settings/LibraryDialog.qml:200, Modules/Settings/LibraryPage.qml:171",
     "comment": "library dialog folder field hint"
   },
   {
@@ -4658,7 +4802,7 @@
   {
     "term": "Previous restarts the track after",
     "context": "Previous restarts the track after",
-    "reference": "Modules/Settings/PlaybackSettings.qml:368",
+    "reference": "Modules/Settings/PlaybackSettings.qml:416",
     "comment": "playback setting"
   },
   {
@@ -4670,7 +4814,7 @@
   {
     "term": "Providers and display",
     "context": "Providers and display",
-    "reference": "Modules/Settings/SettingsWindow.qml:74",
+    "reference": "Modules/Settings/SettingsWindow.qml:83",
     "comment": "settings sidebar tab hint"
   },
   {
@@ -4682,7 +4826,7 @@
   {
     "term": "Queue",
     "context": "Queue",
-    "reference": "Common/UiConfig.qml:518, Common/UiConfig.qml:1153, Modules/ContinueCard.qml:102, Modules/NowPlayingElement.qml:358, Modules/NowPlayingSide.qml:32, Modules/QueueList.qml:225, Modules/Settings/NowPlayingSettings.qml:144, Modules/SidePanel.qml:17",
+    "reference": "Common/UiConfig.qml:518, Common/UiConfig.qml:1153, Modules/ContinueCard.qml:102, Modules/NowPlayingElement.qml:358, Modules/NowPlayingSide.qml:32, Modules/QueueList.qml:236, Modules/Settings/NowPlayingSettings.qml:154, Modules/SidePanel.qml:17",
     "comment": "the play queue: panel, toggle"
   },
   {
@@ -4694,13 +4838,13 @@
   {
     "term": "Quick Connect",
     "context": "Quick Connect",
-    "reference": "Modules/Settings/LibraryDialog.qml:385",
+    "reference": "Modules/Settings/ServerSignIn.qml:188",
     "comment": "add server dialog sign-in method"
   },
   {
     "term": "Quick Connect is turned off on this server",
     "context": "Quick Connect is turned off on this server",
-    "reference": "Common/Phrases.qml:127",
+    "reference": "Common/Phrases.qml:154",
     "comment": "why Quick Connect can't sign in"
   },
   {
@@ -4724,7 +4868,7 @@
   {
     "term": "Random",
     "context": "Random",
-    "reference": "Common/UiConfig.qml:387, Modules/Settings/PlaybackSettings.qml:347",
+    "reference": "Common/UiConfig.qml:387, Modules/Settings/PlaybackSettings.qml:363",
     "comment": "auto-continue option | sort key: a new order each time the page opens"
   },
   {
@@ -4742,19 +4886,25 @@
   {
     "term": "Ratings are already being written",
     "context": "Ratings are already being written",
-    "reference": "Common/Phrases.qml:201",
+    "reference": "Common/Phrases.qml:228",
     "comment": "why writing ratings to files couldn't start"
+  },
+  {
+    "term": "Ratings in files",
+    "context": "Ratings in files",
+    "reference": "Modules/Settings/LibraryPage.qml:193",
+    "comment": "library page section"
   },
   {
     "term": "Read-only file",
     "context": "Read-only file",
-    "reference": "Common/Phrases.qml:161",
+    "reference": "Common/Phrases.qml:188",
     "comment": "why ratings weren't written to a file"
   },
   {
     "term": "Read-only folder",
     "context": "Read-only folder",
-    "reference": "Common/Phrases.qml:163",
+    "reference": "Common/Phrases.qml:190",
     "comment": "why ratings weren't written to a file"
   },
   {
@@ -4766,7 +4916,7 @@
   {
     "term": "Recently played",
     "context": "Recently played",
-    "reference": "Common/UiConfig.qml:655, Modules/Settings/LibrariesSettings.qml:58",
+    "reference": "Common/Phrases.qml:97, Common/UiConfig.qml:655",
     "comment": "home shelf of recently played tracks | offline rule: the tracks you played last"
   },
   {
@@ -4778,13 +4928,13 @@
   {
     "term": "Recently played and Most played tracks are removed first.",
     "context": "Recently played and Most played tracks are removed first.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:391",
+    "reference": "Modules/Settings/DownloadsSettings.qml:235",
     "comment": "offline storage limit description"
   },
   {
     "term": "Recently played limit",
     "context": "Recently played limit",
-    "reference": "Modules/Settings/OfflineLimitDialog.qml:51",
+    "reference": "Modules/Settings/OfflineRuleDialog.qml:44",
     "comment": "offline rule limit dialog title"
   },
   {
@@ -4808,7 +4958,7 @@
   {
     "term": "Remove",
     "context": "Remove",
-    "reference": "Modules/QueueList.qml:282, Modules/Router.qml:494, Modules/RuleEditor.qml:447, Modules/Settings/LibrariesSettings.qml:317, Modules/Settings/LibrariesSettings.qml:629, Modules/Settings/LibrariesSettings.qml:638, Modules/Settings/LibrariesSettings.qml:696, Modules/Settings/PagesSettings.qml:364, Modules/Settings/SurfaceEditor.qml:368, Widgets/DInstanceRow.qml:243, Widgets/DZoneEditor.qml:75",
+    "reference": "Modules/QueueList.qml:293, Modules/Router.qml:494, Modules/RuleEditor.qml:447, Modules/Settings/DownloadsSettings.qml:432, Modules/Settings/DownloadsSettings.qml:450, Modules/Settings/LibrariesSettings.qml:177, Modules/Settings/LibraryPage.qml:315, Modules/Settings/PagesSettings.qml:364, Modules/Settings/SurfaceEditor.qml:362, Widgets/DInstanceRow.qml:243, Widgets/DZoneEditor.qml:75",
     "comment": "button that removes an item"
   },
   {
@@ -4826,7 +4976,7 @@
   {
     "term": "Remove \"%1\"?",
     "context": "Remove \"%1\"?",
-    "reference": "Modules/Settings/LibrariesSettings.qml:627",
+    "reference": "Modules/Settings/LibrariesSettings.qml:175",
     "comment": "remove library confirmation title"
   },
   {
@@ -4838,13 +4988,13 @@
   {
     "term": "Remove %1?",
     "context": "Remove %1?",
-    "reference": "Modules/PageEditor.qml:264, Modules/RuleEditor.qml:158, Modules/Settings/LibrariesSettings.qml:169, Modules/Settings/SurfaceEditor.qml:212",
+    "reference": "Modules/PageEditor.qml:264, Modules/RuleEditor.qml:158, Modules/Settings/DownloadsSettings.qml:147, Modules/Settings/SurfaceEditor.qml:211",
     "comment": "remove an element from a now-playing surface confirmation title, %1 is the element | remove offline rule confirmation title, %1 is the rule"
   },
   {
     "term": "Remove folder",
     "context": "Remove folder",
-    "reference": "Modules/Settings/LibraryDialog.qml:306",
+    "reference": "Modules/Settings/LibraryDialog.qml:161, Modules/Settings/LibraryPage.qml:139",
     "comment": "library dialog folder action"
   },
   {
@@ -4896,6 +5046,12 @@
     "comment": "artist info API key action"
   },
   {
+    "term": "Remove library",
+    "context": "Remove library",
+    "reference": "Modules/Settings/LibraryPage.qml:309",
+    "comment": "library page action"
+  },
+  {
     "term": "Removed \"%1\" from home",
     "context": "Removed \"%1\" from home",
     "reference": "Modules/HomePage.qml:51",
@@ -4910,14 +5066,8 @@
   {
     "term": "Removed %1",
     "context": "Removed %1",
-    "reference": "Modules/PageEditor.qml:268, Modules/RuleEditor.qml:160, Modules/Settings/SurfaceEditor.qml:206",
-    "comment": "toast after removing an element from a now-playing surface, %1 is the element"
-  },
-  {
-    "term": "Removed %1. Tracks kept by other rules stay downloaded.",
-    "context": "Removed %1. Tracks kept by other rules stay downloaded.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:158",
-    "comment": "toast after removing an offline rule, %1 is the rule"
+    "reference": "Modules/PageEditor.qml:268, Modules/RuleEditor.qml:160, Modules/Settings/DownloadsSettings.qml:136, Modules/Settings/SurfaceEditor.qml:205",
+    "comment": "toast after removing an element from a now-playing surface, %1 is the element | toast after removing an offline rule, %1 is the rule"
   },
   {
     "term": "Removed from %1",
@@ -4960,6 +5110,12 @@
     "context": "Rename entry",
     "reference": "Modules/Settings/PagesSettings.qml:260",
     "comment": "navigation rename dialog title"
+  },
+  {
+    "term": "Rename library",
+    "context": "Rename library",
+    "reference": "Modules/Settings/LibraryPage.qml:92",
+    "comment": "library page: the rename dialog title"
   },
   {
     "term": "Rename page",
@@ -5040,6 +5196,12 @@
     "comment": "about page link to the issue tracker"
   },
   {
+    "term": "Report plays to %1",
+    "context": "Report plays to %1",
+    "reference": "Modules/Settings/LibraryPage.qml:250",
+    "comment": "library setting, %1 is the server library"
+  },
+  {
     "term": "Required by some services.",
     "context": "Required by some services.",
     "reference": "Modules/Settings/GeneralSettings.qml:73",
@@ -5054,13 +5216,13 @@
   {
     "term": "Requires PipeWire (pipewire and pw-cli)",
     "context": "Requires PipeWire (pipewire and pw-cli)",
-    "reference": "Common/Phrases.qml:149",
+    "reference": "Common/Phrases.qml:176",
     "comment": "why the equalizer can't start"
   },
   {
     "term": "Requires PipeWire (pipewire, pw-cli and pw-play)",
     "context": "Requires PipeWire (pipewire, pw-cli and pw-play)",
-    "reference": "Modules/DeviceList.qml:55, Modules/Settings/DevicesSettings.qml:166, Modules/Settings/PlaybackSettings.qml:55",
+    "reference": "Modules/DeviceList.qml:55, Modules/Settings/DevicesSettings.qml:172, Modules/Settings/PlaybackSettings.qml:71",
     "comment": "why several outputs and the equalizer are unavailable"
   },
   {
@@ -5072,7 +5234,7 @@
   {
     "term": "Requires ffmpeg to measure the silence.",
     "context": "Requires ffmpeg to measure the silence.",
-    "reference": "Modules/Settings/PlaybackSettings.qml:47",
+    "reference": "Modules/Settings/PlaybackSettings.qml:63",
     "comment": "why the skip silence settings are unavailable"
   },
   {
@@ -5084,13 +5246,13 @@
   {
     "term": "Requires mpv to play this format",
     "context": "Requires mpv to play this format",
-    "reference": "Common/Phrases.qml:143",
+    "reference": "Common/Phrases.qml:170",
     "comment": "why a track can't play"
   },
   {
     "term": "Requires mpv.",
     "context": "Requires mpv.",
-    "reference": "Modules/DeviceList.qml:53, Modules/Settings/DevicesSettings.qml:166, Modules/Settings/PlaybackSettings.qml:48, Modules/SpeedDialog.qml:13",
+    "reference": "Modules/DeviceList.qml:53, Modules/Settings/DevicesSettings.qml:172, Modules/Settings/PlaybackSettings.qml:64, Modules/SpeedDialog.qml:13",
     "comment": "why a playback setting is unavailable"
   },
   {
@@ -5102,13 +5264,13 @@
   {
     "term": "Rescan",
     "context": "Rescan",
-    "reference": "Modules/Settings/LibrariesSettings.qml:308",
+    "reference": "Modules/Settings/LibraryPage.qml:283, Modules/Settings/LibraryPage.qml:299",
     "comment": "library row action"
   },
   {
     "term": "Reset",
     "context": "Reset",
-    "reference": "Modules/HomePage.qml:259, Modules/PageEditor.qml:105, Modules/PageHeader.qml:112, Modules/QueueList.qml:301, Modules/Settings/GeneralSettings.qml:240, Modules/Settings/GeneralSettings.qml:382, Modules/Settings/NowPlayingSettings.qml:244, Modules/Settings/PagesSettings.qml:372, Modules/Settings/PagesSettings.qml:385, Modules/Settings/SurfaceEditor.qml:279, Modules/Settings/SurfaceEditor.qml:360, Widgets/DMenu.qml:409",
+    "reference": "Modules/HomePage.qml:259, Modules/PageEditor.qml:105, Modules/PageHeader.qml:112, Modules/QueueList.qml:312, Modules/Settings/GeneralSettings.qml:240, Modules/Settings/GeneralSettings.qml:382, Modules/Settings/NowPlayingSettings.qml:254, Modules/Settings/PagesSettings.qml:372, Modules/Settings/PagesSettings.qml:385, Modules/Settings/SurfaceEditor.qml:273, Modules/Settings/SurfaceEditor.qml:354, Widgets/DMenu.qml:409",
     "comment": "button that restores the defaults"
   },
   {
@@ -5120,7 +5282,7 @@
   {
     "term": "Reset %1?",
     "context": "Reset %1?",
-    "reference": "Modules/PageEditor.qml:105, Modules/Settings/PagesSettings.qml:246, Modules/Settings/PagesSettings.qml:300, Modules/Settings/PagesSettings.qml:333, Modules/Settings/SurfaceEditor.qml:358",
+    "reference": "Modules/PageEditor.qml:105, Modules/Settings/PagesSettings.qml:246, Modules/Settings/PagesSettings.qml:300, Modules/Settings/PagesSettings.qml:333, Modules/Settings/SurfaceEditor.qml:352",
     "comment": "reset one now-playing surface confirmation title, %1 is the surface | settings pages: reset confirmation title, %1 is the page"
   },
   {
@@ -5138,7 +5300,7 @@
   {
     "term": "Reset all now playing",
     "context": "Reset all now playing",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:229",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:239",
     "comment": "now playing settings action"
   },
   {
@@ -5162,7 +5324,7 @@
   {
     "term": "Reset now playing?",
     "context": "Reset now playing?",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:242",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:252",
     "comment": "reset now playing confirmation title"
   },
   {
@@ -5180,7 +5342,7 @@
   {
     "term": "Resets its elements.",
     "context": "Resets its elements.",
-    "reference": "Modules/Settings/SurfaceEditor.qml:359",
+    "reference": "Modules/Settings/SurfaceEditor.qml:353",
     "comment": "reset a now-playing surface confirmation"
   },
   {
@@ -5192,13 +5354,13 @@
   {
     "term": "Resets start view, style and surfaces.",
     "context": "Resets start view, style and surfaces.",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:231",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:241",
     "comment": "now playing reset description"
   },
   {
     "term": "Resets the bar, side panel and both full views.",
     "context": "Resets the bar, side panel and both full views.",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:243",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:253",
     "comment": "reset now playing confirmation"
   },
   {
@@ -5246,13 +5408,13 @@
   {
     "term": "Rock",
     "context": "Rock",
-    "reference": "Modules/Settings/PlaybackSettings.qml:102",
+    "reference": "Modules/Settings/PlaybackSettings.qml:118",
     "comment": "equalizer preset"
   },
   {
     "term": "Rotate artwork",
     "context": "Rotate artwork",
-    "reference": "Modules/Settings/ElementOptionsPage.qml:40",
+    "reference": "Modules/Settings/ElementOptionsPage.qml:38",
     "comment": "element option: the cookie-shaped artwork turns while playing"
   },
   {
@@ -5270,7 +5432,7 @@
   {
     "term": "Same as player",
     "context": "Same as player",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:129",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:139",
     "comment": "lyrics and queue look option"
   },
   {
@@ -5282,7 +5444,7 @@
   {
     "term": "Save",
     "context": "Save",
-    "reference": "Modules/BrowsePage.qml:346, Modules/MediaMenu.qml:183, Modules/Settings/LibraryDialog.qml:621, Modules/Settings/OfflineLimitDialog.qml:95, Modules/Settings/PagesSettings.qml:260, Modules/TextPromptDialog.qml:10",
+    "reference": "Modules/BrowsePage.qml:346, Modules/MediaMenu.qml:183, Modules/Settings/LibraryPage.qml:92, Modules/Settings/LibraryServerDialog.qml:74, Modules/Settings/OfflineRuleDialog.qml:168, Modules/Settings/PagesSettings.qml:260, Modules/TextPromptDialog.qml:10",
     "comment": "dialog confirm button"
   },
   {
@@ -5294,43 +5456,43 @@
   {
     "term": "Scanning…",
     "context": "Scanning…",
-    "reference": "Common/Phrases.qml:98",
+    "reference": "Common/Phrases.qml:125",
     "comment": "library status while folders are read"
   },
   {
     "term": "Scanning… %1 of %2",
     "context": "Scanning… %1 of %2",
-    "reference": "Common/Phrases.qml:97",
+    "reference": "Common/Phrases.qml:124",
     "comment": "library row status while scanning"
+  },
+  {
+    "term": "Scope",
+    "context": "Scope",
+    "reference": "Modules/Settings/OfflineRuleDialog.qml:104",
+    "comment": "offline rule dialog: which servers a rule covers"
   },
   {
     "term": "Scrobble to Last.fm",
     "context": "Scrobble to Last.fm",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:103",
+    "reference": "Modules/Settings/LibraryPage.qml:258, Modules/Settings/ScrobbleSettings.qml:110",
     "comment": "scrobbling setting"
   },
   {
     "term": "Scrobble to ListenBrainz",
     "context": "Scrobble to ListenBrainz",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:38",
+    "reference": "Modules/Settings/LibraryPage.qml:258, Modules/Settings/ScrobbleSettings.qml:45",
     "comment": "scrobbling setting"
   },
   {
-    "term": "Scrobbled to the server",
-    "context": "Scrobbled to the server",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:229",
-    "comment": "scrobbling library row"
-  },
-  {
-    "term": "Scrobbled to your accounts",
-    "context": "Scrobbled to your accounts",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:229",
-    "comment": "scrobbling library row"
+    "term": "Scrobble to ListenBrainz and Last.fm",
+    "context": "Scrobble to ListenBrainz and Last.fm",
+    "reference": "Modules/Settings/LibraryPage.qml:258",
+    "comment": "library setting"
   },
   {
     "term": "Scrobbling",
     "context": "Scrobbling",
-    "reference": "Modules/Settings/SettingsWindow.qml:81, Services/CatalogService.qml:191",
+    "reference": "Modules/Settings/LibraryPage.qml:246, Modules/Settings/SettingsWindow.qml:90, Services/CatalogService.qml:191",
     "comment": "scrobbling: feature and settings tab"
   },
   {
@@ -5340,15 +5502,9 @@
     "comment": "about page credit"
   },
   {
-    "term": "Scrobbling is off for this library.",
-    "context": "Scrobbling is off for this library.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:209",
-    "comment": "why a scrobbling setting is unavailable"
-  },
-  {
     "term": "Search",
     "context": "Search",
-    "reference": "Common/UiConfig.qml:772, Modules/MainWindow.qml:213, Modules/MainWindow.qml:243, Modules/Settings/OfflineItemPicker.qml:52",
+    "reference": "Common/UiConfig.qml:772, Modules/MainWindow.qml:213, Modules/MainWindow.qml:243, Modules/Settings/OfflineItemPicker.qml:53",
     "comment": "header button | navigation destination | offline rule picker search field"
   },
   {
@@ -5438,7 +5594,7 @@
   {
     "term": "Search settings",
     "context": "Search settings",
-    "reference": "Modules/Settings/SettingsWindow.qml:421",
+    "reference": "Modules/Settings/SettingsWindow.qml:490",
     "comment": "settings search field placeholder"
   },
   {
@@ -5462,7 +5618,7 @@
   {
     "term": "See all",
     "context": "See all",
-    "reference": "Modules/Shelf.qml:284, Modules/Shelf.qml:315",
+    "reference": "Modules/Shelf.qml:285, Modules/Shelf.qml:316",
     "comment": "home shelf action"
   },
   {
@@ -5480,50 +5636,44 @@
   {
     "term": "Select",
     "context": "Select",
-    "reference": "Modules/QueueList.qml:530, Modules/TrackRow.qml:159",
+    "reference": "Modules/QueueList.qml:542, Modules/TrackRow.qml:159",
     "comment": "track row checkbox"
   },
   {
     "term": "Select all",
     "context": "Select all",
-    "reference": "Modules/QueueList.qml:274, Modules/SelectionBar.qml:65",
+    "reference": "Modules/QueueList.qml:285, Modules/SelectionBar.qml:65",
     "comment": "selection bar action"
   },
   {
     "term": "Select at least two outputs",
     "context": "Select at least two outputs",
-    "reference": "Modules/Settings/DevicesSettings.qml:16, Modules/Settings/DevicesSettings.qml:187",
+    "reference": "Modules/Settings/DevicesSettings.qml:16, Modules/Settings/DevicesSettings.qml:193",
     "comment": "why the sync page is disabled"
   },
   {
     "term": "Select none",
     "context": "Select none",
-    "reference": "Modules/QueueList.qml:274, Modules/SelectionBar.qml:65",
+    "reference": "Modules/QueueList.qml:285, Modules/SelectionBar.qml:65",
     "comment": "selection bar action"
   },
   {
     "term": "Sent automatically when the connection is restored.",
     "context": "Sent automatically when the connection is restored.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:239",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:33",
     "comment": "scrobbling queue state description"
   },
   {
     "term": "Server",
     "context": "Server",
-    "reference": "Modules/DetailsDialog.qml:70",
+    "reference": "Modules/DetailsDialog.qml:70, Modules/Settings/LibraryPage.qml:99, Modules/Settings/LibraryServerDialog.qml:31",
     "comment": "details field: the server address"
   },
   {
     "term": "Server address",
     "context": "Server address",
-    "reference": "Modules/Settings/LibraryDialog.qml:365",
+    "reference": "Modules/Settings/ServerSignIn.qml:168",
     "comment": "add server dialog field"
-  },
-  {
-    "term": "Server libraries on your accounts",
-    "context": "Server libraries on your accounts",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:199",
-    "comment": "scrobbling settings section: whether a server's plays also go to the accounts"
   },
   {
     "term": "Server passwords and service keys",
@@ -5540,7 +5690,7 @@
   {
     "term": "Server unreachable",
     "context": "Server unreachable",
-    "reference": "Common/Phrases.qml:123, Modules/RowEnd.qml:167",
+    "reference": "Common/Phrases.qml:150, Modules/RowEnd.qml:171",
     "comment": "track row cloud icon while the server is down | why a server library or its tracks can't be used"
   },
   {
@@ -5558,13 +5708,13 @@
   {
     "term": "Settings",
     "context": "Settings",
-    "reference": "Modules/MainWindow.qml:262, Modules/Settings/SettingsWindow.qml:388",
+    "reference": "Modules/MainWindow.qml:262, Modules/Settings/SettingsWindow.qml:457",
     "comment": "the settings window"
   },
   {
     "term": "Shape",
     "context": "Shape",
-    "reference": "Modules/Settings/ElementOptionsPage.qml:38",
+    "reference": "Modules/Settings/ElementOptionsPage.qml:36",
     "comment": "element option: the artwork's outline"
   },
   {
@@ -5576,7 +5726,7 @@
   {
     "term": "Shared secret",
     "context": "Shared secret",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:159",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:166",
     "comment": "Last.fm sign-in field"
   },
   {
@@ -5624,7 +5774,7 @@
   {
     "term": "Showing %1 of %2 matches",
     "context": "Showing %1 of %2 matches",
-    "reference": "Modules/Settings/OfflineItemPicker.qml:109",
+    "reference": "Modules/Settings/OfflineItemPicker.qml:110",
     "comment": "offline rule picker overflow"
   },
   {
@@ -5658,9 +5808,15 @@
     "comment": "lyrics source status: shown, its words placed on the line timing of the named source"
   },
   {
+    "term": "Shows the playing track on your Discord profile.",
+    "context": "Shows the playing track on your Discord profile.",
+    "reference": "Modules/Settings/IntegrationsSettings.qml:14",
+    "comment": "discord presence description"
+  },
+  {
     "term": "Shuffle",
     "context": "Shuffle",
-    "reference": "Common/UiConfig.qml:1135, Common/UiConfig.qml:1256, Modules/PlayButtons.qml:44, Modules/Shelf.qml:257",
+    "reference": "Common/UiConfig.qml:1135, Common/UiConfig.qml:1256, Modules/PlayButtons.qml:44, Modules/Shelf.qml:258",
     "comment": "button or mode that plays in random order"
   },
   {
@@ -5678,67 +5834,73 @@
   {
     "term": "Shuffle by",
     "context": "Shuffle by",
-    "reference": "Modules/Settings/PlaybackSettings.qml:356",
+    "reference": "Modules/Settings/PlaybackSettings.qml:404",
     "comment": "playback setting"
   },
   {
     "term": "Side panel",
     "context": "Side panel",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:32, Modules/Settings/NowPlayingSettings.qml:103, Modules/Settings/NowPlayingSettings.qml:178",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:33, Modules/Settings/NowPlayingSettings.qml:113, Modules/Settings/NowPlayingSettings.qml:188",
     "comment": "now playing placement option"
   },
   {
     "term": "Sign in",
     "context": "Sign in",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:87, Modules/Settings/ScrobbleSettings.qml:183, Modules/Settings/ScrobbleSettings.qml:184",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:94, Modules/Settings/ScrobbleSettings.qml:190, Modules/Settings/ScrobbleSettings.qml:191",
     "comment": "scrobbling account action"
+  },
+  {
+    "term": "Sign in on the Scrobbling page first.",
+    "context": "Sign in on the Scrobbling page first.",
+    "reference": "Modules/Settings/LibraryPage.qml:260",
+    "comment": "why a library's scrobbling setting is unavailable"
   },
   {
     "term": "Sign in with a password instead.",
     "context": "Sign in with a password instead.",
-    "reference": "Modules/Settings/LibraryDialog.qml:452",
+    "reference": "Modules/Settings/ServerSignIn.qml:255",
     "comment": "Quick Connect state"
   },
   {
     "term": "Sign out",
     "context": "Sign out",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:61, Modules/Settings/ScrobbleSettings.qml:126",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:68, Modules/Settings/ScrobbleSettings.qml:133",
     "comment": "scrobbling account action"
   },
   {
     "term": "Sign-in expired. Sign in again.",
     "context": "Sign-in expired. Sign in again.",
-    "reference": "Common/Phrases.qml:125",
+    "reference": "Common/Phrases.qml:152",
     "comment": "why a server library can't be used"
   },
   {
     "term": "Signed in",
     "context": "Signed in",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:23",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:20",
     "comment": "scrobbling account state"
   },
   {
     "term": "Signed in as %1",
     "context": "Signed in as %1",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:23, Services/SettingsService.qml:232",
+    "reference": "Modules/Settings/LibraryPage.qml:100, Modules/Settings/ScrobbleSettings.qml:20, Services/SettingsService.qml:246",
     "comment": "scrobbling account state, %1 is the user name"
   },
   {
     "term": "Signing in with the password requires an https server address",
     "context": "Signing in with the password requires an https server address",
-    "reference": "Common/Phrases.qml:183",
+    "reference": "Common/Phrases.qml:210",
     "comment": "why a server connection test failed"
   },
   {
     "term": "Signs in with the password because this server doesn't accept token sign-in.",
     "context": "Signs in with the password because this server doesn't accept token sign-in.",
-    "reference": "Common/Phrases.qml:179",
+    "reference": "Common/Phrases.qml:206",
     "comment": "library notice"
   },
   {
     "term": "Similar",
     "context": "Similar",
-    "reference": "Modules/Settings/PlaybackSettings.qml:347",
+    "reference": "Modules/Settings/PlaybackSettings.qml:363",
     "comment": "auto-continue option"
   },
   {
@@ -5748,93 +5910,99 @@
     "comment": "artist page section"
   },
   {
-    "term": "Similar picks tracks by the same artist or genre.",
-    "context": "Similar picks tracks by the same artist or genre.",
-    "reference": "Modules/Settings/PlaybackSettings.qml:346",
+    "term": "Similar picks tracks by the artists, genres and playlists of this session.",
+    "context": "Similar picks tracks by the artists, genres and playlists of this session.",
+    "reference": "Modules/Settings/PlaybackSettings.qml:362",
     "comment": "playback setting description"
+  },
+  {
+    "term": "Similar tracks",
+    "context": "Similar tracks",
+    "reference": "Modules/Settings/PlaybackSettings.qml:372",
+    "comment": "playback setting"
   },
   {
     "term": "Size",
     "context": "Size",
-    "reference": "Modules/DetailsDialog.qml:70, Modules/Settings/ElementOptionsPage.qml:36, Modules/Settings/OfflineLimitDialog.qml:64",
+    "reference": "Modules/DetailsDialog.qml:70, Modules/Settings/ElementOptionsPage.qml:34, Modules/Settings/OfflineRuleDialog.qml:136",
     "comment": "details field: file size | element option: how big the element is"
   },
   {
     "term": "Size in GB",
     "context": "Size in GB",
-    "reference": "Modules/Settings/OfflineLimitDialog.qml:81",
+    "reference": "Modules/Settings/OfflineRuleDialog.qml:154",
     "comment": "offline rule limit field"
   },
   {
     "term": "Size limit",
     "context": "Size limit",
-    "reference": "Modules/Settings/LibrariesSettings.qml:389",
+    "reference": "Modules/Settings/DownloadsSettings.qml:233",
     "comment": "offline storage limit slider"
   },
   {
     "term": "Skip genres",
     "context": "Skip genres",
-    "reference": "Modules/Settings/PlaybackSettings.qml:396, Modules/Settings/PlaybackSettings.qml:435",
+    "reference": "Modules/Settings/PlaybackSettings.qml:444, Modules/Settings/PlaybackSettings.qml:507",
     "comment": "playback setting"
   },
   {
     "term": "Skip libraries",
     "context": "Skip libraries",
-    "reference": "Modules/Settings/PlaybackSettings.qml:406, Modules/Settings/PlaybackSettings.qml:450",
+    "reference": "Modules/Settings/PlaybackSettings.qml:454, Modules/Settings/PlaybackSettings.qml:522",
     "comment": "playback setting"
   },
   {
     "term": "Skip silence at the end",
     "context": "Skip silence at the end",
-    "reference": "Modules/Settings/PlaybackSettings.qml:160",
+    "reference": "Modules/Settings/PlaybackSettings.qml:176",
     "comment": "playback setting"
   },
   {
     "term": "Skip silence at the start",
     "context": "Skip silence at the start",
-    "reference": "Modules/Settings/PlaybackSettings.qml:151",
+    "reference": "Modules/Settings/PlaybackSettings.qml:167",
     "comment": "playback setting"
   },
   {
     "term": "Skip tracks rated below",
     "context": "Skip tracks rated below",
-    "reference": "Modules/Settings/PlaybackSettings.qml:383",
+    "reference": "Modules/Settings/PlaybackSettings.qml:431",
     "comment": "playback setting"
   },
   {
     "term": "Skip tracks shorter than",
     "context": "Skip tracks shorter than",
-    "reference": "Modules/Settings/PlaybackSettings.qml:415",
+    "reference": "Modules/Settings/PlaybackSettings.qml:463",
     "comment": "playback setting"
   },
   {
     "term": "Skipped",
     "context": "Skipped",
-    "reference": "Modules/Settings/LibraryDialog.qml:587",
+    "reference": "Modules/Settings/LibraryPage.qml:236",
     "comment": "a file left alone when writing ratings"
   },
   {
     "term": "Skipped %1 that no longer exist",
     "context": "Skipped %1 that no longer exist",
-    "reference": "Services/PlayerService.qml:655",
+    "reference": "Services/PlayerService.qml:656",
     "comment": "snackbar when tracks of a played list no longer exist, %1 is a track count"
   },
   {
     "term": "Skipped a track that couldn't play",
     "context": "Skipped a track that couldn't play",
-    "reference": "Services/PlayerService.qml:672",
+    "reference": "Services/PlayerService.qml:673",
     "comment": "toast when one track fails to play and the queue moves on"
   },
   {
     "term": "Skipped tracks from %1 because it's unavailable",
     "context": "Skipped tracks from %1 because it's unavailable",
-    "reference": "Services/PlayerService.qml:676",
+    "reference": "Services/PlayerService.qml:677",
     "comment": "snackbar when the queue passes over a library's tracks, %1 is the library"
   },
   {
     "term": "Skipped tracks that require mpv",
     "context": "Skipped tracks that require mpv",
-    "reference": "Services/PlayerService.qml:667",
+    "reference": "Services/PlayerService.qml:668",
     "comment": "snackbar when the queue passes over tracks the built-in player can't play"
   },
   {
@@ -5864,7 +6032,7 @@
   {
     "term": "Smooth highlight",
     "context": "Smooth highlight",
-    "reference": "Modules/Settings/ElementOptionsPage.qml:48",
+    "reference": "Modules/Settings/ElementOptionsPage.qml:46",
     "comment": "element option: the sung lyric fills gradually instead of word by word"
   },
   {
@@ -5900,7 +6068,7 @@
   {
     "term": "Space used",
     "context": "Space used",
-    "reference": "Modules/Settings/LibrariesSettings.qml:353, Modules/Settings/LibrariesSettings.qml:364",
+    "reference": "Modules/Settings/DownloadsSettings.qml:200, Modules/Settings/DownloadsSettings.qml:211",
     "comment": "offline storage usage row"
   },
   {
@@ -5908,6 +6076,12 @@
     "context": "Spacer",
     "reference": "Common/UiConfig.qml:1171",
     "comment": "layout element: empty space"
+  },
+  {
+    "term": "Spacing of lists, tiles, sections and navigation.",
+    "context": "Spacing of lists, tiles, sections and navigation.",
+    "reference": "Modules/Settings/AppearanceSettings.qml:428",
+    "comment": "appearance density description"
   },
   {
     "term": "Spacious",
@@ -5918,7 +6092,7 @@
   {
     "term": "Speed and queue",
     "context": "Speed and queue",
-    "reference": "Modules/Settings/PlaybackSettings.qml:328",
+    "reference": "Modules/Settings/PlaybackSettings.qml:344",
     "comment": "playback settings section label"
   },
   {
@@ -5948,7 +6122,7 @@
   {
     "term": "Start with",
     "context": "Start with",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:101",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:111",
     "comment": "now playing setting: where now playing shows at start"
   },
   {
@@ -5960,7 +6134,7 @@
   {
     "term": "Stop",
     "context": "Stop",
-    "reference": "Modules/Settings/PlaybackSettings.qml:347",
+    "reference": "Modules/Settings/PlaybackSettings.qml:363",
     "comment": "auto-continue option"
   },
   {
@@ -5978,13 +6152,25 @@
   {
     "term": "Stops here",
     "context": "Stops here",
-    "reference": "Modules/QueueList.qml:613",
+    "reference": "Modules/QueueList.qml:625",
     "comment": "queue divider after the track playback stops at"
+  },
+  {
+    "term": "Storage",
+    "context": "Storage",
+    "reference": "Modules/Settings/DownloadsSettings.qml:197",
+    "comment": "downloads settings section: space used and its limit"
+  },
+  {
+    "term": "Storage and offline rules",
+    "context": "Storage and offline rules",
+    "reference": "Modules/Settings/SettingsWindow.qml:35",
+    "comment": "settings sidebar tab hint"
   },
   {
     "term": "Stores ratings and favorites in the tags of the music files.",
     "context": "Stores ratings and favorites in the tags of the music files.",
-    "reference": "Modules/Settings/LibraryDialog.qml:549",
+    "reference": "Modules/Settings/LibraryPage.qml:197",
     "comment": "local library setting description"
   },
   {
@@ -5996,7 +6182,7 @@
   {
     "term": "Streams from a server",
     "context": "Streams from a server",
-    "reference": "Modules/RowEnd.qml:167",
+    "reference": "Modules/RowEnd.qml:171",
     "comment": "track row cloud icon"
   },
   {
@@ -6020,31 +6206,31 @@
   {
     "term": "Surfaces",
     "context": "Surfaces",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:159",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:169",
     "comment": "now playing settings section: bar, side panel and full views"
   },
   {
     "term": "Switching with the header button is temporary.",
     "context": "Switching with the header button is temporary.",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:102",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:112",
     "comment": "now playing start description"
   },
   {
     "term": "Sync",
     "context": "Sync",
-    "reference": "Modules/Settings/DevicesSettings.qml:185",
+    "reference": "Modules/Settings/DevicesSettings.qml:20, Modules/Settings/DevicesSettings.qml:191",
     "comment": "playback device sync page"
   },
   {
     "term": "Sync now",
     "context": "Sync now",
-    "reference": "Modules/Settings/LibrariesSettings.qml:308",
+    "reference": "Modules/Settings/LibraryPage.qml:283, Modules/Settings/LibraryPage.qml:299",
     "comment": "library row action"
   },
   {
     "term": "Syncing…",
     "context": "Syncing…",
-    "reference": "Common/Phrases.qml:98",
+    "reference": "Common/Phrases.qml:125",
     "comment": "library status while a server library syncs"
   },
   {
@@ -6074,19 +6260,19 @@
   {
     "term": "System volume",
     "context": "System volume",
-    "reference": "Modules/Settings/AboutSettings.qml:54, Modules/Settings/PlaybackSettings.qml:200",
+    "reference": "Modules/Settings/AboutSettings.qml:54, Modules/Settings/PlaybackSettings.qml:216",
     "comment": "volume controls option"
   },
   {
     "term": "System volume changes the volume of the default output.",
     "context": "System volume changes the volume of the default output.",
-    "reference": "Modules/Settings/PlaybackSettings.qml:198",
+    "reference": "Modules/Settings/PlaybackSettings.qml:214",
     "comment": "playback setting description"
   },
   {
     "term": "System volume requires wpctl (WirePlumber).",
     "context": "System volume requires wpctl (WirePlumber).",
-    "reference": "Modules/Settings/PlaybackSettings.qml:198",
+    "reference": "Modules/Settings/PlaybackSettings.qml:214",
     "comment": "why the system volume option is unavailable"
   },
   {
@@ -6110,19 +6296,19 @@
   {
     "term": "Test",
     "context": "Test",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:54, Modules/Settings/ScrobbleSettings.qml:119",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:61, Modules/Settings/ScrobbleSettings.qml:126",
     "comment": "scrobbling account action"
   },
   {
     "term": "Test connection",
     "context": "Test connection",
-    "reference": "Modules/Settings/LibraryDialog.qml:516",
+    "reference": "Modules/Settings/ServerSignIn.qml:319",
     "comment": "add server dialog action"
   },
   {
     "term": "Test tone",
     "context": "Test tone",
-    "reference": "Modules/Settings/DevicesSettings.qml:228",
+    "reference": "Modules/Settings/DevicesSettings.qml:229",
     "comment": "playback device sync action"
   },
   {
@@ -6140,7 +6326,7 @@
   {
     "term": "That isn't an http(s) server address",
     "context": "That isn't an http(s) server address",
-    "reference": "Common/Phrases.qml:187",
+    "reference": "Common/Phrases.qml:214",
     "comment": "why a server connection test failed"
   },
   {
@@ -6170,61 +6356,61 @@
   {
     "term": "The code expired",
     "context": "The code expired",
-    "reference": "Modules/Settings/LibraryDialog.qml:451",
+    "reference": "Modules/Settings/ServerSignIn.qml:254",
     "comment": "Quick Connect state"
   },
   {
     "term": "The code expires after 10 minutes.",
     "context": "The code expires after 10 minutes.",
-    "reference": "Modules/Settings/LibraryDialog.qml:440",
+    "reference": "Modules/Settings/ServerSignIn.qml:243",
     "comment": "Quick Connect hint"
   },
   {
     "term": "The connection isn't encrypted. Sign-in tokens and playback can be read on the network. Use an https address.",
     "context": "The connection isn't encrypted. Sign-in tokens and playback can be read on the network. Use an https address.",
-    "reference": "Common/Phrases.qml:177",
+    "reference": "Common/Phrases.qml:204",
     "comment": "library notice"
   },
   {
     "term": "The current track is written when the next one starts",
     "context": "The current track is written when the next one starts",
-    "reference": "Modules/Settings/LibraryDialog.qml:560",
+    "reference": "Modules/Settings/LibraryPage.qml:208",
     "comment": "why writing ratings to files waits"
   },
   {
     "term": "The equalizer couldn't start: %1",
     "context": "The equalizer couldn't start: %1",
-    "reference": "Modules/Settings/PlaybackSettings.qml:55",
+    "reference": "Modules/Settings/PlaybackSettings.qml:71",
     "comment": "equalizer state, %1 is the daemon's reason"
   },
   {
     "term": "The equalizer doesn't apply while casting",
     "context": "The equalizer doesn't apply while casting",
-    "reference": "Modules/Settings/PlaybackSettings.qml:53",
+    "reference": "Modules/Settings/PlaybackSettings.qml:69",
     "comment": "equalizer state"
   },
   {
     "term": "The file has no colors",
     "context": "The file has no colors",
-    "reference": "Modules/Settings/AppearanceSettings.qml:470",
+    "reference": "Modules/Settings/AppearanceSettings.qml:466",
     "comment": "why a theme file can't be imported"
   },
   {
     "term": "The file is empty",
     "context": "The file is empty",
-    "reference": "Modules/Settings/AppearanceSettings.qml:466",
+    "reference": "Modules/Settings/AppearanceSettings.qml:462",
     "comment": "why a theme file can't be imported"
   },
   {
     "term": "The file is too large",
     "context": "The file is too large",
-    "reference": "Common/UiConfig.qml:1022, Modules/Settings/AppearanceSettings.qml:468",
+    "reference": "Common/UiConfig.qml:1022, Modules/Settings/AppearanceSettings.qml:464",
     "comment": "why a layout file can't be imported | why a theme file can't be imported"
   },
   {
     "term": "The folders are removed from Dux Player. No files are deleted.",
     "context": "The folders are removed from Dux Player. No files are deleted.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:628",
+    "reference": "Modules/Settings/LibrariesSettings.qml:176",
     "comment": "remove local library confirmation"
   },
   {
@@ -6242,7 +6428,7 @@
   {
     "term": "The player didn't answer in time",
     "context": "The player didn't answer in time",
-    "reference": "Common/Phrases.qml:197",
+    "reference": "Common/Phrases.qml:224",
     "comment": "why a request to the player daemon failed"
   },
   {
@@ -6254,31 +6440,31 @@
   {
     "term": "The server and its saved password are removed from Dux Player. Nothing is deleted on the server.",
     "context": "The server and its saved password are removed from Dux Player. Nothing is deleted on the server.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:628",
+    "reference": "Modules/Settings/LibrariesSettings.qml:176",
     "comment": "remove server library confirmation"
   },
   {
     "term": "The server redirected to another address. Use that address instead.",
     "context": "The server redirected to another address. Use that address instead.",
-    "reference": "Common/Phrases.qml:191",
+    "reference": "Common/Phrases.qml:218",
     "comment": "why a server connection test failed"
   },
   {
     "term": "The server's certificate isn't trusted",
     "context": "The server's certificate isn't trusted",
-    "reference": "Common/Phrases.qml:185",
+    "reference": "Common/Phrases.qml:212",
     "comment": "why a server connection test failed"
   },
   {
     "term": "The sung line fills gradually instead of word by word.",
     "context": "The sung line fills gradually instead of word by word.",
-    "reference": "Modules/Settings/ElementOptionsPage.qml:74",
+    "reference": "Modules/Settings/ElementOptionsPage.qml:72",
     "comment": "lyric line option description"
   },
   {
     "term": "The system keyring is locked",
     "context": "The system keyring is locked",
-    "reference": "Common/Phrases.qml:129",
+    "reference": "Common/Phrases.qml:156",
     "comment": "why a server library can't sign in"
   },
   {
@@ -6290,7 +6476,7 @@
   {
     "term": "Theme, shape and motion",
     "context": "Theme, shape and motion",
-    "reference": "Modules/Settings/SettingsWindow.qml:42",
+    "reference": "Modules/Settings/SettingsWindow.qml:51",
     "comment": "settings sidebar tab hint"
   },
   {
@@ -6348,10 +6534,10 @@
     "comment": "why a server playlist cannot be edited, %1 is the server library"
   },
   {
-    "term": "This server doesn't support scrobbling",
-    "context": "This server doesn't support scrobbling",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:229",
-    "comment": "scrobbling library row"
+    "term": "This rule already exists.",
+    "context": "This rule already exists.",
+    "reference": "Modules/Settings/OfflineRuleDialog.qml:30",
+    "comment": "offline rule dialog, why save is disabled"
   },
   {
     "term": "This server's tracks can only be cast over https",
@@ -6362,7 +6548,7 @@
   {
     "term": "This setting isn't available in the current setup.",
     "context": "This setting isn't available in the current setup.",
-    "reference": "Modules/Settings/SettingsWindow.qml:160",
+    "reference": "Modules/Settings/SettingsWindow.qml:177",
     "comment": "settings search: the picked setting is hidden by other settings or missing hardware or software"
   },
   {
@@ -6380,7 +6566,7 @@
   {
     "term": "Title style",
     "context": "Title style",
-    "reference": "Modules/Settings/ElementOptionsPage.qml:44",
+    "reference": "Modules/Settings/ElementOptionsPage.qml:42",
     "comment": "element option: the title's typeface"
   },
   {
@@ -6392,7 +6578,7 @@
   {
     "term": "Too many folders to watch (fs.inotify.max_user_watches); some changes show only after a rescan",
     "context": "Too many folders to watch (fs.inotify.max_user_watches); some changes show only after a rescan",
-    "reference": "Common/Phrases.qml:175",
+    "reference": "Common/Phrases.qml:202",
     "comment": "library notice"
   },
   {
@@ -6404,13 +6590,13 @@
   {
     "term": "Track",
     "context": "Track",
-    "reference": "Modules/DetailsDialog.qml:67, Modules/Settings/PlaybackSettings.qml:187",
+    "reference": "Modules/DetailsDialog.qml:67, Modules/Settings/PlaybackSettings.qml:203",
     "comment": "details field: track and disc number | replaygain mode"
   },
   {
     "term": "Track actions",
     "context": "Track actions",
-    "reference": "Modules/Settings/SurfaceEditor.qml:233",
+    "reference": "Modules/Settings/SurfaceEditor.qml:232",
     "comment": "element picker group"
   },
   {
@@ -6428,7 +6614,7 @@
   {
     "term": "Track info",
     "context": "Track info",
-    "reference": "Modules/Settings/SurfaceEditor.qml:233",
+    "reference": "Modules/Settings/SurfaceEditor.qml:232",
     "comment": "element picker group"
   },
   {
@@ -6446,19 +6632,25 @@
   {
     "term": "Tracks",
     "context": "Tracks",
-    "reference": "Common/UiConfig.qml:48, Modules/DetailsDialog.qml:65, Modules/DetailsDialog.qml:69, Modules/Settings/OfflineLimitDialog.qml:60, Modules/Settings/PlaybackSettings.qml:359",
+    "reference": "Common/UiConfig.qml:48, Modules/DetailsDialog.qml:65, Modules/DetailsDialog.qml:69, Modules/Settings/OfflineRuleDialog.qml:132, Modules/Settings/PlaybackSettings.qml:407",
     "comment": "navigation destination"
   },
   {
-    "term": "Tracks without a rule are removed first when the size limit is reached.",
-    "context": "Tracks without a rule are removed first when the size limit is reached.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:544",
-    "comment": "library offline overview without rules"
+    "term": "Tracks added at a time",
+    "context": "Tracks added at a time",
+    "reference": "Modules/Settings/PlaybackSettings.qml:384",
+    "comment": "playback setting"
+  },
+  {
+    "term": "Tracks kept by other rules stay downloaded.",
+    "context": "Tracks kept by other rules stay downloaded.",
+    "reference": "Modules/Settings/DownloadsSettings.qml:449",
+    "comment": "remove offline rule confirmation"
   },
   {
     "term": "Transitions",
     "context": "Transitions",
-    "reference": "Modules/Settings/PlaybackSettings.qml:116",
+    "reference": "Modules/Settings/PlaybackSettings.qml:132",
     "comment": "playback settings section label"
   },
   {
@@ -6476,7 +6668,7 @@
   {
     "term": "Treble boost",
     "context": "Treble boost",
-    "reference": "Modules/Settings/PlaybackSettings.qml:98",
+    "reference": "Modules/Settings/PlaybackSettings.qml:114",
     "comment": "equalizer preset"
   },
   {
@@ -6488,7 +6680,7 @@
   {
     "term": "Try again",
     "context": "Try again",
-    "reference": "Modules/LibrariesPage.qml:135, Modules/Settings/LibrariesSettings.qml:299, Modules/Settings/LibraryDialog.qml:461",
+    "reference": "Modules/LibrariesPage.qml:135, Modules/Settings/LibraryPage.qml:291, Modules/Settings/ServerSignIn.qml:264",
     "comment": "library action that checks an unavailable library again"
   },
   {
@@ -6504,27 +6696,27 @@
     "comment": "sleep timer action"
   },
   {
-    "term": "Turn off when the server sends its plays to the same accounts.",
-    "context": "Turn off when the server sends its plays to the same accounts.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:209",
-    "comment": "scrobbling server library row"
+    "term": "Turn on an account on the Scrobbling page first.",
+    "context": "Turn on an account on the Scrobbling page first.",
+    "reference": "Modules/Settings/LibraryPage.qml:260",
+    "comment": "why a library's scrobbling setting is unavailable"
   },
   {
     "term": "Turn on word by word in the lyrics settings",
     "context": "Turn on word by word in the lyrics settings",
-    "reference": "Modules/Settings/ElementOptionsPage.qml:67",
+    "reference": "Modules/Settings/ElementOptionsPage.qml:65",
     "comment": "why the smooth highlight option is unavailable"
   },
   {
     "term": "Turned off in settings",
     "context": "Turned off in settings",
-    "reference": "Modules/LibrariesPage.qml:121",
+    "reference": "Modules/LibrariesPage.qml:121, Modules/Settings/DownloadsSettings.qml:329",
     "comment": "library card status"
   },
   {
     "term": "Turning a library off hides its music without removing it.",
     "context": "Turning a library off hides its music without removing it.",
-    "reference": "Modules/Settings/LibrariesSettings.qml:221",
+    "reference": "Modules/Settings/LibrariesSettings.qml:67",
     "comment": "libraries settings page intro"
   },
   {
@@ -6578,37 +6770,37 @@
   {
     "term": "Up to 130%. Loud tracks may distort.",
     "context": "Up to 130%. Loud tracks may distort.",
-    "reference": "Modules/Settings/PlaybackSettings.qml:211",
+    "reference": "Modules/Settings/PlaybackSettings.qml:227",
     "comment": "playback setting description"
   },
   {
     "term": "Use the equalizer",
     "context": "Use the equalizer",
-    "reference": "Modules/Settings/PlaybackSettings.qml:221",
+    "reference": "Modules/Settings/PlaybackSettings.qml:237",
     "comment": "equalizer switch"
   },
   {
     "term": "Use the system default output at startup",
     "context": "Use the system default output at startup",
-    "reference": "Modules/Settings/DevicesSettings.qml:125",
+    "reference": "Modules/Settings/DevicesSettings.qml:131",
     "comment": "playback device setting"
   },
   {
     "term": "Use your own API key",
     "context": "Use your own API key",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:175",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:182",
     "comment": "Last.fm sign-in action"
   },
   {
     "term": "User name",
     "context": "User name",
-    "reference": "Modules/Settings/LibraryDialog.qml:473",
+    "reference": "Modules/Settings/ServerSignIn.qml:276",
     "comment": "add server dialog field"
   },
   {
     "term": "User token",
     "context": "User token",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:73",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:80",
     "comment": "ListenBrainz sign-in field"
   },
   {
@@ -6620,19 +6812,19 @@
   {
     "term": "Uses ReplayGain tags.",
     "context": "Uses ReplayGain tags.",
-    "reference": "Modules/Settings/PlaybackSettings.qml:186",
+    "reference": "Modules/Settings/PlaybackSettings.qml:202",
     "comment": "playback setting description"
   },
   {
     "term": "Uses the bar's title, controls and buttons. Tabs follow the button order.",
     "context": "Uses the bar's title, controls and buttons. Tabs follow the button order.",
-    "reference": "Modules/Settings/SurfaceEditor.qml:316",
+    "reference": "Modules/Settings/SurfaceEditor.qml:310",
     "comment": "side panel editor setting description"
   },
   {
     "term": "Uses the server address",
     "context": "Uses the server address",
-    "reference": "Modules/Settings/LibraryDialog.qml:255",
+    "reference": "Modules/Settings/LibraryDialog.qml:110",
     "comment": "library dialog name placeholder for a server"
   },
   {
@@ -6656,31 +6848,31 @@
   {
     "term": "Version, license and credits",
     "context": "Version, license and credits",
-    "reference": "Modules/Settings/SettingsWindow.qml:98",
+    "reference": "Modules/Settings/SettingsWindow.qml:115",
     "comment": "settings sidebar tab hint"
   },
   {
     "term": "Vocal",
     "context": "Vocal",
-    "reference": "Modules/Settings/PlaybackSettings.qml:100",
+    "reference": "Modules/Settings/PlaybackSettings.qml:116",
     "comment": "equalizer preset"
   },
   {
     "term": "Volume",
     "context": "Volume",
-    "reference": "Common/UiConfig.qml:1151, Modules/MediaVolumeSlider.qml:14, Modules/NowPlayingElement.qml:517, Modules/NowPlayingElement.qml:554, Modules/Settings/DevicesSettings.qml:85, Modules/Settings/PlaybackSettings.qml:181, Modules/VolumePanel.qml:60",
+    "reference": "Common/UiConfig.qml:1151, Modules/MediaVolumeSlider.qml:14, Modules/NowPlayingElement.qml:517, Modules/NowPlayingElement.qml:554, Modules/Settings/DevicesSettings.qml:91, Modules/Settings/PlaybackSettings.qml:197, Modules/VolumePanel.qml:60",
     "comment": "audio volume: settings section, slider"
   },
   {
     "term": "Volume controls",
     "context": "Volume controls",
-    "reference": "Modules/Settings/PlaybackSettings.qml:196",
+    "reference": "Modules/Settings/PlaybackSettings.qml:212",
     "comment": "playback setting: what the volume slider changes"
   },
   {
     "term": "Waiting for approval",
     "context": "Waiting for approval",
-    "reference": "Modules/Settings/LibraryDialog.qml:439",
+    "reference": "Modules/Settings/ServerSignIn.qml:242",
     "comment": "Quick Connect state"
   },
   {
@@ -6692,19 +6884,19 @@
   {
     "term": "When an output disconnects",
     "context": "When an output disconnects",
-    "reference": "Modules/Settings/DevicesSettings.qml:135",
+    "reference": "Modules/Settings/DevicesSettings.qml:141",
     "comment": "playback device settings section"
   },
   {
     "term": "When off, playback moves to the system default output.",
     "context": "When off, playback moves to the system default output.",
-    "reference": "Modules/Settings/DevicesSettings.qml:119",
+    "reference": "Modules/Settings/DevicesSettings.qml:125",
     "comment": "playback device setting description"
   },
   {
     "term": "When outputs change",
     "context": "When outputs change",
-    "reference": "Modules/Settings/DevicesSettings.qml:114",
+    "reference": "Modules/Settings/DevicesSettings.qml:120",
     "comment": "playback device settings section"
   },
   {
@@ -6716,13 +6908,19 @@
   {
     "term": "When the queue ends",
     "context": "When the queue ends",
-    "reference": "Modules/Settings/PlaybackSettings.qml:344",
+    "reference": "Modules/Settings/PlaybackSettings.qml:360",
     "comment": "playback setting"
+  },
+  {
+    "term": "Whole app",
+    "context": "Whole app",
+    "reference": "Modules/Settings/AppearanceSettings.qml:450",
+    "comment": "cover color option: album art colors everywhere"
   },
   {
     "term": "Width",
     "context": "Width",
-    "reference": "Modules/PageEditor.qml:775, Modules/Settings/ElementOptionsPage.qml:46",
+    "reference": "Modules/PageEditor.qml:775, Modules/Settings/ElementOptionsPage.qml:44",
     "comment": "element option: how wide the track info is"
   },
   {
@@ -6746,31 +6944,31 @@
   {
     "term": "Write",
     "context": "Write",
-    "reference": "Modules/Settings/LibraryDialog.qml:572",
+    "reference": "Modules/Settings/LibraryPage.qml:220",
     "comment": "button that writes ratings to files"
   },
   {
     "term": "Write existing ratings now",
     "context": "Write existing ratings now",
-    "reference": "Modules/Settings/LibraryDialog.qml:556",
+    "reference": "Modules/Settings/LibraryPage.qml:204",
     "comment": "local library action"
   },
   {
     "term": "Write ratings and favorites to files",
     "context": "Write ratings and favorites to files",
-    "reference": "Modules/Settings/LibraryDialog.qml:548",
+    "reference": "Modules/Settings/LibraryPage.qml:196",
     "comment": "local library setting"
   },
   {
     "term": "Writes ratings and favorites set earlier.",
     "context": "Writes ratings and favorites set earlier.",
-    "reference": "Modules/Settings/LibraryDialog.qml:566",
+    "reference": "Modules/Settings/LibraryPage.qml:214",
     "comment": "local library action description"
   },
   {
     "term": "Writing… %1 of %2",
     "context": "Writing… %1 of %2",
-    "reference": "Modules/Settings/LibraryDialog.qml:559",
+    "reference": "Modules/Settings/LibraryPage.qml:207",
     "comment": "progress of writing ratings to files"
   },
   {
@@ -6818,7 +7016,7 @@
   {
     "term": "ffmpeg is not installed. Tracks without ReplayGain tags play without loudness correction.",
     "context": "ffmpeg is not installed. Tracks without ReplayGain tags play without loudness correction.",
-    "reference": "Common/Phrases.qml:171",
+    "reference": "Common/Phrases.qml:198",
     "comment": "library notice"
   },
   {
@@ -6830,7 +7028,7 @@
   {
     "term": "https://music.example.net",
     "context": "https://music.example.net",
-    "reference": "Modules/Settings/LibraryDialog.qml:366",
+    "reference": "Modules/Settings/ServerSignIn.qml:169",
     "comment": "example server address in the add server dialog"
   },
   {
@@ -6848,13 +7046,13 @@
   {
     "term": "s",
     "context": "s",
-    "reference": "Modules/LyricsView.qml:483, Modules/Settings/GeneralSettings.qml:271, Modules/Settings/PlaybackSettings.qml:143, Modules/Settings/PlaybackSettings.qml:373, Modules/Settings/PlaybackSettings.qml:419",
+    "reference": "Modules/LyricsView.qml:483, Modules/Settings/GeneralSettings.qml:271, Modules/Settings/PlaybackSettings.qml:159, Modules/Settings/PlaybackSettings.qml:421, Modules/Settings/PlaybackSettings.qml:467",
     "comment": "unit suffix for seconds"
   },
   {
     "term": "~/Music",
     "context": "~/Music",
-    "reference": "Modules/Settings/LibraryDialog.qml:344",
+    "reference": "Modules/Settings/LibraryDialog.qml:199, Modules/Settings/LibraryPage.qml:172",
     "comment": "example folder path in the library dialog"
   },
   {
