@@ -1513,6 +1513,17 @@ function extraTop(raw) {
     return out;
 }
 
+// The cover color choice: the stored one, else mapped from the old artColors and artColorsApp toggles.
+function artColorMode(raw) {
+    if (!isObject(raw))
+        return "off";
+    if (["off", "nowPlaying", "app"].indexOf(raw.artColorMode) >= 0)
+        return raw.artColorMode;
+    if (raw.artColors !== true)
+        return "off";
+    return raw.artColorsApp === true ? "app" : "nowPlaying";
+}
+
 // the old cleanup: known ids, each once
 function oldZones(stored, zoneIds, ids) {
     const seen = [];

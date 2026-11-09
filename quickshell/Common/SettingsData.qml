@@ -58,8 +58,7 @@ Singleton {
     // {searchPage, searchAll}: key sequences in Qt's portable text ("Ctrl+Shift+F"); missing ones use the defaults
     property alias shortcuts: settingsAdapter.shortcuts
     // colors from the current album art override the palette: in now playing, or in the whole app
-    property alias artColors: settingsAdapter.artColors
-    property alias artColorsApp: settingsAdapter.artColorsApp
+    property alias artColorMode: settingsAdapter.artColorMode
     property alias trackTileOpensAlbum: settingsAdapter.trackTileOpensAlbum
     // ui-state.json: the full view's last pane ("lyrics" | "queue" | "") and the side panel's last tab
     property alias lastPane: stateAdapter.lastPane
@@ -98,6 +97,10 @@ Singleton {
             return;
         }
         settingsFile._extra = Layouts.extraTop(raw);
+        // the old artColors keys stay in the file as unknown keys, so an older version still reads them
+        const mode = Layouts.artColorMode(raw);
+        if (raw.artColorMode !== mode)
+            root.artColorMode = mode;
         if (Layouts.needsMigration(raw)) {
             root.layout = Layouts.migrate(raw);
             return;
@@ -215,8 +218,7 @@ Singleton {
             property string navStyle: "auto"
             property var shortcuts: ({})
             property bool trackTileOpensAlbum: false
-            property bool artColors: false
-            property bool artColorsApp: false
+            property string artColorMode: "off"
             property bool followShell: true
         }
     }

@@ -471,8 +471,8 @@ cat >>"$W/tree/shell.qml" <<'Q'
             surface.zones.cover[0].options.shape = shape;
             UiConfig.setSurface("fullBento", surface);
         }
-        function artColors(on: bool): void {
-            SettingsData.artColors = on;
+        function artColorMode(mode: string): void {
+            SettingsData.artColorMode = mode;
         }
         function element(type: string, context: string): void {
             Router.runElement(type, context);

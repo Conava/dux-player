@@ -12,9 +12,9 @@ import "Scheme.js" as Scheme
 Singleton {
     id: root
 
-    readonly property string seed: SettingsData.artColors ? PlayerService.coverColor(PlayerService.current) : ""
+    readonly property string seed: SettingsData.artColorMode === "nowPlaying" || SettingsData.artColorMode === "app" ? PlayerService.coverColor(PlayerService.current) : ""
     readonly property bool available: seed !== ""
-    readonly property bool wholeApp: available && SettingsData.artColorsApp
+    readonly property bool wholeApp: available && SettingsData.artColorMode === "app"
     // a scheme just for the now-playing views, or null when they follow Theme
     readonly property var nowPlaying: available && !wholeApp ? Scheme.fromSeed(seed, Theme.isLightMode) : null
 

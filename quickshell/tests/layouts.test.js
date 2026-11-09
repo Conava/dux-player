@@ -4,7 +4,7 @@ const path = require("path");
 const assert = require("assert");
 
 const source = fs.readFileSync(path.join(__dirname, "../Common/Layouts.js"), "utf8").replace(".pragma library", "");
-const L = new Function(source + "; return { migrate, needsMigration, effective, problems, setSurface, setItem, setPageOptions, setKindDefault, resetKind, pageOptions, savedViewOptions, kindDefault, changedPages, parseImport, cleanSurface, resetAll, resetKindDefault, accepts, keepUnchanged, setNowPlaying, extraTop, columnSort, columnSize, withColumnSizes, sizeName, sizeValue, canAddCustom, sortTemplate, newCustomLine, setOptionsAt };")();
+const L = new Function(source + "; return { migrate, needsMigration, effective, problems, setSurface, setItem, setPageOptions, setKindDefault, resetKind, pageOptions, savedViewOptions, kindDefault, changedPages, parseImport, cleanSurface, resetAll, resetKindDefault, accepts, keepUnchanged, setNowPlaying, extraTop, columnSort, columnSize, withColumnSizes, sizeName, sizeValue, artColorMode, canAddCustom, sortTemplate, newCustomLine, setOptionsAt };")();
 
 const types = (list) => list.filter(i => !i.hidden).map(i => i.type);
 const zoneTypes = (eff, id, zone) => types(eff.surfaces[id].zones[zone]);
@@ -1406,3 +1406,16 @@ assert.deepStrictEqual(L.extraTop("junk"), {});
     const next = L.effective(L.setOptionsAt(s, { view: "v1" }, { "limit": 25, "ranked": true })).savedViews[0];
     assert.deepStrictEqual([next.icon, next.options.limit, next.options.ranked], ["bolt", 25, true]);
 }
+
+// the cover color choice, from the stored one or the two old toggles
+for (const [raw, want] of [
+    [{}, "off"],
+    [null, "off"],
+    [{ "artColors": false, "artColorsApp": true }, "off"],
+    [{ "artColors": true }, "nowPlaying"],
+    [{ "artColors": true, "artColorsApp": false }, "nowPlaying"],
+    [{ "artColors": true, "artColorsApp": true }, "app"],
+    [{ "artColorMode": "nowPlaying", "artColors": true, "artColorsApp": true }, "nowPlaying"],
+    [{ "artColorMode": "off", "artColors": true, "artColorsApp": true }, "off"],
+    [{ "artColorMode": "bogus", "artColors": true, "artColorsApp": true }, "app"],
+]) assert.strictEqual(L.artColorMode(raw), want, JSON.stringify(raw));

@@ -443,20 +443,16 @@ SettingsPage {
     SettingsCard {
         title: I18n.tr("Cover colors", "appearance settings section label")
 
-        SettingsToggleRow {
-            text: I18n.tr("Color now playing from the cover", "appearance setting")
-            keywords: "album art dynamic"
-            description: I18n.tr("Applies to now playing and the now-playing bar.", "appearance setting description")
-            checked: SettingsData.artColors
-            onToggled: value => SettingsData.artColors = value
-        }
-
-        SettingsToggleRow {
-            text: I18n.tr("Color the whole app", "appearance setting: album art colors everywhere")
+        SettingsButtonGroupRow {
+            readonly property var modes: ["off", "nowPlaying", "app"]
+            text: I18n.tr("Color from the cover", "appearance setting: album art colors")
             keywords: "album art dynamic theme"
-            enabled: SettingsData.artColors
-            checked: SettingsData.artColorsApp
-            onToggled: value => SettingsData.artColorsApp = value
+            model: [I18n.tr("Off", "option that turns something off"), I18n.tr("Now playing", "settings sidebar tab label"), I18n.tr("Whole app", "cover color option: album art colors everywhere")]
+            currentIndex: Math.max(0, modes.indexOf(SettingsData.artColorMode))
+            onSelectionChanged: (index, selected) => {
+                if (selected)
+                    SettingsData.artColorMode = modes[index];
+            }
         }
     }
 

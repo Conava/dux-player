@@ -69,7 +69,7 @@ rpc localPlaylists.create "{\"name\":\"Evening drive\",\"tracks\":$(pick '0:9')}
 rpc localPlaylists.create "{\"name\":\"Deep focus\",\"tracks\":$(pick '6:17')}" >/dev/null
 rpc localPlaylists.create "{\"name\":\"Sunday morning\",\"tracks\":$(pick '12:20')}" >/dev/null
 
-ui artColors false
+ui artColorMode off
 
 # marks: kind, index into the track list, then the method and its value
 mark() { rpc "$3" "{\"library\":\"$library\",\"kind\":\"$1\",\"id\":\"$(echo "$tracks" | json "d[$2]['id']")\",\"$4\":$5}" >/dev/null; }
