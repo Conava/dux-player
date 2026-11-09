@@ -47,13 +47,16 @@ func (p *Player) PlayRefs(ctx context.Context, refs []source.Ref, index int, ori
 	}
 	var gen uint64
 	err := p.doPlay(ctx, func(ctx context.Context) error {
-		p.queue.SetShuffle(shuffle)
-		p.newQueue()
-		gen = p.queueGen
 		start := 0
 		if shuffle {
 			start = -1
 		}
+		if !p.canStart(head, start) {
+			return errNoneCanPlay
+		}
+		p.queue.SetShuffle(shuffle)
+		p.newQueue()
+		gen = p.queueGen
 		p.queue.Replace(head, start, origin)
 		return p.loadCurrent(ctx, 0, true)
 	})

@@ -1146,7 +1146,7 @@ func (p *Player) loadCurrent(ctx context.Context, start float64, play bool) erro
 	}
 	if p.queue.skip != nil && p.queue.skip(it) {
 		if !p.queue.Advance() {
-			return errors.New("none of the remaining tracks can play right now")
+			return errNoneCanPlay
 		}
 		it, _ = p.queue.Current()
 		start = 0
@@ -1433,6 +1433,28 @@ func (p *Player) clearEnded() {
 	p.publishStatus()
 }
 
+var errNoneCanPlay = errors.New("none of the remaining tracks can play right now")
+
+// canStart says whether a new list would play from start (-1: a random
+// item) with the rule loadCurrent uses, so a refused play leaves the queue
+// alone.
+func (p *Player) canStart(tracks []source.Track, start int) bool {
+	skip := p.queue.skip
+	if skip == nil {
+		return true
+	}
+	from := max(start, 0)
+	if start < 0 || p.queue.repeat == RepeatAll {
+		from = 0
+	}
+	for _, t := range tracks[from:] {
+		if !skip(Item{Track: t}) {
+			return true
+		}
+	}
+	return false
+}
+
 // Play replaces the queue with tracks and starts at index start.
 func (p *Player) Play(ctx context.Context, tracks []source.Track, start int, origin Origin) error {
 	if len(tracks) == 0 {
@@ -1442,6 +1464,9 @@ func (p *Player) Play(ctx context.Context, tracks []source.Track, start int, ori
 		return fmt.Errorf("index %d is out of range for %d tracks", start, len(tracks))
 	}
 	return p.doPlay(ctx, func(ctx context.Context) error {
+		if !p.canStart(tracks, start) {
+			return errNoneCanPlay
+		}
 		// Plain play is in order: only the shuffle entry points turn shuffle on.
 		p.queue.SetShuffle(false)
 		p.newQueue()
@@ -1456,6 +1481,9 @@ func (p *Player) PlayShuffled(ctx context.Context, tracks []source.Track, origin
 		return errors.New("nothing to play")
 	}
 	return p.doPlay(ctx, func(ctx context.Context) error {
+		if !p.canStart(tracks, -1) {
+			return errNoneCanPlay
+		}
 		p.queue.SetShuffle(true)
 		p.newQueue()
 		p.queue.Replace(tracks, -1, origin)
@@ -1485,6 +1513,9 @@ func (p *Player) PlayFeed(ctx context.Context, feed Feed, origin Origin) error {
 		return errors.New("nothing to play")
 	}
 	return p.doPlay(ctx, func(ctx context.Context) error {
+		if !p.canStart(first, -1) {
+			return errNoneCanPlay
+		}
 		p.queue.SetShuffle(false)
 		p.newQueue()
 		p.queue.Replace(first, -1, origin)

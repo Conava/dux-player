@@ -161,3 +161,41 @@ func TestStopAfterAPassedOverEntry(t *testing.T) {
 		})
 	}
 }
+
+// A play whose tracks can't play now is refused before the queue that is
+// playing is replaced.
+func TestPlayRefusedKeepsTheQueue(t *testing.T) {
+	tests := []struct {
+		name string
+		play func(p *Player) error
+	}{
+		{"play", func(p *Player) error {
+			return p.Play(context.Background(), tracks("x", "y"), 0, Origin{})
+		}},
+		{"shuffled", func(p *Player) error {
+			return p.PlayShuffled(context.Background(), tracks("x", "y"), Origin{})
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv"), Resolver: skipper{"x": true, "y": true}})
+			run(t, ctx, p)
+			require.NoError(t, p.SetRemote(ctx, &fakeRemote{}, false))
+			require.NoError(t, p.Play(ctx, tracks("a", "b", "c"), 1, Origin{}))
+			before, err := p.Queue(ctx)
+			require.NoError(t, err)
+
+			require.Error(t, tt.play(p))
+
+			after, err := p.Queue(ctx)
+			require.NoError(t, err)
+			assert.Equal(t, before.Items, after.Items)
+			assert.Equal(t, before.Index, after.Index)
+			st, err := p.Status(ctx)
+			require.NoError(t, err)
+			assert.Equal(t, "b", st.Track.ID)
+		})
+	}
+}
