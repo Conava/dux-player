@@ -24,6 +24,7 @@ WindowDialog {
         id: list
         width: parent.width
         spacing: root.contentSpacing
+        reservedRows: OutputService.castAvailable ? 3 : 0
         onPicked: Router.devicePickerOpen = false
     }
 

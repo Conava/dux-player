@@ -156,7 +156,34 @@ Item {
     property Item focusBack: null
     property int focusBackReason: Qt.OtherFocusReason
 
+    readonly property bool animates: !Style.reduceMotion && Style.currentAnimationSpeed !== Style.AnimationSpeed.None
+    // opacity, 0..1; the popup stays until a close has faded out, so a reopen mid-fade keeps it
+    property real enter: 0
+    Behavior on enter {
+        enabled: root.animates
+        DAnim {
+            duration: Style.expressiveDurations.expressiveFastEffects
+            easing.bezierCurve: Style.expressiveCurves.expressiveFastEffects
+        }
+    }
+    // how much of the menu is revealed from the edge that touches its anchor; only opening unrolls, closing fades
+    property real unroll: 0
+    Behavior on unroll {
+        enabled: root.animates && root.opened
+        DAnim {
+            duration: Style.expressiveDurations.fast
+            easing.bezierCurve: Style.expressiveCurves.emphasizedDecel
+        }
+    }
+    onEnterChanged: {
+        if (enter === 0 && !opened)
+            unroll = 0;
+    }
+
     onOpenedChanged: {
+        enter = opened ? 1 : 0;
+        if (opened)
+            unroll = 1;
         if (!opened) {
             focusBack?.forceActiveFocus(focusBackReason);
             return;
@@ -198,7 +225,7 @@ Item {
     }
 
     Loader {
-        active: root.opened
+        active: root.opened || root.enter > 0
 
         sourceComponent: PopupWindow {
             id: popup
@@ -273,6 +300,8 @@ Item {
                 y: Math.max(0, popup.upwards ? root.anchorPoint.y - root.anchorHeight - height : Math.min(popup.height - height, root.anchorPoint.y))
                 width: popup.menuWidth
                 height: popup.menuHeight
+
+                opacity: root.enter
                 LayoutMirroring.enabled: I18n.isRtl
                 LayoutMirroring.childrenInherit: true
                 Accessible.role: Accessible.PopupMenu
@@ -280,274 +309,290 @@ Item {
                 // keeps clicks inside the menu from closing it
                 MouseArea {
                     anchors.fill: parent
+                    enabled: root.opened
                     acceptedButtons: Qt.AllButtons
                 }
 
-                ElevationShadow {
-                    anchors.fill: parent
-                    level: Style.elevationLevel2
-                    fallbackOffset: Style.spacingXS
-                    targetRadius: Style.windowRadius
-                    targetColor: root.surfaceColor
-                    borderColor: Style.outlineMedium
-                    borderWidth: Style.layerOutlineWidth
-                    shadowEnabled: Style.elevationEnabled && Style.popoutElevationEnabled
-                }
+                // the content keeps its place while the clip grows from the anchor's edge, so rows never move
+                Item {
+                    id: reveal
+                    width: parent.width
+                    height: parent.height * root.unroll
+                    y: popup.upwards ? parent.height - height : 0
+                    clip: root.unroll < 1
 
-                DFlickable {
-                    anchors.fill: parent
-                    anchors.margins: root.padding
-                    contentWidth: width
-                    contentHeight: items.implicitHeight
-                    fadeEdges: false
-                    clip: true
+                    Item {
+                        y: -reveal.y
+                        width: surface.width
+                        height: surface.height
 
-                    Column {
-                        id: items
+                        ElevationShadow {
+                            anchors.fill: parent
+                            level: Style.elevationLevel2
+                            fallbackOffset: Style.spacingXS
+                            targetRadius: Style.windowRadius
+                            targetColor: root.surfaceColor
+                            borderColor: Style.outlineMedium
+                            borderWidth: Style.layerOutlineWidth
+                            shadowEnabled: Style.elevationEnabled && Style.popoutElevationEnabled
+                        }
 
-                        // the longest label decides the menu's width
-                        readonly property real widest: root.model.reduce((max, entry) => entry.divider ? max : Math.max(max, entry.slider ? root.sliderWidth(entry) : Math.max(labelMetrics.advanceWidth(entry.text ?? ""), descriptionMetrics.advanceWidth(entry.description ?? "")) + Style.iconSizeMedium * 2 + Style.spacingM * 4 + (entry.info ? Style.buttonHeightXS + Style.spacingXS : 0)), 0)
+                        DFlickable {
+                            anchors.fill: parent
+                            anchors.margins: root.padding
+                            contentWidth: width
+                            contentHeight: items.implicitHeight
+                            fadeEdges: false
+                            clip: true
 
-                        width: parent.width
+                            Column {
+                                id: items
 
-                        Repeater {
-                            id: rows
-                            model: rowSlots
+                                // the longest label decides the menu's width
+                                readonly property real widest: root.model.reduce((max, entry) => entry.divider ? max : Math.max(max, entry.slider ? root.sliderWidth(entry) : Math.max(labelMetrics.advanceWidth(entry.text ?? ""), descriptionMetrics.advanceWidth(entry.description ?? "")) + Style.iconSizeMedium * 2 + Style.spacingM * 4 + (entry.info ? Style.buttonHeightXS + Style.spacingXS : 0)), 0)
 
-                            Item {
-                                id: row
-                                required property int index
-                                readonly property var entry: root.model[index] ?? ({})
+                                width: parent.width
 
-                                width: items.width
-                                height: entry.divider ? Style.spacingS * 2 + Style.dividerWidth : entry.slider ? sliderLoader.implicitHeight : (entry.description ?? "") !== "" ? Style.listItemTwoLineHeight : Style.menuItemHeight
+                                Repeater {
+                                    id: rows
+                                    model: rowSlots
 
-                                Rectangle {
-                                    visible: row.entry.divider === true
-                                    anchors.centerIn: parent
-                                    width: parent.width
-                                    height: Style.dividerWidth
-                                    color: Style.outlineVariant
-                                }
+                                    Item {
+                                        id: row
+                                        required property int index
+                                        readonly property var entry: root.model[index] ?? ({})
 
-                                Loader {
-                                    id: sliderLoader
-                                    active: row.entry.slider === true
-                                    width: parent.width
+                                        width: items.width
+                                        height: entry.divider ? Style.spacingS * 2 + Style.dividerWidth : entry.slider ? sliderLoader.implicitHeight : (entry.description ?? "") !== "" ? Style.listItemTwoLineHeight : Style.menuItemHeight
 
-                                    sourceComponent: Item {
-                                        id: sliderEntry
-
-                                        readonly property real step: row.entry.stepSize ?? 1
-                                        readonly property int decimals: root.decimalsOf(row.entry)
-
-                                        implicitHeight: sliderContent.implicitHeight + Style.spacingS * 2
-
-                                        // a state layer: the selected container is the slider track's colour
                                         Rectangle {
-                                            anchors.fill: parent
-                                            radius: root.itemRadius
-                                            color: root.highlightIndex === row.index ? Style.withAlpha(Style.onSurface, Style.stateLayerHover) : "transparent"
+                                            visible: row.entry.divider === true
+                                            anchors.centerIn: parent
+                                            width: parent.width
+                                            height: Style.dividerWidth
+                                            color: Style.outlineVariant
                                         }
 
-                                        HoverHandler {
-                                            onHoveredChanged: {
-                                                if (hovered)
-                                                    root.highlightIndex = row.index;
-                                            }
-                                        }
+                                        Loader {
+                                            id: sliderLoader
+                                            active: row.entry.slider === true
+                                            width: parent.width
 
-                                        Column {
-                                            id: sliderContent
-                                            anchors.left: parent.left
-                                            anchors.right: parent.right
-                                            anchors.leftMargin: Style.spacingM
-                                            anchors.rightMargin: Style.spacingM
-                                            anchors.verticalCenter: parent.verticalCenter
+                                            sourceComponent: Item {
+                                                id: sliderEntry
 
-                                            Item {
-                                                width: parent.width
-                                                height: Style.buttonHeightXS
+                                                readonly property real step: row.entry.stepSize ?? 1
+                                                readonly property int decimals: root.decimalsOf(row.entry)
 
-                                                StyledText {
-                                                    anchors.left: parent.left
-                                                    anchors.right: valueRow.left
-                                                    anchors.rightMargin: Style.spacingM
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                    text: row.entry.text ?? ""
-                                                    font.pixelSize: Style.fontSizeMedium
-                                                    color: Style.onSurface
-                                                    elide: Text.ElideRight
+                                                implicitHeight: sliderContent.implicitHeight + Style.spacingS * 2
+
+                                                // a state layer: the selected container is the slider track's colour
+                                                Rectangle {
+                                                    anchors.fill: parent
+                                                    radius: root.itemRadius
+                                                    color: root.highlightIndex === row.index ? Style.withAlpha(Style.onSurface, Style.stateLayerHover) : "transparent"
                                                 }
 
-                                                Row {
-                                                    id: valueRow
-                                                    anchors.right: parent.right
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                    spacing: Style.spacingXS
-
-                                                    NumericText {
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                        text: root.formatValue(row.entry, slider.value * sliderEntry.step, sliderEntry.decimals) + (row.entry.unit ?? "")
-                                                        reserveText: root.widestValue(row.entry)
-                                                        font.pixelSize: Style.fontSizeSmall
-                                                        color: Style.onSurfaceVariant
-                                                        horizontalAlignment: Text.AlignRight
+                                                HoverHandler {
+                                                    onHoveredChanged: {
+                                                        if (hovered)
+                                                            root.highlightIndex = row.index;
                                                     }
+                                                }
 
-                                                    // keeps its place while hidden, so the value doesn't move
+                                                Column {
+                                                    id: sliderContent
+                                                    anchors.left: parent.left
+                                                    anchors.right: parent.right
+                                                    anchors.leftMargin: Style.spacingM
+                                                    anchors.rightMargin: Style.spacingM
+                                                    anchors.verticalCenter: parent.verticalCenter
+
                                                     Item {
-                                                        width: Style.buttonHeightXS
+                                                        width: parent.width
                                                         height: Style.buttonHeightXS
 
-                                                        DActionButton {
-                                                            anchors.fill: parent
-                                                            visible: row.entry.resetValue !== undefined && slider.value !== Math.round(row.entry.resetValue / sliderEntry.step)
-                                                            focusPolicy: Qt.NoFocus
-                                                            iconName: "restart_alt"
-                                                            iconSize: Style.iconSizeSmall
-                                                            Accessible.name: I18n.tr("Reset", "button that restores the defaults")
-                                                            onClicked: root.setSlider(row.entry, row.entry.resetValue)
+                                                        StyledText {
+                                                            anchors.left: parent.left
+                                                            anchors.right: valueRow.left
+                                                            anchors.rightMargin: Style.spacingM
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            text: row.entry.text ?? ""
+                                                            font.pixelSize: Style.fontSizeMedium
+                                                            color: Style.onSurface
+                                                            elide: Text.ElideRight
+                                                        }
+
+                                                        Row {
+                                                            id: valueRow
+                                                            anchors.right: parent.right
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            spacing: Style.spacingXS
+
+                                                            NumericText {
+                                                                anchors.verticalCenter: parent.verticalCenter
+                                                                text: root.formatValue(row.entry, slider.value * sliderEntry.step, sliderEntry.decimals) + (row.entry.unit ?? "")
+                                                                reserveText: root.widestValue(row.entry)
+                                                                font.pixelSize: Style.fontSizeSmall
+                                                                color: Style.onSurfaceVariant
+                                                                horizontalAlignment: Text.AlignRight
+                                                            }
+
+                                                            // keeps its place while hidden, so the value doesn't move
+                                                            Item {
+                                                                width: Style.buttonHeightXS
+                                                                height: Style.buttonHeightXS
+
+                                                                DActionButton {
+                                                                    anchors.fill: parent
+                                                                    visible: row.entry.resetValue !== undefined && slider.value !== Math.round(row.entry.resetValue / sliderEntry.step)
+                                                                    focusPolicy: Qt.NoFocus
+                                                                    iconName: "restart_alt"
+                                                                    iconSize: Style.iconSizeSmall
+                                                                    Accessible.name: I18n.tr("Reset", "button that restores the defaults")
+                                                                    onClicked: root.setSlider(row.entry, row.entry.resetValue)
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    Row {
+                                                        width: parent.width
+                                                        spacing: Style.spacingS
+
+                                                        StyledText {
+                                                            id: fromLabel
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            text: root.formatValue(row.entry, row.entry.from ?? 0)
+                                                            font.pixelSize: Style.fontSizeSmall
+                                                            color: Style.onSurfaceVariant
+                                                        }
+
+                                                        DSlider {
+                                                            id: slider
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            width: parent.width - fromLabel.width - toLabel.width - parent.spacing * 2
+                                                            size: "s"
+                                                            showValue: false
+                                                            minimum: Math.round((row.entry.from ?? 0) / sliderEntry.step)
+                                                            maximum: Math.round((row.entry.to ?? 0) / sliderEntry.step)
+                                                            Accessible.name: row.entry.text ?? ""
+                                                            onSliderValueChanged: v => root.valueMoved(row.entry.id ?? "", v * sliderEntry.step)
+                                                            // a drag reports its value when it ends, released or cancelled
+                                                            onSliderDragFinished: v => {
+                                                                if (!isDragging)
+                                                                    root.valueSet(row.entry.id ?? "", v * sliderEntry.step);
+                                                            }
+                                                            // a press takes the focus; the menu's keys get it back
+                                                            onIsDraggingChanged: {
+                                                                if (isDragging)
+                                                                    return;
+                                                                root.valueSet(row.entry.id ?? "", value * sliderEntry.step);
+                                                                menuKeys.forceActiveFocus();
+                                                            }
+
+                                                            Binding on value {
+                                                                value: Math.round((row.entry.value ?? 0) / sliderEntry.step)
+                                                                when: !slider.isDragging
+                                                                restoreMode: Binding.RestoreNone
+                                                            }
+                                                        }
+
+                                                        StyledText {
+                                                            id: toLabel
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            text: root.formatValue(row.entry, row.entry.to ?? 0)
+                                                            font.pixelSize: Style.fontSizeSmall
+                                                            color: Style.onSurfaceVariant
                                                         }
                                                     }
                                                 }
                                             }
+                                        }
+
+                                        StyledButton {
+                                            id: action
+                                            visible: row.entry.divider !== true && row.entry.slider !== true
+                                            anchors.fill: parent
+                                            enabled: row.entry.enabled !== false
+                                            focusPolicy: Qt.NoFocus
+                                            radius: root.itemRadius
+                                            color: root.highlightIndex === row.index ? Style.selectedContainer : "transparent"
+                                            Accessible.role: Accessible.MenuItem
+                                            Accessible.name: row.entry.text ?? ""
+                                            Accessible.description: row.entry.description || row.entry.info || ""
+                                            Accessible.checkable: row.entry.checked !== undefined || row.entry.active !== undefined
+                                            Accessible.checked: row.entry.checked === true || row.entry.active === true
+                                            onHoveredChanged: {
+                                                if (hovered)
+                                                    root.highlightIndex = row.index;
+                                            }
+                                            onClicked: root.trigger(row.index)
+
+                                            StateLayer {
+                                                control: action
+                                                stateColor: Style.onSurface
+                                            }
 
                                             Row {
-                                                width: parent.width
-                                                spacing: Style.spacingS
+                                                id: content
+                                                anchors.left: parent.left
+                                                anchors.leftMargin: Style.spacingM
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                spacing: Style.spacingM
 
-                                                StyledText {
-                                                    id: fromLabel
+                                                DIcon {
                                                     anchors.verticalCenter: parent.verticalCenter
-                                                    text: root.formatValue(row.entry, row.entry.from ?? 0)
-                                                    font.pixelSize: Style.fontSizeSmall
-                                                    color: Style.onSurfaceVariant
+                                                    visible: (row.entry.icon ?? "") !== ""
+                                                    name: row.entry.icon ?? ""
+                                                    filled: row.entry.iconFilled === true || row.entry.active === true
+                                                    size: Style.iconSizeMedium
+                                                    color: !action.enabled ? Style.onSurface_38 : row.entry.active === true ? Style.primary : Style.onSurfaceVariant
                                                 }
 
-                                                DSlider {
-                                                    id: slider
+                                                Column {
                                                     anchors.verticalCenter: parent.verticalCenter
-                                                    width: parent.width - fromLabel.width - toLabel.width - parent.spacing * 2
-                                                    size: "s"
-                                                    showValue: false
-                                                    minimum: Math.round((row.entry.from ?? 0) / sliderEntry.step)
-                                                    maximum: Math.round((row.entry.to ?? 0) / sliderEntry.step)
-                                                    Accessible.name: row.entry.text ?? ""
-                                                    onSliderValueChanged: v => root.valueMoved(row.entry.id ?? "", v * sliderEntry.step)
-                                                    // a drag reports its value when it ends, released or cancelled
-                                                    onSliderDragFinished: v => {
-                                                        if (!isDragging)
-                                                            root.valueSet(row.entry.id ?? "", v * sliderEntry.step);
-                                                    }
-                                                    // a press takes the focus; the menu's keys get it back
-                                                    onIsDraggingChanged: {
-                                                        if (isDragging)
-                                                            return;
-                                                        root.valueSet(row.entry.id ?? "", value * sliderEntry.step);
-                                                        menuKeys.forceActiveFocus();
+                                                    spacing: Style.spacingXXS
+
+                                                    StyledText {
+                                                        text: row.entry.text ?? ""
+                                                        font.pixelSize: Style.fontSizeMedium
+                                                        color: action.enabled ? Style.onSurface : Style.onSurface_38
                                                     }
 
-                                                    Binding on value {
-                                                        value: Math.round((row.entry.value ?? 0) / sliderEntry.step)
-                                                        when: !slider.isDragging
-                                                        restoreMode: Binding.RestoreNone
+                                                    StyledText {
+                                                        visible: text !== ""
+                                                        width: Math.min(implicitWidth, root.maximumWidth - Style.iconSizeMedium * 2 - Style.spacingM * 4)
+                                                        text: row.entry.description ?? ""
+                                                        font.pixelSize: Style.fontSizeSmall
+                                                        color: Style.onSurfaceVariant
+                                                        elide: Text.ElideRight
+                                                        wrapMode: Text.NoWrap
                                                     }
                                                 }
 
-                                                StyledText {
-                                                    id: toLabel
+                                                DIcon {
                                                     anchors.verticalCenter: parent.verticalCenter
-                                                    text: root.formatValue(row.entry, row.entry.to ?? 0)
-                                                    font.pixelSize: Style.fontSizeSmall
-                                                    color: Style.onSurfaceVariant
+                                                    visible: row.entry.checked === true
+                                                    name: "check"
+                                                    size: Style.iconSizeMedium
+                                                    color: Style.primary
                                                 }
                                             }
-                                        }
-                                    }
-                                }
 
-                                StyledButton {
-                                    id: action
-                                    visible: row.entry.divider !== true && row.entry.slider !== true
-                                    anchors.fill: parent
-                                    enabled: row.entry.enabled !== false
-                                    focusPolicy: Qt.NoFocus
-                                    radius: root.itemRadius
-                                    color: root.highlightIndex === row.index ? Style.selectedContainer : "transparent"
-                                    Accessible.role: Accessible.MenuItem
-                                    Accessible.name: row.entry.text ?? ""
-                                    Accessible.description: row.entry.description || row.entry.info || ""
-                                    Accessible.checkable: row.entry.checked !== undefined || row.entry.active !== undefined
-                                    Accessible.checked: row.entry.checked === true || row.entry.active === true
-                                    onHoveredChanged: {
-                                        if (hovered)
-                                            root.highlightIndex = row.index;
-                                    }
-                                    onClicked: root.trigger(row.index)
-
-                                    StateLayer {
-                                        control: action
-                                        stateColor: Style.onSurface
-                                    }
-
-                                    Row {
-                                        id: content
-                                        anchors.left: parent.left
-                                        anchors.leftMargin: Style.spacingM
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        spacing: Style.spacingM
-
-                                        DIcon {
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            visible: (row.entry.icon ?? "") !== ""
-                                            name: row.entry.icon ?? ""
-                                            filled: row.entry.iconFilled === true || row.entry.active === true
-                                            size: Style.iconSizeMedium
-                                            color: !action.enabled ? Style.onSurface_38 : row.entry.active === true ? Style.primary : Style.onSurfaceVariant
-                                        }
-
-                                        Column {
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            spacing: Style.spacingXXS
-
-                                            StyledText {
-                                                text: row.entry.text ?? ""
-                                                font.pixelSize: Style.fontSizeMedium
-                                                color: action.enabled ? Style.onSurface : Style.onSurface_38
-                                            }
-
-                                            StyledText {
-                                                visible: text !== ""
-                                                width: Math.min(implicitWidth, root.maximumWidth - Style.iconSizeMedium * 2 - Style.spacingM * 4)
-                                                text: row.entry.description ?? ""
-                                                font.pixelSize: Style.fontSizeSmall
-                                                color: Style.onSurfaceVariant
-                                                elide: Text.ElideRight
-                                                wrapMode: Text.NoWrap
+                                            // takes the pointer so a click on it doesn't trigger the entry
+                                            DActionButton {
+                                                anchors.right: parent.right
+                                                anchors.rightMargin: Style.spacingXS
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                visible: !!row.entry.info
+                                                focusPolicy: Qt.NoFocus
+                                                iconName: "info"
+                                                iconSize: Style.iconSizeSmall
+                                                tooltipText: row.entry.info ?? ""
+                                                Accessible.ignored: true
                                             }
                                         }
-
-                                        DIcon {
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            visible: row.entry.checked === true
-                                            name: "check"
-                                            size: Style.iconSizeMedium
-                                            color: Style.primary
-                                        }
-                                    }
-
-                                    // takes the pointer so a click on it doesn't trigger the entry
-                                    DActionButton {
-                                        anchors.right: parent.right
-                                        anchors.rightMargin: Style.spacingXS
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        visible: !!row.entry.info
-                                        focusPolicy: Qt.NoFocus
-                                        iconName: "info"
-                                        iconSize: Style.iconSizeSmall
-                                        tooltipText: row.entry.info ?? ""
-                                        Accessible.ignored: true
                                     }
                                 }
                             }

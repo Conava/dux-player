@@ -39,6 +39,12 @@ Column {
     property int pickIndex: -1
     readonly property var pickRule: list[pickIndex] ?? null
 
+    // pages all tracks in now, so the format picker's list is complete when it opens
+    Component.onCompleted: {
+        if (fieldKeys.includes("format"))
+            CatalogService.trackFormats();
+    }
+
     function fieldName(field) {
         return field === "favorite" ? UiConfig.lineLabel(field) : UiConfig.sortLabel(field);
     }

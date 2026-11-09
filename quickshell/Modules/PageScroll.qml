@@ -30,6 +30,15 @@ Item {
         onWheel: scroll.pending = -1
     }
 
+    // Home stays built while hidden: it only follows the route while it shows, and registers again on return
+    function isKeptHome() {
+        for (let p = view; p; p = p.parent) {
+            if (p.objectName === "keptHome")
+                return true;
+        }
+        return false;
+    }
+
     function room() {
         return view.contentHeight + view.bottomMargin - view.height;
     }
@@ -46,6 +55,11 @@ Item {
     onRouteChanged: {
         if (!ready)
             return;
+        if (isKeptHome()) {
+            if (Router.page !== "home")
+                return;
+            Router.pageScroll = scroll;
+        }
         pending = Router.restoreOffset;
         if (pending < 0)
             view.contentY = view.originY;

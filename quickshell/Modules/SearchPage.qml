@@ -96,7 +96,7 @@ Item {
         editing: root.editing
         onEditRequested: Router.editing = true
         onDone: Router.editing = false
-        onResetRequested: editor.reset()
+        onResetRequested: (editorLoader.item as PageEditor)?.reset()
     }
 
     // the shell's launcher search: a pill on the chip surface, large text, the search icon and a clear button
@@ -118,20 +118,26 @@ Item {
         }
     }
 
-    PageEditor {
-        id: editor
+    // built only while editing
+    Loader {
+        id: editorLoader
         anchors.top: field.bottom
-        anchors.topMargin: visible ? Theme.spacingL : 0
+        anchors.topMargin: active ? Theme.spacingL : 0
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.leftMargin: PlayerMetrics.pagePadding
         anchors.rightMargin: PlayerMetrics.pagePadding
-        visible: root.editing
-        height: visible ? implicitHeight : 0
-        sheetHost: root
-        kind: "search"
-        type: "tracks"
-        itemType: "track"
+        // a Loader keeps its last size after unloading
+        height: (item as PageEditor)?.implicitHeight ?? 0
+        active: root.editing
+
+        sourceComponent: PageEditor {
+            id: editor
+            sheetHost: root
+            kind: "search"
+            type: "tracks"
+            itemType: "track"
+        }
     }
 
     DFlickable {
@@ -141,7 +147,7 @@ Item {
         }
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: editor.bottom
+        anchors.top: editorLoader.bottom
         anchors.bottom: parent.bottom
         anchors.topMargin: Theme.spacingL
         contentHeight: column.height + PlayerMetrics.pagePadding + (root.selecting ? selectionBar.height + Theme.spacingL : 0)

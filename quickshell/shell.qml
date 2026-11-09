@@ -87,6 +87,13 @@ ShellRoot {
         }
     }
 
+    // built once the main window is up and the event loop is idle, so the first open doesn't pay for it
+    Timer {
+        interval: 1
+        running: windowLoader.item !== null
+        onTriggered: settingsLoader.active = true
+    }
+
     LazyLoader {
         id: settingsLoader
         active: false

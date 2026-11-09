@@ -58,7 +58,7 @@ Item {
                     editing: root.editing
                     onEditRequested: Router.editing = true
                     onDone: Router.editing = false
-                    onResetRequested: editor.reset()
+                    onResetRequested: (editorLoader.item as PageEditor)?.reset()
 
                     DButton {
                         anchors.verticalCenter: parent.verticalCenter
@@ -70,13 +70,20 @@ Item {
                     }
                 }
 
-                PageEditor {
-                    id: editor
-                    visible: root.editing
-                    sheetHost: root
-                    kind: "history"
-                    type: "tracks"
-                    itemType: "track"
+                // built only while editing
+                Loader {
+                    id: editorLoader
+                    width: parent.width
+                    active: root.editing
+                    visible: active
+
+                    sourceComponent: PageEditor {
+                        id: editor
+                        sheetHost: root
+                        kind: "history"
+                        type: "tracks"
+                        itemType: "track"
+                    }
                 }
 
                 EmptyState {

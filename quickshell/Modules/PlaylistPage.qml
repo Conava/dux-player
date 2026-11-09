@@ -53,11 +53,12 @@ Item {
     readonly property bool editing: Router.editing
     readonly property string reorderBlocker: PlayerService.whyNot("playlistReorder", playlist)
 
-    // playlists fetch their tracks when opened
+    // playlists fetch their tracks when opened; a loaded one is kept current by the playlists events
     onPlaylistIdChanged: {
         filterText = "";
         playlistOrder = false;
-        PlayerService.loadPlaylist(playlistId);
+        if (!playlist?.loaded)
+            PlayerService.loadPlaylist(playlistId);
     }
 
     function sortBy(key) {
@@ -92,7 +93,7 @@ Item {
             editing: root.editing
             onEditRequested: Router.editing = true
             onDone: Router.editing = false
-            onResetRequested: editor.reset()
+            onResetRequested: (editorLoader.item as PageEditor)?.reset()
 
             DIconButton {
                 id: moreButton
@@ -104,18 +105,25 @@ Item {
             }
         }
 
-        PageEditor {
-            id: editor
-            visible: root.editing
-            sheetHost: root
-            kind: "playlist"
-            itemId: root.playlistId
-            type: "tracks"
-            scopeThis: I18n.tr("This playlist", "page edit scope")
-            scopeAll: I18n.tr("All playlists", "page edit scope")
-            layouts: ["list", "compact"]
-            sorts: ["position"].concat(UiConfig.sortChoices("tracks"))
-            itemType: "track"
+        // built only while editing
+        Loader {
+            id: editorLoader
+            width: parent.width
+            active: root.editing
+            visible: active
+
+            sourceComponent: PageEditor {
+                id: editor
+                sheetHost: root
+                kind: "playlist"
+                itemId: root.playlistId
+                type: "tracks"
+                scopeThis: I18n.tr("This playlist", "page edit scope")
+                scopeAll: I18n.tr("All playlists", "page edit scope")
+                layouts: ["list", "compact"]
+                sorts: ["position"].concat(UiConfig.sortChoices("tracks"))
+                itemType: "track"
+            }
         }
 
         DetailHero {

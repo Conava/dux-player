@@ -17,6 +17,8 @@ WindowDialog {
     readonly property string kind: request?.kind ?? "track"
     readonly property var item: request ? CatalogService.withMarks(request.item) : null
     property var fetched: ({})
+    // the dialog opens once the reply is in, so it doesn't grow after its first frame
+    property bool loaded: false
     readonly property var facts: item ? rows(Object.assign({}, item, fetched)) : []
     // a local file's own tags, by TagLib name
     readonly property var tags: Object.keys(fetched.tags ?? {}).sort().map(k => ({
@@ -26,12 +28,15 @@ WindowDialog {
 
     onRequestChanged: {
         fetched = {};
+        loaded = false;
         if (!request)
             return;
         const asked = request;
         const take = d => {
-            if (root.request === asked)
-                root.fetched = d ?? {};
+            if (root.request !== asked)
+                return;
+            root.fetched = d ?? {};
+            root.loaded = true;
         };
         // request.kind: the kind binding may not have caught up with the new request yet
         if (request.kind === "artist")
@@ -84,7 +89,7 @@ WindowDialog {
     }
 
     title: kind === "album" ? I18n.tr("Album details", "details dialog title") : kind === "artist" ? I18n.tr("Artist details", "details dialog title") : I18n.tr("Track details", "details dialog title")
-    opened: request !== null
+    opened: request !== null && loaded
     acceptEnabled: false
     onRejected: Router.details = null
 

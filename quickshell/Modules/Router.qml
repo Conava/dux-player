@@ -30,9 +30,14 @@ Singleton {
     property bool devicePickerOpen: false
     // Bento's full view shows the devices in a sheet over its deck; focus goes back to playOnFrom when it closes
     property bool playOnOpen: false
+    // set first, so the sheet exists before playOnOpen turns on and sees its opening as a change
+    property bool playOnBuilt: false
     property Item playOnFrom: null
     onNowPlayingOpenChanged: {
         playOnOpen = playOnOpen && nowPlayingOpen;
+        // kept through the view's fade-out, so a sheet still sliding shut doesn't vanish
+        if (nowPlayingOpen)
+            playOnBuilt = false;
         // opened by other means: the step that would reopen it is spent
         if (nowPlayingOpen && forwardHistory[forwardHistory.length - 1]?.view === true)
             forwardHistory = forwardHistory.slice(0, -1);
@@ -343,6 +348,7 @@ Singleton {
         case "castTarget":
             if (context === "view" && UiConfig.nowPlaying.style !== "m3e") {
                 playOnFrom = from ?? null;
+                playOnBuilt = true;
                 playOnOpen = true;
             } else {
                 devicePickerOpen = true;

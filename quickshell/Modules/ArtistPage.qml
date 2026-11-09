@@ -19,6 +19,11 @@ Item {
     property var fetchedAlbums: null
     property var artistTracks: []
     property var playlistIds: []
+    // the biography, playlists and similar artists show together once both answers are in, as one shift
+    // instead of one per answer
+    property bool infoDone: false
+    property bool playlistsDone: false
+    readonly property bool settled: infoDone && playlistsDone
     property string imageUrl: ""
     readonly property var options: UiConfig.pageOptions("artist", artistId)
     readonly property bool editing: Router.editing
@@ -64,19 +69,26 @@ Item {
         fetchedAlbums = null;
         artistTracks = [];
         playlistIds = [];
+        infoDone = false;
+        playlistsDone = false;
         imageUrl = "";
         biographyOpen = false;
         filterText = "";
         pickedView = "";
-        if (id.indexOf(":") < 0)
+        if (id.indexOf(":") < 0) {
+            infoDone = playlistsDone = true;
             return;
+        }
         CatalogService.artistInfo(id, a => {
             if (root?.artistId !== id)
                 return;
             root.info = a;
+            root.infoDone = true;
             const who = root.artist;
-            if (!who)
+            if (!who) {
+                root.playlistsDone = true;
                 return;
+            }
             CatalogService.artistImage(who, url => {
                 if (root?.artistId === id)
                     root.imageUrl = url;
@@ -131,8 +143,10 @@ Item {
     function loadPlaylists(who) {
         const id = artistId;
         CatalogService.artistPlaylists(who, ids => {
-            if (root?.artistId === id)
-                root.playlistIds = ids;
+            if (root?.artistId !== id)
+                return;
+            root.playlistIds = ids;
+            root.playlistsDone = true;
         });
     }
 
@@ -176,7 +190,7 @@ Item {
                     editing: root.editing
                     onEditRequested: Router.editing = true
                     onDone: Router.editing = false
-                    onResetRequested: editor.reset()
+                    onResetRequested: (editorLoader.item as PageEditor)?.reset()
                     searchPlaceholder: I18n.tr("Search in %1", "a page's own search field, %1 is the page, playlist or artist").arg(root.artist?.name ?? "")
                     searchText: root.filterText
                     onSearchEdited: text => root.filterText = text
@@ -192,20 +206,27 @@ Item {
                     }
                 }
 
-                PageEditor {
-                    id: editor
-                    visible: root.editing
-                    sheetHost: root
-                    kind: "artist"
-                    itemId: root.artistId
-                    type: "albums"
-                    scopeThis: I18n.tr("This artist", "page edit scope")
-                    scopeAll: I18n.tr("All artists", "page edit scope")
-                    // layout, sort and lines are the albums'; the tracks follow the Tracks page
-                    layouts: root.view === "albums" ? ["grid", "list", "compact"] : []
-                    sorts: root.view === "albums" ? UiConfig.sortChoices("albums") : []
-                    linesEditable: root.view === "albums"
-                    itemType: root.view === "albums" ? "album" : "track"
+                // built only while editing
+                Loader {
+                    id: editorLoader
+                    width: parent.width
+                    active: root.editing
+                    visible: active
+
+                    sourceComponent: PageEditor {
+                        id: editor
+                        sheetHost: root
+                        kind: "artist"
+                        itemId: root.artistId
+                        type: "albums"
+                        scopeThis: I18n.tr("This artist", "page edit scope")
+                        scopeAll: I18n.tr("All artists", "page edit scope")
+                        // layout, sort and lines are the albums'; the tracks follow the Tracks page
+                        layouts: root.view === "albums" ? ["grid", "list", "compact"] : []
+                        sorts: root.view === "albums" ? UiConfig.sortChoices("albums") : []
+                        linesEditable: root.view === "albums"
+                        itemType: root.view === "albums" ? "album" : "track"
+                    }
                 }
 
                 DetailHero {
@@ -275,7 +296,7 @@ Item {
                 Column {
                     width: parent.width
                     spacing: Theme.spacingXS
-                    visible: root.biography !== "" && !root.editing
+                    visible: root.settled && root.biography !== "" && !root.editing
 
                     StyledText {
                         id: biographyText
@@ -323,13 +344,13 @@ Item {
                 }
 
                 SectionTitle {
-                    visible: root.playlists.length > 0 && !root.editing
+                    visible: root.settled && root.playlists.length > 0 && !root.editing
                     text: I18n.tr("Playlists with this artist", "artist page section")
                 }
 
                 DHorizontalList {
                     width: parent.width
-                    visible: root.playlists.length > 0 && !root.editing
+                    visible: root.settled && root.playlists.length > 0 && !root.editing
                     height: visible ? PlayerMetrics.tileSizeS + PlayerMetrics.tileInset * 2 + PlayerMetrics.gridCaptionHeight : 0
                     spacing: Theme.spacingXS
                     model: root.playlists
@@ -344,13 +365,13 @@ Item {
                 }
 
                 SectionTitle {
-                    visible: (root.info?.similar ?? []).length > 0 && !root.editing
+                    visible: root.settled && (root.info?.similar ?? []).length > 0 && !root.editing
                     text: I18n.tr("Similar artists", "artist page section")
                 }
 
                 DHorizontalList {
                     width: parent.width
-                    visible: (root.info?.similar ?? []).length > 0 && !root.editing
+                    visible: root.settled && (root.info?.similar ?? []).length > 0 && !root.editing
                     height: visible ? PlayerMetrics.tileSizeS + PlayerMetrics.tileInset * 2 + PlayerMetrics.gridCaptionHeight : 0
                     spacing: Theme.spacingXS
                     model: root.info?.similar ?? []

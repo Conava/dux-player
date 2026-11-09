@@ -389,13 +389,18 @@ FocusScope {
         visible: root.ready
         iconName: "more_vert"
         Accessible.name: I18n.tr("Lyrics source", "button choosing which provider's lyrics a track uses")
-        // opens with its list so it never grows; a failed reply still opens it for the slider
+        // opens with its list so it never grows: at once when it is fetched, else after the reply; a failed reply still opens it for the slider
         onClicked: {
+            if (sourceMenu.choicesFor === sourceMenu.track) {
+                sourceMenu.open(sourceButton);
+                return;
+            }
             const track = sourceMenu.track;
             const show = list => {
                 if (sourceMenu.track !== track)
                     return;
                 sourceMenu.choices = list;
+                sourceMenu.choicesFor = track;
                 sourceMenu.open(sourceButton);
             };
             PlayerService.lyricsChoices(show, () => show([]));
@@ -407,6 +412,22 @@ FocusScope {
 
         readonly property string track: PlayerService.current ? PlayerService.current.library + ":" + PlayerService.current.id : ""
         property var choices: []
+        // the track `choices` belong to
+        property string choicesFor: ""
+        // changes when the track or its lyrics do; fetched while the view shows, so the button opens at once
+        readonly property string fetchKey: root.visible && root.ready && track !== "" ? track + "|" + shown + "|" + PlayerService.lyricsChosen : ""
+        onFetchKeyChanged: {
+            if (fetchKey === "")
+                return;
+            const key = fetchKey;
+            PlayerService.lyricsChoices(list => {
+                // an open menu keeps its entries; a reply then only changes their checks and info
+                if (key !== fetchKey || (opened && list.map(c => c.source).join() !== choices.map(c => c.source).join()))
+                    return;
+                choices = list;
+                choicesFor = track;
+            }, null, true);
+        }
         readonly property bool auto: !PlayerService.lyricsChosen
         readonly property string shown: PlayerService.lyrics?.source ?? ""
         readonly property var sources: [

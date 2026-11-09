@@ -269,10 +269,12 @@ Column {
         id: carousel
         x: -PlayerMetrics.tileInset
         width: parent.width + PlayerMetrics.tileInset * 2
-        visible: root.layout === "carousel" && root.source.type !== "continue"
-        height: visible ? root.tileWidth + PlayerMetrics.tileInset * 2 + root.captionHeight : 0
+        // not `visible`, which follows Home: hidden, it keeps its tiles for the way back
+        readonly property bool used: root.layout === "carousel" && root.source.type !== "continue"
+        visible: used
+        height: used ? root.tileWidth + PlayerMetrics.tileInset * 2 + root.captionHeight : 0
         spacing: Theme.spacingXS
-        model: visible ? root.items.slice(0, root.shownLimit) : []
+        model: used ? root.items.slice(0, root.shownLimit) : []
 
         // ends the row where the user is looking
         footer: StyledButton {
@@ -338,11 +340,12 @@ Column {
         id: flow
         x: -PlayerMetrics.tileInset
         width: parent.width + PlayerMetrics.tileInset * 2
-        visible: root.layout === "grid" && root.source.type !== "continue"
+        readonly property bool used: root.layout === "grid" && root.source.type !== "continue"
+        visible: used
         readonly property int columns: Math.max(1, Math.floor(width / (root.tileWidth + PlayerMetrics.tileInset * 2)))
 
         Repeater {
-            model: flow.visible ? root.items.slice(0, flow.columns * root.gridRows) : []
+            model: flow.used ? root.items.slice(0, flow.columns * root.gridRows) : []
 
             MediaTile {
                 required property var modelData

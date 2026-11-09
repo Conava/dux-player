@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import qs.Common
 import qs.Services
@@ -19,7 +21,7 @@ Item {
     // "menu" (the ⋮ button, the Menu key) | "context" (right-click)
     property string zone: "menu"
 
-    readonly property bool opened: menu.opened || artistMenu.opened
+    readonly property bool opened: (_menu?.opened ?? false) || (_artistMenu?.opened ?? false)
     readonly property var hoverEntries: entries("hover", true).filter(e => !e.divider)
     readonly property var first: tracks[0] ?? null
     // a mixed selection acts on the tracks whose library supports favorites
@@ -40,16 +42,27 @@ Item {
     // removing queue entries is the list's job (one undo for many)
     signal queueRemoveRequested
 
-    // only the newest reply counts
+    // only the newest reply counts; new tracks (a recycled row) drop a pending one
     property int keepAsked: 0
+    onTracksChanged: keepAsked++
 
-    function askKeepState() {
-        if (keepable.length === 0)
+    // done: called after the reply or its failure
+    function askKeepState(done) {
+        if (keepable.length === 0) {
+            done?.();
             return;
+        }
         const asked = ++keepAsked;
-        SettingsService.askKeepState(keepable, state => {
+        DaemonBridge.request("cache.keepState", {
+            "tracks": PlayerService.refsOf(keepable)
+        }, "", state => {
+            if (asked !== keepAsked)
+                return;
+            keepState = state;
+            done?.();
+        }, () => {
             if (asked === keepAsked)
-                keepState = state;
+                done?.();
         });
     }
 
@@ -60,11 +73,14 @@ Item {
             "kept": 0,
             "held": 0
         };
-        askKeepState();
-        if (x === undefined)
-            menu.open(anchor);
-        else
-            menu.open(anchor, x, y);
+        // the keep entry's text depends on the reply, so the menu opens after it
+        askKeepState(() => {
+            menuBuilt = true;
+            if (x === undefined)
+                _menu.open(anchor);
+            else
+                _menu.open(anchor, x, y);
+        });
     }
 
     // null: the action doesn't apply in this list. inert: it doesn't apply to these tracks (a selection, the
@@ -180,7 +196,13 @@ Item {
         case "goToArtist":
             if (linkedArtists.length > 1)
                 // after this menu's popup is gone, so the new one can take the grab
-                Qt.callLater(() => anchor ? artistMenu.open(anchor) : artistMenu.openLike(menu));
+                Qt.callLater(() => {
+                    artistBuilt = true;
+                    if (anchor)
+                        _artistMenu.open(anchor);
+                    else
+                        _artistMenu.openLike(_menu);
+                });
             else
                 Router.go("artist", linkedArtists[0]?.id ?? first.artistId);
             break;
@@ -212,28 +234,40 @@ Item {
         }
     }
 
-    DMenu {
-        id: menu
-        model: {
-            const list = root.entries(root.zone, false);
-            return list.length > 0 ? list : [
-                {
-                    "id": "",
-                    "text": I18n.tr("No actions. Use Edit page to add some.", "an item menu with every action removed"),
-                    "enabled": false
-                }
-            ];
+    // the menus are built on first use: a list holds one TrackMenu per row
+    property bool menuBuilt: false
+    readonly property DMenu _menu: menuLoader.item as DMenu
+    readonly property DMenu _artistMenu: artistLoader.item as DMenu
+    property bool artistBuilt: false
+
+    Loader {
+        id: menuLoader
+        active: root.menuBuilt
+        sourceComponent: DMenu {
+            model: {
+                const list = root.entries(root.zone, false);
+                return list.length > 0 ? list : [
+                    {
+                        "id": "",
+                        "text": I18n.tr("No actions. Use Edit page to add some.", "an item menu with every action removed"),
+                        "enabled": false
+                    }
+                ];
+            }
+            onTriggered: id => root.run(id)
         }
-        onTriggered: id => root.run(id)
     }
 
-    DMenu {
-        id: artistMenu
-        model: root.linkedArtists.map(a => ({
-                    "id": a.id,
-                    "text": a.name,
-                    "icon": "artist"
-                }))
-        onTriggered: id => Router.go("artist", id)
+    Loader {
+        id: artistLoader
+        active: root.artistBuilt
+        sourceComponent: DMenu {
+            model: root.linkedArtists.map(a => ({
+                        "id": a.id,
+                        "text": a.name,
+                        "icon": "artist"
+                    }))
+            onTriggered: id => Router.go("artist", id)
+        }
     }
 }

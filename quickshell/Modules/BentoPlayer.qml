@@ -260,7 +260,8 @@ Item {
         Loader {
             id: sheetLoader
             anchors.fill: parent
-            active: !root.preview
+            // built when the Play on button is pressed, a turn before it opens
+            active: !root.preview && Router.playOnBuilt
             sourceComponent: PlayOnSheet {}
         }
     }

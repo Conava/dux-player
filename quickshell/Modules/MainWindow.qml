@@ -409,19 +409,80 @@ DFloatingWindow {
                             color: SettingsMetrics.paneColor
                             clip: true
 
+                            // the page loaders stay synchronous: a DTextField in an incubating page runs its change handlers before its motions exist
+                            readonly property bool homeWanted: Router.page === "home"
+                            // Home is built once and kept, hidden, so going back to it is instant
+                            property bool homeBuilt: false
+                            // Home shows until the page that replaces it is built, then fades out
+                            property bool homeShown: false
+                            // the loader whose page is entering, and the route it entered for
+                            property Item entering: null
+                            property string enteredRoute: ""
+                            // the final size, so the page lays out once while the panel and bar slide
+                            readonly property real pageWidth: Math.max(0, main.width - (sideHost.overlay || !sideHost.shown ? 0 : sideHost.fullWidth + Theme.windowInset))
+                            readonly property real pageHeight: Math.max(0, pages.height - topBar.height - Theme.windowInset - (bottomBar.shown ? bottomBar.height + Theme.windowInset : 0))
+
+                            onHomeWantedChanged: {
+                                if (!homeWanted)
+                                    return;
+                                homeBuilt = true;
+                                homeShown = true;
+                                homeExit.stop();
+                            }
+                            Component.onCompleted: {
+                                homeBuilt = homeWanted;
+                                homeShown = homeWanted;
+                            }
+                            // starts the shown page's enter once it is built; the page left (Home, which stays) fades out
+                            function settle() {
+                                const loader = homeWanted ? homeLoader : pageLoader;
+                                if (loader.status !== Loader.Ready || enteredRoute === Router.route)
+                                    return;
+                                const first = enteredRoute === "";
+                                enteredRoute = Router.route;
+                                if (first || !Theme.animationsEnabled) {
+                                    if (loader === pageLoader)
+                                        homeShown = false;
+                                    return;
+                                }
+                                if (entering && entering !== loader) {
+                                    entering.opacity = 1;
+                                    entering.scale = 1;
+                                }
+                                entering = loader;
+                                pageEnter.restart();
+                                if (loader !== pageLoader)
+                                    return;
+                                // Router sets the page and then its id, so a visit can settle twice; a restart would hide Home at once
+                                if (homeShown && !homeExit.running)
+                                    homeExit.start();
+                            }
+
+                            Loader {
+                                id: homeLoader
+                                objectName: "keptHome"
+                                active: contentPane.homeBuilt
+                                visible: contentPane.homeShown
+                                enabled: contentPane.homeWanted
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                width: contentPane.pageWidth
+                                height: contentPane.pageHeight
+                                source: "HomePage.qml"
+                                onStatusChanged: contentPane.settle()
+                            }
+
                             Loader {
                                 id: pageLoader
                                 readonly property string route: Router.route
-
-                                // the final size, so the page lays out once while the panel and bar slide
+                                // a turn later, so the source and status have followed the route
+                                onRouteChanged: Qt.callLater(contentPane.settle)
+                                active: !contentPane.homeWanted
                                 anchors.left: parent.left
                                 anchors.top: parent.top
-                                width: Math.max(0, main.width - (sideHost.overlay || !sideHost.shown ? 0 : sideHost.fullWidth + Theme.windowInset))
-                                height: Math.max(0, pages.height - topBar.height - Theme.windowInset - (bottomBar.shown ? bottomBar.height + Theme.windowInset : 0))
-                                onRouteChanged: {
-                                    if (Theme.animationsEnabled)
-                                        pageEnter.restart();
-                                }
+                                width: contentPane.pageWidth
+                                height: contentPane.pageHeight
+                                onStatusChanged: contentPane.settle()
                                 source: {
                                     switch (Router.page) {
                                     case "album":
@@ -436,32 +497,47 @@ DFloatingWindow {
                                         return "SearchPage.qml";
                                     case "history":
                                         return "HistoryPage.qml";
-                                    case "home":
-                                        return "HomePage.qml";
                                     }
                                     return "BrowsePage.qml";
                                 }
+                            }
 
-                                ParallelAnimation {
-                                    id: pageEnter
-                                    NumberAnimation {
-                                        target: pageLoader
-                                        property: "opacity"
-                                        from: 0
-                                        to: 1
-                                        duration: Theme.expressiveDurations.normal
-                                        easing.type: Easing.BezierSpline
-                                        easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
-                                    }
-                                    NumberAnimation {
-                                        target: pageLoader
-                                        property: "scale"
-                                        from: PlayerMetrics.pageEnterScale
-                                        to: 1
-                                        duration: Theme.expressiveDurations.normal
-                                        easing.type: Easing.BezierSpline
-                                        easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
-                                    }
+                            ParallelAnimation {
+                                id: pageEnter
+                                NumberAnimation {
+                                    target: contentPane.entering
+                                    property: "opacity"
+                                    from: 0
+                                    to: 1
+                                    duration: Theme.expressiveDurations.normal
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+                                }
+                                NumberAnimation {
+                                    target: contentPane.entering
+                                    property: "scale"
+                                    from: PlayerMetrics.pageEnterScale
+                                    to: 1
+                                    duration: Theme.expressiveDurations.normal
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+                                }
+                            }
+
+                            NumberAnimation {
+                                id: homeExit
+                                target: homeLoader
+                                property: "opacity"
+                                from: 1
+                                to: 0
+                                duration: Theme.expressiveDurations.expressiveEffects
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+                                // the hidden page starts over at full opacity
+                                onStopped: {
+                                    homeLoader.opacity = 1;
+                                    if (!contentPane.homeWanted)
+                                        contentPane.homeShown = false;
                                 }
                             }
                         }
@@ -599,6 +675,7 @@ DFloatingWindow {
                     height: parent.height
                     opacity: entry
                     enabled: body.fullWanted || entry > 0
+                    asynchronous: true
                     active: body.fullWanted || body.fullReveal > 0
                     sourceComponent: NowPlayingView {}
                     // only here is the view in the scene, so Tab starts in it and not at the window's controls

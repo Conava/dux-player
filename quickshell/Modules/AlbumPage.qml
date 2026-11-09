@@ -53,7 +53,7 @@ Item {
                     editing: root.editing
                     onEditRequested: Router.editing = true
                     onDone: Router.editing = false
-                    onResetRequested: editor.reset()
+                    onResetRequested: (editorLoader.item as PageEditor)?.reset()
 
                     DIconButton {
                         id: moreButton
@@ -65,24 +65,31 @@ Item {
                     }
                 }
 
-                PageEditor {
-                    id: editor
-                    visible: root.editing
-                    sheetHost: root
-                    kind: "album"
-                    itemId: root.album?.id ?? ""
-                    type: "tracks"
-                    scopeThis: I18n.tr("This album", "page edit scope")
-                    scopeAll: I18n.tr("All albums", "page edit scope")
-                    layouts: ["list", "compact"]
-                    itemType: "track"
+                // built only while editing
+                Loader {
+                    id: editorLoader
+                    width: parent.width
+                    active: root.editing
+                    visible: active
 
-                    SettingsToggleRow {
-                        text: I18n.tr("Group by disc", "page edit mode: a header per disc on an album page")
-                        checked: editor.options.group === "disc"
-                        onToggled: value => editor.apply({
-                                "group": value ? "disc" : ""
-                            })
+                    sourceComponent: PageEditor {
+                        id: editor
+                        sheetHost: root
+                        kind: "album"
+                        itemId: root.album?.id ?? ""
+                        type: "tracks"
+                        scopeThis: I18n.tr("This album", "page edit scope")
+                        scopeAll: I18n.tr("All albums", "page edit scope")
+                        layouts: ["list", "compact"]
+                        itemType: "track"
+
+                        SettingsToggleRow {
+                            text: I18n.tr("Group by disc", "page edit mode: a header per disc on an album page")
+                            checked: editor.options.group === "disc"
+                            onToggled: value => editor.apply({
+                                    "group": value ? "disc" : ""
+                                })
+                        }
                     }
                 }
 

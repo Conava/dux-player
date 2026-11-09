@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import qs.Common
 import qs.Services
@@ -17,7 +19,7 @@ Item {
     property string zone: "menu"
 
     readonly property string type: kind
-    readonly property bool opened: menu.opened || artistMenu.opened
+    readonly property bool opened: (_menu?.opened ?? false) || (_artistMenu?.opened ?? false)
     readonly property var hoverEntries: item ? entries("hover").filter(e => !e.divider) : []
     readonly property bool favorite: (kind === "artist" ? CatalogService.withArtistMarks(item) : item)?.favorite === true
     readonly property var linkedArtists: (item?.artists ?? []).filter(a => a.id !== "")
@@ -39,10 +41,11 @@ Item {
         _x = x ?? 0;
         _y = y ?? 0;
         zone = _atPointer ? "context" : "menu";
+        menuBuilt = true;
         if (_atPointer)
-            menu.open(anchor, x, y);
+            _menu.open(anchor, x, y);
         else
-            menu.open(anchor);
+            _menu.open(anchor);
     }
 
     // a page's own entry (extra)
@@ -169,7 +172,16 @@ Item {
             return;
         case "goToArtist":
             if (root.linkedArtists.length > 1)
-                Qt.callLater(() => anchor ? artistMenu.open(anchor) : root._atPointer ? artistMenu.open(root._anchor, root._x, root._y) : artistMenu.open(root._anchor));
+                Qt.callLater(() => {
+                    root.artistBuilt = true;
+                    const m = _artistMenu;
+                    if (anchor)
+                        m.open(anchor);
+                    else if (root._atPointer)
+                        m.open(root._anchor, root._x, root._y);
+                    else
+                        m.open(root._anchor);
+                });
             else
                 Router.go("artist", root.linkedArtists[0]?.id ?? it.artistId);
             return;
@@ -218,36 +230,48 @@ Item {
         extraTriggered(id);
     }
 
-    DMenu {
-        id: menu
-        model: {
-            if (!root.item)
-                return [];
-            const list = root.entries(root.zone);
-            if (root.extra.length > 0)
-                return list.concat(list.length > 0 ? [
+    // the menus are built on first use: tiles and rows hold one MediaMenu each
+    property bool menuBuilt: false
+    readonly property DMenu _menu: menuLoader.item as DMenu
+    readonly property DMenu _artistMenu: artistLoader.item as DMenu
+    property bool artistBuilt: false
+
+    Loader {
+        id: menuLoader
+        active: root.menuBuilt
+        sourceComponent: DMenu {
+            model: {
+                if (!root.item)
+                    return [];
+                const list = root.entries(root.zone);
+                if (root.extra.length > 0)
+                    return list.concat(list.length > 0 ? [
+                        {
+                            "divider": true
+                        }
+                    ] : []).concat(root.extra);
+                return list.length > 0 ? list : [
                     {
-                        "divider": true
+                        "id": "",
+                        "text": I18n.tr("No actions. Use Edit page to add some.", "an item menu with every action removed"),
+                        "enabled": false
                     }
-                ] : []).concat(root.extra);
-            return list.length > 0 ? list : [
-                {
-                    "id": "",
-                    "text": I18n.tr("No actions. Use Edit page to add some.", "an item menu with every action removed"),
-                    "enabled": false
-                }
-            ];
+                ];
+            }
+            onTriggered: id => root.run(id)
         }
-        onTriggered: id => root.run(id)
     }
 
-    DMenu {
-        id: artistMenu
-        model: root.linkedArtists.map(a => ({
-                    "id": a.id,
-                    "text": a.name,
-                    "icon": "artist"
-                }))
-        onTriggered: id => Router.go("artist", id)
+    Loader {
+        id: artistLoader
+        active: root.artistBuilt
+        sourceComponent: DMenu {
+            model: root.linkedArtists.map(a => ({
+                        "id": a.id,
+                        "text": a.name,
+                        "icon": "artist"
+                    }))
+            onTriggered: id => Router.go("artist", id)
+        }
     }
 }

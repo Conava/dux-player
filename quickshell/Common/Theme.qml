@@ -445,7 +445,7 @@ Singleton {
     readonly property real navigationIndicatorWidth: 56
     readonly property real navigationIndicatorHeight: 32
     readonly property real navigationVerticalPadding: 6 + densityLevel * spacingXS
-    readonly property real popupEnterScale: 0.92
+    readonly property real popupEnterScale: 1
     readonly property real pendingOpacity: 0.6
     readonly property real spinnerStrokeWidth: 2
     readonly property real tabMinWidth: 64

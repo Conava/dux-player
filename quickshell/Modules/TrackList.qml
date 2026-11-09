@@ -238,6 +238,7 @@ Item {
         id: list
         anchors.fill: parent
         clip: true
+        reuseItems: true
         spacing: Theme.groupedListGap
         bottomMargin: PlayerMetrics.pagePadding + root.bottomInset + (root.selecting ? selectionBar.height + Theme.spacingL : 0)
         // not the array: Qt copies an array model item by item (a quarter second at 100k tracks), and a re-sorted
