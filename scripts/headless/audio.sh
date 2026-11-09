@@ -21,10 +21,10 @@ wireplumber.profiles = {
 C
 pipewire >"$W/out/pipewire.log" 2>&1 &
 AUDIO_PIDS=$!
-sleep 1
+wait_for "pipewire" 20 pw-cli info 0
 wireplumber >"$W/out/wireplumber.log" 2>&1 &
 AUDIO_PIDS="$AUDIO_PIDS $!"
 pipewire-pulse >"$W/out/pipewire-pulse.log" 2>&1 &
 PULSE_PID=$!
 AUDIO_PIDS="$AUDIO_PIDS $PULSE_PID"
-sleep 2
+wait_for "the headless sinks" 20 sh -c 'pactl list short sinks | grep -q headless_c'

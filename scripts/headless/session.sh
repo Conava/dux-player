@@ -26,20 +26,33 @@ cleanup() {
     stop ${SHOW:-} $daemon ${H:-} ${K:-} ${AUDIO_PIDS:-} ${SERVER_PIDS:-}
 }
 trap cleanup EXIT
+# wait_for DESCRIPTION SECONDS COMMAND...: polls every 0.1 s until COMMAND succeeds; exits the run with a message when it doesn't.
+wait_for() {
+    local what=$1 secs=$2
+    local end=$((SECONDS + secs))
+    shift 2
+    until "$@" >/dev/null 2>&1; do
+        [ "$SECONDS" -lt "$end" ] || { echo "timed out after ${secs}s waiting for $what"; exit 1; }
+        sleep 0.1
+    done
+}
 trap 'exit 124' TERM
 trap 'exit 130' INT HUP
 setpriv --pdeathsig KILL setsid kwin_wayland --virtual --width 2600 --height 1500 --socket wayland-kv --no-lockscreen >"$W/out/kwin.log" 2>&1 &
 K=$!
-sleep 2
+wait_for "the kwin socket $XDG_RUNTIME_DIR/wayland-kv" 20 test -S "$XDG_RUNTIME_DIR/wayland-kv"
 cat >"$W/hypr.lua" <<'H'
 hl.monitor({ output = "WAYLAND-1", mode = "2560x1440@60", position = "0x0", scale = 1 })
 hl.config({ misc = { disable_hyprland_logo = true, disable_splash_rendering = true } })
 H
 WAYLAND_DISPLAY=wayland-kv setpriv --pdeathsig KILL setsid Hyprland -c "$W/hypr.lua" >"$W/out/hyprland.log" 2>&1 &
 H=$!
-sleep 3
-export HYPRLAND_INSTANCE_SIGNATURE=$(ls -t "$XDG_RUNTIME_DIR/hypr" | head -1)
-export WAYLAND_DISPLAY=$(ls -t "$XDG_RUNTIME_DIR" | grep -E '^wayland-[0-9]+$' | head -1)
+hypr_ready() {
+    export HYPRLAND_INSTANCE_SIGNATURE=$(ls -t "$XDG_RUNTIME_DIR/hypr" 2>/dev/null | head -1)
+    export WAYLAND_DISPLAY=$(ls -t "$XDG_RUNTIME_DIR" | grep -E '^wayland-[0-9]+$' | head -1)
+    [ -n "$HYPRLAND_INSTANCE_SIGNATURE" ] && [ -n "$WAYLAND_DISPLAY" ] && hyprctl monitors | grep -q WAYLAND-1
+}
+wait_for "Hyprland to answer hyprctl" 30 hypr_ready
 
 hyprctl dismissnotify >/dev/null
 [ "${DPLAYER_BACKEND:-}" = builtin ] && . "$(dirname "$LIB")/audio.sh"
@@ -65,8 +78,12 @@ dplayer-dev show -c "$W/tree" >"$W/out/show.log" 2>&1 &
 SHOW=$!
 . "$LIB"
 wait_for_daemon || echo "the daemon did not come up"
-rpc libraries.add "{\"kind\":\"local\",\"name\":\"Test\",\"folders\":[\"$W/music\"]}"
-sleep 4
+added=$(rpc libraries.add "{\"kind\":\"local\",\"name\":\"Test\",\"folders\":[\"$W/music\"]}")
+test_library=$(printf '%s' "$added" | python3 -Ic 'import json, sys; print(json.load(sys.stdin).get("result", {}).get("id", ""))' 2>/dev/null)
+[ -n "$test_library" ] || { echo "couldn't add the Test library: $added"; exit 1; }
+scanned() { rpc browse.albums "{\"library\":\"$test_library\"}" 1000000 | python3 -Ic 'import json, sys; sys.exit(not json.load(sys.stdin).get("result"))'; }
+wait_for "the Test library scan" 30 scanned
+wait_for "the window's headless IPC target" 30 ask route
 if [ -n "${SERVER:-}" ]; then
     for _ in $(seq 1 40); do
         [ -s "$W/server/port" ] && break

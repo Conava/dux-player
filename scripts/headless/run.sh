@@ -40,6 +40,70 @@ cat >>"$W/tree/shell.qml" <<'Q'
             if (tracked)
                 samples.push(tracked());
         }
+        property real t0: 0
+        // the open menu and dialog sizes, one sample every few ms while one shows
+        property var popupSamples: []
+        property var shownMenu: null
+        property var shownDialog: null
+        function firstIn(item, wanted) {
+            if (wanted(item))
+                return item;
+            for (const child of item.children) {
+                const found = firstIn(child, wanted);
+                if (found)
+                    return found;
+            }
+            return null;
+        }
+        property var shownPopup: null
+        function sizeOf(kind) {
+            if (kind === "menu") {
+                const popup = shownMenu?.children.find(c => c.item)?.item;
+                return popup ? {
+                    "kind": kind,
+                    "t": Date.now(),
+                    "w": popup.menuWidth,
+                    "h": popup.menuHeight
+                } : null;
+            }
+            const surface = shownDialog?.children.find(c => c.entryScale !== undefined);
+            return surface ? {
+                "kind": kind,
+                "t": Date.now(),
+                "w": surface.width,
+                "h": surface.height,
+                "scale": surface.scale
+            } : null;
+        }
+        // a sample per frame the popup window or the main window presented, so a size that only existed between frames doesn't count
+        function menuFrame() {
+            const sample = sizeOf("menu");
+            if (sample)
+                popupSamples.push(sample);
+        }
+        function dialogFrame() {
+            const sample = sizeOf("dialog");
+            if (sample)
+                popupSamples.push(sample);
+        }
+        // finds the open menu and dialog and listens to their windows' frames
+        function samplePopups() {
+            const root = window().contentItem;
+            if (!shownMenu?.opened)
+                shownMenu = firstIn(root, i => i.opened === true && i.highlightIndex !== undefined && i.minimumWidth !== undefined);
+            if (!shownDialog?.overlayOpen)
+                shownDialog = firstIn(root, i => i.overlayOpen === true && i.embedded === false);
+            const popup = shownMenu?.children.find(c => c.item)?.item ?? null;
+            if (popup?.contentItem?.Window.window && popup.contentItem.Window.window !== shownPopup) {
+                shownPopup = popup.contentItem.Window.window;
+                shownPopup?.frameSwapped.connect(frameProbe, frameProbe.menuFrame);
+            }
+        }
+        property Timer popupTimer: Timer {
+            interval: 2
+            repeat: true
+            onTriggered: frameProbe.samplePopups()
+        }
         property var tracked: null
         property var samples: []
         function showing(item) {
@@ -59,7 +123,7 @@ cat >>"$W/tree/shell.qml" <<'Q'
                 host: all.find(i => i.fullWidth !== undefined),
                 page: all.find(i => i.route !== undefined),
                 card: all.find(i => i.sourcePos !== undefined),
-                view: all.find(i => i.entry !== undefined)
+                view: all.find(i => typeof i.entry === "number")
             };
         }
         // where the moving parts are now
@@ -160,6 +224,9 @@ cat >>"$W/tree/shell.qml" <<'Q'
         }
         function open(page: string, id: string): void {
             Router.go(page, id);
+        }
+        function back(): void {
+            Router.back();
         }
         function route(): string {
             return Router.route;
@@ -393,6 +460,113 @@ cat >>"$W/tree/shell.qml" <<'Q'
                 "reset": reset?.visible ? point(reset) : null
             });
         }
+        // timed(ACTION, ARG): starts recording every presented frame, then does the navigation in the same call, so a
+        // build that blocks the window shows as a long wait before the first frame. ACTION: go PAGE | open "PAGE ID" |
+        // back | expand true|false
+        function timed(action: string, arg: string): void {
+            const sample = frameProbe.sampler();
+            const all = [];
+            const walk = item => {
+                all.push(item);
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(frameProbe.window().contentItem);
+            const loaders = all.find(i => i.objectName === "keptHome").parent.children.filter(c => c.sourceComponent !== undefined);
+            frameProbe.tracked = () => JSON.stringify([sample(), loaders.map(l => [l.opacity, l.scale, l.visible, String(l.item)])]);
+            frameProbe.samples = [frameProbe.tracked()];
+            frameProbe.times = [];
+            frameProbe.target = frameProbe.window();
+            frameProbe.target.frameSwapped.connect(frameProbe, frameProbe.swapped);
+            frameProbe.t0 = Date.now();
+            switch (action) {
+            case "go":
+                Router.go(arg);
+                break;
+            case "open":
+                Router.go(arg.split(" ")[0], arg.split(" ")[1]);
+                break;
+            case "back":
+                Router.back();
+                break;
+            case "expand":
+                if (arg === "true")
+                    Router.openNowPlaying();
+                else
+                    Router.nowPlayingOpen = false;
+                break;
+            }
+        }
+        // the ms from timed() to the first frame, then between the frames after it; the pause after the last one is not a gap
+        function timedStop(): string {
+            frameProbe.target.frameSwapped.disconnect(frameProbe, frameProbe.swapped);
+            frameProbe.tracked = null;
+            // up to the last frame in which something moved: a timer firing later repaints the idle window unchanged
+            const s = frameProbe.samples;
+            const moved = frameProbe.times.map((_, i) => s[i + 1] !== s[i]);
+            const t = [frameProbe.t0].concat(frameProbe.times.slice(0, moved.lastIndexOf(true) + 1));
+            return t.slice(1).map((x, i) => x - t[i]).join(" ");
+        }
+        function popupsStart(): void {
+            frameProbe.popupSamples = [];
+            frameProbe.shownMenu = null;
+            frameProbe.shownDialog = null;
+            frameProbe.shownPopup = null;
+            frameProbe.target = frameProbe.window();
+            frameProbe.target.frameSwapped.connect(frameProbe, frameProbe.dialogFrame);
+            frameProbe.popupTimer.start();
+        }
+        function popupsStop(): string {
+            frameProbe.popupTimer.stop();
+            frameProbe.target.frameSwapped.disconnect(frameProbe, frameProbe.dialogFrame);
+            try {
+                frameProbe.shownPopup?.frameSwapped.disconnect(frameProbe, frameProbe.menuFrame);
+            } catch (e) {
+                // the popup went with its menu
+            }
+            return frameProbe.popupSamples.map(s => JSON.stringify(s)).join("\n");
+        }
+        // the centre of the first showing track row in window coordinates: "X Y", "" when none
+        function trackPoint(): string {
+            const row = frameProbe.firstIn(frameProbe.window().contentItem, i => i.visible && i.width > 0 && String(i).startsWith("TrackRow"));
+            const p = row ? row.mapToItem(null, row.width / 2, row.height / 2) : null;
+            return p ? Math.round(p.x) + " " + Math.round(p.y) : "";
+        }
+        function showDetails(title: string): void {
+            Router.showDetails("track", PlayerService.query("tracks", {}).find(t => t.title === title));
+        }
+        // the visible rating bar of the open page: its stars, or -1 when none shows
+        function ratingShown(): int {
+            const bar = frameProbe.firstIn(frameProbe.window().contentItem, i => i.visible && i.blocker !== undefined && typeof i.rated === "function");
+            return bar ? bar.rating : -1;
+        }
+        function rate(stars: int): bool {
+            const bar = frameProbe.firstIn(frameProbe.window().contentItem, i => i.visible && i.blocker !== undefined && typeof i.rated === "function");
+            bar?.rated(stars);
+            return bar !== null;
+        }
+        function playlistId(name: string): string {
+            return PlaylistService.playlists.find(p => p.name === name)?.id ?? "";
+        }
+        function loadPlaylist(id: string): void {
+            PlaylistService.loadPlaylist(id);
+        }
+        // the playlist's track ids in order, "" while its tracks aren't loaded
+        function playlistOrder(id: string): string {
+            return (PlaylistService.playlist(id)?.items ?? []).map(t => t.id).join(",");
+        }
+        // a drag of the first track to the end
+        function moveFirstLast(id: string): void {
+            const n = PlaylistService.playlist(id).items.length;
+            PlaylistService.reorderPlaylist(id, Array.from({
+                length: n
+            }, (_, i) => (i + 1) % n));
+        }
+        // whether the settings window's switch labelled `label` is on: 1, 0, or -1 when none shows
+        function toggleOn(label: string): int {
+            const row = frameProbe.firstIn(settingsLoader.item?.contentItem?.Window.window?.contentItem, i => i.visible && i.text === label && i.checked !== undefined);
+            return row ? (row.checked ? 1 : 0) : -1;
+        }
         function customize(surface: string): void {
             Router.customize(surface);
         }
@@ -617,7 +791,7 @@ env -i LANG=C.UTF-8 USER="$USER" HOME="$W/home" PATH="$W/bin:$repo/core/bin:/usr
     XDG_CONFIG_HOME="$W/config" XDG_STATE_HOME="$W/state" XDG_CACHE_HOME="$W/cache" XDG_DATA_HOME="$W/data" \
     XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/share}" QT_QPA_PLATFORMTHEME=qtengine DPLAYER_WINRULES=off DPLAYER_CAST=off DPLAYER_BACKEND="${DPLAYER_BACKEND:-}" \
     DPLAYER_DISABLE_HOT_RELOAD=1 HYPRLAND_NO_SD_NOTIFY=1 HYPRLAND_NO_SD_VARS=1 HYPRLAND_NO_CRASHREPORTER=1 \
-    W="$W" LIB="$here/lib.sh" SCENARIO="$scenario" SERVER="${SERVER:-}" \
+    W="$W" LIB="$here/lib.sh" SCENARIO="$scenario" SERVER="${SERVER:-}" GAP_MAX="${GAP_MAX:-}" SEEN_MAX="${SEEN_MAX:-}" DELAY="${DELAY:-}" SETTLE="${SETTLE:-}" \
     timeout -k 30 "${HEADLESS_TIMEOUT:-420}" dbus-run-session -- bash "$here/session.sh"
 status=$?
 

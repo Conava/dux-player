@@ -4,7 +4,8 @@
 usage: fakesubsonic.py MANIFEST PORTFILE
 MANIFEST is JSON: {"artists": [{"name", "albums": [{"name", "year", "genre", "tracks": [{"title", "track",
 "duration", "path"}]}]}]}. The port goes to PORTFILE once the server listens. Favorites, ratings and plays live in
-memory; methods it lacks answer the way a server says "not implemented".
+memory; methods it lacks answer the way a server says "not implemented". While PORTFILE's sibling file "delay" holds
+a number of milliseconds, every REST call except stream and download waits that long before it is answered.
 """
 import json
 import mimetypes
@@ -22,6 +23,7 @@ CREATED = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 lock = threading.Lock()
 artists, albums, songs = {}, {}, {}
 playlists = {}
+DELAY_FILE = ""
 
 
 def load(manifest):
@@ -48,7 +50,7 @@ def load(manifest):
                 al["songs"].append(s["id"])
     first = sorted(songs)[: max(1, len(songs) // 3)]
     playlists["pl-1"] = {"id": "pl-1", "name": "Server Mix", "owner": "headless", "public": True,
-                         "readonly": True, "created": CREATED, "changed": CREATED, "songs": first}
+                         "readonly": False, "created": CREATED, "changed": CREATED, "songs": first}
 
 
 def content_type(path):
@@ -201,6 +203,30 @@ def scrobble(q):
     return {}
 
 
+def create_playlist(q):
+    ids = q.get("songId", [])
+    for sid in ids:
+        if sid not in songs:
+            raise Fail(70, "The requested data was not found")
+    if "playlistId" in q:
+        pid = find(playlists, q, "playlistId")
+        playlists[pid]["songs"] = ids
+    else:
+        pid = f"pl-{len(playlists) + 1}"
+        playlists[pid] = {"id": pid, "name": need(q, "name"), "owner": "headless", "public": False,
+                          "readonly": False, "created": CREATED, "changed": CREATED, "songs": ids}
+    return {"playlist": playlist(pid, True)}
+
+
+def update_playlist(q):
+    p = playlists[find(playlists, q, "playlistId")]
+    if "name" in q:
+        p["name"] = q["name"][0]
+    drop = {int(i) for i in q.get("songIndexToRemove", []) if i.isdigit()}
+    p["songs"] = [s for i, s in enumerate(p["songs"]) if i not in drop] + [s for s in q.get("songIdToAdd", []) if s in songs]
+    return {}
+
+
 def starred():
     return {"starred2": {"artist": [artist(a) for a in sorted(artists) if "starred" in artists[a]],
                          "album": [album(a) for a in sorted(albums) if "starred" in albums[a]],
@@ -231,6 +257,8 @@ METHODS = {
     "unstar": lambda q: star(q, False),
     "setRating": set_rating,
     "getPlaylists": lambda q: {"playlists": {"playlist": [playlist(p) for p in sorted(playlists)]}},
+    "createPlaylist": create_playlist,
+    "updatePlaylist": update_playlist,
     "getPlaylist": lambda q: {"playlist": playlist(find(playlists, q), True)},
     "getRandomSongs": lambda q: {"randomSongs": {"song": [song(s) for s in random.sample(sorted(songs), min(num(q, "size", 10), len(songs)))]}},
     "scrobble": scrobble,
@@ -264,6 +292,7 @@ class Handler(BaseHTTPRequestHandler):
                     file = songs[find(songs, q)]["file"]
                 self.send_file(file)
                 return
+            self.delay()
             if method not in METHODS:
                 raise Fail(0, f"{method} is not implemented")
             with lock:
@@ -271,6 +300,14 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(dict(status="ok", **payload))
         except Fail as e:
             self.reply({"status": "failed", "error": {"code": e.code, "message": e.message}})
+
+    def delay(self):
+        try:
+            with open(DELAY_FILE) as f:
+                ms = int(f.read().strip() or 0)
+        except (OSError, ValueError):
+            return
+        time.sleep(max(0, min(ms, 10000)) / 1000)
 
     def reply(self, body):
         body.update(version=VERSION, type="fakesubsonic", serverVersion="1.0", openSubsonic=True)
@@ -327,7 +364,9 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    global DELAY_FILE
     manifest, portfile = sys.argv[1], sys.argv[2]
+    DELAY_FILE = os.path.join(os.path.dirname(portfile), "delay")
     load(manifest)
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     server.daemon_threads = True

@@ -2,7 +2,8 @@
 # DPLAYER_BACKEND=builtin make headless also starts a private sound server with the sinks headless_a, _b and _c.
 # SERVER=1 make headless also adds the (Open)Subsonic library "Server" from a fake server (fakesubsonic.py) with two
 #   artists, three albums, 21 tracks and the playlist "Server Mix"; its password sits in a fresh keyring on the private
-#   bus. The session waits for its catalog sync. Needs gnome-keyring-daemon.
+#   bus. The session waits for its catalog sync. Needs gnome-keyring-daemon. Writing MS to "$W/server/delay" makes it
+#   answer every call after MS milliseconds; deleting the file stops that.
 #   shot NAME        screenshot to out/NAME.png
 #   go PAGE          show a page: home, libraries, history, search, ...
 #   expand true|false  open or close the full now playing view
