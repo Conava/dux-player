@@ -1,4 +1,4 @@
-# A library's page: its local and server rows, a rename through the Name dialog, a scrobbling switch, the Server dialog and Downloads opened with that library's card open.
+# A library's page: its local and server rows, a rename through the Name dialog, a scrobbling switch, the Server dialog, Downloads opened with that library's card open, and leaving the page by the header's Back, Alt+Left, Backspace and the mouse back button.
 # Needs SERVER=1.
 failed=0
 fact() { # fact NAME ACTUAL WANTED
@@ -75,5 +75,58 @@ fact "Downloads row found" "$([ "$(ask press Downloads 1)" -ge 2 ] && echo 1)" 1
 sleep 3
 shot downloads-from-library
 fact "its card is open" "$(ask shown "Downloaded tracks")" 1
+
+# leaving a sub-page: real keys and pointer, so the settings window needs the pointer in it for the keyboard
+sub() { ask settingsSub | tr -d '\n'; }
+ui settings libraries
+sleep 2
+at=$(hyprctl -j clients | python3 -I -c 'import json,sys
+c = [c for c in json.load(sys.stdin) if c["title"] == "Dux Player Settings"][0]
+print(c["at"][0], c["at"][1])')
+# settingsclick LABEL N: clicks the nth item of the settings window labelled LABEL
+settingsclick() {
+    set -- $(ask settingsPoint "$1" "$2") $at
+    click $(($1 + $3)) $(($2 + $4))
+}
+fact "no Back on a page's main view" "$(ask shown Back)" 0
+settingsclick Renamed 0
+sleep 1.5
+shot library-header-back
+fact "a row opens its page" "$(sub)" Renamed
+fact "header shows Back" "$(ask shown Back)" 1
+wtype -k BackSpace
+sleep 1
+fact "Backspace goes back" "$(sub)" ""
+fact "the row gets the focus back" "$(ask settingsFocus | tr -d '\n')" Renamed
+shot library-back-done
+settingsclick Renamed 0
+sleep 1.5
+wtype -M alt -k Left -m alt
+sleep 1
+fact "Alt+Left goes back" "$(sub)" ""
+settingsclick Renamed 0
+sleep 1.5
+pointer b
+sleep 1
+fact "mouse back button goes back" "$(sub)" ""
+ask press Renamed 0 >/dev/null
+sleep 1.5
+fact "header Back found" "$(ask press Back 0)" 1
+sleep 1
+fact "header Back goes back" "$(sub)" ""
+# a text field keeps its Backspace; leaving the page from it gives the focus to the row that opened the page
+settingsclick Test 0
+sleep 1.5
+fact "Enter a path found" "$(ask press "Enter a path" 0)" 1
+sleep 0.5
+wtype x
+wtype -k BackSpace
+wtype -k BackSpace
+sleep 1
+fact "Backspace in a field stays" "$(sub)" Test
+wtype -M alt -k Left -m alt
+sleep 1
+fact "Alt+Left from a field goes back" "$(sub)" ""
+fact "the opening row gets the focus back" "$(ask settingsFocus | tr -d '\n')" Test
 
 [ "$failed" = 0 ]

@@ -12,13 +12,11 @@ SettingsPage {
     property bool placeable: false
     // the element type's options: {key: {values: [..] | null, default?}}
     property var schema: ({})
-    property string backText: ""
 
     readonly property var placements: ["auto", "keep", "overflow"]
     readonly property var optionKeys: Object.keys(schema).filter(k => Array.isArray(schema[k].values))
 
     signal edited(var instance)
-    signal back
 
     function placementLabel(placement) {
         switch (placement) {
@@ -79,11 +77,6 @@ SettingsPage {
         const next = JSON.parse(JSON.stringify(instance));
         Object.assign(next, patch);
         return next;
-    }
-
-    SettingsBackRow {
-        text: root.backText
-        onClicked: root.back()
     }
 
     SettingsCard {

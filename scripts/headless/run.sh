@@ -381,6 +381,35 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function settings(page: string): void {
             Router.openSettings(page);
         }
+        // the open settings sub-page's title in the header, "" on a page's main view
+        function settingsSub(): string {
+            return settingsLoader.item?.subTitle ?? "";
+        }
+        // "X Y": the centre of the nth visible item of the settings window labelled `label`, in window coordinates
+        function settingsPoint(label: string, n: int): string {
+            const hits = [];
+            const walk = item => {
+                if (!item || !item.visible)
+                    return;
+                if (item.text === label || item.title === label || item.tooltipText === label)
+                    hits.push(item);
+                for (const child of item.children)
+                    walk(child);
+            };
+            const root = settingsLoader.item?.contentItem?.Window.window?.contentItem;
+            walk(root);
+            const hit = hits[n];
+            const p = hit ? hit.mapToItem(root, hit.width / 2, hit.height / 2) : null;
+            return p ? Math.round(p.x) + " " + Math.round(p.y) : "";
+        }
+        // the settings window's focused item: the accessible name of it or the nearest item around it that has one
+        function settingsFocus(): string {
+            for (let item = settingsLoader.item?.focusedItem ?? null; item; item = item.parent) {
+                if (item.Accessible.name)
+                    return item.Accessible.name;
+            }
+            return "";
+        }
         // clicks the nth visible control of the settings window or its dialogs labelled `label` (text, title or tooltip); a negative n counts
         // from the last. Returns the number of matches, 0 when nothing was pressed.
         function press(label: string, n: int): int {

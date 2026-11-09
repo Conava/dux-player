@@ -17,8 +17,14 @@ SettingsPage {
     readonly property var locals: PlayerService.outputDevices.filter(d => Phrases.isLocalOutput(d))
     readonly property var syncing: PlayerService.selectedOutputs.map(id => PlayerService.output(id)).filter(d => d && Phrases.isLocalOutput(d))
 
+    readonly property string subTitle: syncPage ? I18n.tr("Sync", "playback device sync page") : ""
+
     function openSubView(id) {
         syncPage = id === "sync";
+    }
+
+    function goBack() {
+        syncPage = false;
     }
 
     SettingsCard {
@@ -194,11 +200,6 @@ SettingsPage {
     }
 
     // the Sync sub-page
-    SettingsBackRow {
-        visible: root.syncPage
-        onClicked: root.syncPage = false
-    }
-
     SettingsPageIntro {
         visible: root.syncPage
         text: I18n.tr("Bluetooth outputs play later than wired ones. Delay the others until the test tone is in sync.", "playback device sync intro")

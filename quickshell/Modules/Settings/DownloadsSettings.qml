@@ -29,6 +29,7 @@ Item {
     readonly property bool expandedByDefault: servers.length === 1
     readonly property string excludedPrefix: "excluded:"
     readonly property string libraryPrefix: "library:"
+    readonly property string subTitle: subPage === "" ? "" : subPage.startsWith(excludedPrefix) ? I18n.tr("Excluded tracks", "offline tracks no rule may download") : I18n.tr("Downloaded tracks", "library offline overview section")
     // the card to bring into view, polled while the page lays out until it stays put
     property string revealLibrary: ""
     property int revealTries: 0
@@ -162,6 +163,10 @@ Item {
         revealTries = 0;
         revealLastY = -1;
         revealTimer.restart();
+    }
+
+    function goBack() {
+        openSubView("", false);
     }
 
     function revealCard() {
@@ -388,11 +393,6 @@ Item {
                     }
                 }
             }
-        }
-
-        SettingsBackRow {
-            visible: root.subPage !== ""
-            onClicked: root.openSubView("", false)
         }
 
         DownloadedTracks {

@@ -30,8 +30,7 @@ Item {
     readonly property var target: findInstance(optionsId)
     // reads revision so a refused move rebuilds the rows
     readonly property var editorZones: revision >= 0 ? zoneMeta.map(z => zoneModel(z)) : []
-
-    signal back
+    readonly property string subTitle: target ? UiConfig.elementLabel(target.instance.type) : title
 
     function zoneInfo(zoneId) {
         return zoneMeta.find(z => z.id === zoneId) ?? null;
@@ -267,11 +266,6 @@ Item {
         id: page
         visible: root.target === null
 
-        SettingsBackRow {
-            text: I18n.tr("Now playing", "settings sidebar tab label")
-            onClicked: root.back()
-        }
-
         SectionLabel {
             text: root.title
 
@@ -375,8 +369,6 @@ Item {
         instance: root.target?.instance ?? null
         placeable: root.target ? root.placeable(root.target.zone, root.target.entry) : false
         schema: root.target?.entry?.options ?? ({})
-        backText: root.title
         onEdited: inst => root.updateInstance(inst)
-        onBack: root.optionsId = ""
     }
 }

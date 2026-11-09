@@ -13,6 +13,7 @@ Item {
     property string subPage: ""
     readonly property var subViews: PlayerService.libraries.map(l => l.id)
     readonly property bool showingLibrary: subPage !== "" && PlayerService.library(subPage) !== null
+    readonly property string subTitle: showingLibrary ? PlayerService.library(subPage).name : ""
     // Home's empty state asks for the add dialog
     readonly property bool addWanted: Router.wantAddLibrary
 
@@ -29,6 +30,10 @@ Item {
     // quiet is the settings search reading a library's page; it fetches nothing either way
     function openSubView(id, quiet) {
         subPage = id;
+    }
+
+    function goBack() {
+        subPage = "";
     }
 
     function describe(library) {
@@ -126,11 +131,6 @@ Item {
                 color: Theme.surfaceVariantText
                 horizontalAlignment: Text.AlignLeft
             }
-        }
-
-        SettingsBackRow {
-            visible: root.showingLibrary
-            onClicked: root.openSubView("", false)
         }
 
         LibraryPage {

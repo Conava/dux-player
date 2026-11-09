@@ -9,6 +9,7 @@ import qs.DCommon.Widgets
 import qs.Widgets
 import "SettingsSearch.js" as SettingsSearch
 import "SettingsSearchIndex.js" as SettingsSearchIndex
+import "../../Common/EscapeStack.js" as Escape
 
 DFloatingWindow {
     id: window
@@ -363,6 +364,43 @@ DFloatingWindow {
         highlightedRow = null;
     }
 
+    // A page with sub-pages names the open one in subTitle ("" on its main view) and leaves it with goBack()
+    readonly property string subTitle: pageLoader.item?.subTitle ?? ""
+    readonly property Item focusedItem: focusScope.Window.activeFocusItem
+    // the main view's last focused item, which gets the focus back when a sub-page closes
+    property Item mainFocus: null
+
+    onFocusedItemChanged: {
+        if (subTitle === "" && focusedItem?.visible && isInPage(focusedItem))
+            mainFocus = focusedItem;
+    }
+    onSubTitleChanged: {
+        if (subTitle !== "")
+            return;
+        // later: the main view shows once every visible binding has updated
+        Qt.callLater(() => {
+            const focused = focusedItem;
+            if (focused && focused !== focusScope && focused.visible && !isInPage(focused))
+                return;
+            (mainFocus?.visible && isInPage(mainFocus) ? mainFocus : pageLoader.item)?.forceActiveFocus();
+        });
+    }
+
+    function isInPage(item) {
+        for (let p = item; p; p = p.parent) {
+            if (p === pageLoader)
+                return true;
+        }
+        return false;
+    }
+
+    function goBack() {
+        if (subTitle === "")
+            return false;
+        pageLoader.item.goBack();
+        return true;
+    }
+
     // "" returns a page with sub-views to its main view
     function applySubPage() {
         const page = pageLoader.item;
@@ -383,13 +421,24 @@ DFloatingWindow {
     onIsCompactModeChanged: menuVisible = false
 
     FocusScope {
+        id: focusScope
         anchors.fill: parent
         focus: true
 
         LayoutMirroring.enabled: I18n.isRtl
         LayoutMirroring.childrenInherit: true
 
+        readonly property bool dialogOpen: Escape.top(Router.escapeLayers, l => l.handlesKey && l.owner.visible && l.owner.Window.window === focusScope.Window.window) !== null
+
         Keys.onEscapePressed: window.visible = false
+        // keys bubble up from the focused item, so a text field keeps its Backspace
+        Keys.onPressed: event => {
+            const mods = event.modifiers & ~Qt.KeypadModifier;
+            const backKey = I18n.isRtl ? Qt.Key_Right : Qt.Key_Left;
+            const typing = (window.focusedItem as TextInput) !== null || (window.focusedItem as TextEdit) !== null;
+            if ((event.key === backKey && mods === Qt.AltModifier) || (event.key === Qt.Key_Backspace && mods === Qt.NoModifier && !typing))
+                event.accepted = window.goBack();
+        }
 
         Shortcut {
             sequences: [StandardKey.Find]
@@ -614,26 +663,55 @@ DFloatingWindow {
                         color: SettingsMetrics.paneColor
                     }
 
-                    StyledText {
-                        id: pageHeading
+                    Item {
+                        id: pageHeader
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.leftMargin: SettingsMetrics.panePadding
                         anchors.rightMargin: SettingsMetrics.panePadding
                         height: PlayerMetrics.pageHeaderHeight
-                        verticalAlignment: Text.AlignVCenter
-                        text: window.currentTab.label
-                        font.pixelSize: Theme.fontSizeXXLarge
-                        color: Theme.surfaceText
-                        horizontalAlignment: Text.AlignLeft
+
+                        Item {
+                            id: backSlot
+                            readonly property bool shown: window.subTitle !== ""
+                            // the arrow glyph lines up with the content edge, not the button's
+                            readonly property real glyphInset: (Theme.iconButtonSize - Theme.iconSize) / 2
+                            anchors.left: parent.left
+                            anchors.leftMargin: shown ? -glyphInset : 0
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: shown ? Theme.iconButtonSize + Theme.spacingM - glyphInset : 0
+                            height: Theme.iconButtonSize
+
+                            DActionButton {
+                                buttonSize: Theme.iconButtonSize
+                                iconName: I18n.isRtl ? "arrow_forward" : "arrow_back"
+                                iconSize: Theme.iconSize
+                                iconColor: Theme.surfaceText
+                                tooltipText: I18n.tr("Back", "page header back button")
+                                visible: backSlot.shown
+                                onClicked: window.goBack()
+                            }
+                        }
+
+                        StyledText {
+                            anchors.left: backSlot.right
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: window.subTitle || window.currentTab.label
+                            font.pixelSize: Theme.fontSizeXXLarge
+                            color: Theme.surfaceText
+                            elide: Text.ElideRight
+                            wrapMode: Text.NoWrap
+                            horizontalAlignment: Text.AlignLeft
+                        }
                     }
 
                     StyledText {
                         id: hiddenNote
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        anchors.top: pageHeading.bottom
+                        anchors.top: pageHeader.bottom
                         anchors.leftMargin: SettingsMetrics.panePadding
                         anchors.rightMargin: SettingsMetrics.panePadding
                         visible: window.revealHidden
@@ -650,7 +728,7 @@ DFloatingWindow {
                         id: pageLoader
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        anchors.top: hiddenNote.visible ? hiddenNote.bottom : pageHeading.bottom
+                        anchors.top: hiddenNote.visible ? hiddenNote.bottom : pageHeader.bottom
                         anchors.bottom: parent.bottom
                         anchors.leftMargin: SettingsMetrics.panePadding
                         anchors.rightMargin: SettingsMetrics.panePadding
@@ -666,6 +744,20 @@ DFloatingWindow {
                         }
                     }
                 }
+            }
+        }
+
+        // over the content: a control under the pointer would take the back button before a handler further down
+        Item {
+            anchors.fill: parent
+
+            TapHandler {
+                // a thumb press is held and shoves the mouse; act on release like browsers do
+                acceptedButtons: Qt.BackButton
+                gesturePolicy: TapHandler.ReleaseWithinBounds
+                longPressThreshold: 0
+                enabled: window.subTitle !== "" && !focusScope.dialogOpen
+                onTapped: window.goBack()
             }
         }
 
