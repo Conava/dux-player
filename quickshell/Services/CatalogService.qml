@@ -459,13 +459,23 @@ Singleton {
             }, mark)));
     }
 
+    // The stars change at once and go back if the server refuses.
     function setRating(kind, ref, stars) {
-        DaemonBridge.request("marks.setRating", {
+        const mark = {
             "library": ref.library,
             "kind": kind,
-            "id": kind === "track" ? ref.id : ref.rawId,
-            "rating": Math.max(0, Math.min(5, stars))
-        }, I18n.tr("Couldn't save the rating", "toast when setting a star rating fails"));
+            "id": kind === "track" ? ref.id : ref.rawId
+        };
+        const rating = Math.max(0, Math.min(5, stars));
+        const before = kind === "track" ? track(ref)?.rating : kind === "album" ? albums.find(a => a.library === ref.library && a.rawId === ref.rawId)?.rating : artists.find(a => a.library === ref.library && a.rawId === ref.rawId)?.rating;
+        _applyMark(Object.assign({
+            "rating": rating
+        }, mark));
+        DaemonBridge.request("marks.setRating", Object.assign({
+            "rating": rating
+        }, mark), I18n.tr("Couldn't save the rating", "toast when setting a star rating fails"), null, () => root._applyMark(Object.assign({
+                "rating": before ?? ref.rating ?? 0
+            }, mark)));
     }
 
     // Search: every enabled, reachable library; each library's results show as they come in.
@@ -629,6 +639,21 @@ Singleton {
             params.password = patch.password;
         if (patch.auth !== undefined)
             params.auth = patch.auth;
+        const old = library(id);
+        const shown = {
+            "name": patch.name
+        };
+        const undo = {
+            "name": old?.name
+        };
+        for (const k of ["folders", "url", "user"]) {
+            if (patch[k] === undefined)
+                continue;
+            shown[k] = patch[k];
+            undo[k] = old?.[k];
+        }
+        if (old)
+            _patchLibrary(id, shown);
         DaemonBridge.request("libraries.update", params, I18n.tr("Couldn't save the library", "toast when editing a library's name, folders or server fails"), () => {
             // a rename or a new url doesn't change what the daemon's libraries event compares
             root.refreshLibraries(false);
@@ -636,14 +661,35 @@ Singleton {
                 root.rescanLibrary(id);
             else
                 root._loadLibrary(id);
+        }, () => {
+            if (old)
+                root._patchLibrary(id, undo);
         });
     }
 
+    // The switch changes at once; the load or drop waits for the daemon (refreshLibraries compares with the
+    // state before the switch).
     function setLibraryEnabled(id, enabled) {
+        const old = library(id);
+        if (old && old.enabled !== enabled) {
+            // a second toggle while the first is out keeps the state from before the first
+            if (!_unsettled[id])
+                _unsettled[id] = old;
+            _patchLibrary(id, {
+                "enabled": enabled
+            });
+        }
         DaemonBridge.request("libraries.setEnabled", {
             "library": id,
             "enabled": enabled
-        }, I18n.tr("Couldn't change the library", "toast when turning a library on or off fails"));
+        }, I18n.tr("Couldn't change the library", "toast when turning a library on or off fails"), () => root.refreshLibraries(false), () => {
+            if (!root._unsettled[id])
+                return;
+            delete root._unsettled[id];
+            root._patchLibrary(id, {
+                "enabled": old.enabled
+            });
+        });
     }
 
     function retryLibrary(id) {
@@ -1091,9 +1137,14 @@ Singleton {
     // reloadAll), and drops what went away.
     function refreshLibraries(reloadAll) {
         DaemonBridge.request("libraries.list", null, null, list => {
-            const before = root.libraries.filter(Catalog.browsable).map(l => l.id);
-            const online = root.libraries.filter(l => l.available !== false).map(l => l.id);
-            const wasEnabled = root.libraries.filter(l => l.enabled).map(l => l.id);
+            const settled = root.libraries.map(l => root._unsettled[l.id] ?? l);
+            // an entry goes once the daemon's list shows its switch, so an earlier list can't use it up
+            for (const l of list ?? [])
+                if (root._unsettled[l.id] && root._unsettled[l.id].enabled !== l.enabled)
+                    delete root._unsettled[l.id];
+            const before = settled.filter(Catalog.browsable).map(l => l.id);
+            const online = settled.filter(l => l.available !== false).map(l => l.id);
+            const wasEnabled = settled.filter(l => l.enabled).map(l => l.id);
             root.libraries = list.map(l => Catalog.library(l, reloadAll ? null : root.library(l.id)));
             root.librariesLoaded = true;
             const now = root.libraries.filter(Catalog.browsable).map(l => l.id);
@@ -1245,6 +1296,10 @@ Singleton {
         _updateTracksLoading();
         libraryDropped(id);
     }
+
+    // id -> the library as the daemon last reported it, while a switch of its enabled state is on screen but
+    // not confirmed
+    property var _unsettled: ({})
 
     function _patchLibrary(id, patch) {
         libraries = libraries.map(l => l.id === id ? Object.assign({}, l, patch) : l);

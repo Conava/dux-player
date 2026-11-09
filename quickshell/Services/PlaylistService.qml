@@ -79,28 +79,59 @@ Singleton {
             return 0;
         const parts = CatalogService.partition("playlistAdd", refs.map(r => CatalogService.track(r) ?? r), target);
         if (parts.ok.length > 0) {
+            const undo = _show(id, (target.items ?? []).concat(parts.ok), target.trackCount + parts.ok.length);
+            const revert = () => {
+                undo();
+                failed?.();
+            };
             if (target.kind === "local")
                 _editLocal(target, "localPlaylists.add", {
                     "tracks": Catalog.refsOf(parts.ok)
-                }, failed);
+                }, revert);
             else
                 _updatePlaylist(target, {
                     "add": parts.ok.map(t => t.id)
-                }, failed);
+                }, revert);
         }
         return parts.skipped;
     }
 
     function renamePlaylist(id, name) {
         const p = playlist(id);
-        if (p?.kind === "local")
+        if (!p)
+            return;
+        _patchPlaylist(id, {
+            "name": name
+        });
+        const revert = () => root._patchPlaylist(id, {
+                "name": p.name
+            });
+        if (p.kind === "local")
             _editLocal(p, "localPlaylists.rename", {
                 "name": name
-            });
+            }, revert);
         else
             _updatePlaylist(p, {
                 "name": name
-            });
+            }, revert);
+    }
+
+    // Shows a playlist's tracks at once (only when they are loaded); returns the function that puts the old ones back.
+    function _show(id, items, trackCount) {
+        const p = playlist(id);
+        if (!p?.loaded)
+            return () => {};
+        const old = {
+            "items": p.items,
+            "trackCount": p.trackCount,
+            "duration": p.duration
+        };
+        _patchPlaylist(id, {
+            "items": items,
+            "trackCount": trackCount,
+            "duration": items.reduce((sum, t) => sum + (t.duration ?? 0), 0)
+        });
+        return () => root._patchPlaylist(id, old);
     }
 
     // cover: {type: "auto"} (mosaic of the first albums) | {type: "art", library, id} | {type: "shape", accent, shape}
@@ -124,8 +155,12 @@ Singleton {
         const move = Catalog.singleMove(order);
         if (!CatalogService.allows("playlistReorder", p) || !move)
             return;
+        // the list view puts its rows back once this returns, so the order changes first
+        const items = (p.items ?? []).slice();
+        items.splice(move.to, 0, items.splice(move.from, 1)[0]);
+        const undo = _show(id, items, p.trackCount);
         if (p.kind === "local") {
-            _editLocal(p, "localPlaylists.move", move);
+            _editLocal(p, "localPlaylists.move", move, undo);
             return;
         }
         DaemonBridge.request("playlists.move", {
@@ -133,7 +168,7 @@ Singleton {
             "id": p.rawId,
             "from": move.from,
             "to": move.to
-        }, I18n.tr("Couldn't change the playlist", "toast when renaming, adding to, removing from or reordering a playlist fails"));
+        }, I18n.tr("Couldn't change the playlist", "toast when renaming, adding to, removing from or reordering a playlist fails"), null, undo);
     }
 
     // A copy is always local, so it can take tracks from any library. done(id) runs with the copy's id.
@@ -156,14 +191,22 @@ Singleton {
 
     function removeFromPlaylist(id, indexes, failed) {
         const p = playlist(id);
-        if (p?.kind === "local")
+        if (!p)
+            return;
+        const items = (p.items ?? []).filter((t, i) => indexes.indexOf(i) < 0);
+        const undo = _show(id, items, Math.max(0, p.trackCount - (p.items ?? []).length + items.length));
+        const revert = () => {
+            undo();
+            failed?.();
+        };
+        if (p.kind === "local")
             _editLocal(p, "localPlaylists.remove", {
                 "positions": indexes
-            }, failed);
+            }, revert);
         else
             _updatePlaylist(p, {
                 "remove": indexes
-            }, failed);
+            }, revert);
     }
 
     // finished() runs once the daemon answered, either way

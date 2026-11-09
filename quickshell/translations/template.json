@@ -2254,6 +2254,13 @@
     "comment": ""
   },
   {
+    "term": "Couldn't set the sleep timer",
+    "translation": "",
+    "context": "toast when setting the sleep timer fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Couldn't set the stop point",
     "translation": "",
     "context": "toast when setting where playback stops fails",

@@ -174,8 +174,24 @@ Singleton {
         default:
             return;
         }
-        DaemonBridge.request("settings.set", params, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"), r => root._applySettings(r), () => root._refreshSettings());
+        // shown at once; events wait until every change is answered, so none pulls the value back
+        settings = Object.assign({}, settings, {
+            [name]: value
+        });
+        _settingsBusy++;
+        DaemonBridge.request("settings.set", params, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"), r => {
+            root._settingsBusy--;
+            if (root._settingsBusy === 0)
+                root._applySettings(r);
+        }, () => {
+            root._settingsBusy--;
+            if (root._settingsBusy === 0)
+                root._refreshSettings();
+        });
     }
+
+    // settings.set requests in flight
+    property int _settingsBusy: 0
 
     function setEqualizerPreset(preset) {
         const bands = (eqPresets[preset] ?? _eqBandsNow()).slice();
@@ -247,24 +263,43 @@ Singleton {
     }
 
     function setScrobbleEnabled(service, enabled) {
-        DaemonBridge.request("scrobble.setEnabled", {
+        _scrobbleSwitch("scrobble.setEnabled", {
             "service": service,
             "enabled": enabled
-        }, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"), result => root._applyScrobble(result));
+        }, Object.assign({}, scrobble, {
+            [service]: Object.assign({}, scrobble[service], {
+                "enabled": enabled
+            })
+        }));
     }
 
     function setScrobbleLibraryAccounts(libraryId, enabled) {
-        DaemonBridge.request("scrobble.setLibraryAccounts", {
+        _scrobbleSwitch("scrobble.setLibraryAccounts", {
             "library": libraryId,
             "enabled": enabled
-        }, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"), s => root._applyScrobble(s));
+        }, Object.assign({}, scrobble, {
+            "noAccountsLibraries": _withMember(scrobble.noAccountsLibraries, libraryId, !enabled)
+        }));
     }
 
     function setScrobbleLibraryServer(libraryId, enabled) {
-        DaemonBridge.request("scrobble.setLibraryServer", {
+        _scrobbleSwitch("scrobble.setLibraryServer", {
             "library": libraryId,
             "enabled": enabled
-        }, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"), result => root._applyScrobble(result));
+        }, Object.assign({}, scrobble, {
+            "noServerLibraries": _withMember(scrobble.noServerLibraries, libraryId, !enabled)
+        }));
+    }
+
+    function _withMember(list, id, present) {
+        return (list ?? []).filter(i => i !== id).concat(present ? [id] : []);
+    }
+
+    // shows `shown` at once; the reply replaces it, a refusal puts the old status back
+    function _scrobbleSwitch(method, params, shown) {
+        const before = scrobble;
+        scrobble = shown;
+        DaemonBridge.request(method, params, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"), r => root._applyScrobble(r), () => root.scrobble = before);
     }
 
     // Cache for server libraries
@@ -310,7 +345,32 @@ Singleton {
             params.id = id;
         if (limit)
             params.limit = limit;
-        DaemonBridge.request("cache.addRule", params, I18n.tr("Couldn't keep it on this device", "toast when adding an offline rule fails"));
+        const key = scope === "" ? "all:" + kind : id ? kind + ":" + id : kind;
+        _setRules(cacheRules().filter(r => !((r.library ?? "") === scope && r.key === key)).concat([
+            {
+                "library": scope,
+                "kind": kind,
+                "id": id ?? "",
+                "limit": limit,
+                "key": key,
+                "local": scope === "" && !!id,
+                "tracks": 0,
+                "cached": 0,
+                "size": 0
+            }
+        ]));
+        DaemonBridge.request("cache.addRule", params, I18n.tr("Couldn't keep it on this device", "toast when adding an offline rule fails"), null, () => root._refreshCache());
+    }
+
+    // the rules as shown until the next cache status replaces them
+    function _setRules(rules) {
+        cache = Object.assign({}, cache, {
+            "rules": rules
+        });
+    }
+
+    function _refreshCache() {
+        DaemonBridge.request("cache.status", null, null, s => root.cache = s);
     }
 
     // changes: {limit} and/or {scope}
@@ -325,7 +385,12 @@ Singleton {
             params.limit = changes.limit;
         if (changes.scope !== undefined)
             params.scope = changes.scope;
-        DaemonBridge.request("cache.updateRule", params, I18n.tr("Couldn't save the offline setting", "toast when an offline cache setting is refused"));
+        const scope = changes.scope ?? rule.library ?? "";
+        _setRules((cache.rules ?? []).map(r => (r.library ?? "") === (rule.library ?? "") && r.kind === rule.kind && (r.id ?? "") === (rule.id ?? "") ? Object.assign({}, r, {
+                "library": scope,
+                "limit": changes.limit ?? r.limit
+            }) : r));
+        DaemonBridge.request("cache.updateRule", params, I18n.tr("Couldn't save the offline setting", "toast when an offline cache setting is refused"), null, () => root._refreshCache());
     }
 
     // done() once the status without the rule is in, or the removal failed
@@ -395,19 +460,29 @@ Singleton {
     function setKept(kind, item, keep) {
         const id = item.id;
         const cut = id.indexOf(":");
-        if (keep)
-            addCacheRule(id.substring(0, cut), kind, id.substring(cut + 1));
-        else
-            removeCacheRule(id.substring(0, cut), kind, id.substring(cut + 1));
+        const lib = id.substring(0, cut);
+        const raw = id.substring(cut + 1);
+        if (keep) {
+            addCacheRule(lib, kind, raw);
+            return;
+        }
+        _setRules((cache.rules ?? []).filter(r => !((r.library ?? "") === lib && r.kind === kind && r.id === raw)));
+        removeCacheRule(lib, kind, raw);
     }
 
     // Ratings and favorites in files (local libraries with writeMarks)
 
     function setWriteMarks(libraryId, enabled) {
+        const before = CatalogService.library(libraryId)?.writeMarks === true;
+        CatalogService._patchLibrary(libraryId, {
+            "writeMarks": enabled
+        });
         DaemonBridge.request("marks.setWriteToFiles", {
             "library": libraryId,
             "enabled": enabled
-        }, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"), () => CatalogService.refreshLibraries(false));
+        }, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"), () => CatalogService.refreshLibraries(false), () => CatalogService._patchLibrary(libraryId, {
+                "writeMarks": before
+            }));
     }
 
     function writeMarksNow(libraryId) {
@@ -435,9 +510,13 @@ Singleton {
     }
 
     function setCacheLimit(mb) {
+        const limit = Math.max(100, Math.round(mb));
+        cache = Object.assign({}, cache, {
+            "limit": limit * 1e6
+        });
         DaemonBridge.request("cache.setLimit", {
-            "mb": Math.max(100, Math.round(mb))
-        }, I18n.tr("Couldn't save the offline setting", "toast when an offline cache setting is refused"));
+            "mb": limit
+        }, I18n.tr("Couldn't save the offline setting", "toast when an offline cache setting is refused"), null, () => root._refreshCache());
     }
 
     // failed() on an error; done({total, items}); items are {track, size, added, used, played, rules, excluded}, the excluded tracks
@@ -612,7 +691,10 @@ Singleton {
     }
 
     Component.onCompleted: {
-        DaemonBridge.subscribeTopic("settings", r => root._applySettings(r));
+        DaemonBridge.subscribeTopic("settings", r => {
+            if (root._settingsBusy === 0)
+                root._applySettings(r);
+        });
         DaemonBridge.subscribeTopic("lyricsProviders", list => root.lyricsProviders = list);
         DaemonBridge.subscribeTopic("scrobble", s => root._applyScrobble(s));
         DaemonBridge.subscribeTopic("cache", () => DaemonBridge.request("cache.status", null, null, s => root.cache = s));

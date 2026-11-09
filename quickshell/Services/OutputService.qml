@@ -59,10 +59,14 @@ Singleton {
 
     // applied on slider release: a change is a short skip on that output
     function setOutputDelay(id, ms) {
+        const value = Math.max(0, Math.min(PlayerMetrics.outputDelayMax, Math.round(ms)));
+        outputDelays = Object.assign({}, outputDelays, {
+            [id]: value
+        });
         DaemonBridge.request("devices.setDelay", {
             "id": id,
-            "ms": Math.max(0, Math.min(PlayerMetrics.outputDelayMax, Math.round(ms)))
-        }, I18n.tr("Couldn't save the delay", "toast when an output's sync delay is refused"));
+            "ms": value
+        }, I18n.tr("Couldn't save the delay", "toast when an output's sync delay is refused"), null, () => root._refresh());
     }
 
     function setPauseOnDisconnect(enabled) {
@@ -74,16 +78,20 @@ Singleton {
 
     // one of several outputs going away; mode: "pause" | "continue"
     function setOnDisconnect(id, mode) {
+        outputDevices = outputDevices.map(d => d.id === id ? Object.assign({}, d, {
+                "onDisconnect": mode
+            }) : d);
         DaemonBridge.request("devices.setOnDisconnect", {
             "id": id,
             "mode": mode
-        }, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"));
+        }, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"), null, () => root._refresh());
     }
 
     function setResetOutputOnStart(enabled) {
+        resetOutputOnStart = enabled;
         DaemonBridge.request("devices.setResetOnStart", {
             "enabled": enabled
-        }, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"));
+        }, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"), null, () => root._refresh());
     }
 
     function playTestTone() {

@@ -99,12 +99,74 @@ Singleton {
         });
     }
 
+    // Playback, queue and sleep commands show their result at once. `want` (state, index, sleep) names what
+    // the shown state expects: status events that disagree are older than the command and wait until every
+    // command is answered; the status or queue is read again if the command failed or an event was dropped.
+    function _expect(want, method, params, failText) {
+        _want = Object.assign({}, _want, want);
+        _busy++;
+        DaemonBridge.request(method, params, null, () => root._settled(false), error => {
+            if (error !== "end of queue" && error !== "nothing is playing")
+                root.notice(failText);
+            root._settled(true);
+        });
+    }
+
+    function _settled(failed) {
+        if (--_busy > 0)
+            return;
+        _want = ({});
+        const status = failed || _droppedStatus;
+        const list = failed || _droppedQueue;
+        _droppedStatus = false;
+        _droppedQueue = false;
+        if (status)
+            _refreshStatus();
+        if (list)
+            _refreshQueue();
+    }
+
+    function _stale(s) {
+        return _want.state !== undefined && s.state !== _want.state || _want.index !== undefined && s.index !== _want.index || _want.sleep !== undefined && _sleepModeOf(s.sleep) !== _want.sleep;
+    }
+
+    function _sleepModeOf(sleep) {
+        const mode = sleep?.mode;
+        return mode === "timer" ? "minutes" : mode === "endOfTrack" || mode === "afterEntry" ? mode : "off";
+    }
+
+    function _showState(state) {
+        _state = state;
+        playing = state === "playing";
+    }
+
+    // Shows the entry at `index` as the current track, from its start.
+    function _showEntry(index) {
+        queueIndex = index;
+        _statusTrack = queue[index];
+        duration = queue[index].duration ?? duration;
+        _syncClock({
+            "position": 0
+        }, true);
+    }
+
     function play() {
-        DaemonBridge.request(_state === "stopped" ? "player.resume" : "player.toggle", null, I18n.tr("Couldn't start playback", "toast when the daemon refuses to play"));
+        if (_state === "stopped") {
+            DaemonBridge.request("player.resume", null, I18n.tr("Couldn't start playback", "toast when the daemon refuses to play"));
+            return;
+        }
+        _showState("playing");
+        _expect({
+            "state": "playing"
+        }, "player.toggle", null, I18n.tr("Couldn't start playback", "toast when the daemon refuses to play"));
     }
 
     function pause() {
-        _command("player.pause");
+        if (_state !== "stopped")
+            _showState("paused");
+        _expect(_state === "stopped" ? {} : {
+            "state": "paused"
+        }, "player.pause", null, I18n.tr("Couldn't change playback", "snackbar when play, pause, skip or seek fails"));
     }
 
     function toggle() {
@@ -114,11 +176,25 @@ Singleton {
     }
 
     function next() {
-        _command("player.next");
+        const to = queueIndex + 1;
+        const want = {};
+        // shuffle picks the next entry in the daemon, so only the play order can be shown ahead
+        if (active && !shuffle && queueIndex >= 0 && to < queue.length) {
+            _showEntry(to);
+            want.index = to;
+        }
+        _expect(want, "player.next", null, I18n.tr("Couldn't change playback", "snackbar when play, pause, skip or seek fails"));
     }
 
+    // past the threshold the track restarts instead
     function previous() {
-        _command("player.previous");
+        const to = queueIndex - 1;
+        const want = {};
+        if (active && !shuffle && queueIndex >= 0 && to >= 0 && livePosition() <= (SettingsService.settings.previousThreshold ?? 5)) {
+            _showEntry(to);
+            want.index = to;
+        }
+        _expect(want, "player.previous", null, I18n.tr("Couldn't change playback", "snackbar when play, pause, skip or seek fails"));
     }
 
     function seek(seconds) {
@@ -316,16 +392,39 @@ Singleton {
     function enqueue(refs, playNext) {
         if (refs.length === 0)
             return;
-        DaemonBridge.request("queue.add", {
+        const params = {
             "tracks": Catalog.refsOf(refs),
             "next": playNext === true
-        }, I18n.tr("Couldn't add to the queue", "toast when adding tracks to the play queue fails"));
+        };
+        const failText = I18n.tr("Couldn't add to the queue", "toast when adding tracks to the play queue fails");
+        const tracks = refs.map(r => CatalogService.track(r));
+        if (queue.length === 0 || tracks.some(t => t === null)) {
+            DaemonBridge.request("queue.add", params, failText);
+            return;
+        }
+        // placeholder qids until the daemon's queue replaces them
+        const added = tracks.map(t => Object.assign({}, t, {
+                "qid": -(++_placeholderQid),
+                "byHand": true,
+                "auto": false
+            }));
+        const at = playNext === true ? queueIndex + 1 : queue.length;
+        const list = queue.slice();
+        list.splice(at, 0, ...added);
+        _editQueue(list, queueIndex, "queue.add", params, failText);
     }
 
+    property int _placeholderQid: 0
+
     function queueJump(index) {
-        _command("queue.jump", {
+        const want = {};
+        if (queue[index]) {
+            _showEntry(index);
+            want.index = index;
+        }
+        _expect(want, "queue.jump", {
             "index": index
-        });
+        }, I18n.tr("Couldn't change playback", "snackbar when play, pause, skip or seek fails"));
     }
 
     // the queue entry with that qid, wherever it sits now
@@ -339,13 +438,13 @@ Singleton {
             failed?.();
             return;
         }
-        DaemonBridge.request("queue.move", {
+        const list = queue.slice();
+        list.splice(to, 0, list.splice(from, 1)[0]);
+        const at = from === queueIndex ? to : from < queueIndex && to >= queueIndex ? queueIndex - 1 : from > queueIndex && to <= queueIndex ? queueIndex + 1 : queueIndex;
+        _editQueue(list, at, "queue.move", {
             "from": from,
             "to": to
-        }, I18n.tr("Couldn't move the track", "toast when moving a queue entry fails"), null, () => {
-            root._refreshQueue();
-            failed?.();
-        });
+        }, I18n.tr("Couldn't move the track", "toast when moving a queue entry fails"), failed);
     }
 
     // order: the new order as old indexes, from a drag that moved one entry
@@ -356,41 +455,86 @@ Singleton {
     }
 
     function queueRemove(index) {
-        DaemonBridge.request("queue.remove", {
+        const params = {
             "index": index
-        }, I18n.tr("Couldn't remove from the queue", "toast when removing a queue entry fails"));
+        };
+        const failText = I18n.tr("Couldn't remove from the queue", "toast when removing a queue entry fails");
+        // the daemon decides what plays after the current entry goes
+        if (!queue[index] || index === queueIndex) {
+            DaemonBridge.request("queue.remove", params, failText);
+            return;
+        }
+        _editQueue(queue.filter((t, i) => i !== index), index < queueIndex ? queueIndex - 1 : queueIndex, "queue.remove", params, failText);
     }
 
     // keeps the current track playing
     function queueClear() {
-        DaemonBridge.request("queue.clear", {
+        const keep = queue.filter((t, i) => i === queueIndex);
+        _editQueue(keep, keep.length > 0 ? 0 : -1, "queue.clear", {
             "keepCurrent": true
         }, I18n.tr("Couldn't clear the queue", "toast when clearing the play queue fails"));
     }
 
+    // Shows the edited queue at once; the daemon's queue events wait until it answered, then replace it.
+    function _editQueue(list, index, method, params, failText, failed) {
+        _setQueue(list);
+        queueEdited = true;
+        const want = {};
+        if (queueIndex >= 0 && index >= 0) {
+            queueIndex = index;
+            want.index = index;
+        }
+        _want = Object.assign({}, _want, want);
+        _busy++;
+        DaemonBridge.request(method, params, failText, () => root._settled(false), () => {
+            root._settled(true);
+            failed?.();
+        });
+    }
+
+    // list: entries with a qid
+    function _setQueue(list) {
+        queue = list;
+        _queueKeys = list.map(t => t.qid);
+        const byQid = {};
+        list.forEach(t => byQid[t.qid] = t);
+        _queueByQid = byQid;
+        _queueSums = Catalog.suffixDurations(list, t => t.duration);
+    }
+
     // Sleep timer
 
+    function _setSleep(mode, params, failText, at, entry) {
+        sleepMode = mode;
+        sleepAt = at ?? 0;
+        sleepEntry = entry ?? 0;
+        sleepRemaining = mode === "minutes" ? Math.max(0, sleepAt - Date.now() / 1000) : 0;
+        _expect({
+            "sleep": mode
+        }, "player.sleep", params, failText);
+    }
+
     function setSleepTimer(minutes) {
-        DaemonBridge.request("player.sleep", {
+        _setSleep("minutes", {
             "minutes": minutes
-        });
+        }, I18n.tr("Couldn't set the sleep timer", "toast when setting the sleep timer fails"), Date.now() / 1000 + minutes * 60);
     }
 
     function setSleepAtEndOfTrack() {
-        DaemonBridge.request("player.sleep", {
+        _setSleep("endOfTrack", {
             "endOfTrack": true
-        });
+        }, I18n.tr("Couldn't set the sleep timer", "toast when setting the sleep timer fails"));
     }
 
     function setSleepAfter(index) {
-        DaemonBridge.request("player.sleep", {
+        _setSleep("afterEntry", {
             "mode": "afterEntry",
             "index": index
-        }, I18n.tr("Couldn't set the stop point", "toast when setting where playback stops fails"));
+        }, I18n.tr("Couldn't set the stop point", "toast when setting where playback stops fails"), 0, queue[index]?.qid);
     }
 
     function cancelSleepTimer() {
-        DaemonBridge.request("player.sleep", {
+        _setSleep("off", {
             "off": true
         }, I18n.tr("Couldn't cancel the sleep timer", "toast when cancelling the sleep timer fails"));
     }
@@ -446,6 +590,11 @@ Singleton {
     property string _lyricsKey: ""
     property bool _volumeBusy: false
     property bool _volumeDirty: false
+    // commands in flight, what their shown result expects, and whether an event was held back meanwhile
+    property int _busy: 0
+    property var _want: ({})
+    property bool _droppedStatus: false
+    property bool _droppedQueue: false
 
     function _sendVolume() {
         if (_volumeBusy) {
@@ -495,6 +644,10 @@ Singleton {
     }
 
     function _applyStatus(s) {
+        if (_stale(s)) {
+            _droppedStatus = true;
+            return;
+        }
         _state = s.state ?? "stopped";
         playing = _state === "playing";
         loading = s.loading === true;
@@ -520,7 +673,7 @@ Singleton {
         if (!t || !_statusTrack || Catalog.key(t) !== Catalog.key(_statusTrack))
             _statusTrack = t;
         const sleep = s.sleep ?? {};
-        sleepMode = sleep.mode === "timer" ? "minutes" : sleep.mode === "endOfTrack" || sleep.mode === "afterEntry" ? sleep.mode : "off";
+        sleepMode = _sleepModeOf(sleep);
         sleepEntry = sleep.entry ?? 0;
         sleepAt = sleep.at ?? 0;
         sleepRemaining = sleepMode === "minutes" ? Math.max(0, sleepAt - Date.now() / 1000) : 0;
@@ -555,18 +708,18 @@ Singleton {
 
     // An advance only moves the index: the list stays the same object, so the queue view keeps its rows.
     function _applyQueue(q) {
+        if (_busy > 0) {
+            _droppedQueue = true;
+            return;
+        }
         const items = q.items ?? [];
         const keys = items.map(item => item.uid);
         if (!Catalog.sameKeys(keys, _queueKeys)) {
-            const byQid = {};
-            queue = items.map(item => byQid[item.uid] = Object.assign(Catalog.track(item.track), {
+            _setQueue(items.map(item => Object.assign(Catalog.track(item.track), {
                     "qid": item.uid,
                     "byHand": item.added === true,
                     "auto": item.auto === true
-                }));
-            _queueKeys = keys;
-            _queueByQid = byQid;
-            _queueSums = Catalog.suffixDurations(queue, t => t.duration);
+                })));
         }
         queueIndex = q.index ?? -1;
         playContext = Catalog.contextOf(q.origin ?? {});
@@ -619,22 +772,37 @@ Singleton {
         _lyricsState = "idle";
     }
 
-    function lyricsChoices(then, failed) {
+    // quiet: a background prefetch fails without a toast
+    function lyricsChoices(then, failed, quiet) {
         if (current)
             DaemonBridge.request("lyrics.choices", {
                 "library": current.library,
                 "id": current.id
-            }, I18n.tr("Couldn't list the lyrics sources", "toast when the lyrics sources can't be read"), then, failed);
+            }, quiet ? "" : I18n.tr("Couldn't list the lyrics sources", "toast when the lyrics sources can't be read"), then, failed);
     }
 
     // an empty source goes back to automatic
+    // The menu's check moves at once; the lyrics themselves follow with the daemon's lyrics event.
     function chooseLyrics(source) {
-        if (current)
-            DaemonBridge.request("lyrics.choose", {
-                "library": current.library,
-                "id": current.id,
+        if (!current)
+            return;
+        const before = {
+            "lyrics": _lyrics,
+            "chosen": _lyricsChosen
+        };
+        _lyricsChosen = source !== "";
+        if (source !== "" && _lyrics)
+            _lyrics = Object.assign({}, _lyrics, {
                 "source": source
-            }, I18n.tr("Couldn't change the lyrics", "toast when a lyrics source can't be kept for a track"));
+            });
+        DaemonBridge.request("lyrics.choose", {
+            "library": current.library,
+            "id": current.id,
+            "source": source
+        }, I18n.tr("Couldn't change the lyrics", "toast when a lyrics source can't be kept for a track"), null, () => {
+            root._lyrics = before.lyrics;
+            root._lyricsChosen = before.chosen;
+        });
     }
 
     // sets the playing track's lyrics timing in seconds, later when positive; 0 resets
