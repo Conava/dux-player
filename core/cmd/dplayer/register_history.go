@@ -2,6 +2,7 @@ package main
 
 import (
 	"path/filepath"
+	"sync/atomic"
 	"time"
 
 	"github.com/duxlabs-dev/dux-go/log"
@@ -11,11 +12,14 @@ import (
 	"github.com/Conava/dux-player/core/internal/player"
 )
 
+// historyStore is set once the history has opened; nil while it is
+// unavailable.
+var historyStore atomic.Pointer[history.Store]
+
 func init() {
-	var store *history.Store
 	addFeature(feature{
 		register: func(r *ipc.Registry, d *daemon) {
-			history.Register(r, func() *history.Store { return store }, func(t string, v any) { d.Bus.Publish(t, v) })
+			history.Register(r, historyStore.Load, func(t string, v any) { d.Bus.Publish(t, v) })
 		},
 		start: func(d *daemon) error {
 			s, err := history.Open(d.Ctx, filepath.Join(d.DataDir, "history.db"))
@@ -25,7 +29,7 @@ func init() {
 			}
 			s.Server = d.Libraries.Server
 			s.Sources = d.Libraries.Working
-			store = s
+			historyStore.Store(s)
 			d.Stats = s
 			go func() {
 				<-d.Ctx.Done()

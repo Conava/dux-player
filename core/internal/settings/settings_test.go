@@ -185,3 +185,27 @@ func TestPlayNextOrder(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, got.PlayerOptions().PlayNextInOrder)
 }
+
+func TestContinueSettings(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, FileName), []byte(`{"gaplessMode":"yes"}`), 0o644))
+	s, err := Open(dir)
+	require.NoError(t, err)
+	assert.Equal(t, "balanced", s.Get().SimilarTracks, "a file without the key gets the default")
+	assert.Equal(t, 5, s.Get().ContinueTracks, "a file without the key gets the default")
+
+	for _, set := range []map[string]any{
+		{"similarTracks": "wild"},
+		{"continueTracks": 0.0},
+		{"continueTracks": 51.0},
+		{"continueTracks": 2.5},
+	} {
+		_, err = s.Set(set)
+		assert.Error(t, err, "%v", set)
+	}
+
+	got, err := s.Set(map[string]any{"similarTracks": "adventurous", "continueTracks": 50.0})
+	require.NoError(t, err)
+	assert.Equal(t, "adventurous", got.SimilarTracks)
+	assert.Equal(t, 50, got.ContinueTracks)
+}

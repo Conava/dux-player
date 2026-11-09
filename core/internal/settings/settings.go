@@ -23,6 +23,7 @@ import (
 	"github.com/Conava/dux-player/core/internal/atomicfile"
 	"github.com/Conava/dux-player/core/internal/player"
 	"github.com/Conava/dux-player/core/internal/shuffle"
+	"github.com/Conava/dux-player/core/internal/similar"
 )
 
 const FileName = "settings.json"
@@ -41,6 +42,10 @@ type Settings struct {
 	// PlayNextOrder is where Play next puts tracks: after earlier Play next
 	// picks ("added") or right after the current track ("newest").
 	PlayNextOrder string `json:"playNextOrder"`
+	// SimilarTracks is how far similar continue strays from the session.
+	SimilarTracks string `json:"similarTracks"`
+	// ContinueTracks is how many tracks one continue adds, 1-50.
+	ContinueTracks int `json:"continueTracks"`
 	// ShuffleMode is what shuffle reorders: "tracks" or whole "albums".
 	ShuffleMode string `json:"shuffleMode"`
 	// SkipRules apply to what the daemon picks by itself.
@@ -134,6 +139,8 @@ func Defaults() Settings {
 		Crossfade:          Crossfade{Seconds: 5, AlbumGapless: true},
 		AutoContinue:       player.ContinueOff,
 		PlayNextOrder:      playNextAdded,
+		SimilarTracks:      string(similar.Balanced),
+		ContinueTracks:     5,
 		ShuffleMode:        shuffleTracks,
 		HistoryMonths:      12,
 		MpvIdleExit:        defaultMpvIdleExit,
@@ -339,6 +346,14 @@ func apply(s Settings, key string, v any) (Settings, error) {
 		s.AutoContinue, err = oneOf(key, v, player.ContinueOff, player.ContinueRandom, player.ContinueSimilar)
 	case "playNextOrder":
 		s.PlayNextOrder, err = oneOf(key, v, playNextAdded, playNextNewest)
+	case "similarTracks":
+		s.SimilarTracks, err = oneOf(key, v, string(similar.Close), string(similar.Balanced), string(similar.Adventurous))
+	case "continueTracks":
+		var f float64
+		if f, err = toFloat(key, v); err == nil && (f != float64(int(f)) || f < 1 || f > 50) {
+			err = fmt.Errorf("%s must be a whole number from 1 to 50", key)
+		}
+		s.ContinueTracks = int(f)
 	case "shuffleMode":
 		s.ShuffleMode, err = oneOf(key, v, shuffleTracks, shuffleAlbums)
 	case "skipRules":

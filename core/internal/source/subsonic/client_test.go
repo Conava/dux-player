@@ -42,6 +42,7 @@ type fakeServer struct {
 	// verbs and rawQueries record the HTTP method and the URL query of the last request per method.
 	verbs      map[string]string
 	rawQueries map[string]string
+	hits       map[string]int
 }
 
 func authMode(q url.Values) string {
@@ -66,7 +67,7 @@ func (f *fakeServer) authorized(q url.Values) bool {
 }
 
 func newFake(t *testing.T, password string, bodies map[string]string) *fakeServer {
-	f := &fakeServer{password: password, bodies: bodies, queries: map[string]url.Values{}, verbs: map[string]string{}, rawQueries: map[string]string{}, accepts: []string{AuthToken}, rejectCode: 40}
+	f := &fakeServer{password: password, bodies: bodies, queries: map[string]url.Values{}, verbs: map[string]string{}, rawQueries: map[string]string{}, hits: map[string]int{}, accepts: []string{AuthToken}, rejectCode: 40}
 	// TLS: signing in with the password itself needs https.
 	f.Server = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		method := strings.TrimPrefix(r.URL.Path, "/rest/")
@@ -79,6 +80,7 @@ func newFake(t *testing.T, password string, bodies map[string]string) *fakeServe
 		f.mu.Lock()
 		f.verbs[method], f.rawQueries[method] = r.Method, rawQuery
 		f.queries[method] = q
+		f.hits[method]++
 		f.log = append(f.log, q)
 		accepts, code := f.accepts, f.rejectCode
 		f.mu.Unlock()
@@ -473,4 +475,43 @@ func TestStreamURLForAskedFormats(t *testing.T) {
 			assert.Equal(t, "s1", q.Query().Get("id"))
 		})
 	}
+}
+
+func TestSimilarTracks(t *testing.T) {
+	env := func(s string) string { return strings.Replace(okEnvelope, "%s", ","+s, 1) }
+	ctx := context.Background()
+
+	f := newFake(t, "demo", map[string]string{
+		"getSimilarSongs": env(`"similarSongs":{"song":[{"id":"n1"},{"id":"n2"}]}`),
+	})
+	s := newSource(t, f, "demo")
+	got, err := s.SimilarTracks(ctx, source.Track{ID: "seed"}, 1000)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"n1", "n2"}, ids(got))
+	q := f.query("getSimilarSongs")
+	assert.Equal(t, "seed", q.Get("id"))
+	assert.Equal(t, "50", q.Get("count"), "the count is clamped")
+
+	got, err = s.SimilarTracks(ctx, source.Track{ID: "seed"}, 1)
+	require.NoError(t, err)
+	assert.Len(t, got, 1, "a server that ignores count is cut to n")
+
+	f = newFake(t, "demo", map[string]string{
+		"getSimilarSongs": `{"subsonic-response":{"status":"failed","version":"1.16.1","error":{"code":30,"message":"not implemented"}}}`,
+		"getRandomSongs":  env(`"randomSongs":{"song":[{"id":"r1"}]}`),
+	})
+	s = newSource(t, f, "demo")
+	_, err = s.SimilarTracks(ctx, source.Track{ID: "seed"}, 5)
+	assert.ErrorIs(t, err, ErrUnsupported)
+	_, err = s.SimilarTracks(ctx, source.Track{ID: "seed"}, 5)
+	assert.ErrorIs(t, err, ErrUnsupported)
+	f.mu.Lock()
+	assert.Equal(t, 1, f.hits["getSimilarSongs"], "the not-implemented answer is remembered")
+	f.mu.Unlock()
+	_, err = s.RandomTracks(ctx, 5)
+	assert.NoError(t, err, "other methods still work")
+
+	got, err = s.SimilarTracks(ctx, source.Track{}, 5)
+	require.NoError(t, err)
+	assert.Empty(t, got)
 }

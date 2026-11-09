@@ -3,6 +3,7 @@ package player
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -395,7 +396,7 @@ func TestAutoContinueExtendsTheQueue(t *testing.T) {
 	opts := DefaultOptions()
 	opts.AutoContinue = ContinueRandom
 	p := New(Config{Binary: bin, Socket: filepath.Join(dir, "mpv.sock"), ExtraArgs: []string{"--ao=null"}, Resolver: res,
-		Options: opts, Continue: func(context.Context, string, source.Track, map[source.Ref]bool) ([]source.Track, error) {
+		Options: opts, Continue: func(context.Context, string, []source.Track, map[source.Ref]bool) ([]source.Track, error) {
 			return tracks("b"), nil
 		}})
 	ctx, cancel := context.WithCancel(context.Background())
@@ -550,4 +551,78 @@ func TestDroppedNextAfterGaplessMoveOn(t *testing.T) {
 			}, 3*time.Second, 10*time.Millisecond, "the queue did not move on to the track after the dropped one")
 		})
 	}
+}
+
+// A continue is seeded by every track of the session, not only the last;
+// a new play starts a new session.
+func TestContinueSeedsAreTheSession(t *testing.T) {
+	var mu sync.Mutex
+	var seeds [][]string
+	opts := DefaultOptions()
+	opts.AutoContinue = ContinueSimilar
+	p, ctx := castPlayer(t, Config{Options: opts,
+		Continue: func(_ context.Context, _ string, s []source.Track, _ map[source.Ref]bool) ([]source.Track, error) {
+			mu.Lock()
+			defer mu.Unlock()
+			var got []string
+			for _, t := range s {
+				got = append(got, t.ID)
+			}
+			seeds = append(seeds, got)
+			return tracks(fmt.Sprintf("c%d", len(seeds))), nil
+		}})
+	calls := func() int {
+		mu.Lock()
+		defer mu.Unlock()
+		return len(seeds)
+	}
+	require.NoError(t, p.Play(ctx, tracks("a", "b"), 1, Origin{}))
+	require.Eventually(t, func() bool { return queued(ctx, p) == 3 }, 2*time.Second, 5*time.Millisecond)
+	require.NoError(t, p.Next(ctx))
+	require.Eventually(t, func() bool { return calls() == 2 }, 2*time.Second, 5*time.Millisecond)
+	require.NoError(t, p.Play(ctx, tracks("x"), 0, Origin{}))
+	require.Eventually(t, func() bool { return calls() == 3 }, 2*time.Second, 5*time.Millisecond)
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, [][]string{{"a", "b"}, {"a", "b", "c1"}, {"x"}}, seeds)
+}
+
+// While shuffled, the newest seeds are the tracks played last, not the list's
+// last tracks.
+func TestContinueSeedsFollowPlayOrder(t *testing.T) {
+	var mu sync.Mutex
+	var seeds []string
+	opts := DefaultOptions()
+	opts.AutoContinue = ContinueSimilar
+	p, ctx := castPlayer(t, Config{Options: opts,
+		Continue: func(_ context.Context, _ string, s []source.Track, _ map[source.Ref]bool) ([]source.Track, error) {
+			mu.Lock()
+			defer mu.Unlock()
+			seeds = nil
+			for _, t := range s {
+				seeds = append(seeds, t.ID)
+			}
+			return nil, nil
+		}})
+	require.NoError(t, p.PlayShuffled(ctx, tracks("a", "b", "c", "d", "e", "f", "g", "h"), Origin{}))
+	var played []string
+	for {
+		st, err := p.Status(ctx)
+		require.NoError(t, err)
+		require.NotNil(t, st.Track)
+		played = append(played, st.Track.ID)
+		if len(played) == 8 {
+			break
+		}
+		require.NoError(t, p.Next(ctx))
+	}
+	require.Eventually(t, func() bool {
+		mu.Lock()
+		defer mu.Unlock()
+		return len(seeds) == 8
+	}, 2*time.Second, 5*time.Millisecond)
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, played, seeds)
 }

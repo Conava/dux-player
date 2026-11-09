@@ -51,6 +51,7 @@ func newFake(t *testing.T) *fake {
 		"/Users/" + userID + "/Items/" + albumID: "album.json",
 		"/Playlists/" + playlistID + "/Items":    "playlist_items.json",
 		"/Artists/AlbumArtists":                  "album_artists.json",
+		"/Items/seed1/InstantMix":                "album_tracks.json",
 	}
 	f.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
@@ -318,4 +319,26 @@ func TestStreamURLForNamesTheFormats(t *testing.T) {
 	assert.Equal(t, "flac,mp3", q.Query().Get("Container"))
 	assert.Equal(t, "opus", q.Query().Get("AudioCodec"))
 	assert.Equal(t, "tok1", q.Query().Get("ApiKey"))
+}
+
+func TestSimilarTracksIsTheInstantMix(t *testing.T) {
+	f := newFake(t)
+	s := newSource(t, f, memSecrets{"jf/password": ""})
+	ctx := context.Background()
+
+	got, err := s.SimilarTracks(ctx, source.Track{ID: "seed1"}, 1000)
+	require.NoError(t, err)
+	require.NotEmpty(t, got)
+	assert.Equal(t, "90b750a2cec4eb338c0dab3b40b8bb13", got[0].ID)
+	q := f.last("/Items/seed1/InstantMix").query
+	assert.Equal(t, userID, q.Get("UserId"))
+	assert.Equal(t, "50", q.Get("Limit"), "the count is clamped")
+
+	got, err = s.SimilarTracks(ctx, source.Track{ID: "seed1"}, 1)
+	require.NoError(t, err)
+	assert.Len(t, got, 1, "a server that ignores Limit is cut to n")
+
+	f.Close()
+	_, err = s.SimilarTracks(ctx, source.Track{ID: "seed1"}, 5)
+	assert.Error(t, err)
 }

@@ -63,7 +63,7 @@ func TestQueueContinues(t *testing.T) {
 			opts := DefaultOptions()
 			opts.AutoContinue = tc.auto
 			p, ctx := castPlayer(t, Config{Options: opts,
-				Continue: func(context.Context, string, source.Track, map[source.Ref]bool) ([]source.Track, error) {
+				Continue: func(context.Context, string, []source.Track, map[source.Ref]bool) ([]source.Track, error) {
 					return tracks("a", "b", "c"), nil
 				}})
 			require.NoError(t, p.Play(ctx, tracks("a", "b"), 1, Origin{}))
@@ -85,7 +85,7 @@ func TestQueueContinues(t *testing.T) {
 
 // Continuing turned on for a queue ends with it.
 func TestContinueBelongsToTheQueue(t *testing.T) {
-	p, ctx := castPlayer(t, Config{Continue: func(context.Context, string, source.Track, map[source.Ref]bool) ([]source.Track, error) {
+	p, ctx := castPlayer(t, Config{Continue: func(context.Context, string, []source.Track, map[source.Ref]bool) ([]source.Track, error) {
 		return nil, nil
 	}})
 	require.NoError(t, p.Play(ctx, tracks("a"), 0, Origin{}))
@@ -110,7 +110,7 @@ func TestNextAfterTheEndContinues(t *testing.T) {
 		writeWAV(t, res[id], 0.4)
 	}
 	p := New(Config{Binary: bin, Socket: filepath.Join(dir, "mpv.sock"), ExtraArgs: []string{"--ao=null"}, Resolver: res,
-		Continue: func(context.Context, string, source.Track, map[source.Ref]bool) ([]source.Track, error) {
+		Continue: func(context.Context, string, []source.Track, map[source.Ref]bool) ([]source.Track, error) {
 			return tracks("b"), nil
 		}})
 	ctx, cancel := context.WithCancel(context.Background())
@@ -134,7 +134,7 @@ func TestNextAfterTheEndContinues(t *testing.T) {
 // alone.
 func TestLateContinueLeavesANewQueueAlone(t *testing.T) {
 	release := make(chan struct{})
-	p, ctx := castPlayer(t, Config{Continue: func(context.Context, string, source.Track, map[source.Ref]bool) ([]source.Track, error) {
+	p, ctx := castPlayer(t, Config{Continue: func(context.Context, string, []source.Track, map[source.Ref]bool) ([]source.Track, error) {
 		<-release
 		return tracks("x", "y"), nil
 	}})
@@ -171,7 +171,7 @@ func TestFailedContinueIsRetried(t *testing.T) {
 			opts := DefaultOptions()
 			opts.AutoContinue = ContinueSimilar
 			p, ctx := castPlayer(t, Config{Options: opts,
-				Continue: func(context.Context, string, source.Track, map[source.Ref]bool) ([]source.Track, error) {
+				Continue: func(context.Context, string, []source.Track, map[source.Ref]bool) ([]source.Track, error) {
 					if calls.Add(1) == 1 {
 						return nil, tc.first
 					}

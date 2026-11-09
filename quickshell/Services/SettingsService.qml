@@ -27,6 +27,9 @@ Singleton {
             "autoContinue": "off",
             // "added" | "newest"
             "playNextOrder": "added",
+            // "close" | "balanced" | "adventurous"
+            "similarTracks": "balanced",
+            "continueTracks": 5,
             // "tracks" | "albums"
             "shuffleMode": "tracks",
             // what the daemon leaves out of its own picks
@@ -147,6 +150,8 @@ Singleton {
         case "speed":
         case "autoContinue":
         case "playNextOrder":
+        case "similarTracks":
+        case "continueTracks":
         case "shuffleMode":
         case "skipRules":
         case "crossfade":
@@ -529,6 +534,8 @@ Singleton {
             "equalizer": s.equalizer ?? settings.equalizer,
             "autoContinue": s.autoContinue ?? "off",
             "playNextOrder": s.playNextOrder ?? "added",
+            "similarTracks": s.similarTracks ?? "balanced",
+            "continueTracks": s.continueTracks ?? 5,
             "shuffleMode": s.shuffleMode ?? "tracks",
             "skipRules": s.skipRules ?? settings.skipRules,
             "crossfade": s.crossfade ?? settings.crossfade,

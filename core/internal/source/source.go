@@ -33,6 +33,9 @@ const UnknownAlbum = "Unknown Album"
 // ErrNotFound is returned when a track, album or playlist id is unknown.
 var ErrNotFound = errors.New("not found")
 
+// ErrUnsupported is returned when the server doesn't implement a call.
+var ErrUnsupported = errors.New("the server doesn't support this")
+
 // Library is a configured instance of a source kind.
 type Library struct {
 	ID      string         `json:"id"`
@@ -281,6 +284,15 @@ type PlaylistReorderer interface {
 type RandomTracks interface {
 	TrackCount(ctx context.Context) (int, error)
 	RandomTracks(ctx context.Context, n int) ([]Track, error)
+}
+
+// MaxSimilarTracks caps what SimilarTracks returns.
+const MaxSimilarTracks = 50
+
+// SimilarTracks asks the server for tracks like seed, best matches first;
+// n is clamped to MaxSimilarTracks.
+type SimilarTracks interface {
+	SimilarTracks(ctx context.Context, seed Track, n int) ([]Track, error)
 }
 
 // Loudness reports a measured gain in dB for a track whose file has no

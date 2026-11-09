@@ -112,10 +112,11 @@ type Config struct {
 	OnBackend func(backend string)
 	Resolver  Resolver
 	Publish   func(topic string, data any)
-	// Continue returns tracks to play after last when the queue runs out
-	// and continuing is on; mode is ContinueRandom or ContinueSimilar.
-	// Tracks in queued are already in the queue and should not come back.
-	Continue func(ctx context.Context, mode string, last source.Track, queued map[source.Ref]bool) ([]source.Track, error)
+	// Continue returns tracks to play when the queue runs out and
+	// continuing is on; mode is ContinueRandom or ContinueSimilar. seeds are
+	// the session's tracks, newest last. Tracks in queued are already in the
+	// queue and should not come back.
+	Continue func(ctx context.Context, mode string, seeds []source.Track, queued map[source.Ref]bool) ([]source.Track, error)
 	// Refeed rebuilds the feed of a restored queue that was a shuffle over
 	// whole libraries (PlayFeed), from its origin.
 	Refeed func(ctx context.Context, origin Origin) (Feed, error)
@@ -343,6 +344,10 @@ type Player struct {
 	// last item a continue already found nothing after.
 	contMode  string
 	contTried uint64
+	// session is every track that has been in the queue since the last new
+	// play, newest last; sessionUID is the newest queue item already in it.
+	session    []source.Track
+	sessionUID uint64
 	// ended is set when the queue played out to its end.
 	ended  bool
 	runCtx context.Context
@@ -447,6 +452,7 @@ func (p *Player) Run(ctx context.Context) {
 	p.queue.albums = p.opts.ShuffleAlbums
 	p.setBackend(p.preferred())
 	p.restore()
+	p.noteSession()
 	for {
 		p.armIdle()
 		var notify <-chan struct{}
@@ -1472,6 +1478,7 @@ func (p *Player) newQueue() {
 	p.queueGen++
 	p.feed, p.refeed = nil, false
 	p.contMode = ""
+	p.session, p.sessionUID = nil, 0
 	p.clearEnded()
 }
 
@@ -2177,6 +2184,7 @@ func (p *Player) publishQueue() {
 		}
 		p.publishStatus()
 	}
+	p.noteSession()
 	p.cfg.Publish(TopicQueue, p.queueSnapshot())
 	p.markDirty()
 	p.maybeFeed()
@@ -2330,6 +2338,7 @@ func (p *Player) resetPlay(pos float64) {
 // reload of the same item mid-track (mpv restart, new output, cast) is the
 // same listen and must not count twice.
 func (p *Player) beginPlay(uid uint64, start float64) {
+	p.notePlayed(uid)
 	if uid == p.playUID && start > 0 {
 		p.heardPos = start
 		return
@@ -2419,10 +2428,12 @@ func (p *Player) startContinue(play bool, done chan<- error) {
 	}
 	last := items[len(items)-1]
 	gen := p.queueGen
+	p.noteSession()
+	seeds := slices.Clone(p.session)
 	p.feeding = true
 	go func() {
 		cctx, cancel := context.WithTimeout(p.runCtx, continueTimeout)
-		tracks, err := p.cfg.Continue(cctx, mode, last.Track, queuedRefs(items))
+		tracks, err := p.cfg.Continue(cctx, mode, seeds, queuedRefs(items))
 		cancel()
 		finish(p.doPlay(p.runCtx, func(ctx context.Context) error {
 			p.feeding = false
@@ -2464,6 +2475,45 @@ func (p *Player) startContinue(play bool, done chan<- error) {
 			return err
 		}))
 	}()
+}
+
+// sessionMax bounds the session tracks that seed a continue.
+const sessionMax = 200
+
+// noteSession adds the queue items put in since the last call to the
+// session, in the order they were added; a track already there moves to the
+// newest end.
+func (p *Player) noteSession() {
+	var added []Item
+	for _, it := range p.queue.items {
+		if it.UID > p.sessionUID {
+			added = append(added, it)
+		}
+	}
+	if len(added) == 0 {
+		return
+	}
+	slices.SortFunc(added, func(a, b Item) int { return cmp.Compare(a.UID, b.UID) })
+	p.sessionUID = added[len(added)-1].UID
+	for _, it := range added[max(0, len(added)-sessionMax):] {
+		r := it.Track.Ref()
+		p.session = slices.DeleteFunc(p.session, func(t source.Track) bool { return t.Ref() == r })
+		p.session = append(p.session, it.Track)
+	}
+	p.session = p.session[max(0, len(p.session)-sessionMax):]
+}
+
+// notePlayed moves uid's track to the session's newest end, so the newest
+// seeds are the tracks played last, also while shuffled.
+func (p *Player) notePlayed(uid uint64) {
+	p.noteSession()
+	i := slices.IndexFunc(p.queue.items, func(it Item) bool { return it.UID == uid })
+	if i < 0 {
+		return
+	}
+	t := p.queue.items[i].Track
+	p.session = slices.DeleteFunc(p.session, func(s source.Track) bool { return s.Ref() == t.Ref() })
+	p.session = append(p.session, t)[max(0, len(p.session)+1-sessionMax):]
 }
 
 func queuedRefs(items []Item) map[source.Ref]bool {

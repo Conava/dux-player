@@ -13,6 +13,7 @@ SettingsPage {
     readonly property var settings: PlayerService.settings
     readonly property var replayGainModes: ["off", "track", "album"]
     readonly property var continueModes: ["off", "random", "similar"]
+    readonly property var similarModes: ["close", "balanced", "adventurous"]
     readonly property var playNextOrders: ["added", "newest"]
     readonly property var shuffleModes: ["tracks", "albums"]
     readonly property var historyOptionMonths: [1, 3, 6, 12, 60, 0]
@@ -358,13 +359,34 @@ SettingsPage {
         SettingsButtonGroupRow {
             text: I18n.tr("When the queue ends", "playback setting")
             keywords: "autoplay repeat stop"
-            description: I18n.tr("Similar picks tracks by the same artist or genre.", "playback setting description")
+            description: I18n.tr("Similar picks tracks by the artists, genres and playlists of this session.", "playback setting description")
             model: [I18n.tr("Stop", "auto-continue option"), I18n.tr("Random", "auto-continue option"), I18n.tr("Similar", "auto-continue option")]
             currentIndex: root.continueModes.indexOf(root.settings.autoContinue)
             onSelectionChanged: (index, selected) => {
                 if (selected)
                     PlayerService.setSetting("autoContinue", root.continueModes[index]);
             }
+        }
+
+        SettingsButtonGroupRow {
+            text: I18n.tr("Similar tracks", "playback setting")
+            keywords: "continue autoplay variety"
+            description: I18n.tr("How close picks stay to this session.", "playback setting description")
+            model: [I18n.tr("Familiar", "similar tracks option"), I18n.tr("Balanced", "similar tracks option"), I18n.tr("Adventurous", "similar tracks option")]
+            currentIndex: root.similarModes.indexOf(root.settings.similarTracks)
+            onSelectionChanged: (index, selected) => {
+                if (selected)
+                    PlayerService.setSetting("similarTracks", root.similarModes[index]);
+            }
+        }
+
+        SettingsSliderRow {
+            text: I18n.tr("Tracks added at a time", "playback setting")
+            keywords: "continue autoplay batch"
+            minimum: 1
+            maximum: 50
+            value: root.settings.continueTracks
+            onSliderDragFinished: finalValue => PlayerService.setSetting("continueTracks", finalValue)
         }
 
         SettingsButtonGroupRow {

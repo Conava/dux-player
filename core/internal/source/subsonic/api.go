@@ -318,6 +318,17 @@ func (c *Client) RandomSongs(ctx context.Context, size int) ([]Song, error) {
 	return out.Random.Song, err
 }
 
+// SimilarSongs is getSimilarSongs: the server's neighbours of a song.
+func (c *Client) SimilarSongs(ctx context.Context, id string, count int) ([]Song, error) {
+	var out struct {
+		Similar struct {
+			Song list[Song] `json:"song"`
+		} `json:"similarSongs"`
+	}
+	_, err := c.call(ctx, "getSimilarSongs", url.Values{"id": {id}, "count": {strconv.Itoa(count)}}, &out)
+	return out.Similar.Song, err
+}
+
 // songGain is OpenSubsonic's replayGain on songs.
 type songGain struct {
 	TrackGain *float64 `json:"trackGain"`

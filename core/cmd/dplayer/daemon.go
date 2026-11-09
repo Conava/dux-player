@@ -1,15 +1,19 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"syscall"
+	"time"
 
 	"github.com/duxlabs-dev/dux-go/log"
 	"github.com/spf13/cobra"
@@ -24,6 +28,7 @@ import (
 	"github.com/Conava/dux-player/core/internal/player/engine"
 	"github.com/Conava/dux-player/core/internal/settings"
 	"github.com/Conava/dux-player/core/internal/shuffle"
+	"github.com/Conava/dux-player/core/internal/similar"
 	"github.com/Conava/dux-player/core/internal/source"
 	"github.com/Conava/dux-player/core/internal/source/jellyfin"
 	"github.com/Conava/dux-player/core/internal/source/local"
@@ -236,32 +241,349 @@ func runDaemon() error {
 	return nil
 }
 
-const continueBatch = 25
-
-// continueQueue picks what continues the queue when it runs out: tracks
-// like the last one, or a shuffle over all libraries, none already queued.
-func continueQueue(libs *library.Manager, prefs *settings.Store) func(context.Context, string, source.Track, map[source.Ref]bool) ([]source.Track, error) {
-	return func(ctx context.Context, mode string, last source.Track, queued map[source.Ref]bool) ([]source.Track, error) {
-		rules := prefs.Get().SkipRules
+// continueQueue picks what continues the queue when it runs out:
+// continueTracks tracks like the session (seeds), else a shuffle over all
+// libraries, none already queued.
+func continueQueue(libs *library.Manager, prefs *settings.Store) func(context.Context, string, []source.Track, map[source.Ref]bool) ([]source.Track, error) {
+	lists := &playlistIndex{libs: libs}
+	return func(ctx context.Context, mode string, seeds []source.Track, queued map[source.Ref]bool) ([]source.Track, error) {
+		cur := prefs.Get()
+		n := cur.ContinueTracks
 		if mode == player.ContinueSimilar {
-			if src, err := libs.Get(last.Library); err == nil {
-				ts := source.Similar(ctx, src, last, continueBatch, queued)
-				if ts = slices.DeleteFunc(ts, rules.Skips); len(ts) > 0 {
-					return ts, nil
-				}
+			if ts := pickSimilar(ctx, libs, lists, cur, seeds, queued); len(ts) > 0 {
+				return ts, nil
 			}
 		}
-		sh, err := libs.PickSource(ctx, "tracks", "", shuffle.Picks{Skip: rules})
+		sh, err := libs.PickSource(ctx, "tracks", "", shuffle.Picks{Skip: cur.SkipRules})
 		if err != nil {
 			return nil, err
 		}
-		var ts []source.Track
-		if sh.Feed != nil {
-			ts, err = sh.Feed.Next(ctx, continueBatch)
-		} else {
-			ts = sh.Tracks
+		next := func(ctx context.Context, k int) ([]source.Track, error) {
+			if sh.Feed != nil {
+				return sh.Feed.Next(ctx, k)
+			}
+			ts := sh.Tracks
+			sh.Tracks = nil
+			return ts, nil
 		}
-		ts = slices.DeleteFunc(ts, func(t source.Track) bool { return queued[t.Ref()] })
-		return source.Window(ts, 0, continueBatch), err
+		return similar.TopUp(ctx, n, next, queued, cur.SkipRules.Skips)
 	}
+}
+
+const (
+	// similarServerTimeout bounds the server's own similar call per seed.
+	similarServerTimeout = 3 * time.Second
+	// similarTimeout leaves the random fallback time within a continue.
+	similarTimeout = 20 * time.Second
+)
+
+func pickSimilar(ctx context.Context, libs *library.Manager, lists *playlistIndex, cur settings.Settings, seeds []source.Track, queued map[source.Ref]bool) []source.Track {
+	ctx, cancel := context.WithTimeout(ctx, similarTimeout)
+	defer cancel()
+	all, err := libs.Store().Libraries(ctx)
+	if err != nil {
+		log.Warnf("similar tracks: %v", err)
+		return nil
+	}
+	enabled := map[string]bool{}
+	for _, l := range all {
+		enabled[l.ID] = l.Enabled
+	}
+	seeds = slices.DeleteFunc(slices.Clone(seeds), func(t source.Track) bool { return !enabled[t.Library] })
+	in := similar.Input{
+		Seeds:  seeds,
+		Queued: queued,
+		Skip: func(t source.Track) bool {
+			return !enabled[t.Library] || cur.SkipRules.Skips(t)
+		},
+		Catalog:       catalog{libs},
+		Playlists:     lists,
+		Server:        serverSimilar(libs),
+		ServerTimeout: similarServerTimeout,
+		Recent:        recentPlays(ctx),
+		Profile:       similar.Profile(cur.SimilarTracks),
+	}
+	return similar.Pick(ctx, in, cur.ContinueTracks)
+}
+
+func serverSimilar(libs *library.Manager) similar.Server {
+	return func(ctx context.Context, seed source.Track) ([]source.Track, error) {
+		src, err := libs.Get(seed.Library)
+		if err != nil {
+			return nil, err
+		}
+		s, ok := src.(source.SimilarTracks)
+		if !ok {
+			return nil, nil
+		}
+		ts, err := s.SimilarTracks(ctx, seed, source.MaxSimilarTracks)
+		if errors.Is(err, source.ErrUnsupported) {
+			return nil, nil
+		}
+		return ts, err
+	}
+}
+
+// recentPlays is when the latest plays were; none while the history is
+// unavailable.
+func recentPlays(ctx context.Context) map[source.Ref]time.Time {
+	h := historyStore.Load()
+	if h == nil {
+		return nil
+	}
+	plays, err := h.List(ctx, 500, 0)
+	if err != nil {
+		log.Warnf("similar tracks: recent plays: %v", err)
+		return nil
+	}
+	out := make(map[source.Ref]time.Time, len(plays))
+	for _, p := range plays {
+		if _, ok := out[p.Track.Ref()]; !ok {
+			out[p.Track.Ref()] = time.Unix(p.PlayedAt, 0)
+		}
+	}
+	return out
+}
+
+// catalog reads candidates from the index for local libraries and synced
+// servers, and from the server for the others.
+type catalog struct{ libs *library.Manager }
+
+func (c catalog) indexed(ctx context.Context, lib string) bool {
+	return !c.libs.Server(lib) || c.libs.Store().Synced(ctx, lib)
+}
+
+// Live lookups are bounded: a few artists, a few albums each.
+const (
+	liveArtists = 4
+	liveAlbums  = 3
+	liveRandom  = 200
+)
+
+func (c catalog) TracksByArtists(ctx context.Context, lib string, artistIDs []string, limit int) ([]source.Track, error) {
+	if c.indexed(ctx, lib) {
+		return c.libs.Store().TracksByArtists(ctx, lib, artistIDs, limit)
+	}
+	b, err := c.libs.Browser(ctx, lib)
+	if err != nil {
+		return nil, err
+	}
+	var out []source.Track
+	for _, id := range source.Window(artistIDs, 0, liveArtists) {
+		albums, err := b.Albums(ctx, id)
+		if err != nil {
+			return source.Window(out, 0, limit), err
+		}
+		rand.Shuffle(len(albums), func(i, j int) { albums[i], albums[j] = albums[j], albums[i] })
+		for _, a := range source.Window(albums, 0, liveAlbums) {
+			full, err := b.Album(ctx, a.ID)
+			if err != nil {
+				return source.Window(out, 0, limit), err
+			}
+			out = append(out, full.Tracks...)
+		}
+	}
+	return source.Window(out, 0, limit), nil
+}
+
+// Collaborators is index-only: asking a server would take a call per album.
+func (c catalog) Collaborators(ctx context.Context, lib string, artistIDs []string, limit int) ([]similar.Collaborator, error) {
+	if !c.indexed(ctx, lib) {
+		return nil, nil
+	}
+	cs, err := c.libs.Store().Collaborators(ctx, lib, artistIDs, limit)
+	out := make([]similar.Collaborator, len(cs))
+	for i, co := range cs {
+		out[i] = similar.Collaborator{ID: co.ID, Count: co.Count}
+	}
+	return out, err
+}
+
+func (c catalog) TracksByGenre(ctx context.Context, lib, genre string, limit int) ([]source.Track, error) {
+	if c.indexed(ctx, lib) {
+		return c.libs.Store().TracksByGenre(ctx, lib, genre, limit)
+	}
+	src, err := c.libs.Get(lib)
+	if err != nil {
+		return nil, err
+	}
+	r, ok := src.(source.RandomTracks)
+	if !ok {
+		return nil, nil
+	}
+	ts, err := r.RandomTracks(ctx, liveRandom)
+	ts = slices.DeleteFunc(ts, func(t source.Track) bool { return !strings.EqualFold(t.Genre, genre) })
+	return source.Window(ts, 0, limit), err
+}
+
+// playlistIndex is what scoring needs of every local playlist and of the
+// server playlists of the libraries asked about; server playlists are read at
+// most once per playlistTTL, or playlistRetry after a failed read.
+type playlistIndex struct {
+	libs *library.Manager
+	mu   sync.Mutex
+	// sets maps a server library to its playlists.
+	sets map[string]*playlistSet
+}
+
+const (
+	playlistTTL   = 30 * time.Minute
+	playlistRetry = 2 * time.Minute
+	// maxPlaylists bounds the playlists read per library.
+	maxPlaylists     = 50
+	playlistsTimeout = 10 * time.Second
+	// playlistSample bounds the tracks kept per playlist as candidates.
+	playlistSample = 300
+	// maxPlaylistRefs bounds the tracks per library whose playlists are kept.
+	maxPlaylistRefs = 20000
+)
+
+// playlistSet is a library's playlists: each one's length and first tracks,
+// and which of them hold a track.
+type playlistSet struct {
+	until   time.Time
+	lens    map[string]int
+	samples map[string][]source.Track
+	holding map[source.Ref][]string
+}
+
+func newPlaylistSet() *playlistSet {
+	return &playlistSet{lens: map[string]int{}, samples: map[string][]source.Track{}, holding: map[source.Ref][]string{}}
+}
+
+func (s *playlistSet) add(id string, ts []source.Track) {
+	s.lens[id] = len(ts)
+	s.samples[id] = slices.Clone(source.Window(ts, 0, playlistSample))
+	for _, t := range ts {
+		r := t.Ref()
+		ids, ok := s.holding[r]
+		switch {
+		case !ok && len(s.holding) >= maxPlaylistRefs:
+			continue
+		case len(ids) > 0 && ids[len(ids)-1] == id:
+			continue
+		}
+		s.holding[r] = append(ids, id)
+	}
+}
+
+// match adds the playlists holding any of refs to out, keyed prefix+id.
+func (s *playlistSet) match(refs []source.Ref, limit int, prefix string, out map[string]similar.Playlist) {
+	for _, r := range refs {
+		for _, id := range s.holding[r] {
+			pl := out[prefix+id]
+			if pl.Len == 0 {
+				pl = similar.Playlist{Len: s.lens[id], Tracks: source.Window(s.samples[id], 0, limit)}
+			}
+			pl.Seeds = append(pl.Seeds, r)
+			out[prefix+id] = pl
+		}
+	}
+}
+
+func (x *playlistIndex) PlaylistsWith(ctx context.Context, refs []source.Ref, limit int) (map[string]similar.Playlist, error) {
+	refs = slices.Compact(slices.SortedFunc(slices.Values(refs), func(a, b source.Ref) int {
+		return cmp.Or(strings.Compare(a.Library, b.Library), strings.Compare(a.ID, b.ID))
+	}))
+	libs := map[string]bool{"": true}
+	for _, r := range refs {
+		libs[r.Library] = true
+	}
+	x.evict()
+	out := map[string]similar.Playlist{}
+	var errs []error
+	for lib := range libs {
+		set, err := x.get(ctx, lib)
+		errs = append(errs, err)
+		set.match(refs, limit, lib+"\x00", out)
+	}
+	return out, errors.Join(errs...)
+}
+
+// evict drops expired sets, so a removed library's go too.
+func (x *playlistIndex) evict() {
+	x.mu.Lock()
+	defer x.mu.Unlock()
+	for lib, set := range x.sets {
+		if time.Now().After(set.until) {
+			delete(x.sets, lib)
+		}
+	}
+}
+
+func (x *playlistIndex) get(ctx context.Context, lib string) (*playlistSet, error) {
+	ctx, cancel := context.WithTimeout(ctx, playlistsTimeout)
+	defer cancel()
+	if lib == "" {
+		return localPlaylistSet(ctx)
+	}
+	x.mu.Lock()
+	set, ok := x.sets[lib]
+	x.mu.Unlock()
+	if ok {
+		return set, nil
+	}
+	set, err := x.serverPlaylistSet(ctx, lib)
+	set.until = time.Now().Add(playlistTTL)
+	if err != nil {
+		set.until = time.Now().Add(playlistRetry)
+	}
+	x.mu.Lock()
+	if x.sets == nil {
+		x.sets = map[string]*playlistSet{}
+	}
+	x.sets[lib] = set
+	x.mu.Unlock()
+	return set, err
+}
+
+// localPlaylistSet is empty until the playlists feature has started.
+func localPlaylistSet(ctx context.Context) (*playlistSet, error) {
+	set := newPlaylistSet()
+	svc := localPlaylists.Load()
+	if svc == nil {
+		return set, nil
+	}
+	all, err := svc.Store.List(ctx)
+	if err != nil {
+		return set, err
+	}
+	for _, p := range source.Window(all, 0, maxPlaylists) {
+		full, err := svc.Store.Get(ctx, p.ID)
+		if err != nil {
+			return set, err
+		}
+		set.add(p.ID, full.Tracks)
+	}
+	return set, nil
+}
+
+// serverPlaylistSet returns what it read before an error too.
+func (x *playlistIndex) serverPlaylistSet(ctx context.Context, lib string) (*playlistSet, error) {
+	set := newPlaylistSet()
+	src, err := x.libs.Get(lib)
+	if err != nil {
+		return set, err
+	}
+	pl, ok := src.(source.Playlists)
+	if !ok {
+		return set, nil
+	}
+	all, err := pl.Playlists(ctx)
+	if err != nil {
+		return set, err
+	}
+	for _, p := range source.Window(all, 0, maxPlaylists) {
+		full, err := pl.Playlist(ctx, p.ID)
+		if err != nil {
+			return set, err
+		}
+		for i := range full.Tracks {
+			if full.Tracks[i].Library == "" {
+				full.Tracks[i].Library = lib
+			}
+		}
+		set.add(p.ID, full.Tracks)
+	}
+	return set, nil
 }

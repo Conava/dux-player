@@ -52,6 +52,7 @@ var (
 	_ source.PlaylistReorderer = (*Source)(nil)
 	_ source.Favorites         = (*Source)(nil)
 	_ source.RandomTracks      = (*Source)(nil)
+	_ source.SimilarTracks     = (*Source)(nil)
 	_ source.Scrobbler         = (*Source)(nil)
 	_ source.CapabilityFilter  = (*Source)(nil)
 	_ source.Notices           = (*Source)(nil)
@@ -629,6 +630,23 @@ func (s *Source) RandomTracks(ctx context.Context, n int) ([]source.Track, error
 	q.Set("SortBy", "Random")
 	list, err := s.items(ctx, "/Users/{user}/Items", q, min(max(n, 1), pageSize))
 	return s.tracks(list), err
+}
+
+// SimilarTracks is the seed's Instant Mix.
+func (s *Source) SimilarTracks(ctx context.Context, seed source.Track, n int) ([]source.Track, error) {
+	if seed.ID == "" {
+		return nil, nil
+	}
+	n = min(max(n, 1), source.MaxSimilarTracks)
+	q := url.Values{"UserId": {userParam}, "Limit": {strconv.Itoa(n)}, "Fields": {itemFields}}
+	var r itemsReply
+	if err := s.client.get(ctx, "/Items/"+url.PathEscape(seed.ID)+"/InstantMix", q, &r); err != nil {
+		return nil, err
+	}
+	if len(r.Items) > n {
+		r.Items = r.Items[:n]
+	}
+	return s.tracks(r.Items), nil
 }
 
 // NowPlaying and Scrobble are Jellyfin's play reporting: a playing session

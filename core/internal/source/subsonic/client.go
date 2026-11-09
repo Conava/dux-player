@@ -51,7 +51,7 @@ func ValidAuth(mode string) bool {
 var errPasswordOverHTTP = source.ErrPasswordNeedsHTTPS
 
 // ErrUnsupported is returned when the server doesn't implement a method.
-var ErrUnsupported = errors.New("the server doesn't support this")
+var ErrUnsupported = source.ErrUnsupported
 
 // APIError is an error the server reported in its response envelope.
 type APIError struct {

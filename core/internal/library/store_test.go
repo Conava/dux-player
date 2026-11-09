@@ -194,3 +194,106 @@ func TestTrackFieldsMigration(t *testing.T) {
 	require.Equal(t, 900, got.Bitrate)
 	require.EqualValues(t, 7, got.Added)
 }
+
+func TestSimilarQueries(t *testing.T) {
+	ctx := context.Background()
+	s, err := Open(ctx, filepath.Join(t.TempDir(), "library.db"))
+	require.NoError(t, err)
+	defer s.Close()
+	for _, id := range []string{"l", "m"} {
+		require.NoError(t, s.AddLibrary(ctx, source.Library{ID: id, Kind: "local", Name: id, Enabled: true}))
+	}
+	ref := func(ids ...string) []source.ArtistRef {
+		var out []source.ArtistRef
+		for _, id := range ids {
+			out = append(out, source.ArtistRef{ID: id, Name: id})
+		}
+		return out
+	}
+	put := func(b *Batch, lib, id, genre string, artists, albumArtists []string) {
+		tr := IndexedTrack{Path: "/" + lib + "/" + id + ".flac"}
+		tr.Library, tr.ID, tr.AlbumID, tr.ArtistID, tr.Genre = lib, id, "al-"+id, artists[0], genre
+		tr.Artists = ref(artists...)
+		tr.AlbumArtists = ref(albumArtists...)
+		require.NoError(t, b.PutTrack(ctx, tr, ""))
+	}
+	b, err := s.Begin(ctx, "l", 1)
+	require.NoError(t, err)
+	put(b, "l", "1", "Rock", []string{"a", "b"}, []string{"a", "b"}) // b shares a track and an album
+	put(b, "l", "2", "rock", []string{"a", "c"}, []string{"a"})
+	put(b, "l", "3", "Jazz", []string{"b"}, []string{"b"})
+	put(b, "l", "4", "Jazz", []string{"d"}, []string{"d"})
+	put(b, "l", "5", "Rock", []string{"a", "b", "e"}, []string{"a"}) // e shares one item with both a and b
+	_, err = b.Finish(ctx)
+	require.NoError(t, err)
+	// Same ids in another library must never leak in.
+	b, err = s.Begin(ctx, "m", 1)
+	require.NoError(t, err)
+	put(b, "m", "1", "Rock", []string{"a", "z"}, []string{"a"})
+	_, err = b.Finish(ctx)
+	require.NoError(t, err)
+	_, err = s.db.ExecContext(ctx, "UPDATE tracks SET missing = 1 WHERE library_id = 'l' AND id = '5'")
+	require.NoError(t, err)
+
+	ids := func(ts []source.Track) []string {
+		out := []string{}
+		for _, t := range ts {
+			out = append(out, t.ID)
+		}
+		return out
+	}
+	byA, err := s.TracksByArtists(ctx, "l", []string{"b"}, 10)
+	require.NoError(t, err)
+	require.ElementsMatch(t, []string{"1", "3"}, ids(byA), "a featured artist counts; missing and other libraries don't")
+	byA, err = s.TracksByArtists(ctx, "l", []string{"c", "d"}, 10)
+	require.NoError(t, err)
+	require.ElementsMatch(t, []string{"2", "4"}, ids(byA))
+	byA, err = s.TracksByArtists(ctx, "l", []string{"a", "b"}, 2)
+	require.NoError(t, err)
+	require.Len(t, byA, 2)
+
+	col, err := s.Collaborators(ctx, "l", []string{"a"}, 10)
+	require.NoError(t, err)
+	// b: track 1, album 1, track 5; e: track 5; c: track 2.
+	require.Equal(t, []Collaborator{{"b", 3}, {"c", 1}, {"e", 1}}, col)
+	col, err = s.Collaborators(ctx, "l", []string{"a", "b"}, 10)
+	require.NoError(t, err)
+	for _, c := range col {
+		require.NotContains(t, []string{"a", "b"}, c.ID)
+	}
+	require.Equal(t, 1, col[0].Count, "an item with both seeds counts once")
+	col, err = s.Collaborators(ctx, "l", []string{"a"}, 1)
+	require.NoError(t, err)
+	require.Equal(t, []Collaborator{{"b", 3}}, col)
+
+	g, err := s.TracksByGenre(ctx, "l", "ROCK", 10)
+	require.NoError(t, err)
+	require.ElementsMatch(t, []string{"1", "2"}, ids(g), "missing and other libraries don't count")
+	g, err = s.TracksByGenre(ctx, "l", "rock", 1)
+	require.NoError(t, err)
+	require.Len(t, g, 1)
+
+	// More matches than the limit: calls must not keep returning one slice.
+	b, err = s.Begin(ctx, "m", 2)
+	require.NoError(t, err)
+	for i := range 50 {
+		put(b, "m", fmt.Sprintf("x%d", i), "Pop", []string{"q"}, []string{"q"})
+	}
+	_, err = b.Finish(ctx)
+	require.NoError(t, err)
+	seenA, seenG := map[string]bool{}, map[string]bool{}
+	for range 5 {
+		byA, err = s.TracksByArtists(ctx, "m", []string{"q"}, 10)
+		require.NoError(t, err)
+		for _, id := range ids(byA) {
+			seenA[id] = true
+		}
+		g, err = s.TracksByGenre(ctx, "m", "pop", 10)
+		require.NoError(t, err)
+		for _, id := range ids(g) {
+			seenG[id] = true
+		}
+	}
+	require.Greater(t, len(seenA), 10, "artist pool is a random slice")
+	require.Greater(t, len(seenG), 10, "genre pool is a random slice")
+}

@@ -43,6 +43,7 @@ var (
 	_ source.Favorites         = (*Source)(nil)
 	_ source.Ratings           = (*Source)(nil)
 	_ source.RandomTracks      = (*Source)(nil)
+	_ source.SimilarTracks     = (*Source)(nil)
 	_ source.PlaylistReorderer = (*Source)(nil)
 	_ source.Scrobbler         = (*Source)(nil)
 	_ source.CapabilityFilter  = (*Source)(nil)
@@ -350,6 +351,18 @@ func (s *Source) Favorites(ctx context.Context) (source.SearchResult, error) {
 
 func (s *Source) RandomTracks(ctx context.Context, n int) ([]source.Track, error) {
 	songs, err := s.client.RandomSongs(ctx, n)
+	return s.tracks(songs), err
+}
+
+func (s *Source) SimilarTracks(ctx context.Context, seed source.Track, n int) ([]source.Track, error) {
+	if seed.ID == "" {
+		return nil, nil
+	}
+	n = min(max(n, 1), source.MaxSimilarTracks)
+	songs, err := s.client.SimilarSongs(ctx, seed.ID, n)
+	if len(songs) > n {
+		songs = songs[:n]
+	}
 	return s.tracks(songs), err
 }
 
