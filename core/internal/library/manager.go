@@ -419,12 +419,20 @@ func (m *Manager) List(ctx context.Context) ([]Info, error) {
 	if err != nil {
 		return nil, err
 	}
+	off := map[string][]string{}
+	for _, lib := range libs {
+		if !lib.Enabled {
+			off[lib.ID] = m.offCaps(ctx, lib)
+		}
+	}
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	out := make([]Info, 0, len(libs))
 	for _, lib := range libs {
 		info := Info{Library: lib, Capabilities: []string{}, Notices: []string{}, NoticeCodes: []source.Notice{}}
-		if src, ok := m.sources[lib.ID]; ok {
+		src, built := m.sources[lib.ID]
+		switch {
+		case built:
 			info.Capabilities = source.Capabilities(src)
 			if n, ok := src.(source.Notices); ok {
 				for _, x := range n.Notices() {
@@ -432,8 +440,10 @@ func (m *Manager) List(ctx context.Context) ([]Info, error) {
 					info.NoticeCodes = append(info.NoticeCodes, x)
 				}
 			}
-		} else if synced[lib.ID] {
+		case synced[lib.ID]:
 			info.Capabilities = offlineCaps
+		case !lib.Enabled:
+			info.Capabilities = off[lib.ID]
 		}
 		info.Synced = synced[lib.ID]
 		r := m.reasonLocked(lib.ID)
@@ -451,6 +461,18 @@ func (m *Manager) List(ctx context.Context) ([]Info, error) {
 // offlineCaps is what a synced library can do without a source (a locked
 // keyring): its list comes from the index, its covers from disk.
 var offlineCaps = []string{source.CapBrowse, source.CapCover, source.CapPing}
+
+// offCaps is what a turned-off library is known to be, without building
+// it: a server keeps its kind and its stored catalog for when it is back.
+func (m *Manager) offCaps(ctx context.Context, lib source.Library) []string {
+	if address, _ := lib.Config["url"].(string); address == "" {
+		return []string{}
+	}
+	if stamp, last, err := m.store.CatalogState(ctx, lib.ID); err == nil && stamp != "" && last > 0 {
+		return offlineCaps
+	}
+	return []string{source.CapPing}
+}
 
 // reasonLocked says why a configured library can't play; zero when it can.
 func (m *Manager) reasonLocked(id string) Reason {

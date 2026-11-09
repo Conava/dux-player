@@ -14,8 +14,7 @@ Item {
     property string subPage: ""
     // the settings search reading a sub-page: it fetches nothing
     property bool quiet: false
-    // a turned-off server lists no capabilities; its rules keep its card
-    readonly property var servers: CatalogService.libraries.filter(l => CatalogService.isRemote(l.id) || SettingsService.cacheRules().some(r => r.library === l.id))
+    readonly property var servers: CatalogService.libraries.filter(l => CatalogService.isRemote(l.id))
     readonly property var subViews: servers.map(l => l.id)
     readonly property string noServerReason: I18n.tr("Add a server library first.", "why the offline settings are hidden")
     readonly property var ruleKinds: ["everything", "favorites", "played", "mostPlayed", "playlist", "album", "artist"]

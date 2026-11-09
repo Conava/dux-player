@@ -39,7 +39,8 @@ Item {
     function describe(library) {
         if (PlayerService.isRemote(library.id))
             return Phrases.join(PlayerService.kindLabel(library.kind), I18n.tr("%1 at %2", "server account: user at address").arg(library.user).arg(library.url.replace(/^https?:\/\//, "")));
-        return Phrases.join(library.folders.join(", "), Phrases.tracks(Phrases.libraryTrackCount(library.id)));
+        // a turned-off library's music isn't loaded, so there is nothing to count
+        return Phrases.joinAll([library.folders.join(", "), library.enabled ? Phrases.tracks(Phrases.libraryTrackCount(library.id)) : ""]);
     }
 
     // what needs attention; the library's page has the rest

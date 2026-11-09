@@ -545,16 +545,35 @@ func TestBrowsingSwitchesWhenTheSyncIsComplete(t *testing.T) {
 	assert.Zero(t, server.live.Load(), "the server wasn't asked")
 }
 
-// A library off isn't browsed, whatever is stored for it.
+// A library off isn't browsed, whatever is stored for it, yet it stays a
+// server with its catalog, which reads again at once when it is back on.
 func TestTurnedOffLibraryIsNotBrowsed(t *testing.T) {
 	ctx := context.Background()
 	server := newCatalogServer(2)
-	m, _ := catalogManager(t, server)
+	m, store := catalogManager(t, server)
 	_, err := m.Scan(ctx, "srv", nil)
 	require.NoError(t, err)
 	require.NoError(t, m.SetEnabled(ctx, "srv", false))
 	_, err = m.Browser(ctx, "srv")
 	assert.Error(t, err)
+	infos, err := m.List(ctx)
+	require.NoError(t, err)
+	require.Len(t, infos, 1)
+	assert.Equal(t, "fake", infos[0].Kind)
+	assert.Contains(t, infos[0].Capabilities, source.CapPing)
+	assert.False(t, infos[0].Synced)
+	assert.False(t, infos[0].Available)
+	assert.Equal(t, 2, stored(t, store))
+
+	server.live.Store(0)
+	require.NoError(t, m.SetEnabled(ctx, "srv", true))
+	b, err := m.Browser(ctx, "srv")
+	require.NoError(t, err)
+	assert.IsType(t, storeBrowser{}, b)
+	page, err := b.(source.TrackPager).TrackPage(ctx, source.TrackQuery{Limit: 10})
+	require.NoError(t, err)
+	assert.Equal(t, 2, page.Total)
+	assert.Zero(t, server.live.Load(), "no walk on turning it back on")
 }
 
 // A scanned local library has a last_scan too; it keeps its own source.
