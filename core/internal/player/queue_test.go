@@ -47,14 +47,14 @@ func TestQueueEdits(t *testing.T) {
 		{
 			name:    "add next inserts after current",
 			start:   1,
-			edit:    func(q *Queue) error { q.Add(tracks("x", "y"), true); return nil },
+			edit:    func(q *Queue) error { q.Add(tracks("x", "y"), true, false); return nil },
 			want:    []string{"a", "b", "x", "y", "c"},
 			current: "b",
 		},
 		{
 			name:    "add appends",
 			start:   0,
-			edit:    func(q *Queue) error { q.Add(tracks("x"), false); return nil },
+			edit:    func(q *Queue) error { q.Add(tracks("x"), false, false); return nil },
 			want:    []string{"a", "b", "c", "x"},
 			current: "a",
 		},
@@ -124,7 +124,7 @@ func TestQueueRejectsOutOfRange(t *testing.T) {
 
 func TestQueueAdvanceAndPeek(t *testing.T) {
 	q := NewQueue()
-	q.Add(tracks("a", "b"), false)
+	q.Add(tracks("a", "b"), false, false)
 	assert.Equal(t, "a", current(q), "an empty queue selects the first added item")
 	next, ok := q.Peek()
 	require.True(t, ok)
@@ -144,7 +144,7 @@ func TestShuffleKeepsCurrentAndRestoresOrder(t *testing.T) {
 	assert.Equal(t, 0, q.Index(), "the current track leads the shuffled queue")
 	assert.ElementsMatch(t, []string{"a", "b", "c", "d", "e", "f"}, ids(q))
 
-	q.Add(tracks("n"), true)
+	q.Add(tracks("n"), true, false)
 	q.SetShuffle(false)
 	assert.Equal(t, []string{"a", "b", "c", "n", "d", "e", "f"}, ids(q), "play next while shuffled lands after the current track")
 	assert.Equal(t, "c", current(q))
@@ -180,7 +180,7 @@ func TestOriginTurnsModifiedOnEdits(t *testing.T) {
 	q.Replace(tracks("a", "b"), 0, Origin{Kind: "playlist", ID: "p1"})
 	q.SetShuffle(true)
 	assert.False(t, q.Origin().Modified, "shuffling is not an edit")
-	q.Add(tracks("c"), true)
+	q.Add(tracks("c"), true, false)
 	assert.True(t, q.Origin().Modified)
 	assert.Equal(t, "p1", q.Origin().ID)
 }
@@ -197,7 +197,7 @@ func TestQueueStateRoundTrip(t *testing.T) {
 	assert.Equal(t, current(q), current(r))
 	assert.Equal(t, q.Origin(), r.Origin())
 	assert.Equal(t, RepeatOne, r.Repeat())
-	r.Add(tracks("e"), false)
+	r.Add(tracks("e"), false, false)
 	assert.NotContains(t, ids(q), "e")
 	assert.Equal(t, 5, len(r.State().Orig), "uids keep counting past the restored ones")
 	r.SetShuffle(false)
@@ -221,8 +221,8 @@ func TestQueueMarksTracksAddedByHand(t *testing.T) {
 		want []string // per item: "" none, "hand" Added, "auto" Auto
 	}{
 		{"new queue", func(q *Queue) {}, []string{"", ""}},
-		{"play next", func(q *Queue) { q.Add(tracks("x"), true) }, []string{"", "hand", ""}},
-		{"add to queue", func(q *Queue) { q.Add(tracks("x"), false) }, []string{"", "", "hand"}},
+		{"play next", func(q *Queue) { q.Add(tracks("x"), true, false) }, []string{"", "hand", ""}},
+		{"add to queue", func(q *Queue) { q.Add(tracks("x"), false, false) }, []string{"", "", "hand"}},
 		{"growing shuffle", func(q *Queue) { q.Extend(tracks("x")) }, []string{"", "", ""}},
 		{"grow", func(q *Queue) { q.Grow(tracks("w"), tracks("x")) }, []string{"", "", "", ""}},
 		{"continue", func(q *Queue) { q.ExtendAuto(tracks("x")) }, []string{"", "", "auto"}},
@@ -430,4 +430,89 @@ func TestQueueDropLibrary(t *testing.T) {
 		_, ok := q.Current()
 		assert.False(t, ok)
 	})
+}
+
+// Play next in order lines picks up after earlier Play next picks that
+// directly follow the current item; newest first puts each right after it.
+func TestQueuePlayNextOrder(t *testing.T) {
+	saveAndRestore := func(t *testing.T, q *Queue) {
+		data, err := json.Marshal(q.State())
+		require.NoError(t, err)
+		var saved QueueState
+		require.NoError(t, json.Unmarshal(data, &saved))
+		q.Restore(saved)
+	}
+	pick := func(q *Queue, inOrder bool, ids ...string) {
+		for _, id := range ids {
+			q.Add(tracks(id), true, inOrder)
+		}
+	}
+	tests := []struct {
+		name string
+		edit func(t *testing.T, q *Queue)
+		want []string
+		cur  string
+	}{
+		{"in order", func(t *testing.T, q *Queue) { pick(q, true, "x", "y", "z") }, []string{"a", "x", "y", "z", "b", "c", "d"}, "a"},
+		{"newest first", func(t *testing.T, q *Queue) { pick(q, false, "x", "y", "z") }, []string{"a", "z", "y", "x", "b", "c", "d"}, "a"},
+		{"several tracks at once", func(t *testing.T, q *Queue) {
+			q.Add(tracks("x", "y"), true, true)
+			pick(q, true, "z")
+		}, []string{"a", "x", "y", "z", "b", "c", "d"}, "a"},
+		{"pick while playing the block", func(t *testing.T, q *Queue) {
+			pick(q, true, "x", "y")
+			q.Advance()
+			pick(q, true, "z")
+		}, []string{"a", "x", "y", "z", "b", "c", "d"}, "x"},
+		{"block played past", func(t *testing.T, q *Queue) {
+			pick(q, true, "x")
+			q.Advance()
+			q.Advance()
+			require.NoError(t, q.Jump(0))
+			pick(q, true, "y")
+		}, []string{"a", "y", "x", "b", "c", "d"}, "a"},
+		{"moved block item", func(t *testing.T, q *Queue) {
+			pick(q, true, "x", "y", "z")
+			require.NoError(t, q.Move(2, 6))
+			pick(q, true, "w")
+		}, []string{"a", "x", "z", "w", "b", "c", "d", "y"}, "a"},
+		{"after a restart", func(t *testing.T, q *Queue) {
+			pick(q, true, "x", "y")
+			saveAndRestore(t, q)
+			pick(q, true, "z")
+		}, []string{"a", "x", "y", "z", "b", "c", "d"}, "a"},
+		{"new queue starts fresh", func(t *testing.T, q *Queue) {
+			pick(q, true, "x")
+			q.Replace(tracks("e", "f"), 0, Origin{})
+			pick(q, true, "y")
+		}, []string{"e", "y", "f"}, "e"},
+		{"shuffled, in order", func(t *testing.T, q *Queue) {
+			q.SetShuffle(true)
+			pick(q, true, "x", "y", "z")
+			assert.Equal(t, []string{"a", "x", "y", "z"}, ids(q)[:4], "shuffled order")
+			saveAndRestore(t, q)
+			q.SetShuffle(false)
+		}, []string{"a", "x", "y", "z", "b", "c", "d"}, "a"},
+		{"shuffled, then the list grows", func(t *testing.T, q *Queue) {
+			q.SetShuffle(true)
+			pick(q, true, "x", "y", "z")
+			q.Grow(nil, tracks("e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t"))
+			assert.Equal(t, []string{"a", "x", "y", "z"}, ids(q)[:4], "shuffled order")
+			q.SetShuffle(false)
+		}, []string{"a", "x", "y", "z", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t"}, "a"},
+		{"shuffled, newest first", func(t *testing.T, q *Queue) {
+			q.SetShuffle(true)
+			pick(q, false, "x", "y", "z")
+			q.SetShuffle(false)
+		}, []string{"a", "z", "y", "x", "b", "c", "d"}, "a"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			q := newQueue(nil)
+			q.Replace(tracks("a", "b", "c", "d"), 0, Origin{})
+			tt.edit(t, q)
+			assert.Equal(t, tt.want, ids(q))
+			assert.Equal(t, tt.cur, current(q))
+		})
+	}
 }

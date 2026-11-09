@@ -156,6 +156,9 @@ type Options struct {
 	AutoContinue string
 	// ShuffleAlbums shuffles the queue by album.
 	ShuffleAlbums bool
+	// PlayNextInOrder lines Play next picks up after earlier ones instead of
+	// putting each right after the current track.
+	PlayNextInOrder bool
 	// IdleExit ends mpv after this long with nothing playing; 0 keeps it.
 	IdleExit time.Duration
 	// VolumeTarget is what volume and mute act on: VolumeApp (mpv) or
@@ -185,7 +188,7 @@ const (
 
 func DefaultOptions() Options {
 	return Options{PreviousThreshold: 5, VolumeMax: 100, Gapless: "weak", ReplayGain: "track", Speed: 1, AutoContinue: ContinueOff, AlbumGapless: true,
-		VolumeTarget: VolumeApp}
+		VolumeTarget: VolumeApp, PlayNextInOrder: true}
 }
 
 // Sleep is the sleep timer: Mode off, timer (stop at At, unix seconds),
@@ -1860,7 +1863,7 @@ func (p *Player) SetVolume(ctx context.Context, v float64, relative bool) error 
 // Enqueue adds tracks to the end, or after the current track with next.
 func (p *Player) Enqueue(ctx context.Context, tracks []source.Track, next bool) error {
 	return p.do(ctx, func(ctx context.Context) error {
-		p.queue.Add(tracks, next)
+		p.queue.Add(tracks, next, p.opts.PlayNextInOrder)
 		p.syncNext(ctx)
 		p.publishQueue()
 		p.publishStatus()
@@ -1935,14 +1938,15 @@ func (p *Player) Move(ctx context.Context, from, to int) error {
 
 func (p *Player) Jump(ctx context.Context, index int) error {
 	return p.doPlay(ctx, func(ctx context.Context) error {
-		old := p.queue.Index()
+		undo := p.queue.undoJump()
 		if err := p.queue.Jump(index); err != nil {
 			return err
 		}
 		err := p.loadCurrent(ctx, 0, true)
 		if errors.Is(err, errNoneCanPlay) {
 			// Refused before anything changed: the current track keeps playing.
-			return errors.Join(err, p.queue.Jump(old))
+			undo()
+			return err
 		}
 		return p.stopOnLoadError(ctx, err)
 	})

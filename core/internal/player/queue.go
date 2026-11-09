@@ -19,6 +19,8 @@ type Item struct {
 	Added bool `json:"added,omitempty"`
 	// Auto marks an item auto-continue appended; never set together with Added.
 	Auto bool `json:"auto,omitempty"`
+	// Next marks an item put in with Play next that hasn't been played past.
+	Next bool `json:"next,omitempty"`
 }
 
 // Origin says what the queue was started from, for "Continue listening".
@@ -103,21 +105,27 @@ func (q *Queue) origIndex(uid uint64) int {
 	return -1
 }
 
-// Add appends tracks the user picked (marked Added), or inserts them right
-// after the current item when next is set. An empty queue selects the first
-// added item.
-func (q *Queue) Add(tracks []source.Track, next bool) {
-	q.add(tracks, next, true)
+// Add appends tracks the user picked (marked Added), or inserts them after
+// the current item when next is set: with inOrder after the run of earlier
+// Play next items that directly follows it, otherwise right after it. An
+// empty queue selects the first added item.
+func (q *Queue) Add(tracks []source.Track, next, inOrder bool) {
+	q.add(tracks, next, inOrder, true)
 }
 
-func (q *Queue) add(tracks []source.Track, next, byHand bool) {
+func (q *Queue) add(tracks []source.Track, next, inOrder, byHand bool) {
 	items := q.wrap(tracks)
+	next = next && q.cur >= 0
 	for i := range items {
 		items[i].Added = byHand
+		items[i].Next = next
 	}
 	at := len(q.items)
-	if next && q.cur >= 0 {
+	if next {
 		at = q.cur + 1
+		for inOrder && at < len(q.items) && q.items[at].Next {
+			at++
+		}
 	}
 	if q.orig != nil {
 		uids := make([]uint64, len(items))
@@ -125,8 +133,11 @@ func (q *Queue) add(tracks []source.Track, next, byHand bool) {
 			uids[i] = it.UID
 		}
 		oat := len(q.orig)
-		if cur, ok := q.Current(); ok && next {
-			oat = q.origIndex(cur.UID) + 1
+		if next {
+			oat = q.origIndex(q.items[q.cur].UID) + 1
+			for inOrder && oat < len(q.orig) && q.isNext(q.orig[oat]) {
+				oat++
+			}
 		}
 		q.orig = insertAt(q.orig, oat, uids...)
 	}
@@ -137,10 +148,15 @@ func (q *Queue) add(tracks []source.Track, next, byHand bool) {
 	q.origin.Modified = q.origin.Modified || len(q.items) > len(items)
 }
 
+func (q *Queue) isNext(uid uint64) bool {
+	return slices.ContainsFunc(q.items, func(it Item) bool { return it.UID == uid && it.Next })
+}
+
 // Grow puts tracks of the list being played that weren't there yet in place:
 // before ahead of the current item, after at the end. While shuffled they
 // land at random places after the current item and keep their list place in
-// the unshuffled order. Not an edit, and not added by hand.
+// the unshuffled order, past the Play next run. Not an edit, and not added
+// by hand.
 func (q *Queue) Grow(before, after []source.Track) {
 	if q.orig != nil {
 		pre, post := q.wrap(before), q.wrap(after)
@@ -153,8 +169,13 @@ func (q *Queue) Grow(before, after []source.Track) {
 			orig = append(orig, it.UID)
 		}
 		q.orig = orig
+		// Past the Play next run, which stays right after the current item.
+		first := q.cur + 1
+		for first < len(q.items) && q.items[first].Next {
+			first++
+		}
 		for _, it := range append(pre, post...) {
-			q.items = insertAt(q.items, q.cur+1+rand.IntN(len(q.items)-q.cur), it)
+			q.items = insertAt(q.items, first+rand.IntN(len(q.items)-first+1), it)
 		}
 		if q.cur < 0 && len(q.items) > 0 {
 			q.cur = 0
@@ -167,7 +188,7 @@ func (q *Queue) Grow(before, after []source.Track) {
 	if q.cur >= 0 {
 		q.cur += len(items)
 	}
-	q.add(after, false, false)
+	q.add(after, false, false, false)
 	q.origin.Modified = modified
 }
 
@@ -175,7 +196,7 @@ func (q *Queue) Grow(before, after []source.Track) {
 // origin stays unmodified.
 func (q *Queue) Extend(tracks []source.Track) {
 	modified := q.origin.Modified
-	q.add(tracks, false, false)
+	q.add(tracks, false, false, false)
 	q.origin.Modified = modified
 }
 
@@ -281,9 +302,18 @@ func (q *Queue) currentUID() uint64 {
 func (q *Queue) selectUID(uid uint64) {
 	for i, x := range q.items {
 		if x.UID == uid {
-			q.cur = i
+			q.setCur(i)
 			return
 		}
+	}
+}
+
+// setCur selects item i; it and everything before it no longer count as
+// Play next.
+func (q *Queue) setCur(i int) {
+	q.cur = i
+	for j := range q.items[:i+1] {
+		q.items[j].Next = false
 	}
 }
 
@@ -312,8 +342,26 @@ func (q *Queue) Jump(i int) error {
 	if i < 0 || i >= len(q.items) {
 		return fmt.Errorf("queue index %d out of range", i)
 	}
-	q.cur = i
+	q.setCur(i)
 	return nil
+}
+
+// undoJump returns a function that puts the current index and the Play next
+// flags back as they are now, for a jump that is refused after it moved.
+func (q *Queue) undoJump() func() {
+	cur := q.cur
+	var next []uint64
+	for _, it := range q.items {
+		if it.Next {
+			next = append(next, it.UID)
+		}
+	}
+	return func() {
+		q.cur = cur
+		for i := range q.items {
+			q.items[i].Next = slices.Contains(next, q.items[i].UID)
+		}
+	}
 }
 
 func (q *Queue) Current() (Item, bool) {
@@ -476,12 +524,15 @@ func (q *Queue) reshuffle(byAlbum bool) {
 		return
 	}
 	rand.Shuffle(len(q.items), func(i, j int) { q.items[i], q.items[j] = q.items[j], q.items[i] })
-	if curUID != 0 {
-		q.selectUID(curUID)
-		q.items[0], q.items[q.cur] = q.items[q.cur], q.items[0]
-		q.cur = 0
-	} else if len(q.items) > 0 {
-		q.cur = 0
+	if len(q.items) == 0 {
+		return
+	}
+	q.cur = 0
+	if curUID == 0 {
+		return
+	}
+	if i := slices.IndexFunc(q.items, func(it Item) bool { return it.UID == curUID }); i >= 0 {
+		q.items[0], q.items[i] = q.items[i], q.items[0]
 	}
 }
 

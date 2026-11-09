@@ -169,3 +169,19 @@ func TestDropLibraryLeavesTheSkipRules(t *testing.T) {
 	assert.Equal(t, []string{"b"}, again.Get().SkipRules.Libraries)
 	assert.Equal(t, 2, again.Get().SkipRules.MinRating, "the other rules stay")
 }
+
+func TestPlayNextOrder(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, FileName), []byte(`{"gaplessMode":"yes"}`), 0o644))
+	s, err := Open(dir)
+	require.NoError(t, err)
+	assert.Equal(t, "added", s.Get().PlayNextOrder, "a file without the key gets the default")
+	assert.True(t, s.Get().PlayerOptions().PlayNextInOrder)
+
+	_, err = s.Set(map[string]any{"playNextOrder": "oldest"})
+	require.Error(t, err)
+
+	got, err := s.Set(map[string]any{"playNextOrder": "newest"})
+	require.NoError(t, err)
+	assert.False(t, got.PlayerOptions().PlayNextInOrder)
+}

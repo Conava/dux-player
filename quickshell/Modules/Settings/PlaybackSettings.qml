@@ -13,6 +13,7 @@ SettingsPage {
     readonly property var settings: PlayerService.settings
     readonly property var replayGainModes: ["off", "track", "album"]
     readonly property var continueModes: ["off", "random", "similar"]
+    readonly property var playNextOrders: ["added", "newest"]
     readonly property var shuffleModes: ["tracks", "albums"]
     readonly property var historyOptionMonths: [1, 3, 6, 12, 60, 0]
 
@@ -363,6 +364,17 @@ SettingsPage {
             onSelectionChanged: (index, selected) => {
                 if (selected)
                     PlayerService.setSetting("autoContinue", root.continueModes[index]);
+            }
+        }
+
+        SettingsButtonGroupRow {
+            text: I18n.tr("Play next order", "playback setting")
+            keywords: "queue add newest"
+            model: [I18n.tr("In the order you add them", "play next order option"), I18n.tr("Newest first", "play next order option")]
+            currentIndex: root.playNextOrders.indexOf(root.settings.playNextOrder)
+            onSelectionChanged: (index, selected) => {
+                if (selected)
+                    PlayerService.setSetting("playNextOrder", root.playNextOrders[index]);
             }
         }
 

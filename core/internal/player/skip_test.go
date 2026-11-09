@@ -284,11 +284,13 @@ func TestJumpRefusedWhenNothingCanPlay(t *testing.T) {
 	r := &fakeRemote{}
 	require.NoError(t, p.SetRemote(ctx, r, false))
 	require.NoError(t, p.Play(ctx, tracks("a", "b", "c"), 0, Origin{}))
+	require.NoError(t, p.Enqueue(ctx, tracks("d"), true))
 	r.take()
 
-	require.ErrorIs(t, p.Jump(ctx, 1), errNoneCanPlay)
+	require.ErrorIs(t, p.Jump(ctx, 2), errNoneCanPlay)
 	assert.NotContains(t, r.take(), "stop")
 	q, err := p.Queue(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, 0, q.Index)
+	assert.True(t, q.Items[1].Next, "a refused jump keeps the Play next picks waiting")
 }

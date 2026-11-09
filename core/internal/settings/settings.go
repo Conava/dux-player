@@ -38,6 +38,9 @@ type Settings struct {
 	Equalizer    Equalizer `json:"equalizer"`
 	Crossfade    Crossfade `json:"crossfade"`
 	AutoContinue string    `json:"autoContinue"`
+	// PlayNextOrder is where Play next puts tracks: after earlier Play next
+	// picks ("added") or right after the current track ("newest").
+	PlayNextOrder string `json:"playNextOrder"`
 	// ShuffleMode is what shuffle reorders: "tracks" or whole "albums".
 	ShuffleMode string `json:"shuffleMode"`
 	// SkipRules apply to what the daemon picks by itself.
@@ -74,6 +77,11 @@ type Settings struct {
 const (
 	shuffleTracks = "tracks"
 	shuffleAlbums = "albums"
+)
+
+const (
+	playNextAdded  = "added"
+	playNextNewest = "newest"
 )
 
 // defaultMpvIdleExit frees mpv's memory between listening sessions.
@@ -125,6 +133,7 @@ func Defaults() Settings {
 		Equalizer:          Equalizer{Preset: "flat"},
 		Crossfade:          Crossfade{Seconds: 5, AlbumGapless: true},
 		AutoContinue:       player.ContinueOff,
+		PlayNextOrder:      playNextAdded,
 		ShuffleMode:        shuffleTracks,
 		HistoryMonths:      12,
 		MpvIdleExit:        defaultMpvIdleExit,
@@ -154,6 +163,7 @@ func (s Settings) PlayerOptions() player.Options {
 	}
 	o.Speed, o.AutoContinue = s.Speed, s.AutoContinue
 	o.ShuffleAlbums = s.ShuffleMode == shuffleAlbums
+	o.PlayNextInOrder = s.PlayNextOrder != playNextNewest
 	if s.Crossfade.Enabled {
 		o.Crossfade = s.Crossfade.Seconds
 	}
@@ -327,6 +337,8 @@ func apply(s Settings, key string, v any) (Settings, error) {
 		s.Speed = f
 	case "autoContinue":
 		s.AutoContinue, err = oneOf(key, v, player.ContinueOff, player.ContinueRandom, player.ContinueSimilar)
+	case "playNextOrder":
+		s.PlayNextOrder, err = oneOf(key, v, playNextAdded, playNextNewest)
 	case "shuffleMode":
 		s.ShuffleMode, err = oneOf(key, v, shuffleTracks, shuffleAlbums)
 	case "skipRules":
