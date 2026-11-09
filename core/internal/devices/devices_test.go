@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -342,19 +343,12 @@ func TestEQTune(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		tune(want, quit, func(p string) error {
+		tune(want, quit, func(bands string, fade []string) error {
 			mu.Lock()
-			writes = append(writes, p)
+			writes = append(append(writes, bands), fade...)
 			mu.Unlock()
 			return nil
-		}, func() uint64 { return 1 }, func(q <-chan struct{}, _ time.Duration) bool {
-			select {
-			case <-q:
-				return false
-			default:
-				return true
-			}
-		})
+		}, func() uint64 { return 1 })
 	}()
 	want <- [10]float64{6}
 	want <- [10]float64{-3}
@@ -411,14 +405,10 @@ func TestEQRetuneAfterRestart(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		tune(want, quit, func(p string) error { writes <- p; return nil }, gen.Load,
-			func(<-chan struct{}, time.Duration) bool { return true })
+		tune(want, quit, func(bands string, _ []string) error { writes <- bands; return nil }, gen.Load)
 	}()
 	want <- [10]float64{6}
 	assert.Equal(t, chainParams(1, [10]float64{6}), <-writes)
-	for range eqFadeSteps {
-		<-writes
-	}
 	gen.Add(1)
 	want <- [10]float64{2}
 	assert.Equal(t, chainParams(1, [10]float64{2}), <-writes, "after the restart a is heard")
@@ -446,4 +436,105 @@ func TestEQWithoutPipeWireServer(t *testing.T) {
 	s.OnEqualizer(EQ{})
 	require.Eventually(t, func() bool { return s.State().Equalizer == "off" }, time.Second, 5*time.Millisecond)
 	assert.Empty(t, s.State().Error)
+}
+
+// One change runs one pw-cli: the bands, then every crossfade step, in
+// order. A bands line that pw-cli ran before it knew the node goes again;
+// its connect-time errors don't count.
+func TestEQApplyOneProcess(t *testing.T) {
+	for _, failFirst := range []bool{false, true} {
+		bin := t.TempDir()
+		logFile := filepath.Join(bin, "log")
+		script := strings.NewReplacer("LOG", logFile, "FAIL", strconv.FormatBool(failFirst)).Replace(`#!/bin/sh
+echo "start $*" >> "LOG"
+if [ "$1" = info ]; then echo "id: 42"; exit 0; fi
+echo 'Error: "unsupported type PipeWire:Interface:SecurityContext"'
+echo ">> remote 0 is named 'pipewire-0'"
+fail=FAIL
+while read -r l; do
+  echo "$l" >> "LOG"
+  if [ "$fail" = true ]; then echo "Error: \"set-param: unknown global '42'\""; fail=false; fi
+done
+`)
+		require.NoError(t, os.WriteFile(filepath.Join(bin, "pw-cli"), []byte(script), 0o700))
+		t.Setenv("PATH", bin)
+
+		e := &eqChild{sink: "spk", quit: make(chan struct{})}
+		id := ""
+		bands := chainParams(1, [10]float64{6})
+		require.NoError(t, e.apply(&id, bands, fadeParams(0)), "failFirst=%v", failFirst)
+
+		lookup, set := "start info "+eqNode, "set-param 42 Props "
+		want := []string{lookup, "start ", set + bands}
+		if failFirst {
+			want = append(want, lookup, set+bands)
+		}
+		for k := 1; k <= eqFadeSteps; k++ {
+			want = append(want, set+mixParams(0, k))
+		}
+		want = append(want, "quit")
+		data, err := os.ReadFile(logFile)
+		require.NoError(t, err)
+		assert.Equal(t, want, strings.Split(strings.TrimSuffix(string(data), "\n"), "\n"), "failFirst=%v", failFirst)
+	}
+}
+
+// A crossfade that stops partway must not count as done: the next change
+// still goes to copy b. Quitting stops a running change at once.
+func TestEQApplyInterrupted(t *testing.T) {
+	sleepBin, err := exec.LookPath("sleep")
+	require.NoError(t, err)
+	for _, tc := range []struct {
+		name, session string
+		quit          bool
+	}{
+		{name: "pw-cli exits mid-fade", session: `n=0
+while read -r l; do echo "$l" >> "LOG"; n=$((n+1)); [ $n -ge 4 ] && exit 0; done`},
+		{name: "quit mid-fade", quit: true, session: "exec " + sleepBin + " 30"},
+	} {
+		bin := t.TempDir()
+		logFile := filepath.Join(bin, "log")
+		script := strings.ReplaceAll(`#!/bin/sh
+if [ "$1" = info ]; then echo "id: 42"; exit 0; fi
+echo ">> remote 0 is named 'pipewire-0'"
+`+tc.session+"\n", "LOG", logFile)
+		require.NoError(t, os.WriteFile(filepath.Join(bin, "pw-cli"), []byte(script), 0o700))
+		t.Setenv("PATH", bin)
+		e := &eqChild{sink: "spk", quit: make(chan struct{})}
+
+		if tc.quit {
+			id := ""
+			returned := make(chan error, 1)
+			go func() { returned <- e.apply(&id, chainParams(1, [10]float64{6}), fadeParams(0)) }()
+			time.Sleep(eqSettle + 3*eqStepEvery)
+			close(e.quit)
+			select {
+			case err := <-returned:
+				assert.Error(t, err)
+			case <-time.After(time.Second):
+				t.Fatal("apply kept running after quit")
+			}
+			continue
+		}
+
+		want, done := make(chan [10]float64, 1), make(chan struct{})
+		go func() {
+			defer close(done)
+			id := ""
+			tune(want, e.quit, func(bands string, fade []string) error { return e.apply(&id, bands, fade) }, func() uint64 { return 1 })
+		}()
+		bandsLines := func() []string {
+			data, _ := os.ReadFile(logFile)
+			return regexp.MustCompile(`(?m)^set-param 42 Props \{ params = \[ "(a|b)pre`).FindAllString(string(data), -1)
+		}
+		want <- [10]float64{6}
+		require.Eventually(t, func() bool { return len(bandsLines()) == 1 }, 2*time.Second, 5*time.Millisecond)
+		want <- [10]float64{2}
+		require.Eventually(t, func() bool { return len(bandsLines()) == 2 }, 2*time.Second, 5*time.Millisecond)
+		close(e.quit)
+		<-done
+		for _, l := range bandsLines() {
+			assert.Contains(t, l, `"bpre`, "%s: a half-done crossfade left copy a heard", tc.name)
+		}
+	}
 }
