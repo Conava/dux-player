@@ -20,6 +20,8 @@
 #   click X Y        move and click
 #   frames NAME CMD  run CMD and write the ms between UI frames to out/NAME.frames
 #   rclick X Y       move and right click
+#   dimmed A B       1 when the settings window's left edge is darker in out/B.png than in out/A.png: a dialog opened
+#                    between the shots really draws its scrim, rather than only reporting itself open
 dp() { dplayer-dev "$@"; }
 
 wait_for_daemon() {
@@ -70,3 +72,14 @@ pointer() {
 }
 click() { pointer m "$(($1 - 2))" "$2"; sleep 0.1; pointer m "$1" "$2"; sleep 0.3; pointer "${3:-c}"; }
 rclick() { click "$1" "$2" r; }
+
+dimmed() {
+    hyprctl -j clients | python3 -I -c '
+import json, sys
+from PIL import Image
+c = [c for c in json.load(sys.stdin) if c["title"] == "Dux Player Settings"][0]
+(x, y), (w, h) = c["at"], c["size"]
+box = (x + 8, y + h * 3 // 10, x + min(150, w // 6), y + h * 9 // 10)
+mean = lambda f: sum(Image.open(f).convert("L").crop(box).getdata()) / ((box[2] - box[0]) * (box[3] - box[1]))
+print(1 if mean(sys.argv[2]) < 0.75 * mean(sys.argv[1]) else 0)' "$W/out/$1.png" "$W/out/$2.png"
+}

@@ -313,15 +313,14 @@ Column {
 
     readonly property ConfirmDialog confirmDialog: ConfirmDialog {
         property var run: null
-        host: root.flickable
+        host: root
         confirmText: I18n.tr("Delete", "confirm button that deletes an item")
         onConfirmed: run?.()
     }
 
     // held in a property: as a Column child the Column would position it and drop its anchors
     readonly property WindowDialog deleteDialog: WindowDialog {
-        // not root: hosted from this list, hidden until a sub-page opens, the dialog never drew
-        host: root.flickable
+        host: root
         title: root.pendingDelete?.track.title ?? ""
         supportingText: I18n.tr("A rule keeps this track and may download it again. Exclude creates an exception for this track from all rules.", "asks how to delete a downloaded track an offline rule keeps")
         onRejected: opened = false

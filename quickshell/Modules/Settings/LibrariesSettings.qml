@@ -135,12 +135,8 @@ Item {
         }
 
         LibraryPage {
-            id: libraryPage
             visible: root.showingLibrary
             libraryId: root.showingLibrary ? root.subPage : ""
-            namePrompt: renameDialog
-            serverDialog: libraryServerDialog
-            removeDialog: removeLibraryDialog
         }
     }
 
@@ -158,24 +154,5 @@ Item {
     LibraryDialog {
         id: dialog
         host: root
-    }
-
-    TextPromptDialog {
-        id: renameDialog
-        host: root
-    }
-
-    LibraryServerDialog {
-        id: libraryServerDialog
-        host: root
-    }
-
-    ConfirmDialog {
-        id: removeLibraryDialog
-        host: root
-        title: I18n.tr("Remove \"%1\"?", "remove library confirmation title").arg(libraryPage.library?.name ?? "")
-        supportingText: libraryPage.server ? I18n.tr("The server and its saved password are removed from Dux Player. Nothing is deleted on the server.", "remove server library confirmation") : I18n.tr("The folders are removed from Dux Player. No files are deleted.", "remove local library confirmation")
-        confirmText: I18n.tr("Remove", "button that removes an item")
-        onConfirmed: PlayerService.removeLibrary(libraryPage.libraryId)
     }
 }

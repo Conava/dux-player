@@ -107,6 +107,7 @@ fact "no exclusion yet" "$(excluded)" 0
 fact "row of the favorite found" "$(ask press Delete "$(place tr-1-1-1)")" "8"
 sleep 1
 shot downloads-delete-dialog
+fact "delete dialog drawn" "$(dimmed downloads-library downloads-delete-dialog)" 1
 pressed=$(ask press "Delete and exclude" 0)
 fact "delete dialog shows its buttons" "$([ "$pressed" = 1 ] && echo 1 || echo "no, got $pressed")" 1
 settle copies 7

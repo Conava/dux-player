@@ -54,10 +54,12 @@ DDialog {
         handlesKey: true
     }
 
+    // Out of the tree until the host has a window: a dialog that waits inside a hidden host which has no window yet
+    // (a sub-page while its page loads) is never drawn after it moves to the window, though it is visible and opened.
     readonly property Binding _hostParent: Binding {
         target: root
         property: "parent"
         when: root.host !== null
-        value: root.host?.Window.window?.contentItem ?? root.host
+        value: root.host?.Window.window?.contentItem ?? null
     }
 }

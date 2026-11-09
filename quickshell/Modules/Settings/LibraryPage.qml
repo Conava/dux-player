@@ -13,11 +13,20 @@ Column {
     id: root
 
     property string libraryId: ""
-    // dialogs of the page that holds this one: declared in here, they don't draw when the settings window opens on
-    // this page
-    property TextPromptDialog namePrompt: null
-    property LibraryServerDialog serverDialog: null
-    property ConfirmDialog removeDialog: null
+    // held in properties: as Column children the Column would position them and drop their anchors
+    readonly property TextPromptDialog namePrompt: TextPromptDialog {
+        host: root
+    }
+    readonly property LibraryServerDialog serverDialog: LibraryServerDialog {
+        host: root
+    }
+    readonly property ConfirmDialog removeDialog: ConfirmDialog {
+        host: root
+        title: I18n.tr("Remove \"%1\"?", "remove library confirmation title").arg(root.library?.name ?? "")
+        supportingText: root.server ? I18n.tr("The server and its saved password are removed from Dux Player. Nothing is deleted on the server.", "remove server library confirmation") : I18n.tr("The folders are removed from Dux Player. No files are deleted.", "remove local library confirmation")
+        confirmText: I18n.tr("Remove", "button that removes an item")
+        onConfirmed: PlayerService.removeLibrary(root.libraryId)
+    }
 
     readonly property var library: PlayerService.library(libraryId)
     readonly property bool server: (library?.kind ?? "local") !== "local"

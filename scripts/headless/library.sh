@@ -1,4 +1,4 @@
-# A library's page: its local and server rows, a rename through the Name dialog, a scrobbling switch, the Server dialog, Downloads opened with that library's card open, and leaving the page by the header's Back, Alt+Left, Backspace and the mouse back button.
+# A library's page: its local and server rows, a rename through the Name dialog (also drawn on the window's first page), a scrobbling switch, the Server dialog, Downloads opened with that library's card open, and leaving the page by the header's Back, Alt+Left, Backspace and the mouse back button.
 # Needs SERVER=1.
 failed=0
 fact() { # fact NAME ACTUAL WANTED
@@ -34,6 +34,13 @@ sleep 2
 shot library-local
 # shown and press count the settings search's unseen copy of the page too: only presence is checked
 fact "local page shows its folders" "$(ask shown "Add folder")" 1
+# a dialog of a sub-page on the settings window's first page
+fact "Name row found on the first page" "$(ask press Name 0)" 1
+sleep 1
+shot library-local-name-dialog
+fact "Name dialog drawn" "$(dimmed library-local library-local-name-dialog)" 1
+ask press Cancel 0 >/dev/null
+sleep 1
 
 # a second server, so Downloads starts with every card closed
 rpc libraries.add "{\"kind\":\"subsonic\",\"name\":\"Server Two\",\"url\":\"http://127.0.0.1:$(cat "$W/server/port")\",\"username\":\"headless\",\"password\":\"headless\",\"auth\":\"token\"}" >/dev/null
