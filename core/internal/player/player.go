@@ -303,6 +303,9 @@ type Player struct {
 	curEntry  int64
 	nextEntry int64
 	nextUID   uint64
+	// endedInto is the entry mpv moves to after the current file ended; a
+	// start-file for it is followed even once the queue dropped that entry.
+	endedInto int64
 	active    bool
 
 	// Skipping silence: the current file started at startAt and ends at
@@ -843,6 +846,12 @@ func (p *Player) onProperty(name string, data json.RawMessage) {
 // A start-file for the prefetched entry is mpv moving on by itself: the
 // gapless transition. Advance the queue and line up the next track.
 func (p *Player) onStartFile(entry int64) {
+	into := p.endedInto
+	p.endedInto = 0
+	if entry != 0 && entry == into && entry != p.nextEntry {
+		p.enterDropped(context.Background())
+		return
+	}
 	if entry == 0 || entry != p.nextEntry {
 		return
 	}
@@ -867,6 +876,27 @@ func (p *Player) onStartFile(entry int64) {
 	}
 	p.syncNext(ctx)
 	p.publishQueue()
+	p.publishStatus()
+}
+
+// enterDropped follows mpv into a next entry the queue removed or moved after
+// the current file ended: the queue moves on to what it now says is next.
+func (p *Player) enterDropped(ctx context.Context) {
+	_, more := p.queue.Peek()
+	if more && !p.stopsAtEnd() && p.queue.Advance() {
+		if err := p.loadCurrent(ctx, 0, false); err != nil && !errors.Is(err, errLoading) {
+			p.publishFailure(err)
+		}
+		p.publishQueue()
+		p.publishStatus()
+		return
+	}
+	p.stop(ctx)
+	p.pos = 0
+	p.ended = !more
+	if p.stopsAtEnd() {
+		p.finishAtStop()
+	}
 	p.publishStatus()
 }
 
@@ -918,6 +948,7 @@ func (p *Player) onEndFile(m message) {
 		return
 	}
 	if p.nextEntry != 0 {
+		p.endedInto = p.nextEntry
 		return
 	}
 	p.active = false
@@ -1139,7 +1170,6 @@ func (p *Player) fallbackGain(t source.Track, measured *float64) *float64 {
 // loadCurrent returns errLoading: the old track stops and the new one
 // starts once its URL is in (doPlay waits for that).
 func (p *Player) loadCurrent(ctx context.Context, start float64, play bool) error {
-	p.clearEnded()
 	it, ok := p.queue.Current()
 	if !ok {
 		return errors.New("queue is empty")
@@ -1151,6 +1181,7 @@ func (p *Player) loadCurrent(ctx context.Context, start float64, play bool) erro
 		it, _ = p.queue.Current()
 		start = 0
 	}
+	p.clearEnded()
 	p.stopFade()
 	p.cancelLoad()
 	if p.remote != nil {
@@ -1177,6 +1208,23 @@ func (p *Player) loadCurrent(ctx context.Context, start float64, play bool) erro
 	}()
 	p.publishStatus()
 	return errLoading
+}
+
+// loadCurrentOrStop is loadCurrent for a current item that just changed: when
+// nothing can be loaded it stops, so the old track does not keep playing.
+func (p *Player) loadCurrentOrStop(ctx context.Context, play bool) error {
+	return p.stopOnLoadError(ctx, p.loadCurrent(ctx, 0, play))
+}
+
+// stopOnLoadError stops and publishes the changed queue when err is a failed load.
+func (p *Player) stopOnLoadError(ctx context.Context, err error) error {
+	if err != nil && !errors.Is(err, errLoading) {
+		p.stop(ctx)
+		p.pos = 0
+		p.publishQueue()
+		p.publishStatus()
+	}
+	return err
 }
 
 func (p *Player) resolve(it Item) (Stream, error) {
@@ -1230,7 +1278,7 @@ func (p *Player) open(ctx context.Context, it Item, st Stream, start float64, pl
 		p.stop(ctx)
 		return err
 	}
-	p.curEntry = id
+	p.curEntry, p.endedInto = id, 0
 	p.nextEntry, p.nextUID = 0, 0
 	p.active = true
 	p.loaded, p.pendingSeek, p.noSeek = false, -1, false
@@ -1411,7 +1459,7 @@ func (p *Player) stop(ctx context.Context) {
 		}
 	}
 	p.active = false
-	p.curEntry, p.nextEntry, p.nextUID = 0, 0, 0
+	p.curEntry, p.nextEntry, p.nextUID, p.endedInto = 0, 0, 0, 0
 	p.lastPos = 0
 	p.loaded, p.pendingSeek = false, -1
 }
@@ -1656,7 +1704,7 @@ func (p *Player) Next(ctx context.Context) error {
 	var done chan error
 	err := p.doPlay(ctx, func(ctx context.Context) error {
 		if p.queue.Advance() {
-			return p.loadCurrent(ctx, 0, false)
+			return p.loadCurrentOrStop(ctx, false)
 		}
 		if p.cfg.Continue == nil || p.queue.Len() == 0 {
 			return errors.New("end of queue")
@@ -1706,7 +1754,7 @@ func (p *Player) Previous(ctx context.Context) error {
 		if p.active && p.pos > p.opts.PreviousThreshold || !p.queue.Back() {
 			return p.seek(ctx, p.startAt, false)
 		}
-		return p.loadCurrent(ctx, 0, false)
+		return p.loadCurrentOrStop(ctx, false)
 	})
 }
 
@@ -1831,9 +1879,40 @@ func (p *Player) Remove(ctx context.Context, index int) error {
 		}
 		if wasCurrent && (p.active || p.loading != nil) {
 			if _, ok := p.queue.Current(); ok {
-				return p.loadCurrent(ctx, 0, false)
+				return p.loadCurrentOrStop(ctx, false)
 			}
 			p.stop(ctx)
+		}
+		p.syncNext(ctx)
+		p.publishQueue()
+		p.publishStatus()
+		return nil
+	})
+}
+
+// DropLibrary removes the queued tracks of a library that no longer exists.
+// A current track among them is replaced by the next remaining one, keeping
+// play or pause; with none after it playback stops on the last remaining one.
+func (p *Player) DropLibrary(ctx context.Context, lib string) error {
+	return p.doPlay(ctx, func(ctx context.Context) error {
+		removed, wasCurrent, noneAfter := p.queue.DropLibrary(lib)
+		if !removed {
+			return nil
+		}
+		if wasCurrent {
+			p.pos = 0
+		}
+		if wasCurrent && p.queue.Len() == 0 {
+			p.stop(ctx)
+			p.newQueue()
+			p.queue.Clear()
+		} else if wasCurrent && noneAfter {
+			p.stop(ctx)
+		} else if wasCurrent && (p.active || p.loading != nil) {
+			// Show the drop before the next track resolves; a failed resolve must not hide it.
+			p.publishQueue()
+			p.publishStatus()
+			return p.loadCurrentOrStop(ctx, false)
 		}
 		p.syncNext(ctx)
 		p.publishQueue()
@@ -1856,10 +1935,16 @@ func (p *Player) Move(ctx context.Context, from, to int) error {
 
 func (p *Player) Jump(ctx context.Context, index int) error {
 	return p.doPlay(ctx, func(ctx context.Context) error {
+		old := p.queue.Index()
 		if err := p.queue.Jump(index); err != nil {
 			return err
 		}
-		return p.loadCurrent(ctx, 0, true)
+		err := p.loadCurrent(ctx, 0, true)
+		if errors.Is(err, errNoneCanPlay) {
+			// Refused before anything changed: the current track keeps playing.
+			return errors.Join(err, p.queue.Jump(old))
+		}
+		return p.stopOnLoadError(ctx, err)
 	})
 }
 

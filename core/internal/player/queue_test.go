@@ -344,3 +344,80 @@ func TestShuffleByAlbum(t *testing.T) {
 	q.SetShuffle(false)
 	assert.Equal(t, ts[0].ID, q.Items()[0].Track.ID, "shuffle off restores the order")
 }
+
+func TestQueueDropLibrary(t *testing.T) {
+	mixed := func(cur int) *Queue {
+		q := NewQueue()
+		ts := tracks("a", "b", "c", "d", "e")
+		for _, i := range []int{1, 2} {
+			ts[i].Library = "gone"
+		}
+		q.Replace(ts, cur, Origin{Kind: "album"})
+		return q
+	}
+	tests := []struct {
+		name                  string
+		cur                   int
+		wantIDs               []string
+		wantCur               string
+		curDropped, noneAfter bool
+	}{
+		{"current from another library stays", 3, []string{"a", "d", "e"}, "d", false, false},
+		{"dropped current moves to the next remaining", 1, []string{"a", "d", "e"}, "d", true, false},
+		{"dropped current in a run moves to the next remaining", 2, []string{"a", "d", "e"}, "d", true, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			q := mixed(tt.cur)
+			removed, dropped, none := q.DropLibrary("gone")
+			assert.True(t, removed)
+			assert.Equal(t, tt.curDropped, dropped)
+			assert.Equal(t, tt.noneAfter, none)
+			assert.Equal(t, tt.wantIDs, ids(q))
+			assert.Equal(t, tt.wantCur, current(q))
+			assert.True(t, q.Origin().Modified)
+		})
+	}
+
+	t.Run("only earlier items remain", func(t *testing.T) {
+		q := NewQueue()
+		ts := tracks("a", "b", "c")
+		ts[1].Library, ts[2].Library = "gone", "gone"
+		q.Replace(ts, 2, Origin{Kind: "album"})
+		_, dropped, none := q.DropLibrary("gone")
+		assert.True(t, dropped)
+		assert.True(t, none)
+		assert.Equal(t, "a", current(q))
+	})
+
+	t.Run("nothing from the library is a no-op", func(t *testing.T) {
+		q := mixed(0)
+		removed, _, _ := q.DropLibrary("other")
+		assert.False(t, removed)
+		assert.Equal(t, []string{"a", "b", "c", "d", "e"}, ids(q))
+		assert.False(t, q.Origin().Modified)
+	})
+
+	t.Run("shuffled order stays consistent", func(t *testing.T) {
+		q := mixed(0)
+		q.SetShuffle(true)
+		q.DropLibrary("gone")
+		assert.ElementsMatch(t, []string{"a", "d", "e"}, ids(q))
+		assert.Equal(t, "a", current(q))
+		q.SetShuffle(false)
+		assert.Equal(t, []string{"a", "d", "e"}, ids(q))
+	})
+
+	t.Run("everything dropped leaves an empty queue", func(t *testing.T) {
+		q := NewQueue()
+		ts := tracks("a")
+		ts[0].Library = "gone"
+		q.Replace(ts, 0, Origin{})
+		_, dropped, none := q.DropLibrary("gone")
+		assert.True(t, dropped)
+		assert.True(t, none)
+		assert.Equal(t, 0, q.Len())
+		_, ok := q.Current()
+		assert.False(t, ok)
+	})
+}

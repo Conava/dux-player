@@ -198,6 +198,50 @@ func (q *Queue) Remove(i int) (bool, error) {
 	return wasCurrent, nil
 }
 
+// DropLibrary removes every item of library lib. When the current item goes,
+// the first remaining item after it becomes current; with none after it the
+// last remaining item is selected and noneAfter says so.
+func (q *Queue) DropLibrary(lib string) (removed, currentDropped, noneAfter bool) {
+	var kept []Item
+	cur := -1
+	for i, it := range q.items {
+		if it.Track.Library == lib {
+			if i == q.cur {
+				currentDropped = true
+				cur = len(kept)
+			}
+			removed = true
+			continue
+		}
+		if i == q.cur {
+			cur = len(kept)
+		}
+		kept = append(kept, it)
+	}
+	if !removed {
+		return false, false, false
+	}
+	q.items, q.cur = kept, cur
+	if q.orig != nil {
+		have := make(map[uint64]bool, len(kept))
+		for _, it := range kept {
+			have[it.UID] = true
+		}
+		orig := q.orig[:0]
+		for _, uid := range q.orig {
+			if have[uid] {
+				orig = append(orig, uid)
+			}
+		}
+		q.orig = orig
+	}
+	if currentDropped && q.cur >= len(kept) {
+		q.cur, noneAfter = len(kept)-1, true
+	}
+	q.origin.Modified = true
+	return removed, currentDropped, noneAfter
+}
+
 // Move puts item from at position to and keeps the current item selected.
 func (q *Queue) Move(from, to int) error {
 	n := len(q.items)

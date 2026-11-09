@@ -87,6 +87,12 @@ func handleLibraries(ctx context.Context, w *ConnWriter, req Request, deps Deps)
 			} else if dropped {
 				deps.Bus.Publish(TopicSettings, settingsReply(deps))
 			}
+			// The reply doesn't wait for the next track to resolve.
+			go func() {
+				if derr := deps.Player.DropLibrary(context.WithoutCancel(ctx), lib); derr != nil {
+					log.Warnf("queue tracks of removed library %s: %v", lib, derr)
+				}
+			}()
 		}
 		ReplyOK(w, req.ID, err)
 	case "libraries.scan":

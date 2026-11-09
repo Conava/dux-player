@@ -199,3 +199,96 @@ func TestPlayRefusedKeepsTheQueue(t *testing.T) {
 		})
 	}
 }
+
+// Under repeat all the queue wraps, so a start on a skipped last track is
+// accepted when an earlier one can play.
+func TestPlayStartingOnSkippedTrackWraps(t *testing.T) {
+	tests := []struct {
+		name   string
+		repeat string
+		ok     bool
+	}{
+		{"repeat all", RepeatAll, true},
+		{"repeat off", RepeatOff, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv"), Resolver: skipper{"x": true}})
+			run(t, ctx, p)
+			require.NoError(t, p.SetRemote(ctx, &fakeRemote{}, false))
+			require.NoError(t, p.SetRepeat(ctx, tt.repeat))
+			err := p.Play(ctx, tracks("b", "x"), 1, Origin{})
+			if tt.ok {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
+		})
+	}
+}
+
+// A dropped current track with nothing playable after it stops playback
+// instead of leaving the removed library's track playing.
+func TestDropLibraryStopsWhenNothingCanPlay(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv"), Resolver: skipper{"b": true, "c": true}})
+	run(t, ctx, p)
+	r := &fakeRemote{}
+	require.NoError(t, p.SetRemote(ctx, r, false))
+	list := tracks("a", "b", "c")
+	list[0].Library = "gone"
+	require.NoError(t, p.Play(ctx, list, 0, Origin{}))
+	r.take()
+
+	require.ErrorIs(t, p.DropLibrary(ctx, "gone"), errNoneCanPlay)
+	assert.Contains(t, r.take(), "stop")
+}
+
+func TestRemoveCurrentStopsWhenNothingCanPlay(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var mu sync.Mutex
+	var published QueueSnapshot
+	p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv"), Resolver: skipper{"b": true, "c": true},
+		Publish: func(topic string, data any) {
+			if q, ok := data.(QueueSnapshot); ok && topic == TopicQueue {
+				mu.Lock()
+				published = q
+				mu.Unlock()
+			}
+		}})
+	run(t, ctx, p)
+	r := &fakeRemote{}
+	require.NoError(t, p.SetRemote(ctx, r, false))
+	require.NoError(t, p.Play(ctx, tracks("a", "b", "c"), 0, Origin{}))
+	r.take()
+
+	require.ErrorIs(t, p.Remove(ctx, 0), errNoneCanPlay)
+	assert.Contains(t, r.take(), "stop")
+	mu.Lock()
+	defer mu.Unlock()
+	require.Len(t, published.Items, 2)
+	assert.Equal(t, "b", published.Items[0].Track.ID)
+}
+
+// A jump to a track with nothing playable from there on is refused and the
+// current track keeps playing.
+func TestJumpRefusedWhenNothingCanPlay(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	p := New(Config{Binary: filepath.Join(t.TempDir(), "no-mpv"), Resolver: skipper{"b": true, "c": true}})
+	run(t, ctx, p)
+	r := &fakeRemote{}
+	require.NoError(t, p.SetRemote(ctx, r, false))
+	require.NoError(t, p.Play(ctx, tracks("a", "b", "c"), 0, Origin{}))
+	r.take()
+
+	require.ErrorIs(t, p.Jump(ctx, 1), errNoneCanPlay)
+	assert.NotContains(t, r.take(), "stop")
+	q, err := p.Queue(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 0, q.Index)
+}

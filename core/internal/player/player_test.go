@@ -497,3 +497,57 @@ func TestSleepAfterRefusals(t *testing.T) {
 	assert.Equal(t, SleepOff, st.Sleep.Mode)
 	assert.NoError(t, p.SetSleepAfter(ctx, 2))
 }
+
+// mpv moves into the lined-up next track while the user removes or moves it:
+// the queue follows to what it now says is next and mpv is told to play that.
+func TestDroppedNextAfterGaplessMoveOn(t *testing.T) {
+	tests := []struct {
+		name string
+		ids  []string
+		edit func(ctx context.Context, p *Player) error
+		want string // the track playing afterwards; empty: playback ended
+	}{
+		{"remove", []string{"a", "b", "c", "d"}, func(ctx context.Context, p *Player) error { return p.Remove(ctx, 1) }, "c"},
+		{"move", []string{"a", "b", "c", "d"}, func(ctx context.Context, p *Player) error { return p.Move(ctx, 1, 3) }, "c"},
+		{"nothing next", []string{"a", "b"}, func(ctx context.Context, p *Player) error { return p.Remove(ctx, 1) }, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("FAKE_MPV_STALL_MS", "1")
+			dir := t.TempDir()
+			res := pathResolver{}
+			for _, id := range tt.ids {
+				res[id] = filepath.Join(dir, id+".wav")
+			}
+			p := New(Config{Binary: os.Args[0], Socket: filepath.Join(dir, "mpv.sock"), Resolver: res})
+			ctx := run(t, context.Background(), p)
+			require.NoError(t, p.Play(ctx, tracks(tt.ids...), 0, Origin{Kind: "adhoc"}))
+
+			var dropped int64
+			require.Eventually(t, func() bool {
+				_ = p.do(ctx, func(context.Context) error { dropped = p.nextEntry; return nil })
+				return dropped != 0
+			}, 3*time.Second, 10*time.Millisecond, "the next track was never lined up")
+			require.NoError(t, p.do(ctx, func(context.Context) error {
+				p.onEndFile(message{Event: "end-file", EntryID: p.curEntry, Reason: "eof"})
+				return nil
+			}))
+			require.NoError(t, tt.edit(ctx, p))
+			require.NoError(t, p.do(ctx, func(context.Context) error { p.onStartFile(dropped); return nil }))
+
+			if tt.want == "" {
+				require.Eventually(t, func() bool {
+					st, err := p.Status(ctx)
+					return err == nil && st.Ended && st.State == StateStopped
+				}, 3*time.Second, 10*time.Millisecond, "playback did not end")
+				return
+			}
+			require.Eventually(t, func() bool {
+				var cur int64
+				_ = p.do(ctx, func(context.Context) error { cur = p.curEntry; return nil })
+				st, err := p.Status(ctx)
+				return err == nil && st.Track != nil && st.Track.ID == tt.want && cur > dropped
+			}, 3*time.Second, 10*time.Millisecond, "the queue did not move on to the track after the dropped one")
+		})
+	}
+}
