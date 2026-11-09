@@ -107,6 +107,11 @@ DListItem {
         cursorShape: Qt.ArrowCursor
     }
 
+    DPressFeedback {
+        control: root
+        cancelled: root.dragging
+    }
+
     DDragHandle {
         id: handle
         anchors.left: parent.left

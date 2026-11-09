@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // One track. Click plays; Ctrl/Shift-click or the leading checkbox selects; dragging the art moves the track
 // (or the selection) onto the queue or a playlist. The end of the row, the hover buttons and both menus are the
@@ -71,6 +72,11 @@ DListItem {
             return;
         menu.open(rowEnd.moreButton ?? root);
         event.accepted = true;
+    }
+
+    DPressFeedback {
+        control: root
+        cancelled: dragHandler.active
     }
 
     TapHandler {

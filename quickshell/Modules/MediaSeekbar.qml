@@ -32,6 +32,10 @@ Item {
     // a minimized window still counts as visible to its items
     readonly property bool shown: visible && Window.visibility !== Window.Minimized && Window.visibility !== Window.Hidden
     readonly property bool playing: PlayerService.playing && !PlayerService.loading
+    // 1 while playing, easing to 0 on pause; the wave keeps moving until it is flat
+    property real waveLevel: playing ? 1 : 0
+    // M3WaveProgress's own default amplitude
+    readonly property real flatBarAmplitude: 1.6
     property real playerValue: 0
     property real seekPreviewRatio: -1
     // 0–1, the preview while seeking
@@ -147,6 +151,14 @@ Item {
         visible: root.activeFocus
     }
 
+    Behavior on waveLevel {
+        enabled: Theme.animationsEnabled && root.shown
+        DC.DAnim {
+            duration: Theme.expressiveDurations.expressiveDefaultSpatial
+            easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+        }
+    }
+
     Behavior on handleWidth {
         enabled: Theme.animationsEnabled
         NumberAnimation {
@@ -182,16 +194,13 @@ Item {
         playheadColor: root.fillColor
         trackColor: root.trackColor
         actualProgressColor: ArtColors.accentSubtle
-        isPlaying: root.playing && root.shown
+        isPlaying: root.waveLevel > 0 && root.shown
+
+        amp: (root.expressive ? PlayerMetrics.mediaSeekbarExpressiveAmplitude : root.flatBarAmplitude) * root.waveLevel
 
         Binding on lineWidth {
             when: root.expressive
             value: PlayerMetrics.mediaSeekbarExpressiveLineWidth
-        }
-
-        Binding on amp {
-            when: root.expressive
-            value: PlayerMetrics.mediaSeekbarExpressiveAmplitude
         }
 
         Binding on wavelength {

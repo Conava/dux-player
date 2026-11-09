@@ -2,6 +2,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // A grid or carousel tile for an album, artist, playlist, genre or track. The overlay is fixed (play, ⋮, heart);
 // the ⋮ and right-click menus are the type's.
@@ -48,6 +49,10 @@ StyledButton {
         stateColor: Theme.onSurface
         // stays highlighted while its menu is open
         hovered: root.hovered || root.menuOpened
+    }
+
+    DPressFeedback {
+        control: root
     }
 
     TapHandler {

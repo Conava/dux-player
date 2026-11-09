@@ -100,7 +100,7 @@ Singleton {
             "GRAD": 100
         })
     readonly property real mediaPlayWidthRatio: 2
-    readonly property real mediaTransportPressScale: 1.2
+    readonly property real mediaTransportPressScale: 1.15
     readonly property real mediaDeviceNameWidthRatio: 0.42
     readonly property real mediaTextScrollSpeed: 40
     readonly property int mediaTextScrollStep: 30

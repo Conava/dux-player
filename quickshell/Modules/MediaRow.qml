@@ -2,6 +2,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // A list row for an album, artist, playlist or genre; tracks use TrackRow. Its end, hover buttons and menus are
 // the type's (Edit page → Rows and menus).
@@ -27,6 +28,10 @@ DListItem {
             return;
         menu.open(trailing.moreButton ?? root);
         event.accepted = true;
+    }
+
+    DPressFeedback {
+        control: root
     }
 
     MediaMenu {

@@ -164,6 +164,24 @@ RowLayout {
         return true;
     }
 
+    // the pressed previous / play / next and how much it widens
+    property string pressedId: ""
+    property real pressedGrow: 0
+
+    // the width a transport button gives or takes while another is pressed: the pressed one grows, its direct
+    // neighbours among previous / play / next share the loss
+    function transportShift(id) {
+        if (pressedId === "")
+            return 0;
+        if (id === pressedId)
+            return pressedGrow;
+        const order = ["previous", "playPause", "next"].filter(t => segments.some(s => !s.stack && s.items[0].type === t && shows(t, s.items[0].options)));
+        const mine = order.indexOf(id), pressed = order.indexOf(pressedId);
+        if (mine < 0 || pressed < 0 || Math.abs(mine - pressed) !== 1)
+            return 0;
+        return -pressedGrow / ((pressed > 0 ? 1 : 0) + (pressed < order.length - 1 ? 1 : 0));
+    }
+
     // what an element needs in a row, from the same tokens the elements size by
     function elementWidth(inst, buttonSize = size) {
         const button = buttonSize === "m" ? Theme.buttonHeightM : Theme.buttonHeightS;
@@ -332,6 +350,16 @@ RowLayout {
         lyricFallback: !root.line && !(root.column && root.shown.some(i => i.type === "title"))
         lyricBlank: root.lyricBlank(options)
         weight: elementId === "playPause" ? PlayerMetrics.mediaPlayWidthRatio : 1
+        widthShift: root.transportShift(elementId)
+        onPressGrowChanged: {
+            if (pressGrow > 0) {
+                root.pressedId = elementId;
+                root.pressedGrow = pressGrow;
+            } else if (root.pressedId === elementId) {
+                root.pressedId = "";
+                root.pressedGrow = 0;
+            }
+        }
         shown: root.shows(elementId, options)
         rowWidth: root.width
     }

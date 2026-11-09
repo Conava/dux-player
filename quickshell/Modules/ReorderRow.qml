@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // A DReorderList delegate: a drag handle at the start (keys and the a11y actions move the row too); anchor the
 // row's content after `handle`.
@@ -27,6 +28,11 @@ DListItem {
     lastInGroup: view.order.indexOf(index) === view.count - 1
     z: dragHandle.dragging ? 1 : 0
     Accessible.name: label
+
+    DPressFeedback {
+        control: root
+        cancelled: dragHandle.dragging
+    }
 
     DDragHandle {
         id: dragHandle

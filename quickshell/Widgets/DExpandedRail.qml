@@ -80,6 +80,10 @@ FocusScope {
                         stateColor: destination.selected ? Style.onSelectedContainer : Style.onSurface
                     }
 
+                    DPressFeedback {
+                        control: destination
+                    }
+
                     // the destinations take no focus; the rail shows where the keyboard is
                     FocusRing {
                         visible: root.activeFocus && destination.selected

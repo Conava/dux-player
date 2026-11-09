@@ -12,6 +12,8 @@ DScrollingText {
     property bool expressive: true
     property real fullPixelSize: Theme.fontSizeDisplay
     property real minimumPixelSize: Theme.fontSizeXXLarge
+    // a changed title slides out and in; only now-playing shows titles with this item
+    property bool slide: true
 
     // at the full size: the shrunken width depends on the room given, so it can't decide that room
     readonly property real fullTextWidth: fullSize.implicitWidth
@@ -32,6 +34,20 @@ DScrollingText {
     fadeEdges: true
     pxPerMs: PlayerMetrics.mediaTextScrollSpeed / 1000
     stepInterval: PlayerMetrics.mediaTextScrollStep
+    opacity: change.fade
+    transform: Translate {
+        x: change.shift
+    }
+
+    TextSlide {
+        id: change
+        owner: root
+        text: root.text
+        font: root.font
+        color: root.color
+        horizontalAlignment: root.horizontalAlignment
+        active: root.slide
+    }
 
     // not TextMetrics: its width can fall a pixel short of the drawn text, which then scrolls
     StyledText {

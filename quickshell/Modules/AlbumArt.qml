@@ -1,4 +1,7 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
+import QtQuick.Effects
 import Quickshell.Widgets
 import qs.Common
 import qs.Services
@@ -23,7 +26,56 @@ ClippingRectangle {
     // Decoded in power-of-two steps, so resizing the window rarely reloads the cover; a reload keeps showing it.
     readonly property int decodeSize: Math.pow(2, Math.ceil(Math.log2(Math.max(width, height, 1) * Screen.devicePixelRatio)))
     property string readySource: ""
-    readonly property bool showsCover: cover.status === Image.Ready || cover.status === Image.Loading && readySource === source
+    readonly property bool showsCover: cover.status === Image.Ready || cover.status === Image.Loading && readySource === cover.source.toString()
+
+    // Now-playing art: a new cover replaces the old one by a blur hand-off, not a cut. Tiles and rows leave it off.
+    property bool handoff: false
+    // the source `cover` shows while handing off, and how blurred it is (1 fully)
+    property string shown: ""
+    property real blur: 0
+    property bool swapPending: false
+    property bool entering: false
+    readonly property bool handingOff: swapPending || blurOut.running || blurIn.running
+
+    // the old cover is gone and the new one decoded
+    function land() {
+        if (!swapPending || blurOut.running || next.status === Image.Loading || next.status === Image.Null)
+            return;
+        shown = source;
+        swapPending = false;
+        if (next.status !== Image.Ready)
+            return settle();
+        entering = true;
+        blurIn.restart();
+    }
+
+    function settle() {
+        blurOut.stop();
+        blurIn.stop();
+        swapPending = false;
+        blur = 0;
+    }
+
+    onSourceChanged: {
+        if (!handoff)
+            return;
+        if (source === shown)
+            return settle();
+        if (shown === "" || source === "" || !showsCover || !visible || !Theme.animationsEnabled) {
+            settle();
+            shown = source;
+            return;
+        }
+        blurIn.stop();
+        swapPending = true;
+        blurOut.restart();
+    }
+    onHandoffChanged: {
+        settle();
+        shown = handoff ? source : "";
+    }
+    Component.onCompleted: if (handoff)
+        shown = source
 
     color: pair?.container ?? Theme.secondaryContainer
     radius: Theme.cornerRadiusM
@@ -50,7 +102,15 @@ ClippingRectangle {
         id: cover
         anchors.fill: parent
         visible: root.showsCover
-        source: root.source
+        source: root.handoff ? root.shown : root.source
+        opacity: 1 - 0.6 * Math.min(1, Math.max(0, root.blur))
+        scale: root.entering ? 1 + 0.05 * Math.max(0, root.blur) : 1
+        layer.enabled: root.handingOff
+        layer.effect: MultiEffect {
+            blurEnabled: true
+            blurMax: 32
+            blur: Math.min(1, Math.max(0, root.blur))
+        }
         sourceSize.width: root.decodeSize
         sourceSize.height: root.decodeSize
         retainWhileLoading: true
@@ -59,7 +119,42 @@ ClippingRectangle {
         cache: true
         onStatusChanged: {
             if (status === Image.Ready)
-                root.readySource = root.source;
+                root.readySource = cover.source.toString();
         }
+    }
+
+    // decodes the incoming cover while the old one blurs out
+    Image {
+        id: next
+        visible: false
+        source: root.handoff ? root.source : ""
+        sourceSize.width: root.decodeSize
+        sourceSize.height: root.decodeSize
+        asynchronous: true
+        cache: true
+        onStatusChanged: root.land()
+    }
+
+    NumberAnimation {
+        id: blurOut
+        target: root
+        property: "blur"
+        to: 1
+        duration: Theme.expressiveDurations.expressiveEffects
+        easing.type: Easing.BezierSpline
+        easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+        onFinished: root.land()
+    }
+
+    NumberAnimation {
+        id: blurIn
+        target: root
+        property: "blur"
+        to: 0
+        duration: Theme.expressiveDurations.expressiveDefaultSpatial
+        easing.type: Easing.BezierSpline
+        easing.bezierCurve: Theme.expressiveCurves.expressiveDefaultSpatial
+        onRunningChanged: if (!running)
+            root.entering = false
     }
 }

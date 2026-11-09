@@ -394,16 +394,69 @@ Item {
                 onClicked: PlayerService.continueQueue()
             }
         }
+        // reduce motion and speed None make every duration 0, so rows land at once
+        readonly property int moveDuration: Theme.animationsEnabled ? Theme.expressiveDurations.expressiveFastSpatial : 0
+        readonly property int fadeDuration: Theme.animationsEnabled ? Theme.expressiveDurations.expressiveEffects : 0
+        // an add interrupted mid-fade can leave rows displaced at partial opacity, so they always end at 1
         displaced: Transition {
             NumberAnimation {
                 property: "y"
-                duration: Theme.shortDuration
+                duration: queueList.moveDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+            }
+            NumberAnimation {
+                properties: "opacity,scale"
+                to: 1
+                duration: 0
             }
         }
         move: Transition {
             NumberAnimation {
                 property: "y"
-                duration: Theme.shortDuration
+                duration: queueList.moveDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+            }
+            NumberAnimation {
+                properties: "opacity,scale"
+                to: 1
+                duration: 0
+            }
+        }
+        add: Transition {
+            NumberAnimation {
+                property: "opacity"
+                from: 0
+                to: 1
+                duration: queueList.fadeDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+            }
+            NumberAnimation {
+                property: "y"
+                from: ViewTransition.destination.y + Theme.spacingM
+                duration: queueList.fadeDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+            }
+        }
+        remove: Transition {
+            ParallelAnimation {
+                NumberAnimation {
+                    property: "opacity"
+                    to: 0
+                    duration: queueList.fadeDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+                }
+                NumberAnimation {
+                    property: "x"
+                    to: Theme.spacingXL
+                    duration: queueList.fadeDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+                }
             }
         }
 

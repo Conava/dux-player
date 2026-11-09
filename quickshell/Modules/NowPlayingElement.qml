@@ -41,6 +41,13 @@ Loader {
     property real weight: 1
     // the spring-animated weight of a filling transport button
     property real liveWeight: weight
+    // previous / play / next outside a filled row: the pressed one widens, its direct neighbours give the width back
+    readonly property bool slides: ["previous", "playPause", "next"].indexOf(elementId) >= 0 && !fills && !grouped
+    // what this button grows by while pressed (it sets it), and the shift the zone asks of it (-grow / neighbours for
+    // a neighbour of the pressed one)
+    readonly property Springy springy: item as Springy
+    property real pressGrow: 0
+    property real widthShift: 0
 
     readonly property var track: PlayerService.current
     readonly property bool transportId: ["shuffle", "previous", "playPause", "next", "repeat"].indexOf(elementId) >= 0
@@ -81,7 +88,8 @@ Loader {
     // what the zone lays out by: a row's layout reads these, since the element sits in a wrapper
     readonly property bool fills: fill && (sourceComponent === button || sourceComponent === playPause)
     readonly property bool fillsWidth: elementId === "seekbar" || elementId === "lyricLine" || fills || elementId === "spacer" && options.size === "fill"
-    readonly property real preferredWidth: elementId === "lyricLine" ? PlayerMetrics.barInfoWidths[options.width ?? "m"] : fills ? Theme.minimumTouchTargetSize * liveWeight : -1
+    // a sliding transport button asks its row for its width, since a Loader overwrites the item's own
+    readonly property real preferredWidth: elementId === "lyricLine" ? PlayerMetrics.barInfoWidths[options.width ?? "m"] : fills ? Theme.minimumTouchTargetSize * liveWeight : slides && springy ? springy.baseWidth + springy.shift : -1
     readonly property real minimumWidth: elementId === "seekbar" ? PlayerMetrics.barSeekMinWidth : elementId === "lyricLine" ? 0 : fills ? Theme.iconSizeMedium + Theme.spacingXS * 2 : -1
     // the zone decides (NowPlayingZone.shows): a cast target only while casting, an album only when there is one
     property bool shown: true
@@ -136,8 +144,24 @@ Loader {
     component Springy: DIconButton {
         id: springy
         readonly property real targetWeight: root.weight * (pressed ? PlayerMetrics.mediaTransportPressScale : 1)
+        readonly property real baseWidth: root.grouped ? root.groupWidth : root.look === "transport" && !root.fills ? Math.round(buttonSize * root.weight) : iconSize + horizontalInset * 2
+        // the width the press gives or takes; it eases, the zone's total stays put
+        property real shift: root.slides ? root.widthShift : 0
         // Bento's buttons outside a filled row: round, play wider
-        width: root.grouped ? root.groupWidth : root.look === "transport" && !root.fills ? Math.round(buttonSize * root.weight) : iconSize + horizontalInset * 2
+        width: baseWidth + shift
+        Behavior on shift {
+            enabled: Theme.animationsEnabled
+            DC.DAnim {
+                duration: Theme.expressiveDurations.expressiveFastSpatial
+                easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+            }
+        }
+        Binding {
+            target: root
+            property: "pressGrow"
+            value: springy.pressed ? Math.round(springy.baseWidth * (PlayerMetrics.mediaTransportPressScale - 1)) : 0
+            when: root.slides
+        }
         topLeftRadius: root.corner(springy, root.groupStart)
         bottomLeftRadius: root.corner(springy, root.groupStart)
         topRightRadius: root.corner(springy, root.groupEnd)
@@ -234,6 +258,7 @@ Loader {
             Component {
                 id: barTitle
                 DScrollingText {
+                    id: barText
                     text: root.track?.title ?? ""
                     font.pixelSize: Theme.fontSizeMedium
                     font.weight: Theme.fontWeightMedium
@@ -244,6 +269,19 @@ Loader {
                     loop: true
                     pxPerMs: PlayerMetrics.mediaTextScrollSpeed / 1000
                     stepInterval: PlayerMetrics.mediaTextScrollStep
+                    opacity: barSlide.fade
+                    transform: Translate {
+                        x: barSlide.shift
+                    }
+
+                    TextSlide {
+                        id: barSlide
+                        owner: barText
+                        text: barText.text
+                        font: barText.font
+                        color: barText.color
+                        horizontalAlignment: barText.horizontalAlignment
+                    }
                 }
             }
 
@@ -283,6 +321,19 @@ Loader {
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     maximumLineCount: 2
                     horizontalAlignment: root.centered ? Text.AlignHCenter : Text.AlignLeft
+                    opacity: m3eSlide.fade
+                    transform: Translate {
+                        x: m3eSlide.shift
+                    }
+
+                    TextSlide {
+                        id: m3eSlide
+                        owner: m3eText
+                        text: m3eText.text
+                        font: m3eText.font
+                        color: m3eText.color
+                        horizontalAlignment: m3eText.horizontalAlignment
+                    }
 
                     // not TextMetrics: its width can fall a pixel short of the drawn text, which then wraps
                     StyledText {
@@ -669,10 +720,10 @@ Loader {
             variant: "filled"
             round: false
             buttonSize: root.buttonSize
-            // the M3E play button turns into a pill while playing
+            // a pill while paused, a rounded square while playing
             checkable: true
             checked: PlayerService.playing
-            radius: bento ? Theme.buttonRadius(width, height, buttonSize, pressed, true) : (pressed ? Theme.buttonRadius(width, height, buttonSize, true, false) : checked ? roundRadius : squareRadius)
+            radius: pressed ? Theme.buttonRadius(width, height, buttonSize, true, false) : checked ? squareRadius : roundRadius
             // the one filled button of the transport, in every style
             containerColor: ArtColors.accent
             contentColor: ArtColors.onAccent

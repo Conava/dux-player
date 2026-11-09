@@ -12,6 +12,8 @@ Item {
     property string line: "artists"
     property bool centered: true
     property real fontSize: Theme.fontSizeSmall
+    // a changed line slides out and in; only now-playing shows these lines
+    property bool slide: true
 
     readonly property Item content: line === "album" ? album : artists
 
@@ -24,6 +26,20 @@ Item {
     visible: line === "album" ? (track?.album ?? "") !== "" : (track?.artists ?? []).length > 0
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight
+    opacity: change.fade
+    transform: Translate {
+        x: change.shift
+    }
+
+    TextSlide {
+        id: change
+        owner: root
+        text: root.line === "album" ? root.track?.album ?? "" : (root.track?.artists ?? []).map(a => a.name).join(", ")
+        font: album.font
+        color: ArtColors.textVariant
+        horizontalAlignment: root.centered ? Text.AlignHCenter : LayoutMirroring.enabled ? Text.AlignRight : Text.AlignLeft
+        active: root.slide
+    }
 
     ArtistLinks {
         id: artists

@@ -48,5 +48,6 @@ DArtShape {
         anchors.fill: parent
         radius: 0
         item: root.item
+        handoff: !root.still
     }
 }
