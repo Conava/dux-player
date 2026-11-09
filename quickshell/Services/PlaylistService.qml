@@ -121,17 +121,13 @@ Singleton {
         const p = playlist(id);
         if (!p?.loaded)
             return () => {};
-        const old = {
-            "items": p.items,
-            "trackCount": p.trackCount,
-            "duration": p.duration
-        };
         _patchPlaylist(id, {
             "items": items,
             "trackCount": trackCount,
             "duration": items.reduce((sum, t) => sum + (t.duration ?? 0), 0)
         });
-        return () => root._patchPlaylist(id, old);
+        // a failure reloads the playlist: a snapshot could undo an event that refreshed it meanwhile
+        return () => root.loadPlaylist(id);
     }
 
     // cover: {type: "auto"} (mosaic of the first albums) | {type: "art", library, id} | {type: "shape", accent, shape}

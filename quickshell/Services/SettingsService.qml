@@ -296,10 +296,10 @@ Singleton {
     }
 
     // shows `shown` at once; the reply replaces it, a refusal puts the old status back
+    // a failure reads the status again: a snapshot from before could undo a newer scrobble event
     function _scrobbleSwitch(method, params, shown) {
-        const before = scrobble;
         scrobble = shown;
-        DaemonBridge.request(method, params, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"), r => root._applyScrobble(r), () => root.scrobble = before);
+        DaemonBridge.request(method, params, I18n.tr("Couldn't save the setting", "toast when the daemon refuses a settings change"), r => root._applyScrobble(r), () => DaemonBridge.request("scrobble.status", null, null, s => root._applyScrobble(s)));
     }
 
     // Cache for server libraries

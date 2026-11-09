@@ -467,14 +467,14 @@ Singleton {
             "id": kind === "track" ? ref.id : ref.rawId
         };
         const rating = Math.max(0, Math.min(5, stars));
-        const before = kind === "track" ? track(ref)?.rating : kind === "album" ? albums.find(a => a.library === ref.library && a.rawId === ref.rawId)?.rating : artists.find(a => a.library === ref.library && a.rawId === ref.rawId)?.rating;
+        const before = (kind === "track" ? track(ref)?.rating : kind === "album" ? albums.find(a => a.library === ref.library && a.rawId === ref.rawId)?.rating : artists.find(a => a.library === ref.library && a.rawId === ref.rawId)?.rating) ?? ref.rating ?? 0;
         _applyMark(Object.assign({
             "rating": rating
         }, mark));
         DaemonBridge.request("marks.setRating", Object.assign({
             "rating": rating
         }, mark), I18n.tr("Couldn't save the rating", "toast when setting a star rating fails"), null, () => root._applyMark(Object.assign({
-                "rating": before ?? ref.rating ?? 0
+                "rating": before
             }, mark)));
     }
 

@@ -9,6 +9,8 @@ Item {
 
     property real size: Style.iconSizeMedium
     property color color: Style.surfaceText
+    // Material Symbols' stroke on their 24-unit grid
+    readonly property real stroke: 2
 
     implicitWidth: size
     implicitHeight: size
@@ -23,7 +25,7 @@ Item {
 
         ShapePath {
             strokeColor: root.color
-            strokeWidth: 2
+            strokeWidth: root.stroke
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
