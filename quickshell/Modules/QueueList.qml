@@ -200,9 +200,20 @@ Item {
                 "id": "edit",
                 "text": I18n.tr("Edit queue rows", "queue menu action that opens the queue's edit mode"),
                 "icon": "edit"
+            },
+            {
+                "id": "add",
+                "text": I18n.tr("Add to playlist…", "track menu action"),
+                "icon": "playlist_add",
+                "enabled": root.items.length > 0
             }
         ]
-        onTriggered: root.editing = true
+        onTriggered: id => {
+            if (id === "edit")
+                root.editing = true;
+            else if (id === "add")
+                Router.pickPlaylist(root.items.map(i => PlayerService.track(i)).filter(t => t));
+        }
     }
 
     Item {

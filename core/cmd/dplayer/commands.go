@@ -14,6 +14,7 @@ import (
 
 	"github.com/Conava/dux-player/core/internal/ipc"
 	"github.com/Conava/dux-player/core/internal/player"
+	"github.com/Conava/dux-player/core/internal/playlists"
 )
 
 var rootCmd = &cobra.Command{
@@ -149,6 +150,7 @@ var versionCmd = &cobra.Command{
 }
 
 func init() {
+	queueCmd.AddCommand(queueSaveCmd)
 	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "Output JSON for programmatic usage (where supported)")
 	rootCmd.AddCommand(versionCmd, daemonCmd, ipcCmd, playCmd, statusCmd, queueCmd, seekCmd, volumeCmd, quitCmd,
 		showCmd, resumeCmd, shuffleCmd, repeatCmd, muteCmd, sleepCmd)
@@ -379,6 +381,23 @@ var queueCmd = &cobra.Command{
 			t := it.Track
 			fmt.Printf("%s %3d  %s - %s  %s  [%s]\n", mark, i+1, t.Artist, t.Title, clock(t.Duration), t.Library)
 		}
+		return nil
+	},
+}
+
+var queueSaveCmd = &cobra.Command{
+	Use:   "save <name>",
+	Short: "Save the queue as a new local playlist",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(_ *cobra.Command, args []string) error {
+		var p playlists.Playlist
+		if err := call(true, "localPlaylists.saveQueue", map[string]any{"name": args[0]}, &p); err != nil {
+			return err
+		}
+		if jsonOutput {
+			return printJSON(p)
+		}
+		fmt.Printf("saved %s as playlist %s (%d tracks)\n", strconv.Quote(p.Name), p.ID, p.TrackCount)
 		return nil
 	},
 }

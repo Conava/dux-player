@@ -70,6 +70,26 @@ func (s *Service) Create(ctx context.Context, name string, refs []source.Ref) (P
 	return p, err
 }
 
+// SaveQueue stores the current queue, in queue order, as a new playlist.
+func (s *Service) SaveQueue(ctx context.Context, name string) (Playlist, error) {
+	q, err := s.Player.Queue(ctx)
+	if err != nil {
+		return Playlist{}, err
+	}
+	if len(q.Items) == 0 {
+		return Playlist{}, errors.New("the queue is empty")
+	}
+	tracks := make([]source.Track, len(q.Items))
+	for i, it := range q.Items {
+		tracks[i] = it.Track
+	}
+	p, err := s.Store.Create(ctx, name, tracks)
+	if err == nil {
+		s.changed(p.ID)
+	}
+	return p, err
+}
+
 func (s *Service) Add(ctx context.Context, id string, refs []source.Ref, at int) error {
 	tracks, err := s.Libraries.Tracks(ctx, refs)
 	if err != nil {

@@ -23,6 +23,7 @@ func Register(r *ipc.Registry, svc func() *Service) {
 		ipc.MethodSpec{Name: "localPlaylists.list", Desc: "Local playlists, without tracks", Read: true},
 		ipc.MethodSpec{Name: "localPlaylists.get", Desc: "A local playlist with its tracks", Params: []ipc.ParamSpec{id}, Read: true},
 		ipc.MethodSpec{Name: "localPlaylists.create", Desc: "Create a local playlist", Params: []ipc.ParamSpec{ipc.Req("name", ""), ipc.Opt("tracks", "track refs from any library")}},
+		ipc.MethodSpec{Name: "localPlaylists.saveQueue", Desc: "Create a local playlist from the current queue", Params: []ipc.ParamSpec{ipc.Req("name", "")}},
 		ipc.MethodSpec{Name: "localPlaylists.rename", Desc: "Rename a local playlist", Params: []ipc.ParamSpec{id, ipc.Req("name", "")}},
 		ipc.MethodSpec{Name: "localPlaylists.delete", Desc: "Delete a local playlist", Params: []ipc.ParamSpec{id}},
 		ipc.MethodSpec{Name: "localPlaylists.duplicate", Desc: "Copy a local or server playlist into a new local one", Params: []ipc.ParamSpec{ipc.Req("id", "playlist id"), ipc.Opt("library", "set for a server playlist"), ipc.Opt("name", "default: the original's")}},
@@ -52,6 +53,8 @@ func handle(ctx context.Context, w *ipc.ConnWriter, req ipc.Request, svc *Servic
 			return
 		}
 		ipc.Reply(w, req.ID)(svc.Create(ctx, ipc.Str(p, "name"), refs))
+	case "localPlaylists.saveQueue":
+		ipc.Reply(w, req.ID)(svc.SaveQueue(ctx, ipc.Str(p, "name")))
 	case "localPlaylists.rename":
 		ok(svc.Rename(ctx, id, ipc.Str(p, "name")))
 	case "localPlaylists.delete":
