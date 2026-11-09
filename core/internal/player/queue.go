@@ -17,6 +17,8 @@ type Item struct {
 	Track source.Track `json:"track"`
 	// Added marks an item the user put in by hand (play next, add to queue).
 	Added bool `json:"added,omitempty"`
+	// Auto marks an item auto-continue appended; never set together with Added.
+	Auto bool `json:"auto,omitempty"`
 }
 
 // Origin says what the queue was started from, for "Continue listening".
@@ -175,6 +177,15 @@ func (q *Queue) Extend(tracks []source.Track) {
 	modified := q.origin.Modified
 	q.add(tracks, false, false)
 	q.origin.Modified = modified
+}
+
+// ExtendAuto is Extend for tracks auto-continue picked, marked Auto.
+func (q *Queue) ExtendAuto(tracks []source.Track) {
+	n := len(q.items)
+	q.Extend(tracks)
+	for i := n; i < len(q.items); i++ {
+		q.items[i].Auto = true
+	}
 }
 
 // Remove drops item i and reports whether it was the current one. The

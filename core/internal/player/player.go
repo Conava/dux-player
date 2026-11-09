@@ -2435,7 +2435,7 @@ func (p *Player) startContinue(play bool, done chan<- error) {
 				fresh := slices.DeleteFunc(tracks, func(t source.Track) bool { return queued[t.Ref()] })
 				switch {
 				case len(fresh) > 0:
-					p.queue.Extend(fresh)
+					p.queue.ExtendAuto(fresh)
 					grew = true
 				case err == nil:
 					// Asking again after the same track would find the same.

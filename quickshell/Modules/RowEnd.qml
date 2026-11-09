@@ -15,8 +15,8 @@ Row {
     required property var actions
     property var item: null
     property bool hovering: false
-    // a queue entry put in by hand
-    property bool added: false
+    // where a queue entry came from: "" (the list it started from), "hand" or "auto"
+    property string origin: ""
     // in columns, the library badge takes a column's width
     property bool fixedLibrary: false
     // the width of the duration slot; a track list's Length width
@@ -40,6 +40,10 @@ Row {
     readonly property bool serverDown: remote && PlayerService.library(item?.library ?? "")?.available === false
     // with one library the badge has nothing to tell
     readonly property bool manyLibraries: CatalogService.libraries.filter(l => l.enabled).length > 1
+    // the origin marks: the hand icon comes from UiConfig, the rest is here
+    readonly property string handIcon: UiConfig.actionIcon("addedByYou")
+    readonly property string autoIcon: "auto_awesome"
+    readonly property color originColor: Theme.success
     property Item moreButton: null
 
     spacing: 0
@@ -207,17 +211,17 @@ Row {
                 id: addedSlot
 
                 Item {
-                    width: end.added ? Theme.iconSizeSmall + Theme.spacingS : 0
+                    width: end.origin !== "" ? Theme.iconSizeSmall + Theme.spacingS : 0
                     height: Theme.iconSizeSmall
 
                     DIcon {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        visible: end.added
-                        name: "add_to_queue"
+                        visible: end.origin !== ""
+                        name: end.origin === "auto" ? end.autoIcon : end.handIcon
                         size: Theme.iconSizeSmall
-                        color: end.textColor
-                        Accessible.name: I18n.tr("Added by you", "queue row: a track put in with play next or add to queue")
+                        color: end.originColor
+                        Accessible.name: end.origin === "auto" ? I18n.tr("Added automatically", "queue row: a track the queue continued with") : I18n.tr("Added by you", "queue row: a track put in with play next or add to queue")
                     }
                 }
             }

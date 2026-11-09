@@ -561,7 +561,8 @@ Singleton {
             const byQid = {};
             queue = items.map(item => byQid[item.uid] = Object.assign(Catalog.track(item.track), {
                     "qid": item.uid,
-                    "byHand": item.added === true
+                    "byHand": item.added === true,
+                    "auto": item.auto === true
                 }));
             _queueKeys = keys;
             _queueByQid = byQid;

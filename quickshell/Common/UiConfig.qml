@@ -1301,7 +1301,7 @@ Singleton {
         case "duration":
             return I18n.tr("Length", "track list column and sort key: how long a track is");
         case "addedByYou":
-            return I18n.tr("Added by you", "queue row: a track put in with play next or add to queue");
+            return I18n.tr("Added to the queue", "row element: the mark on queue rows for tracks added by you or automatically");
         case "more":
             return I18n.tr("More", "track row menu button");
         case "spacer":
@@ -1355,7 +1355,7 @@ Singleton {
         case "duration":
             return "schedule";
         case "addedByYou":
-            return "person_add";
+            return "playlist_add";
         case "more":
             return "more_vert";
         }

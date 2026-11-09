@@ -218,12 +218,14 @@ func TestQueueMarksTracksAddedByHand(t *testing.T) {
 	tests := []struct {
 		name string
 		edit func(q *Queue)
-		want []bool
+		want []string // per item: "" none, "hand" Added, "auto" Auto
 	}{
-		{"new queue", func(q *Queue) {}, []bool{false, false}},
-		{"play next", func(q *Queue) { q.Add(tracks("x"), true) }, []bool{false, true, false}},
-		{"add to queue", func(q *Queue) { q.Add(tracks("x"), false) }, []bool{false, false, true}},
-		{"growing shuffle", func(q *Queue) { q.Extend(tracks("x")) }, []bool{false, false, false}},
+		{"new queue", func(q *Queue) {}, []string{"", ""}},
+		{"play next", func(q *Queue) { q.Add(tracks("x"), true) }, []string{"", "hand", ""}},
+		{"add to queue", func(q *Queue) { q.Add(tracks("x"), false) }, []string{"", "", "hand"}},
+		{"growing shuffle", func(q *Queue) { q.Extend(tracks("x")) }, []string{"", "", ""}},
+		{"grow", func(q *Queue) { q.Grow(tracks("w"), tracks("x")) }, []string{"", "", "", ""}},
+		{"continue", func(q *Queue) { q.ExtendAuto(tracks("x")) }, []string{"", "", "auto"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -236,9 +238,17 @@ func TestQueueMarksTracksAddedByHand(t *testing.T) {
 			require.NoError(t, json.Unmarshal(data, &saved))
 			r := newQueue(nil)
 			r.Restore(saved)
-			var got []bool
+			var got []string
 			for _, it := range r.Items() {
-				got = append(got, it.Added)
+				require.False(t, it.Added && it.Auto)
+				switch {
+				case it.Added:
+					got = append(got, "hand")
+				case it.Auto:
+					got = append(got, "auto")
+				default:
+					got = append(got, "")
+				}
 			}
 			assert.Equal(t, tt.want, got)
 		})

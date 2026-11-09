@@ -430,10 +430,11 @@ Item {
                 id: entry
                 readonly property int index: slot.index
                 readonly property var qid: slot.qid
-                readonly property var track: PlayerService.track(PlayerService.queueItem(qid))
+                readonly property var qitem: PlayerService.queueItem(qid)
+                readonly property var track: PlayerService.track(qitem)
                 readonly property bool current: PlayerService.queue[PlayerService.queueIndex]?.qid === qid
-                // put in by hand (play next, add to queue), not part of what the queue was started from
-                readonly property bool added: PlayerService.queueItem(qid)?.byHand === true
+                // "hand" (play next, add to queue), "auto" (the queue continued by itself) or "" for what it was started from
+                readonly property string origin: qitem?.byHand === true ? "hand" : qitem?.auto === true ? "auto" : ""
                 readonly property bool selected: root.selectedSet[qid] === true
                 // a selected row acts on the whole selection
                 readonly property var actionIndexes: selected && root.selectedIndexes.length > 1 ? root.selectedIndexes : [index]
@@ -449,7 +450,7 @@ Item {
                 firstInGroup: index === 0 || root.stopsBefore(index)
                 lastInGroup: index === queueList.count - 1 || slot.stops
                 Accessible.name: Phrases.named(track?.title ?? "", track?.artist ?? "")
-                Accessible.description: added ? I18n.tr("Added by you", "queue row: a track put in with play next or add to queue") : ""
+                Accessible.description: origin === "hand" ? I18n.tr("Added by you", "queue row: a track put in with play next or add to queue") : origin === "auto" ? I18n.tr("Added automatically", "queue row: a track the queue continued with") : ""
                 onClicked: {
                     const modifiers = pressModifiers & (Qt.ControlModifier | Qt.ShiftModifier);
                     if (modifiers || root.selecting)
@@ -582,7 +583,7 @@ Item {
                     actions: menu
                     item: entry.track
                     hovering: entry.hovering
-                    added: entry.added
+                    origin: entry.origin
                     textColor: entry.supportingContentColor
                 }
 
