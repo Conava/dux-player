@@ -98,8 +98,6 @@ StyledButton {
             variant: "filled"
             iconName: "play_arrow"
             iconFilled: true
-            // the ring sits inside the button, and the default color is the button's own
-            focusRingColor: Theme.onPrimary
             visible: root.active && root.kind !== "artist" && root.kind !== "genre"
             Accessible.name: I18n.tr("Play %1", "play button, %1 is the album or playlist").arg(root.item?.title ?? root.item?.name ?? "")
             onClicked: {

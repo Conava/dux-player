@@ -61,14 +61,6 @@ DFloatingWindow {
                 Router.openNowPlaying("");
         }
 
-        // A button takes the grab of any mouse button and Qt reads a move under it as a left press, so a right click
-        // that moved also clicked. The first move takes the grab away; a MouseArea on these buttons sets preventStealing.
-        DragHandler {
-            acceptedButtons: Qt.RightButton | Qt.MiddleButton
-            target: null
-            dragThreshold: 0
-        }
-
         Shortcut {
             sequence: UiConfig.shortcut("searchPage")
             enabled: Router.pageSearch !== null

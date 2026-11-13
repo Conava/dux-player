@@ -14,9 +14,6 @@ DDialog {
     z: Theme.zDialog
     embedded: false
     opened: false
-    // DDialog's root stays visible while closed, so with its focus: true a new page's dialog would take the window's
-    // focus and every key with it
-    focus: false
 
     // what had the focus before, with its reason, so a clicked opener gets no focus ring back
     property Item _focusBack: null
@@ -35,7 +32,6 @@ DDialog {
         }
         // not when the focus already moved on, e.g. to a dialog opened from this one
         const returns = activeFocus || Window.activeFocusItem === null || Window.activeFocusItem === Window.contentItem;
-        focus = false;
         if (returns && _focusBack?.visible)
             _focusBack.forceActiveFocus(_focusBackReason);
         _focusBack = null;
