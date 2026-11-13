@@ -47,8 +47,16 @@ For development only: DPLAYER_MPV_ARGS adds mpv options, e.g.
 DPLAYER_MPV_ARGS=--ao=null. They come last and override the daemon's own,
 TLS verification included. DPLAYER_BACKEND=builtin plays with the built-in
 player even when mpv is installed.`,
-	RunE: func(_ *cobra.Command, _ []string) error { return runDaemon() },
+	RunE: func(_ *cobra.Command, _ []string) error {
+		err := runDaemon()
+		if err != nil && !errors.Is(err, errDaemonRunning) {
+			notifyStartFailure(err)
+		}
+		return err
+	},
 }
+
+var errDaemonRunning = errors.New("a dplayer daemon is already running")
 
 // runDaemon opens the socket before anything that can be slow (the keyring
 // may prompt), so a CLI waiting for it never gives up and starts a second
@@ -60,7 +68,7 @@ func runDaemon() error {
 	}
 	lock, err := lockFile(filepath.Join(appPaths.SocketDir(), ipc.AppName+".daemon.lock"), syscall.LOCK_EX|syscall.LOCK_NB)
 	if errors.Is(err, syscall.EWOULDBLOCK) {
-		return errors.New("a dplayer daemon is already running")
+		return errDaemonRunning
 	}
 	if err != nil {
 		return err
