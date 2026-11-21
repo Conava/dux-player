@@ -1,7 +1,7 @@
 import QtQuick
 import qs.Common
-import qs.Widgets
 import qs.DCommon.Widgets
+import qs.Widgets
 import qs.DCommon.Common as DC
 
 // A track title in the Bento title face, shrunk to fit down to XX-large, then scrolling (the shell's media title).

@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // One line of feedback at the bottom of the window: a failed command, what a mixed selection skipped, or a
 // removal with its Undo button.

@@ -2,6 +2,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // Lyrics / Queue switch at the top of the full view's second pane. Picking a tab changes the pane but never closes it.
 DButtonGroup {

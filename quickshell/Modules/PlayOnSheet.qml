@@ -5,6 +5,7 @@ import qs.Common
 import qs.Services
 import qs.DCommon.Common as DC
 import qs.DCommon.Widgets
+import qs.Widgets
 import "../DCommon/Common/FocusNavigation.js" as FocusNavigation
 
 // Bento's "Play on" sheet over the deck: the playback devices, the selected one with the player's volume. Material's

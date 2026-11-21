@@ -4,6 +4,7 @@ import QtQuick
 import qs.Common
 import qs.Modules
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // One element's options in a now-playing surface: its placement in a row that overflows, then its own options.
 WindowDialog {

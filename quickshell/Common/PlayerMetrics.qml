@@ -14,6 +14,21 @@ Singleton {
     readonly property real paneRadius: Theme.cornerRadiusL
     // M3 fade through: the incoming page grows from this scale
     readonly property real pageEnterScale: 0.92
+    // the scale a page settles from when entered by Back or Forward
+    readonly property real pageBackScale: 1.04
+    // list rows enter staggered by this step, up to the cap, and rise by listRise
+    readonly property real listStaggerStep: Theme.currentAnimationBaseDuration * 0.1
+    readonly property real listStaggerMax: Theme.currentAnimationBaseDuration * 1.28
+    readonly property real listRise: Theme.spacingM
+    // a menu's value runs 0 to 1: the card takes the first share, each row's slice spans menuRowSpan of it
+    readonly property real menuCardShare: 0.22
+    readonly property real menuRowSpan: 0.4
+    readonly property real menuExitSpeed: 1.6
+    // the cover's push in when a new one arrives
+    readonly property real handoffScalePush: 0.05
+    readonly property real popScale: 1.2
+    readonly property real shakeDistance: Theme.spacingS
+    readonly property int shakeCycles: 3
     // the full view's morph, as shares of its time: the pages are gone by the first, the view starts fading in at
     // the second, after them so it never shows over the pages
     readonly property real morphPagesFade: 0.3
@@ -173,8 +188,8 @@ Singleton {
     // a clock that steps back less than this (s) right after the centre advanced keeps the new row
     readonly property real lyricsFollowBackstepSlack: 1.5
     // the list scrolls on a critically damped spring that settles in about ten time constants
-    readonly property int lyricsScrollDuration: 1000
-    readonly property real lyricsScrollRate: 10000 / lyricsScrollDuration
+    readonly property real lyricsScrollDuration: Theme.currentAnimationBaseDuration * 4
+    readonly property real lyricsScrollRate: 10000 / Math.max(1, lyricsScrollDuration)
     readonly property real lyricsScrollStiffness: lyricsScrollRate * lyricsScrollRate
     readonly property real lyricsScrollDamping: 2 * lyricsScrollRate
     // the spring stops this close to the line and lands on it

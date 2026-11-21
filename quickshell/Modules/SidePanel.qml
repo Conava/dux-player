@@ -4,6 +4,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // The main window's side panel beside the pages: the queue or the lyrics (Router.panel).
 Item {

@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import qs.DCommon.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // Titled zones of DInstanceRows. Drag reorders within and across zones; the row menu (right-click, Menu key)
 // moves up, down or to another zone. Emits edits only: the consumer changes the model, and decides undo and

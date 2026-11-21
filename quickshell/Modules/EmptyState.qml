@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // What a page shows when it has nothing to list: an icon, a title, a line of text and one optional action.
 Column {

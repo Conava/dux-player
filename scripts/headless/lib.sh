@@ -38,6 +38,18 @@
 #   click X Y        move and click, in output coordinates
 #   frames NAME CMD  run CMD and write the ms between the main window's frames while its moving parts move to out/NAME.frames
 #   rclick X Y       move and right click
+#   ask timed ACTION ARG, then ask timedStop: the ms to the first frame and between frames while ACTION runs; besides
+#                    go, open, back and expand: forward, next, prev, queueAdd N, queueRemove I, queueMove "FROM TO",
+#                    pane lyrics|queue, libraryTab NAME, railLabels, dock, prompt TITLE (run.sh lists them)
+#   ui timedFrom main|settings  records like timed without acting: the scenario clicks or types, then ask timedStop;
+#                    ask sinceFrame (ms since its last frame) and ask timedLayouts ("page view": width changes) go with it
+#   ui act ACTION ARG  one of timed's newer actions, untimed: ui act next "", ui act pane queue
+#   idleframes MS [settings]  the frames the main (or settings) window draws in the next MS ms; 0 when settled
+#   ask props TYPE PROP  JSON array of PROP over the visible items (both windows and open menus) whose type name starts
+#                    with TYPE, or with .NAME that have a property NAME; PROP* multiplies it along the parents:
+#                    ask props TextSlide text, ask props .entry 'opacity*'
+#   ask menuRows PROP  the same over the rows of the open menus: ask menuRows 'opacity*'
+#   ask scaleAt X Y main|settings  the smallest scale an item at that window point is drawn with
 #   dimmed A B       1 when the settings window's left edge is darker in out/B.png than in out/A.png: a dialog opened
 #                    between the shots really draws its scrim, rather than only reporting itself open
 dp() { dplayer-dev "$@"; }
@@ -80,6 +92,12 @@ frames() {
     "$@"
     sleep 1.5
     qs ipc -p "$W/tree" call headless framesStop >"$W/out/$name.frames"
+}
+
+idleframes() {
+    ui idleStart "${2:-main}"
+    sleep "$(awk "BEGIN { print $1 / 1000 }")"
+    ask idleStop
 }
 
 # winat [TITLE]: "X Y", the top-left corner of the window with that title (default the main window)

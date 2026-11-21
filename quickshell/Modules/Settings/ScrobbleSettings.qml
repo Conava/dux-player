@@ -4,6 +4,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // ListenBrainz and Last.fm accounts for plays; each library picks its destinations in its own settings.
 SettingsPage {

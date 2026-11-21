@@ -1,6 +1,7 @@
 import QtQuick
 import qs.DCommon.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 import "../DCommon/Common/FocusNavigation.js" as FocusNavigation
 
 // A connected group of icon buttons. Children are DActionGroup.Button items, or any item with a

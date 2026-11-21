@@ -6,6 +6,7 @@ import Quickshell.Io
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 import qs.DCommon.FileBrowser
 import qs.DCommon.Common as DC
 import "../../Common/CustomTheme.js" as CustomTheme

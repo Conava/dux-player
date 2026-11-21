@@ -3,6 +3,7 @@ import qs.Common
 import qs.Services
 import qs.Modules
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // Adds or edits an offline rule: which servers it covers and, for Recently played and Most played, a track count or size limit.
 WindowDialog {

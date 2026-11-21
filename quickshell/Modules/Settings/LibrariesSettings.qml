@@ -5,6 +5,7 @@ import qs.Common
 import qs.Services
 import qs.Modules
 import qs.DCommon.Widgets
+import qs.Widgets
 
 Item {
     id: root

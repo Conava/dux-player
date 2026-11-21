@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import qs.DCommon.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // One element in a DReorderList: drag handle, icon, title and subtitle, a chevron when it has options, the eye
 // (shown/hidden) and remove. Ctrl+Up/Down move it, Delete/Backspace remove it, Menu or Shift+F10 ask for a menu.

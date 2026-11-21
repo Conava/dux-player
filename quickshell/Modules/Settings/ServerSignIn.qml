@@ -5,6 +5,7 @@ import qs.Common
 import qs.Services
 import qs.Modules
 import qs.DCommon.Widgets
+import qs.Widgets
 import Quickshell
 
 // A server library's address and sign-in: a password, tested before it is saved, or a Quick Connect code.

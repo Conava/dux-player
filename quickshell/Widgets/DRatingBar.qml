@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import qs.DCommon.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // Five stars. Clicking the current rating clears it; Left/Right change it from the keyboard.
 Item {

@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // A bottom sheet of grouped choices. sections: [{title, items: [{label, icon, value, done}]}]; "done" items
 // are already in place and say so through doneFormat (%1 is the label). With multiple set, rows are checkboxes

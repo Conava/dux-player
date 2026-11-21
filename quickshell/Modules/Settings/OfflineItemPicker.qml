@@ -5,6 +5,7 @@ import qs.Common
 import qs.Services
 import qs.Modules
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // Picks a playlist, album or artist of one server library, or a local playlist, to keep on this device.
 WindowDialog {

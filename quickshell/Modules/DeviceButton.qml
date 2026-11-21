@@ -2,6 +2,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // Shows where audio goes and opens the playback device picker (Bento's full view: its Play on sheet).
 DIconButton {

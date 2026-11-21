@@ -4,6 +4,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // Picks a playlist cover: the automatic mosaic, one of its albums' art, or a color and shape.
 WindowDialog {

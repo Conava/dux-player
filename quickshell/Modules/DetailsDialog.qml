@@ -6,6 +6,7 @@ import qs.Common
 import qs.Services
 import qs.Modules.Settings
 import qs.DCommon.Widgets
+import qs.Widgets
 import "../Common/Format.js" as Format
 
 // Everything known about a track or album (Router.showDetails): what the list already has, then what

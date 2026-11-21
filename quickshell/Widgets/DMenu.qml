@@ -5,6 +5,7 @@ import QtQuick.Templates as T
 import Quickshell
 import qs.DCommon.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // An action menu: icons, labels, a checked state, dividers and sliders, opened under a button or at the pointer.
 // model: [{id, text, description, info, icon, iconFilled, active, checked, enabled, divider}]; a divider entry only

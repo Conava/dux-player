@@ -3,6 +3,7 @@ import qs.Common
 import qs.Services
 import qs.Modules
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // Changes a server library's address or signs in to it again.
 WindowDialog {

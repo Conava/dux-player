@@ -39,6 +39,142 @@ cat >>"$W/tree/shell.qml" <<'Q'
             times.push(Date.now());
             if (tracked)
                 samples.push(tracked());
+            if (layout)
+                layouts.push(layout());
+        }
+        // timedFrom and timed's newer actions count every frame of the window and of the menus it opens
+        property bool every: false
+        property var menus: []
+        property var menuWindows: []
+        property Timer menuTimer: Timer {
+            interval: 20
+            repeat: true
+            onTriggered: {
+                for (const menu of frameProbe.menus) {
+                    // a destroyed menu has no children left
+                    const w = Array.from(menu?.children ?? []).find(c => c.item)?.item?.contentItem?.Window.window;
+                    if (w && frameProbe.menuWindows.indexOf(w) < 0) {
+                        frameProbe.menuWindows.push(w);
+                        w.frameSwapped.connect(frameProbe, frameProbe.swapped);
+                    }
+                }
+            }
+        }
+        // the page's and its scrolling view's widths per frame: a change means a layout
+        property var layout: null
+        property var layouts: []
+        property real started: 0
+        property int idleCount: 0
+        property var idleTarget: null
+        function idleFrame() {
+            idleCount++;
+        }
+        function windowOf(name) {
+            return name === "settings" ? settingsLoader.item?.contentItem?.Window.window ?? null : window();
+        }
+        // the main window, the settings window and the open menus' popups
+        function roots() {
+            const out = [window().contentItem];
+            const settings = windowOf("settings");
+            if (settings?.visible)
+                out.push(settings.contentItem);
+            for (const menu of allMenus()) {
+                const popup = menu.opened ? menu.children.find(c => c.item)?.item : null;
+                if (popup?.contentItem)
+                    out.push(popup.contentItem);
+            }
+            return out;
+        }
+        function allMenus() {
+            const out = [];
+            const walk = item => {
+                if (!item)
+                    return;
+                if (item.highlightIndex !== undefined && item.minimumWidth !== undefined && item.opened !== undefined)
+                    out.push(item);
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(window().contentItem);
+            walk(windowOf("settings")?.contentItem);
+            return out;
+        }
+        // a menu built on its first open takes the focus as it opens
+        function focusMoved() {
+            const item = window().activeFocusItem;
+            if (item?.highlightIndex !== undefined && item.minimumWidth !== undefined && menus.indexOf(item) < 0)
+                menus.push(item);
+        }
+        function startTiming(target) {
+            const route = parts().page;
+            layout = () => [route.width, Router.pageScroll?.view?.width ?? 0];
+            layouts = [layout()];
+            times = [];
+            started = Date.now();
+            target.frameSwapped.connect(frameProbe, frameProbe.swapped);
+            frameProbe.target = target;
+            menus = allMenus();
+            menuWindows = [];
+            menuTimer.start();
+            window().activeFocusItemChanged.connect(frameProbe, frameProbe.focusMoved);
+        }
+        function stopTiming() {
+            menuTimer.stop();
+            window().activeFocusItemChanged.disconnect(frameProbe, frameProbe.focusMoved);
+            target.frameSwapped.disconnect(frameProbe, frameProbe.swapped);
+            for (const w of menuWindows) {
+                try {
+                    w.frameSwapped.disconnect(frameProbe, frameProbe.swapped);
+                } catch (e) {
+                    // the popup went with its menu
+                }
+            }
+            layout = null;
+        }
+        // the actions timed and act share; true when ACTION is one of them
+        function act(action, arg) {
+            const tracks = () => PlayerService.query("tracks", {});
+            switch (action) {
+            case "forward":
+                Router.forward();
+                return true;
+            case "next":
+                PlayerService.next();
+                return true;
+            case "prev":
+                PlayerService.previous();
+                return true;
+            case "queueAdd":
+                PlayerService.enqueue(tracks().slice(0, Number(arg)), true);
+                return true;
+            case "queueRemove":
+                PlayerService.queueRemove(Number(arg));
+                return true;
+            case "queueMove":
+                PlayerService.queueMove(Number(arg.split(" ")[0]), Number(arg.split(" ")[1]));
+                return true;
+            case "pane":
+                if (Router.nowPlayingOpen)
+                    Router.viewPane = arg;
+                else if (Router.dockMode === "side")
+                    Router.setSideTab(arg);
+                else
+                    Router.panel = arg;
+                return true;
+            case "libraryTab":
+                SettingsData.libraryTab = arg;
+                return true;
+            case "railLabels":
+                windowLoader.item.toggleRailLabels();
+                return true;
+            case "dock":
+                Router.runElement("dock", "bar");
+                return true;
+            case "prompt":
+                Router.prompt(arg, "", arg, () => {});
+                return true;
+            }
+            return false;
         }
         property real t0: 0
         // the open menu and dialog sizes, one sample every few ms while one shows
@@ -478,8 +614,21 @@ cat >>"$W/tree/shell.qml" <<'Q'
         }
         // timed(ACTION, ARG): starts recording every presented frame, then does the navigation in the same call, so a
         // build that blocks the window shows as a long wait before the first frame. ACTION: go PAGE | open "PAGE ID" |
-        // back | expand true|false
+        // back | expand true|false count up to the last frame in which a moving part moved; act's actions (forward,
+        // next, prev, queueAdd N, queueRemove I, queueMove "FROM TO", pane lyrics|queue, libraryTab NAME, railLabels,
+        // dock, prompt TITLE) count every frame of the window and its menus. queueAdd puts the first N tracks after
+        // the current one; pane shows that pane in the full view when it is open, else in the docked side panel or
+        // the panel beside the page; prompt opens a text prompt dialog
         function timed(action: string, arg: string): void {
+            if (["go", "open", "back", "expand"].indexOf(action) < 0) {
+                frameProbe.every = true;
+                frameProbe.tracked = null;
+                frameProbe.startTiming(frameProbe.window());
+                frameProbe.t0 = Date.now();
+                frameProbe.act(action, arg);
+                return;
+            }
+            frameProbe.every = false;
             const sample = frameProbe.sampler();
             const all = [];
             const walk = item => {
@@ -491,9 +640,7 @@ cat >>"$W/tree/shell.qml" <<'Q'
             const loaders = all.find(i => i.objectName === "keptHome").parent.children.filter(c => c.sourceComponent !== undefined);
             frameProbe.tracked = () => JSON.stringify([sample(), loaders.map(l => [l.opacity, l.scale, l.visible, String(l.item)])]);
             frameProbe.samples = [frameProbe.tracked()];
-            frameProbe.times = [];
-            frameProbe.target = frameProbe.window();
-            frameProbe.target.frameSwapped.connect(frameProbe, frameProbe.swapped);
+            frameProbe.startTiming(frameProbe.window());
             frameProbe.t0 = Date.now();
             switch (action) {
             case "go":
@@ -515,13 +662,119 @@ cat >>"$W/tree/shell.qml" <<'Q'
         }
         // the ms from timed() to the first frame, then between the frames after it; the pause after the last one is not a gap
         function timedStop(): string {
-            frameProbe.target.frameSwapped.disconnect(frameProbe, frameProbe.swapped);
+            frameProbe.stopTiming();
             frameProbe.tracked = null;
+            if (frameProbe.every) {
+                // timedFrom has no t0: its action comes later, from the scenario
+                const t = (frameProbe.t0 ? [frameProbe.t0] : []).concat(frameProbe.times.slice().sort((a, b) => a - b));
+                return t.slice(1).map((x, i) => x - t[i]).join(" ");
+            }
             // up to the last frame in which something moved: a timer firing later repaints the idle window unchanged
             const s = frameProbe.samples;
             const moved = frameProbe.times.map((_, i) => s[i + 1] !== s[i]);
             const t = [frameProbe.t0].concat(frameProbe.times.slice(0, moved.lastIndexOf(true) + 1));
             return t.slice(1).map((x, i) => x - t[i]).join(" ");
+        }
+        // timedFrom(WINDOW): records like timed, without acting: main, or settings for the settings window. The scenario
+        // acts (click, pointer, wtype) and calls timedStop, whose gaps start at the first frame.
+        function timedFrom(window: string): void {
+            frameProbe.every = true;
+            frameProbe.tracked = null;
+            frameProbe.t0 = 0;
+            frameProbe.startTiming(frameProbe.windowOf(window));
+        }
+        // the ms since the last frame of the recording, or since it started
+        function sinceFrame(): int {
+            const last = frameProbe.times.length ? Math.max(...frameProbe.times) : frameProbe.t0 || frameProbe.started;
+            return Date.now() - last;
+        }
+        // how often the page's width and its scrolling view's width changed during the recording: "page view"
+        function timedLayouts(): string {
+            const l = frameProbe.layouts;
+            const changes = k => l.filter((x, i) => i > 0 && x[k] !== l[i - 1][k] && x[k] > 0 && l[i - 1][k] > 0).length;
+            return changes(0) + " " + changes(1);
+        }
+        // idleStart(WINDOW) and idleStop(): the frames the main (or settings) window presented in between
+        function idleStart(window: string): void {
+            frameProbe.idleCount = 0;
+            frameProbe.idleTarget = frameProbe.windowOf(window);
+            frameProbe.idleTarget.frameSwapped.connect(frameProbe, frameProbe.idleFrame);
+        }
+        function idleStop(): int {
+            frameProbe.idleTarget.frameSwapped.disconnect(frameProbe, frameProbe.idleFrame);
+            return frameProbe.idleCount;
+        }
+        // act(ACTION, ARG): one of timed's newer actions, untimed
+        function act(action: string, arg: string): bool {
+            return frameProbe.act(action, arg);
+        }
+        // props(TYPE, PROP): JSON array of PROP over the visible items of the main and settings windows and the open
+        // menus whose type name starts with TYPE, or with ".NAME" that have a property NAME. A PROP ending in "*" is
+        // multiplied along the item's parents (opacity* is the opacity it is drawn with).
+        function props(type: string, prop: string): string {
+            const name = prop.replace(/\*$/, "");
+            const along = prop.endsWith("*");
+            const wanted = type.startsWith(".") ? i => i[type.slice(1)] !== undefined : i => String(i).startsWith(type);
+            const out = [];
+            const value = item => {
+                if (!along)
+                    return item[name];
+                let v = 1;
+                for (let i = item; i; i = i.parent)
+                    v *= i[name] ?? 1;
+                return v;
+            };
+            const walk = item => {
+                if (!item || !item.visible)
+                    return;
+                if (wanted(item))
+                    out.push(value(item));
+                for (const child of item.children)
+                    walk(child);
+            };
+            for (const root of frameProbe.roots())
+                walk(root);
+            return JSON.stringify(out);
+        }
+        // JSON array of PROP over the rows of the open menus; PROP* as in props
+        function menuRows(prop: string): string {
+            const name = prop.replace(/\*$/, "");
+            const out = [];
+            for (const menu of frameProbe.allMenus()) {
+                const popup = menu.opened ? menu.children.find(c => c.item)?.item : null;
+                const walk = item => {
+                    if (!item || !item.visible)
+                        return;
+                    if (item.entry !== undefined) {
+                        let v = item[name];
+                        if (prop.endsWith("*"))
+                            for (let i = item.parent; i; i = i.parent)
+                                v *= i[name] ?? 1;
+                        out.push(v);
+                        return;
+                    }
+                    for (const child of item.children)
+                        walk(child);
+                };
+                walk(popup?.contentItem);
+            }
+            return JSON.stringify(out);
+        }
+        // the smallest scale an item at window point X Y of the main (or settings) window is drawn with, its parents' included
+        function scaleAt(x: real, y: real, window: string): real {
+            let least = 1;
+            const walk = (item, scale) => {
+                if (!item || !item.visible)
+                    return;
+                const s = scale * item.scale;
+                const p = item.mapFromItem(null, x, y);
+                if (p.x >= 0 && p.y >= 0 && p.x <= item.width && p.y <= item.height)
+                    least = Math.min(least, s);
+                for (const child of item.children)
+                    walk(child, s);
+            };
+            walk(frameProbe.windowOf(window).contentItem, 1);
+            return Math.round(least * 1000) / 1000;
         }
         function popupsStart(): void {
             frameProbe.popupSamples = [];
@@ -986,7 +1239,7 @@ env -i LANG=C.UTF-8 USER="$USER" HOME="$W/home" PATH="$W/bin:$repo/core/bin:/usr
     HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
     XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/share}" QT_QPA_PLATFORMTHEME=qtengine DPLAYER_WINRULES=off DPLAYER_CAST=off DPLAYER_BACKEND="${DPLAYER_BACKEND:-}" DPLAYER_QS_CHILD="${DPLAYER_QS_CHILD:-}" \
     DPLAYER_DISABLE_HOT_RELOAD=1 HYPRLAND_NO_SD_NOTIFY=1 HYPRLAND_NO_SD_VARS=1 HYPRLAND_NO_CRASHREPORTER=1 \
-    W="$W" LIB="$here/lib.sh" SCENARIO="$scenario" SERVER="${SERVER:-}" GAP_MAX="${GAP_MAX:-}" SEEN_MAX="${SEEN_MAX:-}" DELAY="${DELAY:-}" SETTLE="${SETTLE:-}" \
+    W="$W" LIB="$here/lib.sh" SCENARIO="$scenario" SERVER="${SERVER:-}" GAP_MAX="${GAP_MAX:-}" SEEN_MAX="${SEEN_MAX:-}" DELAY="${DELAY:-}" SETTLE="${SETTLE:-}" FEEL_LEGS="${FEEL_LEGS:-}" \
     timeout -k 30 "${HEADLESS_TIMEOUT:-420}" dbus-run-session -- bash "$here/session.sh"
 status=$?
 

@@ -4,6 +4,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 import "../Common/Format.js" as Format
 import "../Services/Catalog.js" as Catalog
 

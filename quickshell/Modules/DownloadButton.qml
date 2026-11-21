@@ -2,6 +2,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // Download on a playlist, album or artist page, drawn like the heart: adds the item's offline rule, and asks
 // before removing it. Sits in PlayButtons; anchors inside its Flow stop it from laying out, so this centres itself.

@@ -15,6 +15,7 @@ repo=$(cd "$here/../.." && pwd)
 TABLE='
 handle||^quickshell/(Modules/(MainWindow|Settings/SettingsWindow)|Widgets/DSheetHandle|Common/StyleSource)\.qml$
 motion||^quickshell/Modules/(MainWindow|NowPlaying[A-Za-z]*|SidePanel|M3EPlayer|BentoPlayer|PlayerArt|MediaSeekbar|SeekBlock|QueueList)\.qml$
+feel|HEADLESS_TIMEOUT=600|^quickshell/Modules/(QueueList|TrackList|AlbumArt|TextSlide|PlayerArt|FullViewBackground|MediaTitle|MediaSubtitle|NowPlaying[A-Za-z]*|MediaSeekbar|FloatingPlayer|FavoriteButton|MainWindow|Router|PaneTabs|SidePanel|LyricsView|LyricsLine|PageTint|AlbumPage|DetailHero|ArtistPage|PlaylistPage|StatisticsPage|Shelf|ShelfHeader|MediaTile|SpeedDialShelf|GenreChipsShelf|Snackbar|BarLyricLine|BentoPlayer|M3EPlayer|ContinueCard|ReorderRow|RowEnd|MediaRow|TrackRow|SeekBlock|PlayOnSheet|PickerSheet|BrowsePage|LibrariesPage|SearchPage|HistoryPage|Settings/SettingsWindow|Settings/SettingsRow|Settings/SettingsSidebarItem|Settings/AppearanceSettings)\.qml$|^quickshell/Widgets/D(Menu|ListMotion|ExpandedRail|HorizontalList|Shake|KeySequenceField|ButtonGroup|Button|IconButton|ActionButton|Fab|ListItem|PressFeedback|InstanceRow|SortHeaderCell|ScrollingText|LetterIndex)\.qml$|^quickshell/Common/(Theme|PlayerMetrics|ArtColors)\.qml$
 snappy|SERVER=1|^quickshell/Modules/(MainWindow|NowPlaying[A-Za-z]*|[A-Za-z]*Page|[A-Za-z]*Dialog|MediaMenu|MediaTile|MediaRow)\.qml$|^quickshell/Services/(Playlist|Settings|Catalog)Service\.qml$
 scroll||^quickshell/Modules/([A-Za-z]*Page|PageScroll|TrackList)\.qml$|^quickshell/Common/WheelInput\.js$
 navigation||^quickshell/Modules/(Router|MainWindow)\.qml$
@@ -31,14 +32,14 @@ corners||^quickshell/Modules/Settings/|^quickshell/scripts/settings_index\.py$
 cursors||^quickshell/Modules/(MainWindow|Snackbar|SelectionBar|EscapeLayer)\.qml$
 columns||^quickshell/Modules/TrackList\.qml$|^quickshell/Common/(ColumnDrag|Layouts)\.js$
 home||^quickshell/Modules/(HomePage|Shelf)\.qml$
-menus||^quickshell/Modules/(MediaTile|MediaMenu|MediaRow)\.qml$|^quickshell/DCommon/Widgets/DMenu\.qml$
+menus||^quickshell/Modules/(MediaTile|MediaMenu|MediaRow)\.qml$|^quickshell/Widgets/DMenu\.qml$
 startup||^quickshell/Modules/Router\.qml$|^quickshell/Modules/Settings/PagesSettings\.qml$|^quickshell/Common/UiConfig\.qml$
 stats||^quickshell/Modules/StatisticsPage\.qml$|^quickshell/Services/StatsService\.qml$|^core/internal/history/
 appearance||^quickshell/(Common/(Scheme\.js|StyleSource\.qml)|Modules/Settings/(AppearanceSettings|GeneralSettings)\.qml)$
 smoke||^core/internal/window/window\.go$|^core/cmd/dplayer/qs\.go$
 '
 # these measure frame gaps and click timing, which a loaded machine fails: they run first, one at a time
-ALONE=" motion snappy navigation player "
+ALONE=" motion snappy navigation player feel "
 # a change here runs every scenario
 HARNESS='^scripts/headless/(run\.sh|session\.sh|lib\.sh|audio\.sh|sweep\.sh|fakesubsonic\.py|ptr\.c|vp\.xml)$'
 # UI code no row names runs one scenario that loads the whole window and fails on QML errors

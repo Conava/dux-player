@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // Play and Shuffle for everything on a page; extra buttons go after them. Not a Row itself: a Row's
 // topPadding would push extras centered on it below the buttons' center.

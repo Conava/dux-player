@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // Asks for one line of text: a name for a new or renamed item.
 WindowDialog {

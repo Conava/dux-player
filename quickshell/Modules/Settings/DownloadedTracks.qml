@@ -5,6 +5,7 @@ import qs.Common
 import qs.Services
 import qs.Modules
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // One server library's downloaded tracks, or only its excluded ones, with why each is kept. Shown inside the
 // Downloads page, which scrolls it.

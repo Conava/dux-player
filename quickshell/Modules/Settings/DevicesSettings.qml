@@ -5,6 +5,7 @@ import qs.Common
 import qs.Services
 import qs.Modules
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // Where playback goes, playing on several outputs at once, and their sync.
 SettingsPage {

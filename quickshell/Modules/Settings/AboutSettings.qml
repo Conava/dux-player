@@ -4,6 +4,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // After the sibling apps' about page: the hero, the project's links, the build, then what the player is built
 // on and the online services it talks to.

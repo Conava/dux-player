@@ -92,30 +92,20 @@ Rectangle {
                 topPadding: Theme.spacingXS
 
                 DButton {
-                    id: playButton
                     text: PlayerService.playing ? I18n.tr("Pause", "transport button") : I18n.tr("Play", "button that starts playback")
                     // the other label's width too, so the button doesn't resize when it switches
                     reserveText: PlayerService.playing ? I18n.tr("Play", "button that starts playback") : I18n.tr("Pause", "transport button")
                     iconName: PlayerService.playing ? "pause" : "play_arrow"
                     onClicked: PlayerService.toggle()
-
-                    DPressFeedback {
-                        control: playButton
-                    }
                 }
 
                 DButton {
-                    id: queueButton
                     text: I18n.tr("Queue", "the play queue: panel, toggle")
                     iconName: "queue_music"
                     // a tonal container would melt into the primaryContainer card
                     backgroundColor: Theme.surface
                     textColor: Theme.primary
                     onClicked: Router.panel = "queue"
-
-                    DPressFeedback {
-                        control: queueButton
-                    }
                 }
             }
         }

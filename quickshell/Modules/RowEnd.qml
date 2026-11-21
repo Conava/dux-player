@@ -55,11 +55,6 @@ Row {
         model: end.hoverEntries
 
         DActionButton {
-            id: hoverButton
-            DPressFeedback {
-                control: hoverButton
-            }
-
             required property var modelData
             anchors.verticalCenter: parent?.verticalCenter
             iconName: modelData.icon
@@ -194,11 +189,6 @@ Row {
                 id: addToPlaylistSlot
 
                 DActionButton {
-                    id: addButton
-                    DPressFeedback {
-                        control: addButton
-                    }
-
                     iconName: UiConfig.actionIcon(end?.actions.type, "addToPlaylist")
                     tooltipText: UiConfig.actionLabel(end?.actions.type, "addToPlaylist")
                     Accessible.name: tooltipText
@@ -210,15 +200,10 @@ Row {
                 id: playSlot
 
                 DIconButton {
-                    id: playButton
                     iconName: "play_arrow"
                     iconFilled: true
                     Accessible.name: I18n.tr("Play %1", "play button, %1 is the album or playlist").arg(end?.item?.title ?? end?.item?.name ?? "")
                     onClicked: end.actions.run("play", this)
-
-                    DPressFeedback {
-                        control: playButton
-                    }
                 }
             }
 
@@ -254,11 +239,6 @@ Row {
                 id: removeSlot
 
                 DActionButton {
-                    id: removeButton
-                    DPressFeedback {
-                        control: removeButton
-                    }
-
                     iconName: "close"
                     tooltipText: UiConfig.actionLabel(end?.actions.type, "removeFromQueue")
                     Accessible.name: tooltipText
@@ -282,10 +262,6 @@ Row {
                         Accessible.name: tooltipText
                         onClicked: end.actions.open(this)
                         Component.onCompleted: end.moreButton = this
-
-                        DPressFeedback {
-                            control: moreButton
-                        }
                     }
                 }
             }

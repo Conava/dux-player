@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // Asks before a destructive action: Cancel, and the action in the error color.
 WindowDialog {

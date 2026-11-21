@@ -4,6 +4,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // This device's plays over the last days: totals, plays per day, top artists and genres.
 DFlickable {

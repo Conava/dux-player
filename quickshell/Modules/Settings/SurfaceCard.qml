@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // A now-playing surface on the overview: a scaled-down live preview, its name, a badge ("Default": the start
 // surface or the style in use), and a summary or its first problem. A click opens its editor.
