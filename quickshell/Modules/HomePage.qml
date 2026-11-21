@@ -21,7 +21,12 @@ Item {
     readonly property var columnOptions: ["one", "auto"]
 
     function hasOptions(shelf) {
-        return UiConfig.isKnown(shelf.type) && shelf.type !== "search" && shelf.type !== "continue";
+        return UiConfig.isKnown(shelf.type) && ["search", "continue", "genreChips"].indexOf(shelf.type) < 0;
+    }
+
+    // Speed dial's size sets its rows; it has no carousel, grid or list
+    function hasLayout(shelf) {
+        return hasOptions(shelf) && shelf.type !== "speedDial";
     }
 
     function setShelves(list) {
@@ -96,14 +101,41 @@ Item {
                 Loader {
                     id: shelfLoader
                     required property var modelData
+                    // untyped: the three shelf components share hasContent, not a type
+                    readonly property var shelfItem: item
                     width: parent?.width ?? 0
                     // an empty shelf takes no spacing
-                    visible: modelData.type === "search" ? !Router.headerSearchField : root.hasLibraries && ((item as Shelf)?.hasContent ?? false)
-                    sourceComponent: modelData.type === "search" ? searchBox : shelf
+                    visible: modelData.type === "search" ? !Router.headerSearchField : root.hasLibraries && (shelfItem?.hasContent ?? false)
+                    sourceComponent: {
+                        switch (modelData.type) {
+                        case "search":
+                            return searchBox;
+                        case "speedDial":
+                            return speedDial;
+                        case "genreChips":
+                            return genreChips;
+                        }
+                        return shelf;
+                    }
 
                     Component {
                         id: searchBox
                         SearchBox {}
+                    }
+
+                    Component {
+                        id: speedDial
+                        SpeedDialShelf {
+                            shelf: shelfLoader.modelData
+                            title: UiConfig.shelfTitle(shelfLoader.modelData)
+                        }
+                    }
+
+                    Component {
+                        id: genreChips
+                        GenreChipsShelf {
+                            title: UiConfig.shelfTitle(shelfLoader.modelData)
+                        }
                     }
 
                     Component {
@@ -160,7 +192,7 @@ Item {
                         const source = sourceLabel !== name ? sourceLabel : "";
                         if (!root.hasOptions(modelData))
                             return source;
-                        return Phrases.joinAll([source, UiConfig.optionLabel(modelData.options.layout), UiConfig.optionLabel(modelData.options.size)]);
+                        return Phrases.joinAll([source, root.hasLayout(modelData) ? UiConfig.optionLabel(modelData.options.layout) : "", UiConfig.optionLabel(modelData.options.size)]);
                     }
                     hidden: modelData.hidden
                     dimmed: hidden || !known
@@ -212,12 +244,15 @@ Item {
             spacing: Theme.spacingM
 
             StyledText {
+                visible: layoutGroup.visible
                 text: I18n.tr("Layout", "view options section")
                 font.pixelSize: Theme.fontSizeMedium
                 color: Theme.surfaceVariantText
             }
 
             DButtonGroup {
+                id: layoutGroup
+                visible: optionsDialog.shelf !== null && root.hasLayout(optionsDialog.shelf)
                 model: root.layouts.map(l => UiConfig.optionLabel(l))
                 currentIndex: root.layouts.indexOf(optionsDialog.shelf?.options.layout ?? "")
                 onSelectionChanged: (index, selected) => {

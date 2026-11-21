@@ -49,6 +49,8 @@ Item {
     // a click plays that track alone, not the list from there
     property bool playsOne: false
     property real bottomInset: 0
+    // room kept free at the row end (a letter index); the header slot keeps the full width
+    property real endInset: 0
 
     property var selectedIndexes: []
     property int anchorIndex: -1
@@ -73,7 +75,7 @@ Item {
     // The width the title and the fill columns share: the row less everything of fixed width. The layout's own
     // stretch factors don't split it by weight, so each fill column gets its pixels here and the title takes the rest.
     property real endWidth: 0
-    readonly property real fillTotal: view.width - Theme.spacingL - (orderKey === "" && showArt ? PlayerMetrics.rowArtSize : PlayerMetrics.columnNumberWidth) - Theme.spacingS - endWidth - Theme.spacingM * (baseColumns.length + 2) - baseColumns.reduce((n, c) => n + (c.width ?? 0), 0)
+    readonly property real fillTotal: view.width - endInset - Theme.spacingL - (orderKey === "" && showArt ? PlayerMetrics.rowArtSize : PlayerMetrics.columnNumberWidth) - Theme.spacingS - endWidth - Theme.spacingM * (baseColumns.length + 2) - baseColumns.reduce((n, c) => n + (c.width ?? 0), 0)
     readonly property real weightTotal: baseColumns.reduce((n, c) => n + (c.fill ?? 0), titleWeight)
     // pixels per unit of weight; the title never goes under its minimum
     readonly property real pixelsPerWeight: Math.max(fillTotal, PlayerMetrics.columnTitleMinWidth * weightTotal / titleWeight) / weightTotal
@@ -127,6 +129,11 @@ Item {
         if (Object.keys(sizes).length > 0)
             columnsResized(sizes);
         draft = {};
+    }
+
+    // scrolls so that row `index` is at the top of the view
+    function positionAt(index) {
+        list.positionViewAtIndex(index, ListView.Beginning);
     }
 
     function clearSelection() {
@@ -272,7 +279,8 @@ Item {
             // mirrors TrackRow's wide layout
             RowLayout {
                 id: header
-                width: parent?.width ?? 0
+                x: I18n.isRtl ? root.endInset : 0
+                width: (parent?.width ?? 0) - root.endInset
                 visible: root.columns && root.tracks.length > 0
                 spacing: Theme.spacingM
 
@@ -402,7 +410,8 @@ Item {
 
             StyledText {
                 required property string section
-                width: list.width
+                x: I18n.isRtl ? root.endInset : 0
+                width: list.width - root.endInset
                 topPadding: Theme.spacingL
                 bottomPadding: Theme.spacingS
                 text: section
@@ -417,7 +426,8 @@ Item {
             // a shorter list reaches the rows a moment before the count drops and the extra rows go
             readonly property var modelData: root.tracks[index] ?? root.vanishing
             readonly property bool inSelection: root.selectedSet[index] === true
-            width: list.width
+            x: I18n.isRtl ? root.endInset : 0
+            width: list.width - root.endInset
             track: CatalogService.withMarks(modelData)
             number: root.ranked ? index + 1 : root.numbered ? (modelData.position !== undefined ? modelData.position + 1 : modelData.number ?? index + 1) : 0
             showArt: root.showArt

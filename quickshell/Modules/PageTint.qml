@@ -12,7 +12,8 @@ Item {
     property real scroll: 0
 
     readonly property bool shown: seed !== "" && UiConfig.pageTinted
-    readonly property color tint: shown ? Scheme.fromSeed(seed, Theme.isLightMode).primaryContainer : "transparent"
+    // the seed scheme's primaryContainer, which stays grey for a grey cover
+    readonly property color tint: shown ? Scheme.primaryContainer(seed, Theme.isLightMode, true) : "transparent"
 
     anchors.left: parent.left
     anchors.right: parent.right

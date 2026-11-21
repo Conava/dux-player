@@ -13,6 +13,22 @@ PinTargetSheet {
         return shelves.some(s => s.type === type && (s.options.source ?? "") === (id ?? ""));
     }
 
+    function newOptions(type) {
+        switch (type) {
+        case "search":
+        case "genreChips":
+            return {};
+        case "speedDial":
+            return {
+                "size": "m"
+            };
+        }
+        return {
+            "layout": ["mostPlayed", "playlist", "favoriteTracks", "recentTracks"].indexOf(type) >= 0 ? "list" : "carousel",
+            "size": "m"
+        };
+    }
+
     title: I18n.tr("Add shelf", "home edit action")
     doneFormat: I18n.tr("%1 (already on home)", "picker item that is already a home shelf")
     enabledLibrariesOnly: true
@@ -31,10 +47,7 @@ PinTargetSheet {
         }
     ]
     onPicked: value => {
-        const options = value[0] === "search" ? {} : {
-            "layout": ["mostPlayed", "playlist", "favoriteTracks", "recentTracks"].indexOf(value[0]) >= 0 ? "list" : "carousel",
-            "size": "m"
-        };
+        const options = root.newOptions(value[0]);
         if (value[1])
             options.source = value[1];
         root.add({

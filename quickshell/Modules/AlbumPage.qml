@@ -22,19 +22,24 @@ Item {
         })) : tracks
     // the album may load after the page opens (catalog still coming in)
     readonly property string loadKey: album?.id ?? ""
+    // the cover card beside the tracks; narrow windows and edit mode stack
+    readonly property bool sideBySide: UiConfig.albumSideBySide && width >= PlayerMetrics.albumSideBySideMinWidth && !editing && !notFound
+    readonly property real cardWidth: Math.min(PlayerMetrics.albumPaneMaxWidth, Math.round((width - PlayerMetrics.pagePadding * 2) * PlayerMetrics.albumPaneRatio))
 
     onLoadKeyChanged: PlayerService.loadAlbum(loadKey)
 
     PageTint {
         seed: root.editing || root.notFound ? "" : PlayerService.coverColor(root.album)
-        scroll: list.view.contentY - list.view.originY
+        // fixed side by side, where the header row and the card don't scroll
+        scroll: root.sideBySide ? 0 : list.view.contentY - list.view.originY
     }
 
     TrackList {
         id: list
         anchors.fill: parent
-        anchors.leftMargin: PlayerMetrics.pagePadding
-        anchors.rightMargin: PlayerMetrics.pagePadding
+        anchors.topMargin: root.sideBySide ? fixedHeader.height : 0
+        anchors.leftMargin: PlayerMetrics.pagePadding + (root.sideBySide && !I18n.isRtl ? root.cardWidth + Theme.spacingL : 0)
+        anchors.rightMargin: PlayerMetrics.pagePadding + (root.sideBySide && I18n.isRtl ? root.cardWidth + Theme.spacingL : 0)
         tracks: root.shownTracks
         sectionProperty: root.byDisc ? "discLabel" : ""
         layout: root.options.layout
@@ -51,25 +56,15 @@ Item {
             Column {
                 width: list.width
                 spacing: PlayerMetrics.sectionSpacing
-                bottomPadding: PlayerMetrics.sectionSpacing
+                bottomPadding: root.sideBySide ? 0 : PlayerMetrics.sectionSpacing
 
-                PageHeader {
-                    title: root.editing ? root.album?.title ?? "" : ""
-                    editable: true
-                    editing: root.editing
-                    onEditRequested: Router.editing = true
-                    onDone: Router.editing = false
-                    onResetRequested: (editorLoader.item as PageEditor)?.reset()
-
-                    DIconButton {
-                        id: moreButton
-                        visible: !root.notFound
-                        anchors.verticalCenter: parent.verticalCenter
-                        iconName: "more_vert"
-                        tooltipText: I18n.tr("More", "track row menu button")
-                        Accessible.name: tooltipText
-                        onClicked: albumMenu.open(moreButton)
-                    }
+                Loader {
+                    width: parent.width
+                    active: !root.sideBySide
+                    visible: active
+                    sourceComponent: headerRow
+                    // Reset only shows while editing, which always stacks
+                    onLoaded: (item as PageHeader).resetRequested.connect(() => (editorLoader.item as PageEditor)?.reset())
                 }
 
                 // built only while editing
@@ -107,82 +102,155 @@ Item {
                     title: I18n.tr("Not found", "page title when an album, artist or playlist doesn't exist")
                 }
 
-                DetailHero {
-                    visible: !root.editing && !root.notFound
-                    eyebrow: I18n.tr("Album", "an album: page label, list column, ReplayGain mode")
-                    title: root.album?.title ?? ""
-                    cover: AlbumArt {
-                        anchors.fill: parent
-                        radius: Theme.cornerRadiusXL
-                        item: root.album
-                    }
+                Loader {
+                    width: parent.width
+                    active: !root.sideBySide && !root.editing && !root.notFound
+                    visible: active
+                    sourceComponent: hero
+                }
+            }
+        }
+    }
 
-                    ArtistLinks {
-                        width: Math.min(implicitWidth, parent.width)
-                        artists: root.album?.artists ?? []
-                        fontSize: Theme.fontSizeLarge
-                        fontWeight: Theme.fontWeightMedium
-                        color: Theme.primary
-                    }
+    // side by side: the header row stays put above the card and the tracks
+    Loader {
+        id: fixedHeader
+        x: PlayerMetrics.pagePadding
+        width: root.width - PlayerMetrics.pagePadding * 2
+        active: root.sideBySide
+        visible: active
+        sourceComponent: headerRow
+    }
 
-                    Row {
-                        id: facts
-                        width: parent.width
-                        spacing: Theme.spacingS
+    // built only side by side
+    Loader {
+        x: I18n.isRtl ? root.width - PlayerMetrics.pagePadding - width : PlayerMetrics.pagePadding
+        y: fixedHeader.height
+        width: root.cardWidth
+        active: root.sideBySide
+        visible: active
 
-                        LibraryBadge {
-                            id: factsBadge
-                            anchors.verticalCenter: parent.verticalCenter
-                            libraryId: root.album?.library ?? ""
-                        }
+        sourceComponent: Rectangle {
+            height: Math.min(cardHero.height + Theme.spacingXL * 2, root.height - fixedHeader.height - PlayerMetrics.pagePadding)
+            color: Theme.surfaceContainerHigh
+            radius: Theme.cornerRadiusXL
 
-                        StyledText {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: Math.min(implicitWidth, facts.width - (factsBadge.visible ? factsBadge.width + facts.spacing : 0))
-                            elide: Text.ElideRight
-                            wrapMode: Text.NoWrap
-                            text: Phrases.joinAll([root.album?.year || "", root.album?.genre ?? "", Phrases.tracks(root.tracks.length), Format.duration(root.album?.duration ?? 0)])
-                            font.pixelSize: Theme.fontSizeMedium
-                            color: Theme.surfaceVariantText
-                        }
-                    }
+            DFlickable {
+                anchors.fill: parent
+                anchors.margins: Theme.spacingXL
+                clip: true
+                contentHeight: cardHero.height
+                interactive: contentHeight > height
+                showScrollBar: interactive
 
-                    Row {
-                        spacing: Theme.spacingS
+                Loader {
+                    id: cardHero
+                    width: parent.width
+                    sourceComponent: hero
+                }
+            }
+        }
+    }
 
-                        FavoriteButton {
-                            anchors.verticalCenter: parent.verticalCenter
-                            kind: "album"
-                            item: root.album
-                        }
+    Component {
+        id: headerRow
 
-                        RatingStars {
-                            anchors.verticalCenter: parent.verticalCenter
-                            kind: "album"
-                            item: root.album
-                        }
-                    }
+        PageHeader {
+            title: root.editing ? root.album?.title ?? "" : ""
+            editable: true
+            editing: root.editing
+            onEditRequested: Router.editing = true
+            onDone: Router.editing = false
 
-                    PlayButtons {
-                        topPadding: Theme.spacingS
-                        note: download.blocker
-                        onPlay: shuffle => PlayerService.playAlbum(root.album.id, shuffle)
+            DIconButton {
+                id: moreButton
+                visible: !root.notFound
+                anchors.verticalCenter: parent.verticalCenter
+                iconName: "more_vert"
+                tooltipText: I18n.tr("More", "track row menu button")
+                Accessible.name: tooltipText
+                onClicked: albumMenu.open(moreButton)
+            }
+        }
+    }
 
-                        DIconButton {
-                            size: "m"
-                            variant: "tonal"
-                            iconName: "playlist_add"
-                            tooltipText: I18n.tr("Add to playlist", "track row action")
-                            Accessible.name: tooltipText
-                            onClicked: Router.pickPlaylist(root.tracks)
-                        }
+    Component {
+        id: hero
 
-                        DownloadButton {
-                            id: download
-                            kind: "album"
-                            item: root.album
-                        }
-                    }
+        DetailHero {
+            card: root.sideBySide
+            eyebrow: I18n.tr("Album", "an album: page label, list column, ReplayGain mode")
+            title: root.album?.title ?? ""
+            cover: AlbumArt {
+                anchors.fill: parent
+                radius: Theme.cornerRadiusXL
+                item: root.album
+            }
+
+            ArtistLinks {
+                width: Math.min(implicitWidth, parent.width)
+                artists: root.album?.artists ?? []
+                fontSize: Theme.fontSizeLarge
+                fontWeight: Theme.fontWeightMedium
+                color: Theme.primary
+            }
+
+            Row {
+                id: facts
+                width: parent.width
+                spacing: Theme.spacingS
+
+                LibraryBadge {
+                    id: factsBadge
+                    anchors.verticalCenter: parent.verticalCenter
+                    libraryId: root.album?.library ?? ""
+                }
+
+                StyledText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Math.min(implicitWidth, facts.width - (factsBadge.visible ? factsBadge.width + facts.spacing : 0))
+                    elide: Text.ElideRight
+                    wrapMode: Text.NoWrap
+                    text: Phrases.joinAll([root.album?.year || "", root.album?.genre ?? "", Phrases.tracks(root.tracks.length), Format.duration(root.album?.duration ?? 0)])
+                    font.pixelSize: Theme.fontSizeMedium
+                    color: Theme.surfaceVariantText
+                }
+            }
+
+            Row {
+                spacing: Theme.spacingS
+
+                FavoriteButton {
+                    anchors.verticalCenter: parent.verticalCenter
+                    kind: "album"
+                    item: root.album
+                }
+
+                RatingStars {
+                    anchors.verticalCenter: parent.verticalCenter
+                    kind: "album"
+                    item: root.album
+                }
+            }
+
+            PlayButtons {
+                topPadding: Theme.spacingS
+                note: download.blocker
+                onPlay: shuffle => PlayerService.playAlbum(root.album.id, shuffle)
+
+                DIconButton {
+                    size: "m"
+                    variant: "tonal"
+                    iconName: "playlist_add"
+                    tooltipText: I18n.tr("Add to playlist", "track row action")
+                    Accessible.name: tooltipText
+                    onClicked: Router.pickPlaylist(root.tracks)
+                }
+
+                DownloadButton {
+                    id: download
+                    kind: "album"
+                    item: root.album
                 }
             }
         }

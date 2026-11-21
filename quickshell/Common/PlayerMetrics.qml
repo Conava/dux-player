@@ -44,6 +44,8 @@ Singleton {
     // Side by side applies to pages at least this wide; the cover card takes this share beside the tracks
     readonly property real albumSideBySideMinWidth: 960
     readonly property real albumPaneRatio: 1 / 2.7
+    // the card stops growing here, so a very wide window gives the extra to the track list
+    readonly property real albumPaneMaxWidth: 480
     readonly property real speedDialMinTileWidth: 192
     readonly property int shelfLimit: 12
     // a Home list shelf set to Auto columns splits into columns at least this wide

@@ -20,6 +20,9 @@ ClippingRectangle {
     // the daemon's first album covers until the tracks are loaded
     readonly property var mosaic: playlist?.loaded === false ? (playlist.mosaic ?? []) : tracks.filter((t, i, all) => all.findIndex(o => o.albumId === t.albumId) === i).slice(0, 4)
 
+    // nothing to show but the placeholder icon
+    readonly property bool bare: cover.type === "auto" && mosaic.length === 0 && (playlist?.coverId ?? "") === ""
+
     radius: Theme.cornerRadiusM
     color: playlist?.kind === "server" ? Theme.tertiaryContainer : Theme.secondaryContainer
     Accessible.ignored: true
@@ -62,7 +65,7 @@ ClippingRectangle {
 
     DIcon {
         anchors.centerIn: parent
-        visible: root.cover.type === "auto" && root.mosaic.length === 0 && (root.playlist?.coverId ?? "") === ""
+        visible: root.bare
         name: root.playlist?.kind === "server" ? "cloud" : "queue_music"
         size: Math.round(parent.width * PlayerMetrics.artShapeRatio)
         color: root.playlist?.kind === "server" ? Theme.onTertiaryContainer : Theme.onSecondaryContainer

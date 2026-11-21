@@ -3,9 +3,11 @@
 
 // Material tonal-spot schemes from one hue or seed color, in the custom-theme key names (primary,
 // primaryText, surface, surfaceContainer, …) that Dux themes use.
+const PRIMARY_CHROMA = 48;
+
 function scheme(hue, isLight) {
     const tone = (chroma, h, dark, light) => Hct.fromHct(h, chroma, isLight ? light : dark).toString();
-    const p = (d, l) => tone(48, hue, d, l);
+    const p = (d, l) => tone(PRIMARY_CHROMA, hue, d, l);
     const s = (d, l) => tone(16, hue, d, l);
     const t = (d, l) => tone(24, (hue + 60) % 360, d, l);
     const n = (d, l) => tone(4, hue, d, l);
@@ -44,4 +46,12 @@ function scheme(hue, isLight) {
 // seed: a color or "#rrggbb" string
 function fromSeed(seed, isLight) {
     return scheme(Hct.toHct(Qt.color(seed)).hue, isLight);
+}
+
+// fromSeed's primaryContainer alone. neutralAware lets a near-grey seed give a near-grey result (its chroma
+// times 2, up to the scheme's own) instead of a saturated colour on an arbitrary hue.
+function primaryContainer(seed, isLight, neutralAware) {
+    const hct = Hct.toHct(Qt.color(seed));
+    const chroma = neutralAware ? Math.min(PRIMARY_CHROMA, hct.chroma * 2) : PRIMARY_CHROMA;
+    return Hct.fromHct(hct.hue, chroma, isLight ? 90 : 30).toString();
 }

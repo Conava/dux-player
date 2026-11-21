@@ -8,6 +8,7 @@ import qs.Widgets
 import qs.Modules.Settings
 import "../Services/Catalog.js" as Catalog
 import "../Services/Rules.js" as Rules
+import "../Common/Letters.js" as Letters
 
 // Every browse view: albums, artists, tracks, playlists, genres, favorites, most played, a genre, a library,
 // recently added albums and saved views. Display options come from UiConfig (or the saved view) and change in
@@ -197,6 +198,24 @@ Item {
     readonly property bool hasServer: CatalogService.libraries.some(l => CatalogService.isRemote(l.id))
     readonly property var homeShelves: UiConfig.surface("home")?.zones.shelves ?? []
     readonly property bool onHome: context.shelf !== undefined && homeShelves.some(s => s.type === context.shelf.type && (s.options.source ?? "") === context.shelf.id)
+
+    // the letter index applies to a list in name order; a grouped list restarts the order per group
+    readonly property bool indexable: UiConfig.letterIndexOn && !editing && groupNames.length === 0 && options.sort === UiConfig.sortChoices(type)[0] && items.length > 0
+    // the scrolling view: a TrackList's list, or the list or grid itself
+    readonly property var shown: content.item
+    readonly property var view: shown?.view ?? shown ?? null
+    // set from a later turn, not bound: the index narrows the rows, which can change the content height
+    property bool indexShown: false
+    readonly property var letters: indexable ? Letters.index(items.map(i => i.name ?? i.title), options.descending === true) : []
+    // the rows and tiles make room for the index; the header keeps the full width
+    readonly property real indexWidth: indexShown ? letterIndex.width : 0
+    readonly property bool overflows: view !== null && view.contentHeight > view.height
+
+    function syncIndex() {
+        indexShown = indexable && overflows;
+    }
+    onIndexableChanged: Qt.callLater(syncIndex)
+    onOverflowsChanged: Qt.callLater(syncIndex)
 
     onLibraryShownChanged: CatalogService.openedLibrary(libraryShown)
 
@@ -407,7 +426,9 @@ Item {
 
         DTabBar {
             objectName: "libraryTabs"
-            width: parent.width
+            // room for the focus ring, which the list view's clip would cut off
+            x: Theme.focusRingOffset + Theme.focusRingWidth
+            width: parent.width - x
             visible: Router.page === "collection"
             showIcons: false
             equalWidthTabs: false
@@ -566,6 +587,7 @@ Item {
     }
 
     Loader {
+        id: content
         anchors.fill: parent
         anchors.leftMargin: PlayerMetrics.pagePadding
         anchors.rightMargin: PlayerMetrics.pagePadding
@@ -582,6 +604,7 @@ Item {
             lineOptions: root.options.lineOptions ?? ({})
             layout: root.options.layout
             sortable: true
+            endInset: root.indexWidth
             sortKey: root.savedView && root.options.sort === "random" ? "" : root.options.sort
             descending: root.options.descending
             sectionNames: root.groupNames
@@ -619,7 +642,8 @@ Item {
             section.property: root.groupNames.length > 0 ? "group" : ""
             section.delegate: StyledText {
                 required property string section
-                width: list.width
+                x: I18n.isRtl ? root.indexWidth : 0
+                width: list.width - root.indexWidth
                 topPadding: Theme.spacingL
                 bottomPadding: Theme.spacingS
                 text: section
@@ -632,7 +656,8 @@ Item {
                 required property int index
                 // a shorter list reaches the rows a moment before the count drops
                 readonly property var modelData: root.items[index] ?? ({})
-                width: list.width
+                x: I18n.isRtl ? root.indexWidth : 0
+                width: list.width - root.indexWidth
                 kind: root.kind
                 item: modelData
                 lines: root.options.lines
@@ -653,9 +678,9 @@ Item {
             readonly property PageScroll _scroll: PageScroll {
                 view: grid
             }
-            readonly property int columnCount: Math.max(1, Math.floor(width / root.tileWidth))
+            readonly property int columnCount: Math.max(1, Math.floor((width - root.indexWidth) / root.tileWidth))
             clip: true
-            cellWidth: Math.floor(width / columnCount)
+            cellWidth: Math.floor((width - root.indexWidth) / columnCount)
             cellHeight: cellWidth + (root.options.tileSize === "l" ? PlayerMetrics.gridCaptionHeightL : PlayerMetrics.gridCaptionHeight)
             bottomMargin: root.isPlaylists ? fab.height + Theme.spacingL : 0
             model: RowModel {
@@ -677,6 +702,23 @@ Item {
                 lines: root.options.lines
                 onActivated: PlayerService.playTracks(root.items, index, root.playContext)
             }
+        }
+    }
+
+    DLetterIndex {
+        id: letterIndex
+        visible: root.indexShown
+        model: root.letters
+        anchors.right: parent.right
+        anchors.rightMargin: Theme.spacingXS
+        // below the header, which scrolls away with the content
+        y: Math.max(Theme.spacingXS, (root.view?.headerItem?.height ?? 0) - ((root.view?.contentY ?? 0) - (root.view?.originY ?? 0)))
+        height: Math.max(0, parent.height - y - Theme.spacingXS - (root.isPlaylists ? fab.height + Theme.spacingL : 0))
+        onPicked: first => {
+            if (root.shown?.positionAt)
+                root.shown.positionAt(first);
+            else
+                root.view.positionViewAtIndex(first, ListView.Beginning);
         }
     }
 
