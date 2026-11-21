@@ -429,7 +429,17 @@ DFloatingWindow {
         if (!visible)
             resetProbe();
     }
-    onIsCompactModeChanged: menuVisible = false
+    onIsCompactModeChanged: {
+        menuVisible = false;
+        pageTakesFocus();
+    }
+    onMenuVisibleChanged: pageTakesFocus()
+
+    // a hidden sidebar must not keep the focus, or its search field eats the page's keys
+    function pageTakesFocus() {
+        if (isCompactMode && !menuVisible && focusedItem && !isInPage(focusedItem))
+            pageLoader.item?.forceActiveFocus();
+    }
 
     FocusScope {
         id: focusScope
