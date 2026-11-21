@@ -19,6 +19,12 @@ Singleton {
     property var recentAlbums: []
     // most played tracks over every library, all time; null until first used
     property var topTracks: null
+    // the Statistics page's range in days while it shows, 0 otherwise; statistics keeps the last reply
+    property int statsDays: 0
+    property var statistics: null
+    property bool statsLoading: false
+
+    onStatsDaysChanged: _loadStatistics()
 
     // more: the next page after what is loaded
     function loadHistory(more) {
@@ -71,6 +77,7 @@ Singleton {
     }
 
     property bool _historyBusy: false
+    property int _statsRequest: 0
     property bool _historyLoaded: false
     // "" (not used yet) | "wanted" | "pending" | "done"
     property string _topState: ""
@@ -102,6 +109,45 @@ Singleton {
         if (_topState !== "")
             _topState = "wanted";
         _refreshTop();
+        _loadStatistics();
+    }
+
+    function _loadStatistics() {
+        // a reply to an older request (another range, or the page gone) is dropped
+        const request = ++_statsRequest;
+        const days = statsDays;
+        statsLoading = days > 0;
+        if (days <= 0)
+            return;
+        DaemonBridge.request("history.stats", {
+            "days": days
+        }, I18n.tr("Couldn't load the statistics", "toast when the statistics can't be loaded"), result => {
+            if (request !== root._statsRequest)
+                return;
+            root.statsLoading = false;
+            root.statistics = root._shapeStatistics(result);
+        }, () => {
+            if (request === root._statsRequest)
+                root.statsLoading = false;
+        });
+    }
+
+    function _shapeStatistics(s) {
+        return {
+            "days": s.days ?? 0,
+            "plays": s.plays ?? 0,
+            "artists": s.artists ?? 0,
+            "perDay": s.perDay ?? [],
+            "topArtists": (s.topArtists ?? []).map(a => ({
+                        "library": a.artist?.library ?? "",
+                        "id": a.artist?.id ? a.artist.library + ":" + a.artist.id : "",
+                        "name": a.artist?.name ?? "",
+                        "count": a.count ?? 0,
+                        "lastPlayed": a.lastPlayed ?? 0
+                    })),
+            "genres": s.genres ?? [],
+            "otherGenres": s.otherGenres ?? 0
+        };
     }
 
     function _wantTop() {

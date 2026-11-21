@@ -54,6 +54,7 @@ var entries = [
     {"page": "appearance", "title": ["Palette", "color source option"], "text": [["Uses Dux Shell colors by default.", "appearance palette fallback note"], ["Preset", "color scheme option"], ["From a color", "color scheme option"], ["Custom theme", "color scheme option"]], "keywords": "theme"},
     {"page": "appearance", "title": ["Preset", "appearance setting"], "keywords": "theme"},
     {"page": "appearance", "title": ["Base color", "appearance setting"], "text": [["Light and dark palettes are generated from this color.", "appearance setting description"]], "keywords": "theme seed accent"},
+    {"page": "appearance", "title": ["Palette style", "appearance setting"], "keywords": "scheme variant tonal spot vibrant expressive neutral monochrome"},
     {"page": "appearance", "title": ["Color mode", "appearance setting for light or dark"], "text": [["System", "theme mode"], ["Light", "theme mode"], ["Dark", "theme mode"]], "keywords": "theme dark light"},
     {"page": "appearance", "title": ["Family", "font setting"], "text": [["Default", "font family dropdown option for the bundled font"]], "keywords": "typeface"},
     {"page": "appearance", "title": ["Text size", "appearance setting"], "keywords": "font scale"},

@@ -9,7 +9,9 @@ import qs.DCommon.Widgets
 import qs.DCommon.FileBrowser
 import qs.DCommon.Common as DC
 import "../../Common/CustomTheme.js" as CustomTheme
+import "../../Common/Scheme.js" as Scheme
 import "../../Common/StockTheme.js" as StockTheme
+import "../../DCommon/Common/Accents.js" as Accents
 
 // Follow Dux Shell, or set each style group on its own (each can still take the shell's value).
 SettingsPage {
@@ -19,6 +21,11 @@ SettingsPage {
     readonly property var colorSchemes: ["stock", "seed", "custom"]
     readonly property var seedChoices: ["red", "orange", "yellow", "green", "teal", "blue", "purple", "pink"]
     readonly property var seedNames: [I18n.tr("Red", "color palette name"), I18n.tr("Orange", "color palette name"), I18n.tr("Yellow", "color palette name"), I18n.tr("Green", "color palette name"), I18n.tr("Teal", "color palette name"), I18n.tr("Blue", "color palette name"), I18n.tr("Purple", "color palette name"), I18n.tr("Pink", "color palette name")]
+    // 1.1 x the small tile size
+    readonly property real paletteCardWidth: Math.round(PlayerMetrics.tileSizeS * 1.1)
+    // The accents follow the picked color, so a swatch's own color would drift away from the stored seed; these come
+    // from a fixed key and stay put.
+    readonly property var seedAccents: Accents.derive(Qt.color(StockTheme.getPreset("purple", true).primary), true, null)
     property string themeStatus: ""
     property bool themeStatusError: false
 
@@ -182,17 +189,42 @@ SettingsPage {
                             required property string modelData
                             required property int index
                             readonly property bool chosen: Qt.colorEqual(Qt.color(SettingsData.seedColor), swatch)
-                            readonly property color swatch: Theme.accent(modelData)?.container ?? Theme.primary
-                            width: Theme.buttonHeightXS
+                            readonly property var accent: root.seedAccents[modelData]
+                            readonly property color swatch: accent?.container ?? Theme.primary
+                            width: Theme.minimumTouchTargetSize
                             height: width
-                            radius: Theme.fullRadius(width, height)
+                            radius: chosen ? Theme.cornerRadiusL : Theme.fullRadius(width, height)
                             color: swatch
-                            border.width: chosen ? Theme.outlineWidthFocused : 0
-                            border.color: Theme.onSurface
                             Accessible.role: Accessible.RadioButton
                             Accessible.name: root.seedNames[index]
                             Accessible.checked: chosen
                             onClicked: SettingsData.seedColor = swatch.toString()
+
+                            Behavior on radius {
+                                enabled: Theme.animationsEnabled
+                                NumberAnimation {
+                                    duration: Theme.expressiveDurations.expressiveFastSpatial
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+                                }
+                            }
+
+                            DIcon {
+                                anchors.centerIn: parent
+                                name: "check"
+                                size: Theme.iconSize
+                                color: seedSwatch.accent?.onContainer ?? Theme.primaryText
+                                opacity: seedSwatch.chosen ? 1 : 0
+
+                                Behavior on opacity {
+                                    enabled: Theme.animationsEnabled
+                                    NumberAnimation {
+                                        duration: Theme.expressiveDurations.expressiveFastEffects
+                                        easing.type: Easing.BezierSpline
+                                        easing.bezierCurve: Theme.expressiveCurves.expressiveFastEffects
+                                    }
+                                }
+                            }
 
                             StateLayer {
                                 control: seedSwatch
@@ -215,6 +247,82 @@ SettingsPage {
                     onAccepted: {
                         if (/^#[0-9a-fA-F]{6}$/.test(text.trim()))
                             SettingsData.seedColor = text.trim();
+                    }
+                }
+            }
+        }
+
+        SettingsRow {
+            id: styleRow
+            visible: SettingsData.colorScheme === "seed"
+            unavailableReason: root.paletteReason(I18n.tr("From a color", "color scheme option"))
+            title: I18n.tr("Palette style", "appearance setting")
+            keywords: "scheme variant tonal spot vibrant expressive neutral monochrome"
+
+            body: Flow {
+                width: parent.width
+                spacing: Theme.spacingS
+
+                Repeater {
+                    model: styleRow.visible ? UiConfig.paletteStyles : []
+
+                    StyledButton {
+                        id: styleCard
+                        required property string modelData
+                        readonly property bool chosen: UiConfig.paletteStyle === modelData
+                        readonly property var colors: Scheme.fromSeed(SettingsData.seedColor, Theme.isLightMode, modelData)
+                        width: root.paletteCardWidth
+                        implicitHeight: cardColumn.implicitHeight + 2 * Theme.spacingM
+                        radius: Theme.cornerRadiusL
+                        color: Theme.surfaceContainerHighest
+                        border.width: chosen ? Theme.outlineWidthFocused : 0
+                        border.color: Theme.primary
+                        Accessible.role: Accessible.RadioButton
+                        Accessible.name: UiConfig.paletteStyleLabel(modelData)
+                        Accessible.checked: chosen
+                        onClicked: SettingsData.paletteStyle = modelData
+
+                        Column {
+                            id: cardColumn
+                            x: Theme.spacingM
+                            y: Theme.spacingM
+                            width: parent.width - 2 * Theme.spacingM
+                            spacing: Theme.spacingS
+
+                            Row {
+                                spacing: Theme.spacingXS
+
+                                Repeater {
+                                    model: ["primary", "secondary", "tertiary"]
+
+                                    Rectangle {
+                                        required property string modelData
+                                        width: Theme.iconSizeSmall
+                                        height: width
+                                        radius: width / 2
+                                        color: styleCard.colors[modelData]
+                                    }
+                                }
+                            }
+
+                            StyledText {
+                                width: parent.width
+                                text: UiConfig.paletteStyleLabel(styleCard.modelData)
+                                font.pixelSize: Theme.fontSizeMedium
+                                font.weight: Theme.fontWeightMedium
+                                color: Theme.surfaceText
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        StateLayer {
+                            control: styleCard
+                            stateColor: Theme.onSurface
+                        }
+
+                        FocusRing {
+                            visible: styleCard.visualFocus
+                        }
                     }
                 }
             }

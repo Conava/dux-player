@@ -38,7 +38,7 @@ Singleton {
     function ownColors(preset, isLight) {
         switch (colorScheme) {
         case "seed":
-            return Object.assign({}, preset, Scheme.fromSeed(SettingsData.seedColor, isLight));
+            return Object.assign({}, preset, Scheme.fromSeed(SettingsData.seedColor, isLight, UiConfig.paletteStyle));
         case "custom":
             return Object.assign({}, preset, CustomTheme.palette(customTheme, isLight));
         }

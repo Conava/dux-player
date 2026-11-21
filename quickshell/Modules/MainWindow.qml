@@ -622,6 +622,8 @@ DFloatingWindow {
                                         return "SearchPage.qml";
                                     case "history":
                                         return "HistoryPage.qml";
+                                    case "stats":
+                                        return "StatisticsPage.qml";
                                     }
                                     return "BrowsePage.qml";
                                 }

@@ -175,6 +175,13 @@
     "comment": ""
   },
   {
+    "term": "%1 days",
+    "translation": "",
+    "context": "statistics range",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "%1 doesn't support editing playlists",
     "translation": "",
     "context": "why playlist editing is disabled, %1 is the server library",
@@ -402,6 +409,13 @@
     "term": "%1 · track %2 of %3 · %4 / %5",
     "translation": "",
     "context": "continue listening facts: artist · position in queue · elapsed / total",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "%1%",
+    "translation": "",
+    "context": "percentage, %1 is a whole number",
     "reference": "",
     "comment": ""
   },
@@ -2152,6 +2166,13 @@
     "term": "Couldn't load the playlist",
     "translation": "",
     "context": "toast when a playlist's tracks can't be loaded",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't load the statistics",
+    "translation": "",
+    "context": "toast when the statistics can't be loaded",
     "reference": "",
     "comment": ""
   },
@@ -4571,6 +4592,13 @@
     "comment": ""
   },
   {
+    "term": "Most on %1",
+    "translation": "",
+    "context": "statistics chart: the day with the most plays",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Most played",
     "translation": "",
     "context": "home shelf and page of the most played tracks",
@@ -4858,6 +4886,13 @@
     "comment": ""
   },
   {
+    "term": "No genres in these plays.",
+    "translation": "",
+    "context": "statistics genres card when no played track has a genre",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "No info lines",
     "translation": "",
     "context": "page edit mode: the info lines zone is empty",
@@ -4910,6 +4945,13 @@
     "term": "No playlists",
     "translation": "",
     "context": "browse page empty state | library feature missing",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "No plays in the last %1 days.",
+    "translation": "",
+    "context": "statistics empty state",
     "reference": "",
     "comment": ""
   },
@@ -5397,6 +5439,13 @@
     "comment": ""
   },
   {
+    "term": "Palette style",
+    "translation": "",
+    "context": "appearance setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Panes",
     "translation": "",
     "context": "now playing zone: the side panel's tabs",
@@ -5785,6 +5834,13 @@
     "term": "Plays may count twice if the server also scrobbles.",
     "translation": "",
     "context": "scrobbling server library row",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Plays per day",
+    "translation": "",
+    "context": "statistics card: a bar per day",
     "reference": "",
     "comment": ""
   },
@@ -8060,6 +8116,13 @@
     "term": "Too many folders to watch (fs.inotify.max_user_watches); some changes show only after a rescan",
     "translation": "",
     "context": "library notice",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Top artists",
+    "translation": "",
+    "context": "statistics card: the most played artists",
     "reference": "",
     "comment": ""
   },
