@@ -31,6 +31,10 @@
 #   other ask helpers: navLit (the selected navigation entry), tint (the page tint), playingTiles, carouselX, topItem
 #                    (the tile at the top of a page's list), heroRect (an album's cover and facts), dialTiles (Speed dial),
 #                    prefValue NAME (an app setting as JSON)
+#   themeColor NAME  ask themeColor primary prints Theme.primary as #rrggbb
+#   objectText NAME, countObjects NAME   the text of the first visible item with that objectName, and how many there are
+#   swatches         ask swatches prints "X Y W H chosen" per Base color swatch of the settings window (window coordinates)
+#   settingsFocusSearch, settingsResults   focus the settings search field (then wtype the query); "page title" per result
 #   click X Y        move and click, in output coordinates
 #   frames NAME CMD  run CMD and write the ms between the main window's frames while its moving parts move to out/NAME.frames
 #   rclick X Y       move and right click

@@ -181,6 +181,9 @@ Item {
             SettingsToggleRow {
                 text: I18n.tr("Lyrics and queue tabs", "now playing setting")
                 keywords: "full view tabs switch pane card"
+                // the tabs only show with lyrics on
+                enabled: UiConfig.lyricsOn
+                description: enabled ? "" : I18n.tr("Turn on lyrics first.", "why the lyrics and queue tabs setting is off")
                 checked: UiConfig.paneTabsOn
                 onToggled: value => UiConfig.setNowPlaying({
                         "paneTabs": value
@@ -203,6 +206,9 @@ Item {
             SettingsToggleRow {
                 text: I18n.tr("Top bar", "now playing setting")
                 keywords: "full view header title bar window buttons drag handle"
+                // without title bars the window has no header to bring back
+                enabled: StyleSource.windowTitleBars
+                description: enabled ? "" : I18n.tr("Turn on title bars first.", "why the full view top bar setting is off")
                 checked: SettingsData.fullViewTopBar
                 onToggled: value => SettingsData.fullViewTopBar = value
             }

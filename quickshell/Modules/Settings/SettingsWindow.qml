@@ -402,6 +402,10 @@ DFloatingWindow {
     }
 
     function goBack() {
+        if (listBack && !menuVisible) {
+            menuVisible = true;
+            return true;
+        }
         if (subTitle === "")
             return false;
         pageLoader.item.goBack();
@@ -753,7 +757,7 @@ DFloatingWindow {
                                 iconColor: Theme.surfaceText
                                 tooltipText: I18n.tr("Back", "page header back button")
                                 visible: backSlot.shown
-                                onClicked: window.listBack ? window.menuVisible = true : window.goBack()
+                                onClicked: window.goBack()
                             }
                         }
 
@@ -819,7 +823,7 @@ DFloatingWindow {
                 acceptedButtons: Qt.BackButton
                 gesturePolicy: TapHandler.ReleaseWithinBounds
                 longPressThreshold: 0
-                enabled: window.subTitle !== "" && !focusScope.dialogOpen
+                enabled: (window.subTitle !== "" || window.listBack) && !focusScope.dialogOpen
                 onTapped: window.goBack()
             }
         }

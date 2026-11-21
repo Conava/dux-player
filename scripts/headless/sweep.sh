@@ -13,7 +13,7 @@ repo=$(cd "$here/../.." && pwd)
 
 # scenario | environment | ERE over changed paths: the code it covers (AGENTS.md says what each one checks); slowest first
 TABLE='
-handle||^quickshell/(Modules/MainWindow|Widgets/DSheetHandle|Common/StyleSource)\.qml$
+handle||^quickshell/(Modules/(MainWindow|Settings/SettingsWindow)|Widgets/DSheetHandle|Common/StyleSource)\.qml$
 motion||^quickshell/Modules/(MainWindow|NowPlaying[A-Za-z]*|SidePanel|M3EPlayer|BentoPlayer|PlayerArt|MediaSeekbar|SeekBlock|QueueList)\.qml$
 snappy|SERVER=1|^quickshell/Modules/(MainWindow|NowPlaying[A-Za-z]*|[A-Za-z]*Page|[A-Za-z]*Dialog|MediaMenu|MediaTile|MediaRow)\.qml$|^quickshell/Services/(Playlist|Settings|Catalog)Service\.qml$
 scroll||^quickshell/Modules/([A-Za-z]*Page|PageScroll|TrackList)\.qml$|^quickshell/Common/WheelInput\.js$
@@ -33,6 +33,8 @@ columns||^quickshell/Modules/TrackList\.qml$|^quickshell/Common/(ColumnDrag|Layo
 home||^quickshell/Modules/(HomePage|Shelf)\.qml$
 menus||^quickshell/Modules/(MediaTile|MediaMenu|MediaRow)\.qml$|^quickshell/DCommon/Widgets/DMenu\.qml$
 startup||^quickshell/Modules/Router\.qml$|^quickshell/Modules/Settings/PagesSettings\.qml$|^quickshell/Common/UiConfig\.qml$
+stats||^quickshell/Modules/StatisticsPage\.qml$|^quickshell/Services/StatsService\.qml$|^core/internal/history/
+appearance||^quickshell/(Common/(Scheme\.js|StyleSource\.qml)|Modules/Settings/(AppearanceSettings|GeneralSettings)\.qml)$
 smoke||^core/internal/window/window\.go$|^core/cmd/dplayer/qs\.go$
 '
 # these measure frame gaps and click timing, which a loaded machine fails: they run first, one at a time

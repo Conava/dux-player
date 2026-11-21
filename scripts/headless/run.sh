@@ -880,6 +880,54 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function pageEndInset(px: real): void {
             Router.pageEndInset = px;
         }
+        // the colour Theme[name] as #rrggbb
+        function themeColor(name: string): string {
+            return Qt.color(Theme[name]).toString();
+        }
+        // the text of the first visible item with that objectName in the main window, "" when none
+        function objectText(objectName: string): string {
+            const hit = frameProbe.firstIn(frameProbe.window().contentItem, i => i.visible && i.objectName === objectName);
+            return hit ? String(hit.text) : "";
+        }
+        // how many visible items of the main window have that objectName
+        function countObjects(objectName: string): int {
+            let n = 0;
+            const walk = item => {
+                if (!item || !item.visible)
+                    return;
+                if (item.objectName === objectName)
+                    n++;
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(frameProbe.window().contentItem);
+            return n;
+        }
+        // one line "X Y W H chosen" per visible Base color swatch of the settings window, in window coordinates
+        function swatches(): string {
+            const out = [];
+            const root = settingsLoader.item?.contentItem?.Window.window?.contentItem;
+            const walk = item => {
+                if (!item || !item.visible)
+                    return;
+                if (item.swatch !== undefined && item.chosen !== undefined) {
+                    const p = item.mapToItem(root, 0, 0);
+                    out.push([p.x, p.y, item.width, item.height].map(Math.round).join(" ") + " " + item.chosen);
+                }
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(root);
+            return out.join("\n");
+        }
+        // moves the focus into the settings window's search field
+        function settingsFocusSearch(): void {
+            settingsLoader.item?.focusSearch();
+        }
+        // one line "page title" per result of the settings search
+        function settingsResults(): string {
+            return (settingsLoader.item?.searchResults ?? []).map(e => e.page + " " + e.title).join("\n");
+        }
     }
 }
 Q

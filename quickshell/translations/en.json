@@ -648,8 +648,8 @@
     "comment": "home edit action"
   },
   {
-    "term": "Add this rule to your %1 config to open windows floating:",
-    "context": "Add this rule to your %1 config to open windows floating:",
+    "term": "Add this rule to the %1 config to open windows floating:",
+    "context": "Add this rule to the %1 config to open windows floating:",
     "reference": "Modules/Settings/GeneralSettings.qml:134",
     "comment": "open floating snippet intro, %1 is the compositor"
   },
@@ -1106,7 +1106,7 @@
   {
     "term": "Back",
     "context": "Back",
-    "reference": "Modules/PageHeader.qml:42, Modules/PlayOnSheet.qml:141, Modules/Settings/SettingsWindow.qml:754",
+    "reference": "Modules/PageHeader.qml:42, Modules/PlayOnSheet.qml:141, Modules/Settings/SettingsWindow.qml:758",
     "comment": "page header back button"
   },
   {
@@ -1118,7 +1118,7 @@
   {
     "term": "Background",
     "context": "Background",
-    "reference": "Modules/Settings/GeneralSettings.qml:35, Modules/Settings/NowPlayingSettings.qml:191",
+    "reference": "Modules/Settings/GeneralSettings.qml:35, Modules/Settings/NowPlayingSettings.qml:194",
     "comment": "general settings section label | now playing setting"
   },
   {
@@ -1226,7 +1226,7 @@
   {
     "term": "Blurred cover",
     "context": "Blurred cover",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:193",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:196",
     "comment": "full view background option"
   },
   {
@@ -1238,7 +1238,7 @@
   {
     "term": "Bottom bar",
     "context": "Bottom bar",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:39, Modules/Settings/NowPlayingSettings.qml:111, Modules/Settings/NowPlayingSettings.qml:218",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:39, Modules/Settings/NowPlayingSettings.qml:111, Modules/Settings/NowPlayingSettings.qml:224",
     "comment": "now playing placement option"
   },
   {
@@ -1460,7 +1460,7 @@
   {
     "term": "Close",
     "context": "Close",
-    "reference": "Modules/CoverDialog.qml:161, Modules/DevicePickerDialog.qml:44, Modules/HomePage.qml:300, Modules/PageEditor.qml:984, Modules/Settings/ElementOptionsDialog.qml:170, Modules/Settings/SettingsWindow.qml:527, Modules/SleepTimerDialog.qml:83, Modules/SpeedDialog.qml:29",
+    "reference": "Modules/CoverDialog.qml:161, Modules/DevicePickerDialog.qml:44, Modules/HomePage.qml:300, Modules/PageEditor.qml:984, Modules/Settings/ElementOptionsDialog.qml:170, Modules/Settings/SettingsWindow.qml:531, Modules/SleepTimerDialog.qml:83, Modules/SpeedDialog.qml:29",
     "comment": "dialog dismiss button"
   },
   {
@@ -1784,7 +1784,7 @@
   {
     "term": "Couldn't export to %1",
     "context": "Couldn't export to %1",
-    "reference": "Modules/Settings/AppearanceSettings.qml:620, Modules/Settings/GeneralSettings.qml:404",
+    "reference": "Modules/Settings/AppearanceSettings.qml:620, Modules/Settings/GeneralSettings.qml:407",
     "comment": "export failed status"
   },
   {
@@ -1796,7 +1796,7 @@
   {
     "term": "Couldn't import the layout: %1",
     "context": "Couldn't import the layout: %1",
-    "reference": "Modules/Settings/GeneralSettings.qml:443",
+    "reference": "Modules/Settings/GeneralSettings.qml:446",
     "comment": "layout import failed, %1 is the reason"
   },
   {
@@ -1904,7 +1904,7 @@
   {
     "term": "Couldn't read the layout file",
     "context": "Couldn't read the layout file",
-    "reference": "Modules/Settings/GeneralSettings.qml:394",
+    "reference": "Modules/Settings/GeneralSettings.qml:397",
     "comment": "layout import failed"
   },
   {
@@ -2492,7 +2492,7 @@
   {
     "term": "Dux Player Settings",
     "context": "Dux Player Settings",
-    "reference": "Modules/Settings/SettingsWindow.qml:417",
+    "reference": "Modules/Settings/SettingsWindow.qml:421",
     "comment": "settings window title"
   },
   {
@@ -2708,7 +2708,7 @@
   {
     "term": "Export layout",
     "context": "Export layout",
-    "reference": "Modules/Settings/GeneralSettings.qml:423",
+    "reference": "Modules/Settings/GeneralSettings.qml:426",
     "comment": "file picker title"
   },
   {
@@ -2738,7 +2738,7 @@
   {
     "term": "Exported to %1",
     "context": "Exported to %1",
-    "reference": "Modules/Settings/AppearanceSettings.qml:615, Modules/Settings/GeneralSettings.qml:401",
+    "reference": "Modules/Settings/AppearanceSettings.qml:615, Modules/Settings/GeneralSettings.qml:404",
     "comment": "custom theme export status"
   },
   {
@@ -2794,12 +2794,6 @@
     "context": "Favorites",
     "reference": "Common/Phrases.qml:99, Common/UiConfig.qml:653, Common/UiConfig.qml:780, Modules/Settings/OfflineRuleDialog.qml:48, Services/CatalogService.qml:199",
     "comment": "favorite tracks: page, cache mode, library feature"
-  },
-  {
-    "term": "Fetches missing artist images and biographies. Artist names are sent to %1.",
-    "context": "Fetches missing artist images and biographies. Artist names are sent to %1.",
-    "reference": "Modules/Settings/GeneralSettings.qml:61",
-    "comment": "general setting description, %1 lists online services"
   },
   {
     "term": "Field",
@@ -3038,7 +3032,7 @@
   {
     "term": "Full view",
     "context": "Full view",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:111, Modules/Settings/NowPlayingSettings.qml:160, Modules/Settings/NowPlayingSettings.qml:244",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:111, Modules/Settings/NowPlayingSettings.qml:160, Modules/Settings/NowPlayingSettings.qml:250",
     "comment": "now playing placement option | now playing settings section: the full view's options | now playing start option"
   },
   {
@@ -3278,7 +3272,7 @@
   {
     "term": "Import layout",
     "context": "Import layout",
-    "reference": "Modules/Settings/GeneralSettings.qml:411",
+    "reference": "Modules/Settings/GeneralSettings.qml:414",
     "comment": "file picker title"
   },
   {
@@ -3620,7 +3614,7 @@
   {
     "term": "Layout imported",
     "context": "Layout imported",
-    "reference": "Modules/Settings/GeneralSettings.qml:441",
+    "reference": "Modules/Settings/GeneralSettings.qml:444",
     "comment": "layout import status"
   },
   {
@@ -3908,7 +3902,7 @@
   {
     "term": "Menu",
     "context": "Menu",
-    "reference": "Modules/Settings/SettingsWindow.qml:472",
+    "reference": "Modules/Settings/SettingsWindow.qml:476",
     "comment": "settings header button that shows the section list on narrow windows"
   },
   {
@@ -3992,7 +3986,7 @@
   {
     "term": "Move window",
     "context": "Move window",
-    "reference": "Modules/MainWindow.qml:878, Modules/Settings/SettingsWindow.qml:490",
+    "reference": "Modules/MainWindow.qml:878, Modules/Settings/SettingsWindow.qml:494",
     "comment": "drag handle of the full view"
   },
   {
@@ -4430,7 +4424,7 @@
   {
     "term": "Nothing matches.",
     "context": "Nothing matches.",
-    "reference": "Modules/Settings/OfflineItemPicker.qml:110, Modules/Settings/SettingsWindow.qml:667",
+    "reference": "Modules/Settings/OfflineItemPicker.qml:110, Modules/Settings/SettingsWindow.qml:671",
     "comment": "offline rule picker empty result | settings search empty result"
   },
   {
@@ -4766,7 +4760,7 @@
   {
     "term": "Plain",
     "context": "Plain",
-    "reference": "Common/UiConfig.qml:1460, Modules/Settings/NowPlayingSettings.qml:193",
+    "reference": "Common/UiConfig.qml:1460, Modules/Settings/NowPlayingSettings.qml:196",
     "comment": "full view background option | page header option"
   },
   {
@@ -5438,19 +5432,19 @@
   {
     "term": "Replace",
     "context": "Replace",
-    "reference": "Modules/Settings/GeneralSettings.qml:436",
+    "reference": "Modules/Settings/GeneralSettings.qml:439",
     "comment": "layout import confirm button"
   },
   {
-    "term": "Replace your layout?",
-    "context": "Replace your layout?",
-    "reference": "Modules/Settings/GeneralSettings.qml:434",
+    "term": "Replace the layout?",
+    "context": "Replace the layout?",
+    "reference": "Modules/Settings/GeneralSettings.qml:437",
     "comment": "layout import confirmation title"
   },
   {
     "term": "Replaces all customization with the file's layout.",
     "context": "Replaces all customization with the file's layout.",
-    "reference": "Modules/Settings/GeneralSettings.qml:435",
+    "reference": "Modules/Settings/GeneralSettings.qml:438",
     "comment": "layout import confirmation"
   },
   {
@@ -5546,7 +5540,7 @@
   {
     "term": "Reset",
     "context": "Reset",
-    "reference": "Modules/HomePage.qml:313, Modules/PageEditor.qml:113, Modules/PageHeader.qml:112, Modules/QueueList.qml:423, Modules/Settings/GeneralSettings.qml:242, Modules/Settings/GeneralSettings.qml:453, Modules/Settings/NowPlayingSettings.qml:297, Modules/Settings/PagesSettings.qml:408, Modules/Settings/PagesSettings.qml:421, Modules/Settings/SurfaceEditor.qml:328, Modules/Settings/SurfaceEditor.qml:350, Widgets/DMenu.qml:461",
+    "reference": "Modules/HomePage.qml:313, Modules/PageEditor.qml:113, Modules/PageHeader.qml:112, Modules/QueueList.qml:423, Modules/Settings/GeneralSettings.qml:242, Modules/Settings/GeneralSettings.qml:456, Modules/Settings/NowPlayingSettings.qml:303, Modules/Settings/PagesSettings.qml:408, Modules/Settings/PagesSettings.qml:421, Modules/Settings/SurfaceEditor.qml:328, Modules/Settings/SurfaceEditor.qml:350, Widgets/DMenu.qml:461",
     "comment": "button that restores the defaults"
   },
   {
@@ -5570,13 +5564,13 @@
   {
     "term": "Reset all customization?",
     "context": "Reset all customization?",
-    "reference": "Modules/Settings/GeneralSettings.qml:451",
+    "reference": "Modules/Settings/GeneralSettings.qml:454",
     "comment": "reset all customization confirmation title"
   },
   {
     "term": "Reset all now playing",
     "context": "Reset all now playing",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:282",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:288",
     "comment": "now playing settings action"
   },
   {
@@ -5600,7 +5594,7 @@
   {
     "term": "Reset now playing?",
     "context": "Reset now playing?",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:295",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:301",
     "comment": "reset now playing confirmation title"
   },
   {
@@ -5624,19 +5618,19 @@
   {
     "term": "Resets now playing, pages, rows and menus, home and navigation. Custom pages are kept.",
     "context": "Resets now playing, pages, rows and menus, home and navigation. Custom pages are kept.",
-    "reference": "Modules/Settings/GeneralSettings.qml:452",
+    "reference": "Modules/Settings/GeneralSettings.qml:455",
     "comment": "reset all customization confirmation"
   },
   {
     "term": "Resets start view, style and surfaces.",
     "context": "Resets start view, style and surfaces.",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:284",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:290",
     "comment": "now playing reset description"
   },
   {
     "term": "Resets the bar, side panel and both full views.",
     "context": "Resets the bar, side panel and both full views.",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:296",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:302",
     "comment": "reset now playing confirmation"
   },
   {
@@ -5876,7 +5870,7 @@
   {
     "term": "Search settings",
     "context": "Search settings",
-    "reference": "Modules/Settings/SettingsWindow.qml:553",
+    "reference": "Modules/Settings/SettingsWindow.qml:557",
     "comment": "settings search field placeholder"
   },
   {
@@ -5958,6 +5952,12 @@
     "comment": "discord album cover description"
   },
   {
+    "term": "Sends artist names to %1 for images and biographies.",
+    "context": "Sends artist names to %1 for images and biographies.",
+    "reference": "Modules/Settings/GeneralSettings.qml:61",
+    "comment": "general setting description, %1 lists online services"
+  },
+  {
     "term": "Sent automatically when the connection is restored.",
     "context": "Sent automatically when the connection is restored.",
     "reference": "Modules/Settings/ScrobbleSettings.qml:33",
@@ -5994,8 +5994,8 @@
     "comment": "track row cloud icon while the server is down | why a server library or its tracks can't be used"
   },
   {
-    "term": "Set a floating rule for the app id %1 in your compositor.",
-    "context": "Set a floating rule for the app id %1 in your compositor.",
+    "term": "Set a floating rule for the app id %1 in the compositor.",
+    "context": "Set a floating rule for the app id %1 in the compositor.",
     "reference": "Modules/Settings/GeneralSettings.qml:175",
     "comment": "open floating note for compositors without known rules"
   },
@@ -6008,7 +6008,7 @@
   {
     "term": "Settings",
     "context": "Settings",
-    "reference": "Common/UiConfig.qml:838, Modules/MainWindow.qml:311, Modules/MainWindow.qml:496, Modules/Settings/GeneralSettings.qml:338, Modules/Settings/SettingsWindow.qml:465, Modules/Settings/SettingsWindow.qml:536",
+    "reference": "Common/UiConfig.qml:838, Modules/MainWindow.qml:311, Modules/MainWindow.qml:496, Modules/Settings/GeneralSettings.qml:338, Modules/Settings/SettingsWindow.qml:469, Modules/Settings/SettingsWindow.qml:540",
     "comment": "fixed keyboard shortcut | the settings window"
   },
   {
@@ -6182,7 +6182,7 @@
   {
     "term": "Side panel",
     "context": "Side panel",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:33, Modules/Settings/NowPlayingSettings.qml:111, Modules/Settings/NowPlayingSettings.qml:231",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:33, Modules/Settings/NowPlayingSettings.qml:111, Modules/Settings/NowPlayingSettings.qml:237",
     "comment": "now playing placement option"
   },
   {
@@ -6566,7 +6566,7 @@
   {
     "term": "Surfaces",
     "context": "Surfaces",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:212",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:218",
     "comment": "now playing settings section: bar, side panel and full views"
   },
   {
@@ -6968,7 +6968,7 @@
   {
     "term": "Top bar",
     "context": "Top bar",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:204",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:207",
     "comment": "now playing setting"
   },
   {
@@ -7090,6 +7090,18 @@
     "context": "Turn on an account on the Scrobbling page first.",
     "reference": "Modules/Settings/LibraryPage.qml:269",
     "comment": "why a library's scrobbling setting is unavailable"
+  },
+  {
+    "term": "Turn on lyrics first.",
+    "context": "Turn on lyrics first.",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:186",
+    "comment": "why the lyrics and queue tabs setting is off"
+  },
+  {
+    "term": "Turn on title bars first.",
+    "context": "Turn on title bars first.",
+    "reference": "Modules/Settings/NowPlayingSettings.qml:211",
+    "comment": "why the full view top bar setting is off"
   },
   {
     "term": "Turn on word by word in the lyrics settings",

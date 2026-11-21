@@ -58,7 +58,7 @@ SettingsPage {
         SettingsToggleRow {
             text: I18n.tr("Look up artist info online", "general setting")
             keywords: "biography image"
-            description: SettingsService.artistInfoKnown ? I18n.tr("Fetches missing artist images and biographies. Artist names are sent to %1.", "general setting description, %1 lists online services").arg(root.onlineServices) : PlayerService.unavailableText
+            description: SettingsService.artistInfoKnown ? I18n.tr("Sends artist names to %1 for images and biographies.", "general setting description, %1 lists online services").arg(root.onlineServices) : PlayerService.unavailableText
             enabled: SettingsService.artistInfoKnown
             checked: SettingsService.settings.artistInfoOnline
             onToggled: value => SettingsService.setSetting("artistInfoOnline", value)
@@ -131,7 +131,7 @@ SettingsPage {
         SettingsRow {
             visible: WindowRuleService.supported && !WindowRuleService.viaShell
             title: I18n.tr("Floating windows", "general setting")
-            subtitle: I18n.tr("Add this rule to your %1 config to open windows floating:", "open floating snippet intro, %1 is the compositor").arg(WindowRuleService.compositor)
+            subtitle: I18n.tr("Add this rule to the %1 config to open windows floating:", "open floating snippet intro, %1 is the compositor").arg(WindowRuleService.compositor)
 
             body: Column {
                 width: parent.width
@@ -172,7 +172,7 @@ SettingsPage {
         SettingsRow {
             visible: !WindowRuleService.supported
             title: I18n.tr("Floating windows", "general setting")
-            subtitle: I18n.tr("Set a floating rule for the app id %1 in your compositor.", "open floating note for compositors without known rules").arg(WindowRuleService.appId)
+            subtitle: I18n.tr("Set a floating rule for the app id %1 in the compositor.", "open floating note for compositors without known rules").arg(WindowRuleService.appId)
         }
 
         SettingsButtonGroupRow {
@@ -355,15 +355,18 @@ SettingsPage {
             font.weight: Theme.fontWeightMedium
         }
 
+        // as tall as the shortcut fields above, so every row of the card has one height
         Row {
             id: keysRow
             anchors.verticalCenter: parent.verticalCenter
+            height: Theme.buttonHeightS
             spacing: Theme.spacingXS
             visible: !fixedRow.stacked
             Repeater {
                 model: fixedRow.keys
                 DKeycap {
                     required property string modelData
+                    anchors.verticalCenter: parent?.verticalCenter
                     text: modelData
                 }
             }
@@ -431,7 +434,7 @@ SettingsPage {
     ConfirmDialog {
         id: importDialog
         host: root
-        title: I18n.tr("Replace your layout?", "layout import confirmation title")
+        title: I18n.tr("Replace the layout?", "layout import confirmation title")
         supportingText: I18n.tr("Replaces all customization with the file's layout.", "layout import confirmation")
         confirmText: I18n.tr("Replace", "layout import confirm button")
         onConfirmed: {

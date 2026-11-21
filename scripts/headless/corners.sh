@@ -29,6 +29,23 @@ for page in libraries downloads general appearance pages nowplaying nowplaying/b
     [ "$page" = downloads ] && shot downloads
 done
 
+# Base color and Palette style only show with From a color
+scheme=$(ask prefValue colorScheme)
+ui pref colorScheme '"seed"'
+ui settings appearance
+audit "appearance, from a color"
+shot appearance-seed
+ui pref colorScheme "$scheme"
+
+# without title bars the settings window draws its own top strip
+ui pref windowTitleBars false
+for page in general nowplaying; do
+    ui settings "$page"
+    audit "$page, title bars off"
+done
+shot title-bars-off
+ui pref windowTitleBars true
+
 # a library's own page: the local one always, the server's with SERVER=1
 libs=$(rpc libraries.list '{}' | python3 -I -c 'import json,sys
 d = json.load(sys.stdin)

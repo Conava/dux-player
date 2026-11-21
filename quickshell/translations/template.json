@@ -756,7 +756,7 @@
     "comment": ""
   },
   {
-    "term": "Add this rule to your %1 config to open windows floating:",
+    "term": "Add this rule to the %1 config to open windows floating:",
     "translation": "",
     "context": "open floating snippet intro, %1 is the compositor",
     "reference": "",
@@ -3258,13 +3258,6 @@
     "term": "Favorites",
     "translation": "",
     "context": "favorite tracks: page, cache mode, library feature",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Fetches missing artist images and biographies. Artist names are sent to %1.",
-    "translation": "",
-    "context": "general setting description, %1 lists online services",
     "reference": "",
     "comment": ""
   },
@@ -6349,7 +6342,7 @@
     "comment": ""
   },
   {
-    "term": "Replace your layout?",
+    "term": "Replace the layout?",
     "translation": "",
     "context": "layout import confirmation title",
     "reference": "",
@@ -6951,6 +6944,13 @@
     "comment": ""
   },
   {
+    "term": "Sends artist names to %1 for images and biographies.",
+    "translation": "",
+    "context": "general setting description, %1 lists online services",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Sent automatically when the connection is restored.",
     "translation": "",
     "context": "scrobbling queue state description",
@@ -6993,7 +6993,7 @@
     "comment": ""
   },
   {
-    "term": "Set a floating rule for the app id %1 in your compositor.",
+    "term": "Set a floating rule for the app id %1 in the compositor.",
     "translation": "",
     "context": "open floating note for compositors without known rules",
     "reference": "",
@@ -8270,6 +8270,20 @@
     "term": "Turn on an account on the Scrobbling page first.",
     "translation": "",
     "context": "why a library's scrobbling setting is unavailable",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Turn on lyrics first.",
+    "translation": "",
+    "context": "why the lyrics and queue tabs setting is off",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Turn on title bars first.",
+    "translation": "",
+    "context": "why the full view top bar setting is off",
     "reference": "",
     "comment": ""
   },
