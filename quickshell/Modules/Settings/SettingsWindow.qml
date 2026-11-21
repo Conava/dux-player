@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import qs.Common
 import qs.Services
+import qs.DCommon.Common as DC
 import qs.Modules
 import qs.DCommon.Widgets
 import qs.Widgets
@@ -17,6 +18,11 @@ DFloatingWindow {
     property string currentPage: "libraries"
     property bool menuVisible: false
     readonly property bool isCompactMode: width < SettingsMetrics.compactBreakpoint
+    readonly property bool titleBarsOff: !StyleSource.windowTitleBars
+    // KWin draws its own bar, so no handle there
+    readonly property bool handleShown: titleBarsOff && DC.Compositor.desktop !== "kde"
+    // narrow window without a header: the page itself returns to the section list
+    readonly property bool listBack: titleBarsOff && isCompactMode && subTitle === ""
 
     readonly property var tabs: [
         {
@@ -453,6 +459,7 @@ DFloatingWindow {
             DWindowHeader {
                 id: header
                 width: parent.width
+                visible: !window.titleBarsOff
                 z: Theme.zHeader
                 controls: windowControls
                 title: I18n.tr("Settings", "the settings window")
@@ -468,8 +475,26 @@ DFloatingWindow {
             }
 
             Item {
+                id: handleStrip
                 width: parent.width
-                height: parent.height - header.height
+                height: window.handleShown ? Theme.windowInset * 2 + Theme.bottomSheetHandleHeight : Theme.windowInset
+                visible: window.titleBarsOff
+                z: Theme.zHeader
+
+                DSheetHandle {
+                    objectName: "settingsHandle"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    height: parent.height
+                    visible: window.handleShown
+                    Accessible.name: I18n.tr("Move window", "drag handle of the full view")
+                    onDragStarted: windowControls.tryStartMove()
+                }
+            }
+
+            Item {
+                width: parent.width
+                height: parent.height - (window.titleBarsOff ? handleStrip.height : header.height)
                 clip: true
 
                 Item {
@@ -480,11 +505,48 @@ DFloatingWindow {
                     width: window.isCompactMode ? parent.width : SettingsMetrics.sidebarWidth
                     visible: window.isCompactMode ? window.menuVisible : true
 
+                    Item {
+                        id: sidebarHeader
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.leftMargin: SettingsMetrics.paneMargin
+                        anchors.rightMargin: SettingsMetrics.paneMargin
+                        height: window.titleBarsOff ? PlayerMetrics.pageHeaderHeight : 0
+                        visible: window.titleBarsOff
+
+                        DActionButton {
+                            id: closeButton
+                            objectName: "settingsClose"
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            buttonSize: Theme.iconButtonSize
+                            iconName: "close"
+                            iconSize: Theme.iconSize
+                            iconColor: Theme.surfaceText
+                            tooltipText: I18n.tr("Close", "dialog dismiss button")
+                            onClicked: window.visible = false
+                        }
+
+                        StyledText {
+                            anchors.left: closeButton.right
+                            anchors.leftMargin: Theme.spacingM
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: I18n.tr("Settings", "the settings window")
+                            font.pixelSize: Theme.fontSizeXXLarge
+                            color: Theme.surfaceText
+                            elide: Text.ElideRight
+                            wrapMode: Text.NoWrap
+                            horizontalAlignment: Text.AlignLeft
+                        }
+                    }
+
                     DSearchField {
                         id: searchField
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        anchors.top: parent.top
+                        anchors.top: sidebarHeader.bottom
                         anchors.leftMargin: SettingsMetrics.paneMargin
                         anchors.rightMargin: SettingsMetrics.paneMargin
                         height: window.searchBarHeight
@@ -675,7 +737,7 @@ DFloatingWindow {
 
                         Item {
                             id: backSlot
-                            readonly property bool shown: window.subTitle !== ""
+                            readonly property bool shown: window.subTitle !== "" || window.listBack
                             // the arrow glyph lines up with the content edge, not the button's
                             readonly property real glyphInset: (Theme.iconButtonSize - Theme.iconSize) / 2
                             anchors.left: parent.left
@@ -691,7 +753,7 @@ DFloatingWindow {
                                 iconColor: Theme.surfaceText
                                 tooltipText: I18n.tr("Back", "page header back button")
                                 visible: backSlot.shown
-                                onClicked: window.goBack()
+                                onClicked: window.listBack ? window.menuVisible = true : window.goBack()
                             }
                         }
 

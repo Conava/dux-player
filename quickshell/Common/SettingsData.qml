@@ -59,6 +59,8 @@ Singleton {
     property alias navStyle: settingsAdapter.navStyle
     // "tint" | "plain": the album, artist and playlist page header
     property alias pageHeader: settingsAdapter.pageHeader
+    // "tonalSpot" | "vibrant" | "expressive" | "neutral" | "monochrome": the palette made from a base color
+    property alias paletteStyle: settingsAdapter.paletteStyle
     // "stacked" | "sideBySide": the album page
     property alias albumLayout: settingsAdapter.albumLayout
     // a letter strip beside pages sorted by name
@@ -71,6 +73,8 @@ Singleton {
     // ui-state.json: the full view's last pane ("lyrics" | "queue" | "") and the side panel's last tab
     property alias lastPane: stateAdapter.lastPane
     property alias sideTab: stateAdapter.sideTab
+    // the Statistics page's range in days: 7 | 14 | 30
+    property alias statsDays: stateAdapter.statsDays
     // the wide rail shows labels while Navigation is Automatic
     property alias autoRailLabels: stateAdapter.autoRailLabels
     // the Library entry's last tab: "albums" | "artists" | "tracks" | "genres"
@@ -230,6 +234,7 @@ Singleton {
             property var undoToast: ({})
             property string navStyle: "auto"
             property string pageHeader: "tint"
+            property string paletteStyle: "tonalSpot"
             property string albumLayout: "stacked"
             property bool letterIndex: false
             property var shortcuts: ({})
@@ -290,6 +295,7 @@ Singleton {
             id: stateAdapter
             property string lastPane: ""
             property string sideTab: "cover"
+            property int statsDays: 7
             property bool autoRailLabels: false
             property string libraryTab: "albums"
         }

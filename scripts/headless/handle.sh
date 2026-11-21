@@ -11,8 +11,8 @@ fail() {
 origin() {
     hyprctl -j clients | python3 -I -c '
 import json, sys
-c = next(c for c in json.load(sys.stdin) if c["title"] == "Dux Player")
-print(c["at"][0], c["at"][1])'
+c = next(c for c in json.load(sys.stdin) if c["title"] == "'"${WT:-Dux Player}"'")
+print(c["at"][0], c["at"][1], c["size"][0])'
 }
 
 L="$XDG_STATE_HOME/dplayer/ui.log"
@@ -38,8 +38,8 @@ done
 
 # drag FROM_Y: press at the window's top centre, move down-right in steps, release; prints nothing, sets x1 y1
 drag() {
-    read -r x0 y0 <<<"$(origin)"
-    cx=$((x0 + 800))
+    read -r x0 y0 w0 <<<"$(origin)"
+    cx=$((x0 + w0 / 2))
     pointer m "$((cx - 2))" "$((y0 + $1))"
     sleep 0.3
     pointer m "$cx" "$((y0 + $1))"
@@ -54,7 +54,7 @@ drag() {
     shot "$2"
     pointer u
     sleep 0.5
-    read -r x1 y1 <<<"$(origin)"
+    read -r x1 y1 _ <<<"$(origin)"
     tail -n "+$from" "$L" >"$W/out/$2.wl"
 }
 # seen LOG PATTERN WHAT
@@ -90,7 +90,7 @@ go home
 shot titlebars-home
 
 # a rail shows Search as its FAB and Settings at its bottom, below the destinations
-read -r wx wy <<<"$(origin)"
+read -r wx wy _ <<<"$(origin)"
 read -r fx fy fw fh _ <<<"$(ask rect railSearch)"
 if [ -n "$fx" ]; then
     click $((wx + fx + fw / 2)) $((wy + fy + fh / 2))
@@ -129,6 +129,29 @@ shot titlebars-settings-navigation
 ui settings general
 sleep 2
 shot titlebars-settings-general
+# the settings window has the same handle, and a close button in its sidebar instead of the header
+WT="Dux Player Settings"
+read -r cx cy cw ch _ <<<"$(ask rect settingsClose)"
+if [ -n "$cx" ]; then
+    read -r wx wy _ <<<"$(origin)"
+    fact "close button at $cx $cy $cw $ch, window at $wx $wy"
+    click $((wx + cx + cw / 2)) $((wy + cy + ch / 2))
+    sleep 1
+    expect "title bars off: the close button closes the settings window" "$(hyprctl -j clients | grep -c '"title": "Dux Player Settings"')" 0
+else
+    fail "title bars off: no close button in the settings sidebar"
+fi
+ui settings general
+sleep 2
+read -r hx hy hw hh _ <<<"$(ask rect settingsHandle)"
+if [ -n "$hx" ] && [ "$hy" -lt 40 ]; then
+    fact "ok   title bars off: the settings window has its handle ($hx $hy $hw $hh)"
+else
+    fail "title bars off: no handle at the top of the settings window: '$hx $hy'"
+fi
+drag 10 titlebars-settings-dragging
+seen titlebars-settings-dragging 'xdg_toplevel[@#][0-9]+\.move\(' "the handle moves the settings window"
+WT=
 ui titleBars true
 sleep 1
 expect "title bars on again: the stored navigation is as it was" "$(nav | grep -c 'search\|settings')" 0

@@ -1281,6 +1281,13 @@
     "comment": ""
   },
   {
+    "term": "Back or forward",
+    "translation": "",
+    "context": "fixed keyboard shortcut",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Background",
     "translation": "",
     "context": "general settings section label | now playing setting",
@@ -3180,7 +3187,7 @@
   {
     "term": "Expressive",
     "translation": "",
-    "context": "title style option: the rounded condensed sans in the accent colour",
+    "context": "palette style option | title style option: the rounded condensed sans in the accent colour",
     "reference": "",
     "comment": ""
   },
@@ -4725,6 +4732,13 @@
     "comment": ""
   },
   {
+    "term": "Neutral",
+    "translation": "",
+    "context": "palette style option",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Never",
     "translation": "",
     "context": "filter rule condition: a track that was never played",
@@ -5299,6 +5313,13 @@
     "comment": ""
   },
   {
+    "term": "Open or close full view",
+    "translation": "",
+    "context": "fixed keyboard shortcut",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Opens with",
     "translation": "",
     "context": "now playing setting",
@@ -5547,6 +5568,13 @@
     "term": "Play on multiple outputs",
     "translation": "",
     "context": "playback device setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Play or pause",
+    "translation": "",
+    "context": "fixed keyboard shortcut",
     "reference": "",
     "comment": ""
   },
@@ -5813,6 +5841,13 @@
     "term": "Previous",
     "translation": "",
     "context": "home shelf arrow | transport button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Previous or next track",
+    "translation": "",
+    "context": "fixed keyboard shortcut",
     "reference": "",
     "comment": ""
   },
@@ -6804,6 +6839,13 @@
     "comment": ""
   },
   {
+    "term": "Seek 5 seconds",
+    "translation": "",
+    "context": "fixed keyboard shortcut",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Seekbar",
     "translation": "",
     "context": "bar setting",
@@ -6911,7 +6953,7 @@
   {
     "term": "Settings",
     "translation": "",
-    "context": "the settings window",
+    "context": "fixed keyboard shortcut | the settings window",
     "reference": "",
     "comment": ""
   },
@@ -7469,6 +7511,13 @@
     "comment": ""
   },
   {
+    "term": "Statistics",
+    "translation": "",
+    "context": "navigation destination: plays per day, top artists and genres",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Stop",
     "translation": "",
     "context": "auto-continue option",
@@ -8001,6 +8050,13 @@
     "comment": ""
   },
   {
+    "term": "Tonal spot",
+    "translation": "",
+    "context": "palette style option",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Too many folders to watch (fs.inotify.max_user_watches); some changes show only after a rescan",
     "translation": "",
     "context": "library notice",
@@ -8333,6 +8389,13 @@
     "term": "Version, license and credits",
     "translation": "",
     "context": "settings sidebar tab hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Vibrant",
+    "translation": "",
+    "context": "palette style option",
     "reference": "",
     "comment": ""
   },

@@ -774,6 +774,8 @@ Singleton {
             return I18n.tr("Libraries", "the music libraries: page, settings tab, section");
         case "history":
             return I18n.tr("History", "navigation destination");
+        case "stats":
+            return I18n.tr("Statistics", "navigation destination: plays per day, top artists and genres");
         case "favorites":
             return I18n.tr("Favorites", "favorite tracks: page, cache mode, library feature");
         case "mostPlayed":
@@ -804,6 +806,8 @@ Singleton {
             return "library_music";
         case "history":
             return "history";
+        case "stats":
+            return "insights";
         case "favorites":
             return "favorite";
         case "mostPlayed":
@@ -1439,7 +1443,11 @@ Singleton {
         SettingsData.shortcuts = all;
         return "";
     }
-    readonly property var pageHeaders: ["tint", "plain"]
+    readonly property var pageHeaders: ["plain", "tint"]
+    readonly property var paletteStyles: ["tonalSpot", "vibrant", "expressive", "neutral", "monochrome"]
+    readonly property var statsRanges: [7, 14, 30]
+    readonly property string paletteStyle: paletteStyles.indexOf(SettingsData.paletteStyle) >= 0 ? SettingsData.paletteStyle : "tonalSpot"
+    readonly property int statsDays: statsRanges.indexOf(SettingsData.statsDays) >= 0 ? SettingsData.statsDays : 7
     readonly property var albumLayouts: ["stacked", "sideBySide"]
     readonly property var libraryTabs: ["albums", "artists", "tracks", "genres"]
     // a stored value that isn't exactly the other choice falls back to the default
@@ -1450,6 +1458,20 @@ Singleton {
 
     function pageHeaderLabel(value) {
         return value === "plain" ? I18n.tr("Plain", "page header option") : I18n.tr("Cover tint", "page header option");
+    }
+
+    function paletteStyleLabel(value) {
+        switch (value) {
+        case "vibrant":
+            return I18n.tr("Vibrant", "palette style option");
+        case "expressive":
+            return I18n.tr("Expressive", "palette style option");
+        case "neutral":
+            return I18n.tr("Neutral", "palette style option");
+        case "monochrome":
+            return I18n.tr("Monochrome", "color palette name");
+        }
+        return I18n.tr("Tonal spot", "palette style option");
     }
 
     function albumLayoutLabel(value) {

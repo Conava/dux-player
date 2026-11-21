@@ -2,6 +2,7 @@ package history
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"sync"
@@ -208,4 +209,84 @@ func TestTopMergesServerCounts(t *testing.T) {
 	nd.mu.Lock()
 	assert.Equal(t, pages, nd.pages, "no second full read the same day")
 	nd.mu.Unlock()
+}
+
+func TestStats(t *testing.T) {
+	ctx := context.Background()
+	newStore := func(t *testing.T) (*Store, time.Time) {
+		s, err := Open(ctx, filepath.Join(t.TempDir(), "history.db"))
+		require.NoError(t, err)
+		t.Cleanup(func() { s.Close() })
+		// A zone with DST: the week before 2026-03-29 spans the spring change.
+		s.loc, err = time.LoadLocation("Europe/Berlin")
+		require.NoError(t, err)
+		now := time.Date(2026, 3, 30, 15, 0, 0, 0, s.loc)
+		s.now = func() time.Time { return now }
+		return s, now
+	}
+
+	t.Run("range counts only its days", func(t *testing.T) {
+		s, now := newStore(t)
+		loc := s.loc
+		tr := source.Track{Library: "l", ID: "a", Artist: "A"}
+		for _, at := range []time.Time{
+			now,
+			time.Date(2026, 3, 29, 23, 59, 0, 0, loc),
+			time.Date(2026, 3, 24, 0, 0, 0, 0, loc), // first day of the range
+			time.Date(2026, 3, 23, 23, 59, 0, 0, loc),
+		} {
+			require.NoError(t, s.Add(ctx, tr, at))
+		}
+		st, err := s.Stats(ctx, 7)
+		require.NoError(t, err)
+		require.Len(t, st.PerDay, 7)
+		got := map[string]int{}
+		for _, d := range st.PerDay {
+			got[d.Date] = d.Plays
+		}
+		assert.Equal(t, "2026-03-24", st.PerDay[0].Date)
+		assert.Equal(t, "2026-03-30", st.PerDay[6].Date)
+		assert.Equal(t, map[string]int{"2026-03-30": 1, "2026-03-29": 1, "2026-03-24": 1,
+			"2026-03-25": 0, "2026-03-26": 0, "2026-03-27": 0, "2026-03-28": 0}, got)
+		assert.Equal(t, 3, st.Plays)
+	})
+
+	t.Run("artists and genres group like the top lists", func(t *testing.T) {
+		s, now := newStore(t)
+		plays := []source.Track{
+			{Library: "l", ID: "1", ArtistID: "x", Artist: "Ex", Genre: "Rock"},
+			{Library: "l", ID: "2", ArtistID: "x", Artist: "Ex", Genre: "rock"},
+			{Library: "l", ID: "3", Artist: "Name", Genre: " "},
+			{Library: "l", ID: "4", Artist: "NAME", Genre: "Pop"},
+			{Library: "m", ID: "5", ArtistID: "x", Artist: "Ex", Genre: "Jazz"},
+			{Library: "m", ID: "6", ArtistID: "y", Artist: "Why", Genre: "Folk"},
+		}
+		for i, tr := range plays {
+			require.NoError(t, s.Add(ctx, tr, now.Add(-time.Duration(len(plays)-i)*time.Minute)))
+		}
+		st, err := s.Stats(ctx, 1)
+		require.NoError(t, err)
+		assert.Equal(t, 6, st.Plays)
+		assert.Equal(t, 4, st.Artists, "x of l, x of m, a name in any case, y")
+		require.Len(t, st.TopArtists, 4)
+		assert.Equal(t, 2, st.TopArtists[0].Count)
+		assert.Equal(t, "NAME", st.TopArtists[0].Artist.Name, "ties go to the latest play")
+		assert.Equal(t, 2, st.TopArtists[1].Count)
+		assert.Equal(t, "l", st.TopArtists[1].Artist.Library)
+		assert.Equal(t, []GenreCount{{"rock", 2}, {"Folk", 1}, {"Jazz", 1}}, st.Genres)
+		assert.Equal(t, 1, st.OtherGenres, "Pop is the fourth genre")
+	})
+
+	t.Run("empty history gives zero days and empty lists", func(t *testing.T) {
+		s, _ := newStore(t)
+		st, err := s.Stats(ctx, 14)
+		require.NoError(t, err)
+		assert.Len(t, st.PerDay, 14)
+		assert.Zero(t, st.Plays)
+		assert.NotNil(t, st.TopArtists)
+		assert.NotNil(t, st.Genres)
+		out, _ := json.Marshal(st)
+		assert.Contains(t, string(out), `"topArtists":[]`)
+		assert.Contains(t, string(out), `"genres":[]`)
+	})
 }

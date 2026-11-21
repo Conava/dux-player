@@ -37,6 +37,9 @@ func Register(r *ipc.Registry, store func() *Store, publish func(topic string, d
 			v, err = s.Top(ctx, kind, limit, false)
 		case "history.recent":
 			v, err = s.Top(ctx, kind, limit, true)
+		case "history.stats":
+			days, _ := ipc.Int(p, "days", 7)
+			v, err = s.Stats(ctx, min(max(days, 1), 366))
 		case "history.clear":
 			if err = s.Clear(ctx); err == nil {
 				publish(Topic, map[string]any{"type": "cleared"})
@@ -52,6 +55,7 @@ func Register(r *ipc.Registry, store func() *Store, publish func(topic string, d
 		ipc.MethodSpec{Name: "history.list", Desc: "Counted plays, newest first", Params: []ipc.ParamSpec{ipc.Opt("limit", "1-500, default 50"), ipc.Opt("before", "unix seconds: plays before this, for paging")}, Read: true},
 		ipc.MethodSpec{Name: "history.top", Desc: "Most played tracks, albums or artists of every library: this device's plays and the servers' counts", Params: []ipc.ParamSpec{ipc.Opt("kind", kindDesc), ipc.Opt("limit", "1-500, default 50")}, Read: true},
 		ipc.MethodSpec{Name: "history.recent", Desc: "Recently played tracks, albums or artists, each once", Params: []ipc.ParamSpec{ipc.Opt("kind", kindDesc), ipc.Opt("limit", "1-500, default 50")}, Read: true},
+		ipc.MethodSpec{Name: "history.stats", Desc: "Plays per day, top artists and genres of this device's plays over the last days", Params: []ipc.ParamSpec{ipc.Opt("days", "1-366, default 7")}, Read: true},
 		ipc.MethodSpec{Name: "history.clear", Desc: "Delete the whole play history"},
 	)
 }

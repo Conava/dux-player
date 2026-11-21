@@ -312,6 +312,75 @@ SettingsPage {
                 }
             }
         }
+
+        // the fixed keys; MainWindow.qml's Shortcuts are the source of truth
+        FixedKeyRow {
+            title: I18n.tr("Play or pause", "fixed keyboard shortcut")
+            keys: ["Space", "Ctrl+Space"]
+        }
+        FixedKeyRow {
+            title: I18n.tr("Seek 5 seconds", "fixed keyboard shortcut")
+            keys: ["Left", "Right"]
+        }
+        FixedKeyRow {
+            title: I18n.tr("Previous or next track", "fixed keyboard shortcut")
+            keys: ["Ctrl+Left", "Ctrl+Right"]
+        }
+        FixedKeyRow {
+            title: I18n.tr("Open or close full view", "fixed keyboard shortcut")
+            keys: ["F"]
+        }
+        FixedKeyRow {
+            title: I18n.tr("Back or forward", "fixed keyboard shortcut")
+            keys: ["Alt+Left", "Alt+Right"]
+        }
+        FixedKeyRow {
+            title: I18n.tr("Settings", "fixed keyboard shortcut")
+            keys: ["Ctrl+,"]
+        }
+    }
+
+    // keycaps sit at the row's end and move under the title when both don't fit
+    component FixedKeyRow: SettingsRow {
+        id: fixedRow
+        property var keys: []
+        readonly property bool stacked: width < SettingsMetrics.rowPaddingH * 2 + titleMetrics.width + keysRow.implicitWidth + SettingsMetrics.rowContentSpacing
+        keywords: "keyboard shortcut key " + keys.join(" ")
+        Accessible.name: title + ": " + keys.join(", ")
+
+        TextMetrics {
+            id: titleMetrics
+            text: fixedRow.title
+            font.pixelSize: Theme.fontSizeMedium
+            font.weight: Theme.fontWeightMedium
+        }
+
+        Row {
+            id: keysRow
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Theme.spacingXS
+            visible: !fixedRow.stacked
+            Repeater {
+                model: fixedRow.keys
+                DKeycap {
+                    required property string modelData
+                    text: modelData
+                }
+            }
+        }
+
+        body: Flow {
+            width: parent.width
+            spacing: Theme.spacingXS
+            visible: fixedRow.stacked
+            Repeater {
+                model: fixedRow.keys
+                DKeycap {
+                    required property string modelData
+                    text: modelData
+                }
+            }
+        }
     }
 
     FileView {

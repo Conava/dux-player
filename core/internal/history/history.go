@@ -81,6 +81,8 @@ type stat struct {
 type Store struct {
 	db  *library.DB
 	now func() time.Time
+	// loc is the zone of the statistics' days; nil is time.Local.
+	loc *time.Location
 	// Server says whether a library is a server; its items keep the play
 	// counts the server reports. Set before the first Annotate.
 	Server func(lib string) bool
@@ -264,12 +266,7 @@ func (s *Store) Top(ctx context.Context, kind string, limit int, recent bool) ([
 				Year: t.Year, Genre: t.Genre, CoverID: t.CoverID, PlayCount: n, LastPlayed: last}}
 		})
 	case source.ItemArtist:
-		out = group(all, func(t source.Track) []source.ArtistRef {
-			if len(t.Artists) > 0 {
-				return t.Artists
-			}
-			return source.SingleArtist(t.Artist, t.ArtistID)
-		}, func(t source.Track, a source.ArtistRef, _ int, _ int64) Count {
+		out = group(all, artistRefs, func(t source.Track, a source.ArtistRef, _ int, _ int64) Count {
 			return Count{Artist: &Artist{Library: t.Library, ID: a.ID, Name: a.Name}}
 		})
 	default:
@@ -294,6 +291,22 @@ func (s *Store) Top(ctx context.Context, kind string, limit int, recent bool) ([
 	return out, nil
 }
 
+// artistRefs are a track's artists: its credits, else its single artist.
+func artistRefs(t source.Track) []source.ArtistRef {
+	if len(t.Artists) > 0 {
+		return t.Artists
+	}
+	return source.SingleArtist(t.Artist, t.ArtistID)
+}
+
+// refKey identifies an artist within its library: by ID, else by name.
+func refKey(lib string, a source.ArtistRef) string {
+	if a.ID == "" {
+		return key(lib, "name:"+strings.ToLower(a.Name))
+	}
+	return key(lib, "id:"+a.ID)
+}
+
 // group adds up tracks per key (an album, an artist); keys gives a track's
 // keys, an ID or else a Name. The newest track of a key makes its item.
 func group(all []played, keys func(source.Track) []source.ArtistRef, item func(source.Track, source.ArtistRef, int, int64) Count) []Count {
@@ -307,14 +320,11 @@ func group(all []played, keys func(source.Track) []source.ArtistRef, item func(s
 	byKey := map[string]*acc{}
 	for i, p := range all {
 		for _, k := range keys(p.track) {
-			id := "id:" + k.ID
-			if k.ID == "" {
-				id = "name:" + strings.ToLower(k.Name)
-			}
-			a := byKey[key(p.track.Library, id)]
+			kk := refKey(p.track.Library, k)
+			a := byKey[kk]
 			if a == nil {
 				a = &acc{ordinal: i, ref: k}
-				byKey[key(p.track.Library, id)] = a
+				byKey[kk] = a
 			}
 			a.n += p.n
 			if p.last >= a.last {
@@ -410,4 +420,139 @@ func (s *Store) annotate(v any) {
 	case *source.Playlist:
 		s.annotate(x.Tracks)
 	}
+}
+
+// Stats is this device's plays over the last days, today included.
+type Stats struct {
+	Days        int          `json:"days"`
+	Plays       int          `json:"plays"`
+	Artists     int          `json:"artists"`
+	PerDay      []DayCount   `json:"perDay"`
+	TopArtists  []Count      `json:"topArtists"`
+	Genres      []GenreCount `json:"genres"`
+	OtherGenres int          `json:"otherGenres"`
+}
+
+// DayCount is the plays of one local day, Date as 2006-01-02.
+type DayCount struct {
+	Date  string `json:"date"`
+	Plays int    `json:"plays"`
+}
+
+// GenreCount is how often a genre was played.
+type GenreCount struct {
+	Name  string `json:"name"`
+	Count int    `json:"count"`
+}
+
+const (
+	statsTopArtists = 5
+	statsTopGenres  = 3
+	dayLayout       = "2006-01-02"
+)
+
+// Stats counts the plays since local midnight days-1 days ago.
+func (s *Store) Stats(ctx context.Context, days int) (Stats, error) {
+	days = max(days, 1)
+	loc := s.loc
+	if loc == nil {
+		loc = time.Local
+	}
+	y, m, d := s.now().In(loc).Date()
+	st := Stats{Days: days, PerDay: make([]DayCount, days), TopArtists: []Count{}, Genres: []GenreCount{}}
+	index := make(map[string]int, days)
+	for i := range st.PerDay {
+		date := time.Date(y, m, d-(days-1)+i, 0, 0, 0, 0, loc).Format(dayLayout)
+		st.PerDay[i].Date = date
+		index[date] = i
+	}
+	start := time.Date(y, m, d-(days-1), 0, 0, 0, 0, loc)
+
+	rows, err := s.db.QueryContext(ctx, "SELECT track, played_at FROM plays WHERE played_at >= ? ORDER BY played_at, rowid", start.Unix())
+	if err != nil {
+		return st, err
+	}
+	defer rows.Close()
+
+	type artistAcc struct {
+		ref  source.ArtistRef
+		lib  string
+		n    int
+		last int64
+	}
+	type genreAcc struct {
+		name string
+		n    int
+	}
+	artists := map[string]*artistAcc{}
+	genres := map[string]*genreAcc{}
+	withGenre := 0
+	for rows.Next() {
+		var data []byte
+		var at int64
+		var t source.Track
+		if err := rows.Scan(&data, &at); err != nil {
+			return st, err
+		}
+		if json.Unmarshal(data, &t) != nil {
+			continue
+		}
+		i, ok := index[time.Unix(at, 0).In(loc).Format(dayLayout)]
+		if !ok {
+			continue
+		}
+		st.PerDay[i].Plays++
+		st.Plays++
+		for _, a := range artistRefs(t) {
+			k := refKey(t.Library, a)
+			acc := artists[k]
+			if acc == nil {
+				acc = &artistAcc{}
+				artists[k] = acc
+			}
+			acc.n++
+			acc.ref, acc.lib, acc.last = a, t.Library, at
+		}
+		if g := strings.TrimSpace(t.Genre); g != "" {
+			k := strings.ToLower(g)
+			acc := genres[k]
+			if acc == nil {
+				acc = &genreAcc{}
+				genres[k] = acc
+			}
+			acc.n++
+			acc.name = g
+			withGenre++
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return st, err
+	}
+
+	st.Artists = len(artists)
+	top := make([]*artistAcc, 0, len(artists))
+	for _, a := range artists {
+		top = append(top, a)
+	}
+	slices.SortFunc(top, func(a, b *artistAcc) int {
+		return cmp.Or(cmp.Compare(b.n, a.n), cmp.Compare(b.last, a.last), cmp.Compare(a.ref.Name, b.ref.Name))
+	})
+	for _, a := range top[:min(len(top), statsTopArtists)] {
+		st.TopArtists = append(st.TopArtists, Count{Artist: &Artist{Library: a.lib, ID: a.ref.ID, Name: a.ref.Name}, Count: a.n, LastPlayed: a.last})
+	}
+
+	all := make([]*genreAcc, 0, len(genres))
+	for _, g := range genres {
+		all = append(all, g)
+	}
+	slices.SortFunc(all, func(a, b *genreAcc) int {
+		return cmp.Or(cmp.Compare(b.n, a.n), cmp.Compare(a.name, b.name))
+	})
+	shown := 0
+	for _, g := range all[:min(len(all), statsTopGenres)] {
+		st.Genres = append(st.Genres, GenreCount{Name: g.name, Count: g.n})
+		shown += g.n
+	}
+	st.OtherGenres = withGenre - shown
+	return st, nil
 }
