@@ -1,12 +1,15 @@
 package player
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Conava/dux-player/core/internal/source"
 )
 
 func TestStateSurvivesARestart(t *testing.T) {
@@ -38,4 +41,28 @@ func TestUnreadableStateIsMovedAside(t *testing.T) {
 	assert.Equal(t, 0, p.queue.Len())
 	_, err := os.Stat(path + ".unreadable")
 	assert.NoError(t, err, "a newer state file is kept, not overwritten")
+}
+
+func TestContinueOffSurvivesARestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "player-state.json")
+	opts := DefaultOptions()
+	opts.AutoContinue = ContinueSimilar
+	cont := func(context.Context, string, []source.Track, map[source.Ref]bool) ([]source.Track, error) {
+		return nil, nil
+	}
+	p := New(Config{StatePath: path, Options: opts, Continue: cont})
+	p.queue.Replace(tracks("a"), 0, Origin{})
+	p.contMode = ContinueOff
+	p.markDirty()
+	p.save()
+
+	r := New(Config{StatePath: path, Options: opts, Continue: cont})
+	r.restore()
+	assert.False(t, r.status().Continuing)
+
+	// A state saved before the override existed follows the setting.
+	require.NoError(t, os.WriteFile(path, []byte(`{"version":1,"queue":{}}`), 0o600))
+	old := New(Config{StatePath: path, Options: opts, Continue: cont})
+	old.restore()
+	assert.Equal(t, "", old.contMode)
 }

@@ -17,7 +17,8 @@ const placements = ["auto", "keep", "overflow"];
 const starts = ["bar", "side", "full"];
 const styles = ["bento", "m3e"];
 const openPanes = ["last", "lyrics", "queue", "cover"];
-const playerLooks = ["card", "attached"];
+const playerLooks = ["card", "attached", "floating"];
+const backgrounds = ["plain", "blur"];
 const paneLooks = ["player", "card", "attached"];
 const paneTypes = ["cover", "lyrics", "queue"];
 
@@ -53,7 +54,7 @@ const belowSeek = zone("seekBelow", "line", true);
 // In the order they show. kind: "row" | "line" (a row of its own, the width of the surface) | "column" | "seek"
 // (the seekbar line, a row) | "cover" | "panes" | "shelves"
 const surfaceZones = dict({
-    "bar": [zone("left", "row"), aboveSeek, zone("seek", "seek"), belowSeek, zone("controls", "row"), zone("right", "row", true)],
+    "bar": [zone("across", "line", true), zone("left", "row"), aboveSeek, zone("seek", "seek"), belowSeek, zone("controls", "row"), zone("right", "row", true)],
     "side": [zone("panes", "panes"), zone("cover", "cover"), zone("title", "column"), aboveSeek, zone("seek", "seek"), belowSeek, zone("controls", "row", true), zone("top", "row", true), zone("bottom", "row", true)],
     "fullBento": [zone("cover", "cover"), zone("header", "row"), zone("title", "column"), zone("top", "row", true), aboveSeek, zone("seek", "seek"), belowSeek, zone("controls", "row", true), zone("bottom", "row", true)],
     "fullM3e": [zone("header", "row"), zone("buttons", "row", true), zone("cover", "cover"), zone("title", "column"), aboveSeek, zone("seek", "seek"), belowSeek, zone("controls", "row", true), zone("end", "row", true)],
@@ -62,7 +63,7 @@ const surfaceZones = dict({
 const surfaceIds = ["bar", "side", "fullBento", "fullM3e", "home"];
 const nowPlayingSurfaces = ["bar", "side", "fullBento", "fullM3e"];
 // the order the side panel reads the bar in, which decides the order of what it takes from it
-const barReadOrder = ["left", "controls", "seekAbove", "seek", "seekBelow", "right"];
+const barReadOrder = ["across", "left", "controls", "seekAbove", "seek", "seekBelow", "right"];
 
 // Row and menu actions per media type. trailing: what End of row offers; menu: every action of the ⋮ menu
 // (On hover offers the same, except keepTrack: its label depends on a lookup the hover buttons don't make)
@@ -435,6 +436,13 @@ function optionSchema(id, type, zoneId) {
         return {
             "favorite": titleFavorite
         };
+    if (type === "playPause")
+        return {
+            "label": {
+                "values": [true, false],
+                "default": false
+            }
+        };
     if (type === "text")
         return {
             "template": {
@@ -510,6 +518,7 @@ function defaultSurface(id) {
     case "bar":
         return {
             "zones": {
+                "across": [],
                 "left": insts(["cover", heartTitle(), "artists", hiddenInst("album"), hiddenInst("libraryBadge"), "castTarget"]),
                 "seekAbove": [],
                 "seek": insts(seek),
@@ -694,7 +703,10 @@ function cleanNowPlaying(stored) {
         "sideStyle": styles.indexOf(given.sideStyle) >= 0 ? given.sideStyle : style,
         "openPane": openPanes.indexOf(given.openPane) >= 0 ? given.openPane : "last",
         "playerLook": playerLooks.indexOf(given.playerLook) >= 0 ? given.playerLook : "card",
-        "paneLook": paneLooks.indexOf(given.paneLook) >= 0 ? given.paneLook : "player"
+        "paneLook": paneLooks.indexOf(given.paneLook) >= 0 ? given.paneLook : "player",
+        "background": backgrounds.indexOf(given.background) >= 0 ? given.background : "plain",
+        "paneTabs": given.paneTabs !== false,
+        "queueHeader": given.queueHeader !== false
     };
 }
 
@@ -1408,7 +1420,10 @@ function setNowPlaying(stored, patch) {
         "sideStyle": styles,
         "openPane": openPanes,
         "playerLook": playerLooks,
-        "paneLook": paneLooks
+        "paneLook": paneLooks,
+        "background": backgrounds,
+        "paneTabs": [true, false],
+        "queueHeader": [true, false]
     };
     for (const key of Object.keys(allowed)) {
         if (allowed[key].indexOf(given[key]) >= 0)

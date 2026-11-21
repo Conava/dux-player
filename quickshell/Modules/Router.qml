@@ -28,6 +28,8 @@ Singleton {
     // the pane beside (or in place of) the full view's art: "" | "lyrics" | "queue"
     property string viewPane: ""
     property bool devicePickerOpen: false
+    // set by the window while the floating player covers the end of the page: pages pad their scrolling views by it
+    property real pageEndInset: 0
     // Bento's full view shows the devices in a sheet over its deck; focus goes back to playOnFrom when it closes
     property bool playOnOpen: false
     // set first, so the sheet exists before playOnOpen turns on and sees its opening as a change

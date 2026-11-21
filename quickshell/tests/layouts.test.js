@@ -127,7 +127,10 @@ const edited = {
         "barStyle": "m3e",
         "sideStyle": "m3e",
         "playerLook": "card",
-        "paneLook": "player"
+        "paneLook": "player",
+        "background": "plain",
+        "paneTabs": true,
+        "queueHeader": true
     });
     for (const zone of ["top", "seek", "controls", "bottom"])
         assert.deepStrictEqual(zoneTypes(eff, "fullBento", zone), edited.nowPlaying.zones[zone], "fullBento " + zone);
@@ -212,7 +215,10 @@ const migrations = [
                 "barStyle": "bento",
                 "sideStyle": "bento",
                 "playerLook": "card",
-        "paneLook": "player"
+        "paneLook": "player",
+        "background": "plain",
+        "paneTabs": true,
+        "queueHeader": true
             });
             assert.deepStrictEqual(eff.sidePanes, ["cover", "lyrics", "queue"]);
         }],
@@ -317,7 +323,10 @@ const migrations = [
                 "barStyle": "m3e",
                 "sideStyle": "m3e",
                 "playerLook": "card",
-        "paneLook": "player"
+        "paneLook": "player",
+        "background": "plain",
+        "paneTabs": true,
+        "queueHeader": true
             });
         }],
     ["the oldest bar without its seekbar", {
@@ -1056,6 +1065,74 @@ for (const [name, run, expected] of protoCases)
     assert.strictEqual(L.effective(L.setNowPlaying({}, {
         "playerLook": "attached"
     })).nowPlaying.playerLook, "attached");
+}
+
+// Player look and the full view's options: only known values are stored
+{
+    const np = patch => L.effective(L.setNowPlaying({}, patch)).nowPlaying;
+    assert.strictEqual(np({
+        "playerLook": "floating"
+    }).playerLook, "floating");
+    assert.strictEqual(L.effective({
+        "nowPlaying": {
+            "playerLook": "pill"
+        }
+    }).nowPlaying.playerLook, "card");
+    const bad = {
+        "background": "fog",
+        "paneTabs": "no",
+        "queueHeader": "no"
+    };
+    const stored = L.effective({
+        "nowPlaying": bad
+    }).nowPlaying;
+    assert.deepStrictEqual([stored.background, stored.paneTabs, stored.queueHeader], ["plain", true, true]);
+    assert.deepStrictEqual([np(bad).background, np(bad).paneTabs, np(bad).queueHeader], ["plain", true, true]);
+    const off = np({
+        "background": "blur",
+        "paneTabs": false,
+        "queueHeader": false
+    });
+    assert.deepStrictEqual([off.background, off.paneTabs, off.queueHeader], ["blur", false, false]);
+}
+
+// The bar's Across the top line: empty by default, keeps a seekbar, and the side panel following the bar takes its buttons
+{
+    const withAcross = L.effective({
+        "surfaces": {
+            "bar": {
+                "zones": {
+                    "across": [{
+                            "type": "seekbar"
+                        }, {
+                            "type": "favorite"
+                        }]
+                }
+            }
+        }
+    });
+    assert.deepStrictEqual(L.effective({}).surfaces.bar.zones.across, []);
+    assert.deepStrictEqual(zoneTypes(withAcross, "bar", "across"), ["seekbar", "favorite"]);
+    assert.ok(L.typesFor("bar", "across").indexOf("seekbar") >= 0);
+    const top = zoneTypes(withAcross, "side", "top");
+    assert.ok(top.indexOf("favorite") >= 0 && top.indexOf("seekbar") < 0);
+}
+
+// The Play/pause label option is a boolean that defaults to off, on every surface
+{
+    for (const [id, zone] of [["bar", "controls"], ["fullM3e", "controls"], ["side", "controls"], ["fullBento", "controls"]]) {
+        const label = value => L.cleanSurface(id, {
+                "zones": {
+                    [zone]: [{
+                            "type": "playPause",
+                            "options": {
+                                "label": value
+                            }
+                        }]
+                }
+            }).zones[zone][0].options.label;
+        assert.deepStrictEqual([label(true), label("yes"), label(undefined)], [true, false, false], id);
+    }
 }
 
 // Art shape and rotation: a stored value outside the schema falls back to the surface's own default

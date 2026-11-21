@@ -609,6 +609,13 @@
     "comment": ""
   },
   {
+    "term": "Across the top",
+    "translation": "",
+    "context": "now playing zone: a line the bar's full width above its row",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Adaptive width",
     "translation": "",
     "context": "element option: the track info fits the title instead of keeping a fixed width",
@@ -2334,6 +2341,13 @@
     "term": "Couldn't start the scan",
     "translation": "",
     "context": "toast when a library scan can't start",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't stop continuing",
+    "translation": "",
+    "context": "toast when the daemon refuses to stop filling the queue",
     "reference": "",
     "comment": ""
   },

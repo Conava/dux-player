@@ -874,6 +874,12 @@ cat >>"$W/tree/shell.qml" <<'Q'
                 zones: zones
             });
         }
+        function nowPlayingPatch(json: string): void {
+            UiConfig.setNowPlaying(JSON.parse(json));
+        }
+        function pageEndInset(px: real): void {
+            Router.pageEndInset = px;
+        }
     }
 }
 Q

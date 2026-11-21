@@ -927,6 +927,10 @@ Singleton {
     readonly property var sideFollowedZones: Layouts.sideFollowedZones()
 
     readonly property bool attachedLook: nowPlaying.playerLook === "attached"
+    readonly property bool floatingLook: nowPlaying.playerLook === "floating"
+    readonly property bool fullBackgroundBlur: nowPlaying.background === "blur"
+    readonly property bool paneTabsOn: nowPlaying.paneTabs !== false
+    readonly property bool queueHeaderOn: nowPlaying.queueHeader !== false
     // lyrics and queue, in the side panel and beside the full view
     readonly property bool attachedPanes: nowPlaying.paneLook === "player" ? attachedLook : nowPlaying.paneLook === "attached"
 
@@ -1044,6 +1048,8 @@ Singleton {
 
     function zoneText(id, zone) {
         switch (zone) {
+        case "across":
+            return I18n.tr("Across the top", "now playing zone: a line the bar's full width above its row");
         case "left":
             return I18n.tr("Left", "now playing zone");
         case "right":
@@ -1496,6 +1502,7 @@ Singleton {
     readonly property string lyricsAlignment: SettingsData.lyricsDisplay.alignment ?? "center"
     readonly property bool lyricsWordSync: SettingsData.lyricsDisplay.wordSync ?? true
     readonly property bool lyricsBackgroundVocals: SettingsData.lyricsDisplay.backgroundVocals ?? true
+    readonly property bool lyricsBlurLines: SettingsData.lyricsDisplay.blurLines === true
 
     function setLyricsDisplay(patch) {
         SettingsData.lyricsDisplay = Object.assign({}, SettingsData.lyricsDisplay, patch);

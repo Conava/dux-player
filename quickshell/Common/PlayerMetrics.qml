@@ -231,4 +231,19 @@ Singleton {
     // seconds a position report may move the clock before the lyrics schedule their next line again
     readonly property real lyricsResyncDrift: 0.15
     readonly property int snackbarDuration: 4000
+    // the floating player's pill: the cover inside a progress ring, then title and controls
+    readonly property real floatingHeight: Theme.buttonHeightM + Theme.spacingS
+    readonly property real floatingMaxWidth: 520
+    // gap below and beside the pill
+    readonly property real floatingMargin: Theme.spacingL
+    readonly property real floatingRingSize: Theme.buttonHeightM
+    readonly property real floatingRingWidth: 3
+    readonly property real floatingArtSize: floatingRingSize - Theme.spacingS
+    // the blurred cover behind the full view: decode size, MultiEffect blurMax and the surface scrim's opacity
+    readonly property int fullBlurSourceSize: 128
+    readonly property int fullBlurMax: 64
+    readonly property real fullBlurScrimAlpha: 0.45
+    // blur of one step for a lyric line away from the current one, as a share of lyricsBlurMax (1.5 px of 32)
+    readonly property int lyricsBlurMax: 32
+    readonly property real lyricsBlurStep: 1.5 / lyricsBlurMax
 }

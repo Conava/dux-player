@@ -66,7 +66,7 @@ func RegisterPlayer(r *Registry, d *Deps) {
 		MethodSpec{Name: "queue.move", Desc: "Move a queue entry", Params: []ParamSpec{Req("from", ""), Req("to", "")}},
 		MethodSpec{Name: "queue.jump", Desc: "Play the queue entry at index", Params: []ParamSpec{Req("index", "")}},
 		MethodSpec{Name: "queue.clear", Desc: "Stop and empty the queue", Params: []ParamSpec{Opt("keepCurrent", "true: keep the current track playing and drop the rest")}},
-		MethodSpec{Name: "queue.continue", Desc: "Extend this queue endlessly, whatever autoContinue says, starting now; status continuing turns true", Params: []ParamSpec{Opt("mode", "similar|random; default similar")}},
+		MethodSpec{Name: "queue.continue", Desc: "Extend this queue endlessly, whatever autoContinue says, starting now; status continuing turns true. Mode off stops continuing for this queue", Params: []ParamSpec{Opt("mode", "similar|random|off; default similar")}},
 	)
 }
 

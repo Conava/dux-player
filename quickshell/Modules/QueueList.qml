@@ -391,7 +391,7 @@ Item {
                 iconName: "all_inclusive"
                 backgroundColor: Theme.secondaryContainer
                 textColor: Theme.onSecondaryContainer
-                onClicked: PlayerService.continueQueue()
+                onClicked: PlayerService.setContinuing(true)
             }
         }
         // reduce motion and speed None make every duration 0, so rows land at once

@@ -77,7 +77,7 @@ func (p *Player) restore() {
 	}
 	p.muted = st.Muted
 	p.refeed = st.Feed
-	if st.Continue == ContinueRandom || st.Continue == ContinueSimilar {
+	if st.Continue == ContinueRandom || st.Continue == ContinueSimilar || st.Continue == ContinueOff {
 		p.contMode = st.Continue
 	}
 }

@@ -97,6 +97,38 @@ func TestContinueBelongsToTheQueue(t *testing.T) {
 	assert.False(t, st.Continuing)
 }
 
+// Off stops an automatic continue for the queue playing now; a new queue
+// follows the setting again.
+func TestContinueOffStopsAutoContinue(t *testing.T) {
+	opts := DefaultOptions()
+	opts.AutoContinue = ContinueSimilar
+	p, ctx := castPlayer(t, Config{Options: opts,
+		Continue: func(context.Context, string, []source.Track, map[source.Ref]bool) ([]source.Track, error) {
+			return tracks("x"), nil
+		}})
+	require.NoError(t, p.Play(ctx, tracks("a", "b", "c"), 0, Origin{}))
+	st, _ := p.Status(ctx)
+	require.True(t, st.Continuing)
+	require.NoError(t, p.Continue(ctx, ContinueOff))
+	require.NoError(t, p.Jump(ctx, 2))
+	time.Sleep(50 * time.Millisecond)
+	assert.Equal(t, []string{"a", "b", "c"}, queueIDs(t, ctx, p))
+	st, _ = p.Status(ctx)
+	assert.False(t, st.Continuing)
+
+	require.NoError(t, p.Play(ctx, tracks("d"), 0, Origin{}))
+	st, _ = p.Status(ctx)
+	assert.True(t, st.Continuing)
+}
+
+func TestContinueRejectsAnUnknownMode(t *testing.T) {
+	p, ctx := castPlayer(t, Config{})
+	err := p.Continue(ctx, "sometimes")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "similar")
+	assert.Contains(t, err.Error(), "off")
+}
+
 // Real mpv: Next after the queue played out continues it and plays.
 func TestNextAfterTheEndContinues(t *testing.T) {
 	bin, err := exec.LookPath("mpv")

@@ -1739,12 +1739,19 @@ func (p *Player) Next(ctx context.Context) error {
 
 // Continue turns continuing on for the current queue with mode (random or
 // similar) and extends it now, in the background; a queue that has ended
-// plays on with the first new track.
+// plays on with the first new track. Off stops continuing for this queue
+// even when autoContinue is on; tracks already added stay.
 func (p *Player) Continue(ctx context.Context, mode string) error {
-	if mode != ContinueRandom && mode != ContinueSimilar {
-		return fmt.Errorf("mode must be %s or %s", ContinueRandom, ContinueSimilar)
+	if mode != ContinueRandom && mode != ContinueSimilar && mode != ContinueOff {
+		return fmt.Errorf("mode must be %s, %s or %s", ContinueSimilar, ContinueRandom, ContinueOff)
 	}
 	return p.do(ctx, func(context.Context) error {
+		if mode == ContinueOff {
+			p.contMode = mode
+			p.markDirty()
+			p.publishStatus()
+			return nil
+		}
 		if p.cfg.Continue == nil {
 			return errors.New("continuing is not available")
 		}
@@ -2380,6 +2387,9 @@ func (p *Player) countPlay(pos float64) {
 // continueMode is how the queue continues when it runs out; "" is not at
 // all.
 func (p *Player) continueMode() string {
+	if p.contMode == ContinueOff {
+		return ""
+	}
 	if p.contMode != "" {
 		return p.contMode
 	}
