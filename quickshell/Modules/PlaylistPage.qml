@@ -54,6 +54,18 @@ Item {
     readonly property bool notFound: PlayerService.playlistMissing(playlistId)
     readonly property string reorderBlocker: PlayerService.whyNot("playlistReorder", playlist)
 
+    // the cover the collage starts with, as PlaylistCover picks it
+    readonly property var tintItem: {
+        const cover = playlist?.cover ?? {
+            "type": "auto"
+        };
+        if (cover.type === "shape")
+            return null;
+        if (cover.type === "art")
+            return PlayerService.track(cover);
+        return playlist?.loaded === false ? playlist.mosaic?.[0] ?? null : tracks[0] ?? null;
+    }
+
     // playlists fetch their tracks when opened; a loaded one is kept current by the playlists events
     onPlaylistIdChanged: {
         filterText = "";
@@ -212,7 +224,13 @@ Item {
         }
     }
 
+    PageTint {
+        seed: root.editing || root.notFound || !root.tintItem ? "" : PlayerService.coverColor(root.tintItem)
+        scroll: trackList.view.contentY - trackList.view.originY
+    }
+
     TrackList {
+        id: trackList
         anchors.fill: parent
         anchors.leftMargin: PlayerMetrics.pagePadding
         anchors.rightMargin: PlayerMetrics.pagePadding

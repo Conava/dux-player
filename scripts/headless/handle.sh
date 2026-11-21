@@ -1,7 +1,7 @@
 # The full view has no top bar, only a handle that moves the window; the "Top bar in full view" setting brings the
 # bar back and removes the handle. With title bars off the header is gone everywhere: the handle sits above every page,
-# Search and Settings are navigation entries, and Search in header is greyed out. Shots of every state go to out/;
-# fails when a drag sends no move request or an entry is missing.
+# Search and Settings are navigation entries (a rail shows them as its FAB and at its bottom), and Search in header is
+# greyed out. Shots of every state go to out/; fails when a drag sends no move request or an entry is missing.
 failed=0
 fact() { echo "$*" >>"$W/out/facts.txt"; }
 fail() {
@@ -88,6 +88,26 @@ expect "title bars off: Settings is last" "$(nav | tr ' ' '\n' | tail -1)" "sett
 expand false
 go home
 shot titlebars-home
+
+# a rail shows Search as its FAB and Settings at its bottom, below the destinations
+read -r wx wy <<<"$(origin)"
+read -r fx fy fw fh _ <<<"$(ask rect railSearch)"
+if [ -n "$fx" ]; then
+    click $((wx + fx + fw / 2)) $((wy + fy + fh / 2))
+    sleep 1.5
+    expect "title bars off: the rail's Search button opens Search" "$(ask route | tr -d '\n')" "search/"
+    shot titlebars-rail-search
+else
+    fail "title bars off: no Search button in the rail"
+fi
+read -r _ dy _ dh _ <<<"$(ask rect railDestinations)"
+read -r sx sy _ sh _ <<<"$(ask rect railSettings)"
+if [ -n "$sx" ] && [ -n "$dy" ] && [ "$sy" -ge $((dy + dh)) ] && [ $((sy + sh)) -gt 600 ]; then
+    fact "ok   title bars off: Settings is at the rail's bottom ($sy, destinations end at $((dy + dh)))"
+else
+    fail "title bars off: Settings not at the rail's bottom: '$sy $sh' after destinations '$dy $dh'"
+fi
+go home
 go albums
 ui open album "$(ask albumId "Test Album" | tr -d '\n')"
 sleep 1.5

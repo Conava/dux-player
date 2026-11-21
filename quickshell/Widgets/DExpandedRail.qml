@@ -14,6 +14,9 @@ FocusScope {
 
     signal activated(int index)
 
+    // room around the destinations so the clipped view doesn't cut their focus ring
+    readonly property real ringRoom: Style.focusRingOffset + Style.focusRingWidth
+
     implicitWidth: Style.navigationRailWidth * 2
     activeFocusOnTab: true
     LayoutMirroring.enabled: I18n.isRtl
@@ -25,6 +28,14 @@ FocusScope {
         if (count === 0)
             return;
         switch (event.key) {
+        case Qt.Key_Return:
+        case Qt.Key_Enter:
+        case Qt.Key_Space:
+            // a one-entry rail with nothing selected has no other way to be activated
+            if (event.isAutoRepeat || currentIndex >= 0 || count !== 1)
+                return;
+            activated(0);
+            break;
         case Qt.Key_Down:
             activated((Math.max(0, currentIndex) + 1) % count);
             break;
@@ -46,13 +57,14 @@ FocusScope {
     DFlickable {
         anchors.fill: parent
         contentWidth: width
-        contentHeight: column.height
+        contentHeight: column.height + root.ringRoom * 2
         fadeEdges: false
         clip: true
 
         Column {
             id: column
             x: Style.spacingM
+            y: root.ringRoom
             width: parent.width - Style.spacingM * 2
             spacing: Style.spacingXS
 
@@ -86,7 +98,7 @@ FocusScope {
 
                     // the destinations take no focus; the rail shows where the keyboard is
                     FocusRing {
-                        visible: root.activeFocus && destination.selected
+                        visible: root.activeFocus && (destination.selected || (root.currentIndex < 0 && root.model.length === 1))
                     }
 
                     Row {

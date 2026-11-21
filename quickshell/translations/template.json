@@ -854,6 +854,13 @@
     "comment": ""
   },
   {
+    "term": "Album page",
+    "translation": "",
+    "context": "pages setting: album page layout",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Album rows and menus",
     "translation": "",
     "context": "page edit mode section shared by every page of the type",
@@ -1655,6 +1662,13 @@
     "term": "Close panel",
     "translation": "",
     "context": "side panel close button",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Collection tiles",
+    "translation": "",
+    "context": "page edit mode: Favorites, Most played, History and Downloads as tiles above the playlists",
     "reference": "",
     "comment": ""
   },
@@ -3640,6 +3654,13 @@
     "comment": ""
   },
   {
+    "term": "Hide labels",
+    "translation": "",
+    "context": "rail menu button",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Hide while lyrics are open",
     "translation": "",
     "context": "element option: the lyric line goes while the lyrics pane shows",
@@ -4158,6 +4179,13 @@
     "comment": ""
   },
   {
+    "term": "Letter index",
+    "translation": "",
+    "context": "pages setting: alphabet column beside lists",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Libraries",
     "translation": "",
     "context": "navigation destination | the music libraries: page, settings tab, section",
@@ -4671,7 +4699,7 @@
   {
     "term": "Next",
     "translation": "",
-    "context": "transport button",
+    "context": "home shelf arrow | transport button",
     "reference": "",
     "comment": ""
   },
@@ -5264,6 +5292,13 @@
     "comment": ""
   },
   {
+    "term": "Page header",
+    "translation": "",
+    "context": "pages setting: album, artist and playlist page top",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Pages",
     "translation": "",
     "context": "add entry section | settings sidebar tab label",
@@ -5707,7 +5742,7 @@
   {
     "term": "Previous",
     "translation": "",
-    "context": "transport button",
+    "context": "home shelf arrow | transport button",
     "reference": "",
     "comment": ""
   },
@@ -6853,6 +6888,13 @@
     "comment": ""
   },
   {
+    "term": "Show labels",
+    "translation": "",
+    "context": "rail menu button",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Show less",
     "translation": "",
     "context": "collapses an artist's biography",
@@ -6891,6 +6933,13 @@
     "term": "Shown on keyboard focus.",
     "translation": "",
     "context": "appearance setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Shown when sorted by name.",
+    "translation": "",
+    "context": "letter index setting description",
     "reference": "",
     "comment": ""
   },

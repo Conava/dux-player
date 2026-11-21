@@ -20,6 +20,8 @@ Item {
     readonly property var otherKinds: UiConfig.pageKinds.filter(p => p.multi || p.route === "search" || p.kind === "queue")
     // the reset the confirm dialog runs
     property var pendingReset: null
+    // Plain first, so the row reads from least to most; UiConfig.pageHeaders lists the stored values
+    readonly property var pageHeaderOrder: ["plain", "tint"]
 
     signal closeRequested
 
@@ -189,6 +191,36 @@ Item {
                 keywords: "click grid home shelf tiles"
                 checked: SettingsData.trackTileOpensAlbum
                 onToggled: value => SettingsData.trackTileOpensAlbum = value
+            }
+
+            SettingsButtonGroupRow {
+                text: I18n.tr("Page header", "pages setting: album, artist and playlist page top")
+                keywords: "tint color gradient cover"
+                model: root.pageHeaderOrder.map(v => UiConfig.pageHeaderLabel(v))
+                currentIndex: UiConfig.pageTinted ? 1 : 0
+                onSelectionChanged: (index, selected) => {
+                    if (selected)
+                        SettingsData.pageHeader = root.pageHeaderOrder[index];
+                }
+            }
+
+            SettingsButtonGroupRow {
+                text: I18n.tr("Album page", "pages setting: album page layout")
+                keywords: "two pane layout wide"
+                model: UiConfig.albumLayouts.map(v => UiConfig.albumLayoutLabel(v))
+                currentIndex: UiConfig.albumSideBySide ? 1 : 0
+                onSelectionChanged: (index, selected) => {
+                    if (selected)
+                        SettingsData.albumLayout = UiConfig.albumLayouts[index];
+                }
+            }
+
+            SettingsToggleRow {
+                text: I18n.tr("Letter index", "pages setting: alphabet column beside lists")
+                description: I18n.tr("Shown when sorted by name.", "letter index setting description")
+                keywords: "alphabet jump az scroll"
+                checked: UiConfig.letterIndexOn
+                onToggled: value => SettingsData.letterIndex = value
             }
         }
 

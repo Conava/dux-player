@@ -161,6 +161,20 @@ Item {
         }
     }
 
+    PageTint {
+        seed: {
+            if (root.editing || root.notFound)
+                return "";
+            for (const a of root.shownAlbums) {
+                const c = PlayerService.coverColor(a);
+                if (c !== "")
+                    return c;
+            }
+            return "";
+        }
+        scroll: list.view.contentY - list.view.originY
+    }
+
     component SectionTitle: StyledText {
         width: parent?.width ?? 0
         font.pixelSize: Theme.fontSizeLarge

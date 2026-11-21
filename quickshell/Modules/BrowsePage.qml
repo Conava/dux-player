@@ -4,6 +4,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 import qs.Modules.Settings
 import "../Services/Catalog.js" as Catalog
 import "../Services/Rules.js" as Rules
@@ -69,6 +70,12 @@ Item {
                     "id": id
                 }
             };
+        case "collection":
+            return {
+                "type": UiConfig.libraryTab,
+                "kind": UiConfig.libraryTab,
+                "title": UiConfig.pageLabel(page)
+            };
         case "view":
             return {
                 "type": savedView?.type ?? "albums",
@@ -100,7 +107,7 @@ Item {
     readonly property string type: context.type
     readonly property string pageItem: context.itemId ?? ""
     readonly property var playContext: ({
-            "type": Router.page === "mostPlayed" || Router.page === "tracks" ? "tracks" : Router.page,
+            "type": Router.page === "mostPlayed" || Router.page === "tracks" ? "tracks" : Router.page === "collection" ? type : Router.page,
             "id": Router.itemId
         })
     readonly property string kind: UiConfig.kindOf(type)
@@ -127,7 +134,7 @@ Item {
             }
             return I18n.tr("Search favorite tracks", "Favorites page search field, Tracks tab");
         }
-        if (Router.page === type || context.sort)
+        if (Router.page === type || Router.page === "collection" || context.sort)
             switch (type) {
             case "albums":
                 return I18n.tr("Search albums", "Albums page search field");
@@ -186,6 +193,8 @@ Item {
     readonly property bool showEmpty: items.length === 0 && CatalogService.librariesLoaded && !(type === "tracks" && CatalogService.tracksLoading)
     readonly property real tileWidth: options.tileSize === "s" ? PlayerMetrics.tileSizeS : options.tileSize === "l" ? PlayerMetrics.tileSizeL : PlayerMetrics.gridCellWidth
     readonly property bool isPlaylists: type === "playlists" && Router.page === "playlists"
+    readonly property bool collectionTiles: isPlaylists && options.collectionTiles === true && !editing
+    readonly property bool hasServer: CatalogService.libraries.some(l => CatalogService.isRemote(l.id))
     readonly property var homeShelves: UiConfig.surface("home")?.zones.shelves ?? []
     readonly property bool onHome: context.shelf !== undefined && homeShelves.some(s => s.type === context.shelf.type && (s.options.source ?? "") === context.shelf.id)
 
@@ -210,12 +219,34 @@ Item {
         }));
     }
 
-    function clearFilters() {
+    function clearSearch() {
         // through the field, as Escape does, so the field and the list agree
         const field = Router.pageSearch as ScopedSearch;
         if (field)
             field.text = "";
         filterText = "";
+    }
+
+    // a tab whose layout differs rebuilds the header; its new tab bar takes the focus back
+    property bool refocusTabs: false
+
+    // a Library tab is the same route: no history step, an empty field and the list from the top
+    function pickLibraryTab(tab, focused) {
+        if (tab === UiConfig.libraryTab)
+            return;
+        clearSearch();
+        refocusTabs = focused;
+        SettingsData.libraryTab = tab;
+        Qt.callLater(() => refocusTabs = false);
+        const scroll = Router.pageScroll;
+        if (scroll) {
+            scroll.pending = -1;
+            scroll.view.contentY = scroll.view.originY;
+        }
+    }
+
+    function clearFilters() {
+        clearSearch();
         const cleared = {};
         for (const key of Object.keys(options.filters ?? {}))
             cleared[key] = typeof options.filters[key] === "boolean" ? false : "";
@@ -264,6 +295,61 @@ Item {
                 ])
             }
         });
+    }
+
+    // a shortcut on the Playlists page to one of the collection pages
+    component CollectionTile: StyledButton {
+        id: tile
+        property string accent
+        property string iconName
+        readonly property var pair: Theme.accent(accent)
+
+        width: PlayerMetrics.tileSizeS
+        height: width + PlayerMetrics.gridCaptionHeight
+        radius: Theme.cornerRadiusL
+        color: "transparent"
+        Accessible.role: Accessible.Link
+        Accessible.name: text
+
+        StateLayer {
+            control: tile
+            stateColor: Theme.onSurface
+        }
+
+        DPressFeedback {
+            control: tile
+        }
+
+        Rectangle {
+            id: plate
+            x: PlayerMetrics.tileInset
+            y: PlayerMetrics.tileInset
+            width: parent.width - PlayerMetrics.tileInset * 2
+            height: width
+            radius: Theme.cornerRadiusL
+            color: tile.pair?.container ?? Theme.secondaryContainer
+
+            DIcon {
+                anchors.centerIn: parent
+                name: tile.iconName
+                filled: true
+                size: Theme.iconSizeLarge
+                color: tile.pair?.onContainer ?? Theme.onSecondaryContainer
+            }
+        }
+
+        StyledText {
+            anchors.left: plate.left
+            anchors.right: plate.right
+            anchors.top: plate.bottom
+            anchors.topMargin: PlayerMetrics.tileInset
+            text: tile.text
+            font.pixelSize: Theme.fontSizeMedium
+            font.weight: Theme.fontWeightMedium
+            color: Theme.surfaceText
+            elide: Text.ElideRight
+            wrapMode: Text.NoWrap
+        }
     }
 
     component Header: Column {
@@ -319,6 +405,25 @@ Item {
             }
         }
 
+        DTabBar {
+            objectName: "libraryTabs"
+            width: parent.width
+            visible: Router.page === "collection"
+            showIcons: false
+            equalWidthTabs: false
+            spacing: 0
+            model: UiConfig.libraryTabs.map(t => ({
+                        "text": UiConfig.typeLabel(t)
+                    }))
+            currentIndex: UiConfig.libraryTabs.indexOf(UiConfig.libraryTab)
+            onTabClicked: index => root.pickLibraryTab(UiConfig.libraryTabs[index], activeFocus)
+            Component.onCompleted: {
+                // a keyboard reason, so the focus ring shows on the new bar too
+                if (root.refocusTabs)
+                    forceActiveFocus(Qt.TabFocusReason);
+            }
+        }
+
         // built only while editing: a hidden editor still re-evaluated on every tab switch
         Loader {
             id: editorLoader
@@ -371,6 +476,47 @@ Item {
                             "group": value ? "location" : ""
                         })
                 }
+
+                SettingsToggleRow {
+                    visible: root.isPlaylists
+                    text: I18n.tr("Collection tiles", "page edit mode: Favorites, Most played, History and Downloads as tiles above the playlists")
+                    checked: editor.options.collectionTiles === true
+                    onToggled: value => editor.apply({
+                            "collectionTiles": value
+                        })
+                }
+            }
+        }
+
+        Flow {
+            width: parent.width
+            visible: root.collectionTiles
+            spacing: Theme.spacingM
+
+            CollectionTile {
+                accent: "pink"
+                iconName: "favorite"
+                text: UiConfig.pageLabel("favorites")
+                onClicked: Router.go("favorites")
+            }
+            CollectionTile {
+                accent: "green"
+                iconName: "trending_up"
+                text: UiConfig.pageLabel("mostPlayed")
+                onClicked: Router.go("mostPlayed")
+            }
+            CollectionTile {
+                accent: "blue"
+                iconName: "history"
+                text: UiConfig.pageLabel("history")
+                onClicked: Router.go("history")
+            }
+            CollectionTile {
+                visible: root.hasServer
+                accent: "purple"
+                iconName: "download"
+                text: I18n.tr("Downloads", "the offline downloads: page, settings tab")
+                onClicked: Router.openSettings("downloads")
             }
         }
 

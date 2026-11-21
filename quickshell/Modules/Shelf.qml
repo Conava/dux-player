@@ -97,7 +97,7 @@ Column {
     readonly property int listColumns: shelf.options.columns === "auto" ? Math.max(1, Math.floor((width + Theme.spacingS) / (PlayerMetrics.listColumnMinWidth + Theme.spacingS))) : 1
     readonly property var listShown: layout === "list" ? items.slice(0, listLimit * listColumns) : []
     // a carousel holds enough tiles to fill its width; grid and list shuffle the shelfLimit they always did
-    readonly property int shownLimit: layout === "carousel" ? Math.max(PlayerMetrics.shelfLimit, Math.ceil(carousel.width / (tileWidth + PlayerMetrics.tileInset * 2 + Theme.spacingXS))) : PlayerMetrics.shelfLimit
+    readonly property int shownLimit: layout === "carousel" ? Math.max(PlayerMetrics.shelfLimit, Math.ceil(carouselList.width / (tileWidth + PlayerMetrics.tileInset * 2 + Theme.spacingXS))) : PlayerMetrics.shelfLimit
     readonly property int gridRows: size === "s" ? 1 : size === "l" ? 3 : 2
     readonly property var seeAll: {
         switch (source.type) {
@@ -192,76 +192,13 @@ Column {
     }
 
     // the header and tiles bleed into the page padding so their labels and art line up with the page title
-    Item {
-        x: -Theme.spacingS
-        width: parent.width + Theme.spacingS * 2
-        height: Math.max(titleLink.height, shuffleButton.height)
-
-        // the title opens the full page
-        StyledButton {
-            id: titleLink
-            visible: root.source.type !== "continue"
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            width: titleRow.implicitWidth + Theme.spacingS * 2
-            height: Theme.buttonHeightXS
-            radius: Theme.fullRadius(width, height)
-            color: "transparent"
-            Accessible.role: Accessible.Link
-            Accessible.name: I18n.tr("%1, see all", "home shelf title link").arg(root.title)
-            onClicked: Router.go(root.seeAll[0], root.seeAll[1])
-
-            StateLayer {
-                control: titleLink
-                stateColor: Theme.onSurface
-            }
-
-            Row {
-                id: titleRow
-                anchors.centerIn: parent
-                spacing: Theme.spacingXXS
-
-                StyledText {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.title
-                    font.pixelSize: Theme.fontSizeLarge
-                    font.weight: Theme.fontWeightMedium
-                    color: Theme.surfaceText
-                }
-
-                DIcon {
-                    anchors.verticalCenter: parent.verticalCenter
-                    name: "chevron_right"
-                    rotation: I18n.isRtl ? 180 : 0
-                    size: Theme.iconSize
-                    color: Theme.surfaceText
-                }
-            }
-        }
-
-        StyledText {
-            visible: root.source.type === "continue"
-            anchors.left: parent.left
-            anchors.leftMargin: Theme.spacingS
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.title
-            font.pixelSize: Theme.fontSizeLarge
-            font.weight: Theme.fontWeightMedium
-            color: Theme.surfaceText
-        }
-
-        DIconButton {
-            id: shuffleButton
-            anchors.right: parent.right
-            anchors.rightMargin: Theme.spacingS
-            anchors.verticalCenter: parent.verticalCenter
-            visible: root.shuffleable && root.items.length > (root.kind === "album" ? 0 : 1)
-            iconName: "shuffle"
-            variant: "tonal"
-            tooltipText: I18n.tr("Shuffle", "button or mode that plays in random order")
-            Accessible.name: tooltipText
-            onClicked: root.shuffleAll()
-        }
+    ShelfHeader {
+        title: root.title
+        seeAll: root.source.type === "continue" ? null : root.seeAll
+        shuffleShown: root.shuffleable && root.items.length > (root.kind === "album" ? 0 : 1)
+        carousel: carouselList.used ? carouselList : null
+        tileStep: root.tileWidth + PlayerMetrics.tileInset * 2 + carouselList.spacing
+        onShuffleRequested: root.shuffleAll()
     }
 
     ContinueCard {
@@ -269,7 +206,7 @@ Column {
     }
 
     DHorizontalList {
-        id: carousel
+        id: carouselList
         x: -PlayerMetrics.tileInset
         width: parent.width + PlayerMetrics.tileInset * 2
         // not `visible`, which follows Home: hidden, it keeps its tiles for the way back
@@ -283,7 +220,7 @@ Column {
         footer: StyledButton {
             id: seeAllTile
             width: root.tileWidth + PlayerMetrics.tileInset * 2
-            height: carousel.height
+            height: carouselList.height
             radius: Theme.cornerRadiusL
             color: "transparent"
             Accessible.role: Accessible.Link

@@ -1,5 +1,6 @@
 # Home shelves: Random albums takes in albums a scan adds, and crossing the compact width or changing an unrelated
-# layout setting leaves the shelves as they are (Random albums keeps its order). Fails when either breaks.
+# layout setting (the header search field, which hides Home's own search box) leaves the shelves as they are
+# (Random albums keeps its order). Fails when either breaks.
 failed=0
 fact() {
     echo "$1" >>"$W/out/facts.txt"
@@ -45,9 +46,15 @@ random=$(shelf randomAlbums)
 state=$(shelf search | cut -d' ' -f2)
 expect "wide: home hides its search field" "${state:-hidden}" hidden
 resize 700 900
-expect "compact: home shows its search field" "$(shelf search | cut -d' ' -f2)" shown
+expect "compact: home still hides its search field" "$(shelf search | cut -d' ' -f2)" hidden
 expect "compact: random albums kept its order" "$(shelf randomAlbums)" "$random"
 shot compact
+ui headerSearch button
+sleep 1
+expect "header search as button: home shows its search field" "$(shelf search | cut -d' ' -f2)" shown
+expect "header search as button: random albums kept its order" "$(shelf randomAlbums)" "$random"
+ui headerSearch field
+sleep 1
 resize 1600 1000
 expect "wide again: random albums kept its order" "$(shelf randomAlbums)" "$random"
 ui pageOptions tracks '{"lines":["format"]}'

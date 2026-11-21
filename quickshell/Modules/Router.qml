@@ -128,7 +128,10 @@ Singleton {
             "genre": "genres",
             "library": "libraries"
         }[page] ?? "";
-        return navEntries.findIndex(e => e.kind === "page" && e.target === parent);
+        const parentIndex = navEntries.findIndex(e => e.kind === "page" && e.target === parent);
+        if (parentIndex >= 0 || ["album", "artist", "genre", "albums", "artists", "tracks", "genres"].indexOf(page) < 0)
+            return parentIndex;
+        return navEntries.findIndex(e => e.kind === "page" && e.target === "collection");
     }
 
     // the search page over everything, its field focused

@@ -217,6 +217,34 @@ sleep 0.5
 shot keys-column-closed
 go tracks
 
+# with title bars off, the Settings entry at the foot of each rail is a Tab stop and Enter opens Settings
+ui titleBars false
+for style in rail railLabels; do
+    ui navStyle $style
+    sleep 1
+    go tracks
+    reached=no
+    for _ in $(seq 1 120); do
+        wtype -k Tab
+        sleep 0.15
+        f=$(ask focused)
+        case "$f" in *railSettings*) reached=yes && break ;; esac
+    done
+    fact_last=$f
+    echo "last focus $style: $fact_last" >>"$W/out/facts.txt"
+    expect "$style: Tab reaches the Settings entry" "$reached" "yes"
+    shot keys-$style-settings
+    key -k Return
+    sleep 2
+    expect "$style: Enter on the Settings entry opens settings" "$(hyprctl clients -j | python3 -I -c 'import json, sys; print(len(json.load(sys.stdin)))')" "2"
+    hyprctl dispatch 'hl.dsp.window.close()' >/dev/null
+    sleep 1
+done
+ui navStyle auto
+ui titleBars true
+sleep 1
+go tracks
+
 # the window's overflow menu, at 2417,49: Settings, Quit
 click 2417 49
 sleep 1

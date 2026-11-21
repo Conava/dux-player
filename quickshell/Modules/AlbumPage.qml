@@ -25,6 +25,11 @@ Item {
 
     onLoadKeyChanged: PlayerService.loadAlbum(loadKey)
 
+    PageTint {
+        seed: root.editing || root.notFound ? "" : PlayerService.coverColor(root.album)
+        scroll: list.view.contentY - list.view.originY
+    }
+
     TrackList {
         id: list
         anchors.fill: parent

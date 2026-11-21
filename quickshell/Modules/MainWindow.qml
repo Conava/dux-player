@@ -24,12 +24,21 @@ DFloatingWindow {
 
     readonly property bool compact: width < PlayerMetrics.compactBreakpoint
     // "rail" | "railLabels" | "bar"; automatic follows M3: a rail on wide windows, a bar on narrow ones
-    readonly property string navMode: SettingsData.navStyle === "auto" ? (compact ? "bar" : "rail") : SettingsData.navStyle
+    readonly property string navMode: SettingsData.navStyle !== "auto" ? SettingsData.navStyle : compact ? "bar" : SettingsData.autoRailLabels ? "railLabels" : "rail"
     readonly property bool railNav: navMode !== "bar"
-    // the header search as a full field; a narrow window keeps the button
+    readonly property bool railLabels: navMode === "railLabels"
     // Search and Settings are navigation entries while the title bars are off, and the header is gone
     readonly property bool titleBarsOff: !StyleSource.windowTitleBars
-    readonly property bool headerField: SettingsData.headerSearch === "field" && !compact && !titleBarsOff
+    // the header search as a full field, in place of the title on a narrow window
+    readonly property bool headerField: SettingsData.headerSearch === "field" && !titleBarsOff
+    // a rail then shows Search as its FAB and Settings at its bottom; the bar keeps both as entries
+    readonly property bool railChrome: titleBarsOff && railNav
+    // a Search entry the user turned on stays beside the FAB
+    readonly property bool searchPinned: UiConfig.navigation.some(e => e.kind === "page" && e.target === "search" && !e.hidden)
+    readonly property var railEntries: railChrome ? Router.navEntries.filter(e => e.kind !== "settings" && (searchPinned || e.kind !== "page" || e.target !== "search")) : Router.navEntries
+    readonly property int railIndex: railEntries.indexOf(Router.navEntries[Router.navIndex])
+    readonly property var railModel: railChrome ? entriesModel(railEntries) : navModel
+    readonly property var settingsModel: entriesModel(Router.navEntries.filter(e => e.kind === "settings"))
     // the full view has no top bar unless asked for; a handle moves the window instead
     readonly property bool headerHidden: !SettingsData.fullViewTopBar
     // KWin draws its own title bar when ours are off, so it has nothing to be moved by
@@ -37,10 +46,22 @@ DFloatingWindow {
     // what the header's place at the top holds: the header, the handle's strip, or just the inset
     readonly property real topHeight: !titleBarsOff ? header.height : handleShown ? Theme.windowInset * 2 + Theme.bottomSheetHandleHeight : Theme.windowInset
     readonly property bool sidePanel: Router.dockMode === "side" && !compact
-    readonly property var navModel: Router.navEntries.map(e => ({
-                "text": UiConfig.entryLabel(e),
-                "icon": UiConfig.entryIcon(e)
-            }))
+    readonly property var navModel: entriesModel(Router.navEntries)
+
+    function entriesModel(entries) {
+        return entries.map(e => ({
+                    "text": UiConfig.entryLabel(e),
+                    "icon": UiConfig.entryIcon(e)
+                }));
+    }
+
+    // Automatic keeps its bar on narrow windows, so there the button only remembers the wide rail's labels
+    function toggleRailLabels() {
+        if (SettingsData.navStyle === "auto")
+            SettingsData.autoRailLabels = !SettingsData.autoRailLabels;
+        else
+            SettingsData.navStyle = railLabels ? "rail" : "railLabels";
+    }
 
     Binding {
         target: Router
@@ -189,6 +210,42 @@ DFloatingWindow {
             }
         }
 
+        // over the header rather than in its row, so the width it takes from the header's buttons can't loop through
+        // itself: beside the title on a wide window, in the title's place on a narrow one
+        ScopedSearch {
+            id: headerSearch
+            readonly property real start: window.compact ? header.edgeInset : header.width - header.buttonsReserve + header.titleGap
+            visible: window.headerField
+            opacity: header.opacity
+            enabled: header.enabled
+            pageField: false
+            z: Theme.zHeader
+            x: I18n.isRtl ? header.width - start - width : start
+            y: (header.height - height) / 2
+            width: window.compact ? Math.max(0, header.width - header.buttonsReserve - header.edgeInset) : PlayerMetrics.headerSearchWidth
+            height: Theme.buttonHeightXS
+            placeholderText: I18n.tr("Search albums, artists and tracks", "search field placeholder")
+            Accessible.name: I18n.tr("Search", "header button")
+            onTextChanged: {
+                if (!inputFocused)
+                    return;
+                PlayerService.search(text);
+                if (text === "" || Router.page === "search")
+                    return;
+                Router.go("search");
+                // the search page focuses its own field when it loads
+                forceActiveFocus();
+            }
+
+            // a Binding, not a plain one: Escape's clear assigns the text
+            readonly property Binding _query: Binding {
+                target: headerSearch
+                property: "text"
+                value: PlayerService.searchQuery
+                when: !headerSearch.inputFocused
+            }
+        }
+
         Column {
             anchors.fill: parent
             spacing: 0
@@ -202,38 +259,16 @@ DFloatingWindow {
                 opacity: window.headerHidden ? Math.max(0, 1 - body.fullFade / PlayerMetrics.morphPagesFade) : 1
                 enabled: opacity > 0
                 controls: windowControls
-                title: I18n.tr("Dux Player", "app name")
+                title: window.headerField && window.compact ? "" : I18n.tr("Dux Player", "app name")
                 // a centered title would collide with the field
                 titleAlignment: window.headerField ? Text.AlignLeft : Text.AlignHCenter
                 onCloseRequested: window.closeRequested()
 
-                ScopedSearch {
-                    id: headerSearch
-                    visible: window.headerField
-                    pageField: false
-                    anchors.verticalCenter: parent.verticalCenter
+                // the field's place in the row while it sits beside the title
+                Item {
                     width: PlayerMetrics.headerSearchWidth
                     height: Theme.buttonHeightXS
-                    placeholderText: I18n.tr("Search albums, artists and tracks", "search field placeholder")
-                    Accessible.name: I18n.tr("Search", "header button")
-                    onTextChanged: {
-                        if (!inputFocused)
-                            return;
-                        PlayerService.search(text);
-                        if (text === "" || Router.page === "search")
-                            return;
-                        Router.go("search");
-                        // the search page focuses its own field when it loads
-                        forceActiveFocus();
-                    }
-
-                    // a Binding, not a plain one: Escape's clear assigns the text
-                    readonly property Binding _query: Binding {
-                        target: headerSearch
-                        property: "text"
-                        value: PlayerService.searchQuery
-                        when: !headerSearch.inputFocused
-                    }
+                    visible: window.headerField && !window.compact
                 }
 
                 // the app's own actions as one connected group, apart from the window buttons
@@ -241,7 +276,7 @@ DFloatingWindow {
                     anchors.verticalCenter: parent.verticalCenter
 
                     DActionGroup.Button {
-                        visible: SettingsData.headerSearch === "button" || (SettingsData.headerSearch === "field" && window.compact)
+                        visible: SettingsData.headerSearch === "button"
                         buttonSize: Theme.buttonHeightXS
                         iconSize: Theme.iconSizeSmall
                         iconName: "search"
@@ -359,30 +394,99 @@ DFloatingWindow {
                     // back the moment the flag drops: Router.searchEverything focuses a page field in the same turn
                     visible: body.fullReveal < 1 || !body.fullWanted
 
+                    // the menu button and, with title bars off, the Search FAB; centred in the rail, at the labels' start beside them
+                    Column {
+                        id: railTop
+                        readonly property real labelStart: Theme.spacingM + Theme.spacingL
+                        visible: window.railNav
+                        x: I18n.isRtl ? parent.width - width : 0
+                        width: window.railLabels ? labelRail.implicitWidth : rail.implicitWidth
+                        height: window.railNav ? implicitHeight + Theme.spacingM : 0
+                        spacing: Theme.spacingS
+
+                        DIconButton {
+                            id: railMenu
+                            objectName: "railMenu"
+                            readonly property real start: window.railLabels ? railTop.labelStart - (width - iconSize) / 2 : (railTop.width - width) / 2
+                            x: I18n.isRtl ? railTop.width - start - width : start
+                            iconName: window.railLabels ? "menu_open" : "menu"
+                            rotation: I18n.isRtl ? 180 : 0
+                            tooltipText: window.railLabels ? I18n.tr("Hide labels", "rail menu button") : I18n.tr("Show labels", "rail menu button")
+                            Accessible.role: Accessible.Button
+                            Accessible.name: I18n.tr("Show labels", "rail menu button")
+                            Accessible.checkable: true
+                            Accessible.checked: window.railLabels
+                            onClicked: window.toggleRailLabels()
+                        }
+
+                        DFab {
+                            objectName: "railSearch"
+                            readonly property real start: window.railLabels ? Theme.spacingM : (railTop.width - width) / 2
+                            visible: window.railChrome
+                            x: I18n.isRtl ? railTop.width - start - width : start
+                            iconName: "search"
+                            text: window.railLabels ? I18n.tr("Search", "header button") : ""
+                            tooltipText: window.railLabels ? null : I18n.tr("Search", "header button")
+                            tooltipSide: "bottom"
+                            onClicked: Router.searchEverything()
+                        }
+                    }
+
                     DExpandedRail {
                         id: labelRail
-                        visible: window.navMode === "railLabels"
+                        objectName: "railDestinations"
+                        visible: window.railLabels
                         anchors.left: parent.left
-                        anchors.top: parent.top
+                        anchors.top: railTop.bottom
+                        anchors.bottom: labelSettings.visible ? labelSettings.top : bottomBar.top
+                        width: window.railLabels ? implicitWidth : 0
+                        model: window.railModel
+                        currentIndex: window.railIndex
+                        onActivated: index => Router.openEntry(window.railEntries[index])
+                    }
+
+                    // Settings apart from the pages; it opens its own window, so it never shows as selected
+                    DExpandedRail {
+                        id: labelSettings
+                        objectName: "railSettings"
+                        visible: window.railLabels && window.railChrome
+                        anchors.left: parent.left
                         anchors.bottom: bottomBar.top
-                        width: window.navMode === "railLabels" ? implicitWidth : 0
-                        model: window.navModel
-                        currentIndex: Router.navIndex
-                        onActivated: index => Router.openEntry(Router.navEntries[index])
+                        anchors.bottomMargin: Theme.windowInset
+                        width: implicitWidth
+                        height: Theme.navigationHeight + ringRoom * 2
+                        model: window.settingsModel
+                        onActivated: Router.openSettings("")
                     }
 
                     DNavigationBar {
                         id: rail
+                        objectName: "railDestinations"
                         visible: window.navMode === "rail"
                         orientation: Qt.Vertical
                         evenlySpaced: false
                         // DNavigationBar turns mirroring off on itself, so a left anchor would stay left in RTL
                         x: I18n.isRtl ? parent.width - width : 0
-                        anchors.top: parent.top
+                        anchors.top: railTop.bottom
+                        // from the top, scrolling when they don't fit
+                        height: Math.max(0, Math.min(implicitHeight, (railSettings.visible ? railSettings.y : bottomBar.y) - y))
+                        model: window.railModel
+                        currentIndex: window.railIndex
+                        onActivated: index => Router.openEntry(window.railEntries[index])
+                    }
+
+                    // a one-entry DNavigationBar can't be activated from the keyboard while nothing is selected
+                    DIconButton {
+                        id: railSettings
+                        objectName: "railSettings"
+                        visible: window.navMode === "rail" && window.railChrome
+                        x: rail.x + (rail.width - width) / 2
                         anchors.bottom: bottomBar.top
-                        model: window.navModel
-                        currentIndex: Router.navIndex
-                        onActivated: index => Router.openEntry(Router.navEntries[index])
+                        anchors.bottomMargin: Theme.windowInset
+                        iconName: "settings"
+                        tooltipText: I18n.tr("Settings", "the settings window")
+                        tooltipSide: "right"
+                        onClicked: Router.openSettings("")
                     }
 
                     DNavigationBar {
