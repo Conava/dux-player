@@ -548,13 +548,109 @@ cat >>"$W/tree/shell.qml" <<'Q'
             const p = row ? row.mapToItem(null, row.width / 2, row.height / 2) : null;
             return p ? Math.round(p.x) + " " + Math.round(p.y) : "";
         }
+        // one line "X Y W H" per visible item of the main window whose accessible name or text is `label`, in tree order,
+        // relative to the window: the rail entry before the tile of the same name
+        function namedAll(label: string): string {
+            const out = [];
+            const walk = item => {
+                if (!item || !item.visible)
+                    return;
+                // a button's own text label doesn't count again
+                if (item.width > 0 && (item.Accessible.name === label || (item.Accessible.name === "" && item.text === label && !String(item).startsWith("StyledText")))) {
+                    const p = item.mapToItem(null, 0, 0);
+                    out.push([p.x, p.y, item.width, item.height].map(Math.round).join(" "));
+                }
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(frameProbe.window().contentItem);
+            return out.join("\n");
+        }
+        // "X Y": the centre of the first visible item named `label` inside the first visible item with that objectName, "" when none
+        function namedUnder(objectName: string, label: string): string {
+            const root = frameProbe.firstIn(frameProbe.window().contentItem, i => i.visible && i.objectName === objectName);
+            const item = root ? frameProbe.firstIn(root, i => i.visible && i.width > 0 && (i.Accessible.name === label || i.text === label)) : null;
+            const p = item ? item.mapToItem(null, item.width / 2, item.height / 2) : null;
+            return p ? Math.round(p.x) + " " + Math.round(p.y) : "";
+        }
+        // one line "caption X Y W H showsArt" per visible Speed dial tile, relative to the window
+        function dialTiles(): string {
+            const out = [];
+            const walk = item => {
+                if (!item || !item.visible)
+                    return;
+                if (item.caption !== undefined && item.showsArt !== undefined) {
+                    const p = item.mapToItem(null, 0, 0);
+                    out.push([item.caption, Math.round(p.x), Math.round(p.y), Math.round(item.width), Math.round(item.height), item.showsArt].join(" "));
+                }
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(frameProbe.window().contentItem);
+            return out.join("\n");
+        }
+        // the navigation entry that shows as selected: "kind:target", "" when none
+        function navLit(): string {
+            const e = Router.navEntries[Router.navIndex];
+            return e ? e.kind + ":" + e.target : "";
+        }
+        // the first visible page tint: "shown HSV-saturation", "" when none
+        function tint(): string {
+            const item = frameProbe.firstIn(frameProbe.window().contentItem, i => i.visible && String(i).startsWith("PageTint"));
+            return item ? "shown " + item.tint.hsvSaturation.toFixed(2) : "";
+        }
+        // the titles of the visible tiles that carry the playing plate, separated by ";"
+        function playingTiles(): string {
+            const out = [];
+            const walk = item => {
+                if (!item || !item.visible)
+                    return;
+                if (String(item).startsWith("MediaTile") && item.playing && item.color.a > 0)
+                    out.push(item.item?.title ?? item.item?.name);
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(frameProbe.window().contentItem);
+            return out.join(";");
+        }
+        // the largest horizontal offset of the page's visible carousels
+        function carouselX(): real {
+            const lists = [];
+            const walk = item => {
+                if (!item || !item.visible)
+                    return;
+                if (String(item).startsWith("DHorizontalList"))
+                    lists.push(item);
+                for (const child of item.children)
+                    walk(child);
+            };
+            walk(Router.pageScroll?.view.contentItem);
+            return Math.max(-1, ...lists.map(l => Math.round(l.contentX - l.originX)));
+        }
+        // the title of the tile or row at the top of the page's list or grid once the page's header is scrolled away, "" when none
+        function topItem(): string {
+            const view = Router.pageScroll?.view;
+            const row = view ? view.itemAt(view.contentX + view.width / 4, Math.max(view.contentY, view.originY + (view.headerItem?.height ?? 0)) + 4) : null;
+            const it = row?.track ?? row?.item ?? row?.modelData ?? null;
+            return it ? it.title ?? it.name ?? "" : "";
+        }
+        // "X Y W H" of the first visible detail hero (an album's cover and facts) relative to the window, "" when none
+        function heroRect(): string {
+            const hero = frameProbe.firstIn(frameProbe.window().contentItem, i => i.visible && String(i).startsWith("DetailHero"));
+            const p = hero ? hero.mapToItem(null, 0, 0) : null;
+            return p ? [p.x, p.y, hero.width, hero.height].map(Math.round).join(" ") : "";
+        }
+        // the app setting `name` as JSON
+        function prefValue(name: string): string {
+            return JSON.stringify(SettingsData[name]);
+        }
         // sets SettingsData[name] to the JSON value; names SettingsData doesn't have are ignored
         function pref(name: string, json: string): void {
             if (name in SettingsData)
                 SettingsData[name] = JSON.parse(json);
         }
         // "X Y W H enabled" of the first visible item with that objectName, in the main window then the settings
-        // window, in the coordinates click uses; "" when none shows
+        // window, relative to that window's top-left corner; "" when none shows
         function rect(objectName: string): string {
             const wanted = i => i.visible && i.objectName === objectName;
             const main = frameProbe.window().contentItem;

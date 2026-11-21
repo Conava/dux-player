@@ -19,8 +19,18 @@
 #   pointer b | f [MS [DX]]   hold the side button (back) or the extra button (forward) for MS, moving DX halfway
 #   ask NAME ARGS    like ui, but prints the reply: ask route
 #   pref NAME JSON   set an app setting (SettingsData[NAME]) from JSON: ui pref albumLayout '"sideBySide"'
-#   rect OBJECTNAME  ask rect NAME prints "X Y W H enabled" of the first visible item with that objectName, "" when none
-#   click X Y        move and click
+#   rect OBJECTNAME  ask rect NAME prints "X Y W H enabled" of the first visible item with that objectName, "" when none;
+#                    ask rect and ask namedAll print points relative to the window's top-left corner, which click does not know:
+#                    add winat's origin, or use wclick, clickrect and clicknamed
+#   winat [TITLE]    "X Y": the top-left corner of the main window (or the window with that title)
+#   wclick X Y [TITLE]  click at a point given relative to a window
+#   clickrect NAME   click the middle of the item ask rect NAME finds; fails when none shows
+#   clicknamed LABEL [N]  click the middle of the Nth (default 1st) item ask namedAll LABEL finds (accessible name or text); fails when none shows
+#   clickunder NAME LABEL  click the item labelled LABEL inside the item with objectName NAME (a tab of the Library tabs)
+#   other ask helpers: navLit (the selected navigation entry), tint (the page tint), playingTiles, carouselX, topItem
+#                    (the tile at the top of a page's list), heroRect (an album's cover and facts), dialTiles (Speed dial),
+#                    prefValue NAME (an app setting as JSON)
+#   click X Y        move and click, in output coordinates
 #   frames NAME CMD  run CMD and write the ms between the main window's frames while its moving parts move to out/NAME.frames
 #   rclick X Y       move and right click
 #   dimmed A B       1 when the settings window's left edge is darker in out/B.png than in out/A.png: a dialog opened
@@ -67,6 +77,13 @@ frames() {
     qs ipc -p "$W/tree" call headless framesStop >"$W/out/$name.frames"
 }
 
+# winat [TITLE]: "X Y", the top-left corner of the window with that title (default the main window)
+winat() {
+    hyprctl -j clients | python3 -I -c 'import json, sys
+c = next(c for c in json.load(sys.stdin) if c["title"] == sys.argv[1])
+print(*c["at"])' "${1:-Dux Player}"
+}
+
 pointer() {
     if [ ! -p "$W/ptr" ]; then
         mkfifo "$W/ptr"
@@ -77,6 +94,27 @@ pointer() {
 }
 click() { pointer m "$(($1 - 2))" "$2"; sleep 0.1; pointer m "$1" "$2"; sleep 0.3; pointer "${3:-c}"; }
 rclick() { click "$1" "$2" r; }
+# wclick X Y [TITLE]: click at a point relative to the window, the way ask rect, ask namedAll and ask settingsPoint report one
+wclick() {
+    local wx wy
+    read -r wx wy < <(winat "${3:-}")
+    click "$((wx + $1))" "$((wy + $2))"
+}
+clickrect() {
+    local x y w h enabled
+    read -r x y w h enabled < <(ask rect "$1")
+    [ -n "$x" ] && wclick "$((x + w / 2))" "$((y + h / 2))"
+}
+clicknamed() {
+    local x y w h
+    read -r x y w h < <(ask namedAll "$1" | sed -n "${2:-1}p")
+    [ -n "$x" ] && wclick "$((x + w / 2))" "$((y + h / 2))"
+}
+clickunder() {
+    local x y
+    read -r x y < <(ask namedUnder "$1" "$2")
+    [ -n "$x" ] && wclick "$x" "$y"
+}
 
 dimmed() {
     hyprctl -j clients | python3 -I -c '

@@ -368,7 +368,7 @@
   {
     "term": "%1, see all",
     "context": "%1, see all",
-    "reference": "Modules/ShelfHeader.qml:56",
+    "reference": "Modules/ShelfHeader.qml:57",
     "comment": "home shelf title link"
   },
   {
@@ -644,7 +644,7 @@
   {
     "term": "Add to playlist",
     "context": "Add to playlist",
-    "reference": "Modules/AlbumPage.qml:245",
+    "reference": "Modules/AlbumPage.qml:247",
     "comment": "track row action"
   },
   {
@@ -710,7 +710,7 @@
   {
     "term": "Album",
     "context": "Album",
-    "reference": "Common/Phrases.qml:103, Common/UiConfig.qml:82, Common/UiConfig.qml:360, Common/UiConfig.qml:739, Common/UiConfig.qml:1137, Modules/AlbumPage.qml:182, Modules/DetailsDialog.qml:72, Modules/Settings/PlaybackSettings.qml:203",
+    "reference": "Common/Phrases.qml:103, Common/UiConfig.qml:82, Common/UiConfig.qml:360, Common/UiConfig.qml:739, Common/UiConfig.qml:1137, Modules/AlbumPage.qml:184, Modules/DetailsDialog.qml:72, Modules/Settings/PlaybackSettings.qml:203",
     "comment": "an album: page label, list column, ReplayGain mode"
   },
   {
@@ -3860,7 +3860,7 @@
   {
     "term": "More",
     "context": "More",
-    "reference": "Common/UiConfig.qml:1328, Modules/AlbumPage.qml:170, Modules/ArtistPage.qml:247, Modules/MainWindow.qml:293, Modules/MediaTile.qml:133, Modules/NowPlayingZone.qml:512, Modules/PlaylistPage.qml:116, Modules/QueueList.qml:275, Modules/RowEnd.qml:281",
+    "reference": "Common/UiConfig.qml:1328, Modules/AlbumPage.qml:171, Modules/ArtistPage.qml:247, Modules/MainWindow.qml:293, Modules/MediaTile.qml:133, Modules/NowPlayingZone.qml:512, Modules/PlaylistPage.qml:116, Modules/QueueList.qml:275, Modules/RowEnd.qml:281",
     "comment": "track row menu button"
   },
   {
@@ -4028,7 +4028,7 @@
   {
     "term": "Next",
     "context": "Next",
-    "reference": "Common/UiConfig.qml:1163, Modules/ShelfHeader.qml:128",
+    "reference": "Common/UiConfig.qml:1163, Modules/ShelfHeader.qml:129",
     "comment": "home shelf arrow | transport button"
   },
   {
@@ -4922,7 +4922,7 @@
   {
     "term": "Previous",
     "context": "Previous",
-    "reference": "Common/UiConfig.qml:1159, Modules/ShelfHeader.qml:114",
+    "reference": "Common/UiConfig.qml:1159, Modules/ShelfHeader.qml:115",
     "comment": "home shelf arrow | transport button"
   },
   {
@@ -5990,13 +5990,13 @@
   {
     "term": "Shuffle",
     "context": "Shuffle",
-    "reference": "Common/UiConfig.qml:1157, Common/UiConfig.qml:1278, Modules/PlayButtons.qml:46, Modules/ShelfHeader.qml:139",
+    "reference": "Common/UiConfig.qml:1157, Common/UiConfig.qml:1278, Modules/PlayButtons.qml:46, Modules/ShelfHeader.qml:140",
     "comment": "button or mode that plays in random order"
   },
   {
     "term": "Shuffle all",
     "context": "Shuffle all",
-    "reference": "Modules/BrowsePage.qml:546, Modules/SpeedDialShelf.qml:66",
+    "reference": "Modules/BrowsePage.qml:546, Modules/SpeedDialShelf.qml:67",
     "comment": "speed dial tile that shuffles the whole library | tracks page action"
   },
   {

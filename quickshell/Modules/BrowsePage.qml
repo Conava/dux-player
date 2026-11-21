@@ -709,8 +709,8 @@ Item {
         id: letterIndex
         visible: root.indexShown
         model: root.letters
-        anchors.right: parent.right
-        anchors.rightMargin: Theme.spacingXS
+        // inside the view's reserved width, so the scroll bar in the page's gutter never covers it
+        x: I18n.isRtl ? PlayerMetrics.pagePadding : parent.width - PlayerMetrics.pagePadding - width
         // below the header, which scrolls away with the content
         y: Math.max(Theme.spacingXS, (root.view?.headerItem?.height ?? 0) - ((root.view?.contentY ?? 0) - (root.view?.originY ?? 0)))
         height: Math.max(0, parent.height - y - Theme.spacingXS - (root.isPlaylists ? fab.height + Theme.spacingL : 0))

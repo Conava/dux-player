@@ -427,7 +427,7 @@ DFloatingWindow {
                             iconName: "search"
                             text: window.railLabels ? I18n.tr("Search", "header button") : ""
                             tooltipText: window.railLabels ? null : I18n.tr("Search", "header button")
-                            tooltipSide: "bottom"
+                            tooltipSide: I18n.isRtl ? "left" : "right"
                             onClicked: Router.searchEverything()
                         }
                     }
@@ -485,7 +485,7 @@ DFloatingWindow {
                         anchors.bottomMargin: Theme.windowInset
                         iconName: "settings"
                         tooltipText: I18n.tr("Settings", "the settings window")
-                        tooltipSide: "right"
+                        tooltipSide: I18n.isRtl ? "left" : "right"
                         onClicked: Router.openSettings("")
                     }
 

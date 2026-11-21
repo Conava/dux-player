@@ -13,12 +13,14 @@ Item {
     default property alias details: detailColumn.data
     // the card form: the cover on top at the full width
     property bool card: false
+    // the card form's cover gives up height down to a minimum so the details fit; 0 for no limit
+    property real maxHeight: 0
     readonly property real spacing: Theme.spacingXL
     // the text column needs this much beside the cover (the Shuffle button is the widest line); under it the text goes below
     readonly property real minTextWidth: 220
     readonly property real besideCover: width - Math.min(PlayerMetrics.detailArtSize, width / 3) - spacing
     readonly property bool stacked: card || besideCover < minTextWidth
-    readonly property real coverSize: card ? width : Math.min(PlayerMetrics.detailArtSize, stacked ? width : width / 3)
+    readonly property real coverSize: card ? Math.min(width, maxHeight > 0 ? Math.max(PlayerMetrics.detailCardMinArtSize, maxHeight - spacing - detailColumn.height) : width) : Math.min(PlayerMetrics.detailArtSize, stacked ? width : width / 3)
 
     width: parent?.width ?? 0
     implicitHeight: stacked ? coverBox.height + spacing + detailColumn.height : Math.max(coverBox.height, detailColumn.height)
@@ -26,6 +28,7 @@ Item {
     Item {
         id: coverBox
         anchors.left: parent.left
+        anchors.leftMargin: root.card ? (root.width - width) / 2 : 0
         width: root.coverSize
         height: width
     }

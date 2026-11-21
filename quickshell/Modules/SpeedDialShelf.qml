@@ -41,6 +41,7 @@ Column {
                     } : null
                 })).concat(albums.map(a => ({
                     "kind": "album",
+                    "icon": "album",
                     "caption": a.title,
                     "route": {
                         "page": "album",
@@ -85,7 +86,7 @@ Column {
 
                 caption: modelData.caption
                 iconName: modelData.icon ?? ""
-                // a playlist without a cover gets the accent plate and small icon of the other pins
+                // a playlist, album or artist without a cover gets the accent plate and small icon of the other pins
                 plate: hasArt && !artBare ? Theme.secondaryContainer : pair?.container ?? Theme.secondaryContainer
                 plateText: hasArt && !artBare ? Theme.onSecondaryContainer : pair?.onContainer ?? Theme.onSecondaryContainer
                 art: modelData.kind === "playlist" ? playlistArt : modelData.kind === "artist" ? artistArt : modelData.kind === "album" ? albumArt : null
@@ -135,7 +136,8 @@ Column {
         property Component art: null
         // caption colour over the dark scrim, whatever the theme's mode
         // the art has nothing to show but its placeholder, so the plate and icon take over
-        readonly property bool artBare: (artLoader.item as PlaylistCover)?.bare ?? false
+        readonly property var artItem: artLoader.item
+        readonly property bool artBare: artItem?.bare ?? false
         readonly property bool showsArt: art !== null && !artBare
         readonly property color imageText: Theme.isLightMode ? Theme.surface : Theme.surfaceText
 

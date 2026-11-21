@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import qs.Common
 import qs.DCommon.Widgets
 import qs.Widgets
@@ -20,7 +21,7 @@ Item {
     property real tileStep: 0
 
     readonly property real maxX: carousel ? Math.max(carousel.originX, carousel.contentWidth - carousel.width + carousel.originX) : 0
-    readonly property bool arrowsShown: carousel !== null && carousel.contentWidth > carousel.width && width >= PlayerMetrics.shelfArrowsMinWidth
+    readonly property bool arrowsShown: carousel !== null && carousel.contentWidth > carousel.width && (Window.width ?? 0) >= PlayerMetrics.compactBreakpoint
     readonly property real titleHeight: Math.max(Theme.buttonHeightXS, titleText.implicitHeight + Theme.spacingXS)
 
     function page(direction) {

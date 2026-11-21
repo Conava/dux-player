@@ -36,8 +36,6 @@ Singleton {
     readonly property real shelfArtSize: 152
     // M3 title-large
     readonly property int shelfTitleSize: Math.round(Theme.fontScale * 22)
-    // a shelf at least this wide shows its scroll arrows when it overflows
-    readonly property real shelfArrowsMinWidth: 640
     // the page header's cover tint: its opacity at the top, fading to nothing over this height
     readonly property real pageTintAlpha: 0.32
     readonly property real pageTintHeight: 360
@@ -51,6 +49,8 @@ Singleton {
     // a Home list shelf set to Auto columns splits into columns at least this wide
     readonly property int listColumnMinWidth: 480
     readonly property real detailArtSize: 232
+    // the card form's cover shrinks to this before the card scrolls
+    readonly property real detailCardMinArtSize: 120
     // an artist's biography before "Show more"
     readonly property int biographyLines: 4
     readonly property real rowArtSize: Theme.avatarSize + Theme.spacingXS

@@ -22,6 +22,8 @@ ClippingRectangle {
     property string placeholderIcon: "album"
 
     readonly property var pair: Theme.accent(accent)
+    // nothing to show but the placeholder icon
+    readonly property bool bare: source === "" && pair === null
     readonly property string source: imageUrl !== "" ? imageUrl : item ? PlayerService.coverUrl(item) : ""
     // Decoded in power-of-two steps, so resizing the window rarely reloads the cover; a reload keeps showing it.
     readonly property int decodeSize: Math.pow(2, Math.ceil(Math.log2(Math.max(width, height, 1) * Screen.devicePixelRatio)))

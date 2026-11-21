@@ -18,6 +18,7 @@ motion||^quickshell/Modules/(MainWindow|NowPlaying[A-Za-z]*|SidePanel|M3EPlayer|
 snappy|SERVER=1|^quickshell/Modules/(MainWindow|NowPlaying[A-Za-z]*|[A-Za-z]*Page|[A-Za-z]*Dialog|MediaMenu|MediaTile|MediaRow)\.qml$|^quickshell/Services/(Playlist|Settings|Catalog)Service\.qml$
 scroll||^quickshell/Modules/([A-Za-z]*Page|PageScroll|TrackList)\.qml$|^quickshell/Common/WheelInput\.js$
 navigation||^quickshell/Modules/(Router|MainWindow)\.qml$
+pages|SERVER=1 HEADLESS_TIMEOUT=600|^quickshell/Modules/(MediaTile|Shelf|ShelfHeader|SpeedDialShelf|GenreChipsShelf|PageTint|AlbumPage|ArtistPage|PlaylistPage|DetailHero|BrowsePage|MainWindow|HomePage|TrackList)\.qml$|^quickshell/Widgets/DLetterIndex\.qml$|^quickshell/Common/Letters\.js$
 keys||^quickshell/Modules/(MainWindow|EscapeLayer|[A-Za-z]*Dialog|[A-Za-z]*Sheet|SearchBox|ScopedSearch)\.qml$|^quickshell/Common/EscapeStack\.js$|^quickshell/Widgets/
 downloads|SERVER=1|^quickshell/Modules/Settings/(DownloadsSettings|DownloadedTracks|OfflineRuleDialog|OfflineItemPicker)\.qml$|^core/internal/cache/
 download|SERVER=1|^quickshell/Modules/(DownloadButton|PlayButtons|AlbumPage|ArtistPage|PlaylistPage)\.qml$

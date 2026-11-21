@@ -131,7 +131,8 @@ Item {
         visible: active
 
         sourceComponent: Rectangle {
-            height: Math.min(cardHero.height + Theme.spacingXL * 2, root.height - fixedHeader.height - PlayerMetrics.pagePadding)
+            readonly property real paneHeight: root.height - fixedHeader.height - PlayerMetrics.pagePadding
+            height: Math.min(cardHero.height + Theme.spacingXL * 2, paneHeight)
             color: Theme.surfaceContainerHigh
             radius: Theme.cornerRadiusXL
 
@@ -179,6 +180,7 @@ Item {
 
         DetailHero {
             card: root.sideBySide
+            maxHeight: root.sideBySide ? root.height - fixedHeader.height - PlayerMetrics.pagePadding - Theme.spacingXL * 2 : 0
             eyebrow: I18n.tr("Album", "an album: page label, list column, ReplayGain mode")
             title: root.album?.title ?? ""
             cover: AlbumArt {
