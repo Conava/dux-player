@@ -1603,6 +1603,18 @@ func (m *Manager) scan(ctx context.Context, id string, manual bool, progress fun
 	if !scannable(src) {
 		return source.ScanStats{}, fmt.Errorf("library %s can't be scanned", id)
 	}
+	// Callers run scans on their own goroutines; Close still cancels and waits for them.
+	m.workMu.Lock()
+	if m.ctx.Err() != nil {
+		m.workMu.Unlock()
+		return source.ScanStats{}, fmt.Errorf("library %s: libraries are closing", id)
+	}
+	m.work.Add(1)
+	m.workMu.Unlock()
+	defer m.work.Done()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	defer context.AfterFunc(m.ctx, cancel)()
 	m.mu.Lock()
 	if m.scanning[id] {
 		m.mu.Unlock()

@@ -116,7 +116,8 @@ func run(t *testing.T, dir string) (*Service, *fakePlayer) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	go s.Run(ctx)
-	require.Eventually(t, func() bool { return p.last() != "" }, time.Second, 5*time.Millisecond)
+	// Run publishes the first state only after the output is set.
+	require.Eventually(t, func() bool { return p.last() != "" && len(s.State().Devices) > 0 }, 5*time.Second, 5*time.Millisecond)
 	return s, p
 }
 
