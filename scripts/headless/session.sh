@@ -84,6 +84,16 @@ test_library=$(printf '%s' "$added" | python3 -Ic 'import json, sys; print(json.
 scanned() { rpc browse.albums "{\"library\":\"$test_library\"}" 1000000 | python3 -Ic 'import json, sys; sys.exit(not json.load(sys.stdin).get("result"))'; }
 wait_for "the Test library scan" 30 scanned
 wait_for "the window's headless IPC target" 30 ask route
+# The UI's own log says which runtime it loaded; the library being installed but unused is a failure unless qs was forced.
+if grep -q "Loaded runtime library" "$XDG_STATE_HOME/dplayer/ui.log" 2>/dev/null; then
+    echo "runtime: dux-qt-base"
+else
+    echo "runtime: qs"
+    if [ -z "${DPLAYER_QS_CHILD:-}" ] && ldconfig -p | grep -q libdux-qt-base.so.0; then
+        echo "dux-qt-base is installed but the UI did not load it: $(head -3 "$XDG_STATE_HOME/dplayer/ui.log")"
+        exit 1
+    fi
+fi
 if [ -n "${SERVER:-}" ]; then
     for _ in $(seq 1 40); do
         [ -s "$W/server/port" ] && break

@@ -170,6 +170,9 @@ Singleton {
 
     function _show(target, id, offset) {
         restoreOffset = offset;
+        // the page the switch builds reads the id at once and must not get the last page's
+        if (target !== page)
+            itemId = "";
         page = target;
         itemId = id;
         restoreOffset = -1;

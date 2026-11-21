@@ -4,6 +4,7 @@ go 1.27.0
 
 require (
 	github.com/duxlabs-dev/dux-go v1.6.3-0.20261120085103-baef60180756
+	github.com/ebitengine/purego v0.11.3
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/hajimehoshi/go-mp3 v0.3.4

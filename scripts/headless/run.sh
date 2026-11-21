@@ -192,10 +192,14 @@ cat >>"$W/tree/shell.qml" <<'Q'
             frameProbe.target = frameProbe.window();
             frameProbe.target.frameSwapped.connect(frameProbe, frameProbe.swapped);
         }
-        function trackStop(): string {
+        // the number of samples; trackLines reads them in pages, since the runtime's IPC server drops a reply of more than about 200 kB
+        function trackStop(): int {
             frameProbe.target.frameSwapped.disconnect(frameProbe, frameProbe.swapped);
             frameProbe.tracked = null;
-            return frameProbe.samples.join("\n");
+            return frameProbe.samples.length;
+        }
+        function trackLines(from: int, count: int): string {
+            return frameProbe.samples.slice(from, from + count).join("\n");
         }
         // the bar in window coordinates: x y width height
         function barRect(): string {
@@ -830,7 +834,7 @@ fi
 env -i LANG=C.UTF-8 USER="$USER" HOME="$W/home" PATH="$W/bin:$repo/core/bin:/usr/bin:/bin" XDG_RUNTIME_DIR="$W/rt" \
     XDG_CONFIG_HOME="$W/config" XDG_STATE_HOME="$W/state" XDG_CACHE_HOME="$W/cache" XDG_DATA_HOME="$W/data" \
     HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
-    XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/share}" QT_QPA_PLATFORMTHEME=qtengine DPLAYER_WINRULES=off DPLAYER_CAST=off DPLAYER_BACKEND="${DPLAYER_BACKEND:-}" \
+    XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/share}" QT_QPA_PLATFORMTHEME=qtengine DPLAYER_WINRULES=off DPLAYER_CAST=off DPLAYER_BACKEND="${DPLAYER_BACKEND:-}" DPLAYER_QS_CHILD="${DPLAYER_QS_CHILD:-}" \
     DPLAYER_DISABLE_HOT_RELOAD=1 HYPRLAND_NO_SD_NOTIFY=1 HYPRLAND_NO_SD_VARS=1 HYPRLAND_NO_CRASHREPORTER=1 \
     W="$W" LIB="$here/lib.sh" SCENARIO="$scenario" SERVER="${SERVER:-}" GAP_MAX="${GAP_MAX:-}" SEEN_MAX="${SEEN_MAX:-}" DELAY="${DELAY:-}" SETTLE="${SETTLE:-}" \
     timeout -k 30 "${HEADLESS_TIMEOUT:-420}" dbus-run-session -- bash "$here/session.sh"

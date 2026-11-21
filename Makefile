@@ -50,9 +50,12 @@ headless-affected: deps dev
 	@scripts/headless/sweep.sh affected $(BASE)
 
 # What run needs; install only warns about the runtime part, since a staged or packaged install runs elsewhere.
-RUNTIME_DEPS = qs
+# The UI runs on dux-qt-base or, failing that, Quickshell.
+HAS_RUNTIME = { ldconfig -p 2>/dev/null | grep -q libdux-qt-base.so.0 || command -v qs >/dev/null; }
+RUNTIME_MISSING = neither dux-qt-base (libdux-qt-base.so.0) nor Quickshell (qs) found; see Requirements in the README
 deps:
-	@for c in go $(RUNTIME_DEPS); do command -v $$c >/dev/null || { echo "$$c not found; see Requirements in the README"; exit 1; }; done
+	@command -v go >/dev/null || { echo "go not found; see Requirements in the README"; exit 1; }
+	@$(HAS_RUNTIME) || { echo "$(RUNTIME_MISSING)"; exit 1; }
 	@test -f $(SHELL_DIR)/DCommon/Widgets/DIcon.qml || { echo "dux-qml-common is missing: run git submodule update --init"; exit 1; }
 
 # Stops the running player: daemon, window, mpv and its PipeWire children.
@@ -115,7 +118,7 @@ install:
 	install -Dm644 $(ASSETS_DIR)/$(APP_ID).metainfo.xml $(DESTDIR)$(DATA_DIR)/metainfo/$(APP_ID).metainfo.xml
 	install -Dm644 LICENSE $(DESTDIR)$(LICENSE_DIR)/LICENSE
 	scripts/third-party-licenses.sh > $(DESTDIR)$(LICENSE_DIR)/THIRD_PARTY_LICENSES
-	@test -n "$(DESTDIR)" || for c in $(RUNTIME_DEPS); do command -v $$c >/dev/null || echo "warning: $$c not found; dplayer needs it to run"; done
+	@test -n "$(DESTDIR)" || $(HAS_RUNTIME) || echo "warning: $(RUNTIME_MISSING); dplayer needs one to run"
 	@test -n "$(DESTDIR)" || { gtk-update-icon-cache -q $(DATA_DIR)/icons/hicolor; update-desktop-database -q $(DATA_DIR)/applications; } 2>/dev/null || true
 
 uninstall:
@@ -165,14 +168,14 @@ help:
 	@echo "  headless-all   - Run every headless scenario, JOBS= at a time (default 4)"
 	@echo "  headless-affected - Run the headless scenarios that cover the changed files; BASE= picks the base"
 	@echo "  quit           - Stop the running player (daemon, window, mpv)"
-	@echo "  deps           - Check that go and qs are installed (run does this first)"
+	@echo "  deps           - Check that go and dux-qt-base or qs are installed (run does this first)"
 	@echo "  dev            - Fast build without the embedded UI ($(BUILD_DIR)/$(DEV_BINARY))"
 	@echo "  build          - Release build with the UI embedded; VERSION= overrides git describe"
 	@echo "  clean"
 	@echo ""
 	@echo "Check:"
 	@echo "  check          - lint, test, test-race and build: what CI runs"
-	@echo "  lint           - lint-go (gofmt -s, go vet, go mod tidy, golangci-lint), lint-qml (qmllint with warnings; needs qs), lint-qml-format (qmlformat) and lint-settings-index"
+	@echo "  lint           - lint-go (gofmt -s, go vet, go mod tidy, golangci-lint), lint-qml (qmllint with warnings; needs Quickshell, qs), lint-qml-format (qmlformat) and lint-settings-index"
 	@echo "  test           - test-go (sandboxed Go tests, in a new order each run) and test-qml (node logic tests)"
 	@echo "  test-race      - The Go tests under the race detector (needs gcc)"
 	@echo "  test-stress    - The Go tests COUNT times (default 20), to catch one that fails only sometimes"

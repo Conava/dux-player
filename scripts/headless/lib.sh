@@ -26,6 +26,8 @@
 #   dimmed A B       1 when the settings window's left edge is darker in out/B.png than in out/A.png: a dialog opened
 #                    between the shots really draws its scrim, rather than only reporting itself open
 dp() { dplayer-dev "$@"; }
+# The UI runtime through the dev build, like the window launcher starts it; a function, so the real qs stays on PATH for the fallback. Warn level keeps the runtime's "Loaded" line out of every call's stderr.
+qs() { DPLAYER_LOG_LEVEL=warn dplayer-dev qs "$@"; }
 
 wait_for_daemon() {
     for _ in $(seq 1 60); do

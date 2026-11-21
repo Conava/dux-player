@@ -182,7 +182,7 @@ PanelWindow {
     exclusiveZone: 48
 }
 Q
-qs -p "$W/bar.qml" >"$W/out/bar.log" 2>&1 &
+DPLAYER_LOG_LEVEL=warn dplayer-dev qs -p "$W/bar.qml" >"$W/out/bar.log" 2>&1 &
 bar=$!
 sleep 3
 hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen({mode="fullscreen"}))' >/dev/null

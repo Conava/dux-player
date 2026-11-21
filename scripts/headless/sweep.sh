@@ -31,6 +31,7 @@ columns||^quickshell/Modules/TrackList\.qml$|^quickshell/Common/(ColumnDrag|Layo
 home||^quickshell/Modules/(HomePage|Shelf)\.qml$
 menus||^quickshell/Modules/(MediaTile|MediaMenu|MediaRow)\.qml$|^quickshell/DCommon/Widgets/DMenu\.qml$
 startup||^quickshell/Modules/Router\.qml$|^quickshell/Modules/Settings/PagesSettings\.qml$|^quickshell/Common/UiConfig\.qml$
+smoke||^core/internal/window/window\.go$|^core/cmd/dplayer/qs\.go$
 '
 # these measure frame gaps and click timing, which a loaded machine fails: they run first, one at a time
 ALONE=" motion snappy navigation "

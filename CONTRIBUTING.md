@@ -15,7 +15,7 @@ cd dux-player
 make run
 ```
 
-You need Go, Quickshell with Qt 6, mpv and Node.js (for the QML logic tests). `make check` also needs gcc, for the race detector. The tests that play or measure audio run only when mpv and ffmpeg are installed. `make run-builtin` runs the player with its built-in playback instead of mpv. `make help` lists every target.
+You need Go, dux-qt-base or Quickshell with Qt 6 (`make lint` needs Quickshell; `DPLAYER_QS_CHILD=1` runs the UI on it), mpv and Node.js (for the QML logic tests). `make check` also needs gcc, for the race detector. The tests that play or measure audio run only when mpv and ffmpeg are installed. `make run-builtin` runs the player with its built-in playback instead of mpv. `make help` lists every target.
 
 ## Making a change
 

@@ -1,6 +1,6 @@
 # Dux Player
 
-A standalone music player for Linux in the look and feel of [Dux Shell](https://github.com/duxlabs-dev/dux-shell). It plays local libraries and playlists and streams from remote servers ((Open-)Subsonic/Jellyfin for now). Go daemon and CLI plus a Quickshell (QML) UI, built on [dux-qml-common](https://github.com/duxlabs-dev/dux-qml-common) and [dux-go](https://github.com/duxlabs-dev/dux-go) like the other Dux apps.
+A standalone music player for Linux in the look and feel of [Dux Shell](https://github.com/duxlabs-dev/dux-shell). It plays local libraries and playlists and streams from remote servers ((Open-)Subsonic/Jellyfin for now). Go daemon and CLI plus a QML UI that runs on dux-qt-base (installed `libdux-qt-base.so.0`, loaded by `dplayer qs`) or, as a fallback, on Quickshell (`qs`), built on [dux-qml-common](https://github.com/duxlabs-dev/dux-qml-common) and [dux-go](https://github.com/duxlabs-dev/dux-go) like the other Dux apps.
 
 ## Names
 
@@ -48,6 +48,7 @@ For GUI work, use `make headless` before handing anything over. It runs the real
 
 - `DPLAYER_BACKEND=builtin make headless SCENARIO=scripts/headless/builtin.sh` plays through the built-in player on a private PipeWire with null sinks and no access to real devices: output switching, a removed sink, a killed server and the snackbars. Read `facts.txt` and the screenshots.
 - `SERVER=1 make headless …` adds a server library "Server" from a fake (Open)Subsonic server (`scripts/headless/fakesubsonic.py`, three albums, one playlist) whose password sits in a fresh keyring on the private bus; the run waits for its catalog sync. Needs `gnome-keyring-daemon`.
+- `DPLAYER_QS_CHILD=1 make headless` runs on upstream `qs` instead of dux-qt-base; run it after touching the window launcher or the `qs` subcommand. Every headless run prints `runtime: dux-qt-base` or `runtime: qs` and fails when the library is installed but the UI didn't load it.
 - `make headless SCENARIO=file.sh` runs your own steps; `scripts/headless/lib.sh` lists the helpers (`go`, `expand`, `shot`, `dp`, `rpc`, `click`, `pointer`). Add a helper to the `headless` IPC target in `run.sh` when a scenario needs more than navigation.
 - Anything about pointer feel (drag, scroll, hover) goes through `pointer`/`click`. QtTest mouse events are throttled to about 60 a second and hide lag that a real pointer shows.
 - `make headless SCENARIO=scripts/headless/typing.sh` types real keys into fields that change the list around them and fails when a character goes missing. Run it after touching a list, its model or a field in a page header.

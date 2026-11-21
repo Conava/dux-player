@@ -1,6 +1,8 @@
 //@ pragma Env QT_WAYLAND_DISABLE_WINDOWDECORATION=1
 //@ pragma Env QSG_RENDER_LOOP=threaded
 //@ pragma Env QT_QUICK_CONTROLS_STYLE=Material
+// Qt 6.12's incremental GC can sweep the JS side of non-Item objects (SpringMotion in DTextField) while a nested component is still being created, leaving their functions undefined (QTBUG-152344).
+//@ pragma Env QV4_GC_TIMELIMIT=0
 //@ pragma UseQApplication
 //@ pragma AppId io.github.conava.DuxPlayer
 

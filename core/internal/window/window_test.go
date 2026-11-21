@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/duxlabs-dev/dux-go/qtbase"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,4 +29,20 @@ func TestRotatingLogRotatesWhileRunning(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "789012tail", string(cur))
 	assert.Equal(t, "123456", string(old))
+}
+
+// The UI starts through the daemon's own binary (the qs subcommand), never a
+// bare qs on PATH.
+func TestStartRunsTheUIThroughTheQtBaseCommand(t *testing.T) {
+	tree := t.TempDir()
+	for _, f := range []string{"shell.qml", "DCommon/Widgets/DIcon.qml"} {
+		require.NoError(t, os.MkdirAll(filepath.Dir(filepath.Join(tree, f)), 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(tree, f), nil, 0o644))
+	}
+	l := New(Config{LogPath: filepath.Join(t.TempDir(), "ui.log")})
+
+	started, err := l.Start(tree)
+
+	assert.False(t, started)
+	assert.ErrorIs(t, err, qtbase.ErrTestReexec)
 }

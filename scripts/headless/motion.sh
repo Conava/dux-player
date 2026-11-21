@@ -47,7 +47,12 @@ leg() { # NAME CMD...: frames around CMD, then the check
 
 # Every frame's positions between tracking and tracked NAME land in out/NAME.track, one JSON object per line.
 tracking() { ui trackStart; }
-tracked() { qs ipc -p "$W/tree" call headless trackStop >"$W/out/$1.track"; }
+tracked() {
+    local n i
+    n=$(ask trackStop)
+    : >"$W/out/$1.track"
+    for ((i = 0; i < n; i += 100)); do ask trackLines "$i" 100 >>"$W/out/$1.track"; done
+}
 judge() { # NAME CODE LABEL: CODE sees the samples as s and prints why it failed, or nothing
     local out status
     out=$(python3 -I -c "
@@ -165,8 +170,7 @@ ui element queue bar
 sleep 3
 ui element dock bar
 sleep 3
-# the docked panel stays where it is while the view moves, and the morph starts from its rectangle. Short enough
-# for a track to fit in one IPC reply.
+# the docked panel stays where it is while the view moves, and the morph starts from its rectangle
 ui animationDuration 1000
 sleep 0.5
 tracking

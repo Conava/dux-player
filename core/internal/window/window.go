@@ -4,6 +4,7 @@
 package window
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/duxlabs-dev/dux-go/log"
+	"github.com/duxlabs-dev/dux-go/qtbase"
 
 	"github.com/Conava/dux-player/core/internal/player"
 	"github.com/Conava/dux-player/core/internal/shellembed"
@@ -21,7 +23,7 @@ import (
 
 const (
 	AppID = "io.github.conava.DuxPlayer"
-	// Bounds Wait after qs exits; processes it forks can keep its output
+	// Bounds Wait after the UI exits; processes it forks can keep its output
 	// pipes open.
 	waitDelay = 2 * time.Second
 	// How long Stop gives the UI to save what is pending after the daemon's socket closed, before it is terminated.
@@ -67,7 +69,7 @@ func (l *Launcher) ResolveDir(dir string) (string, bool, error) {
 		if info, err := os.Stat(filepath.Join(abs, "shell.qml")); err != nil || info.IsDir() {
 			return "", false, fmt.Errorf("%s has no shell.qml", abs)
 		}
-		// Without it qs only exits with status 255.
+		// Without it the UI only exits with status 255.
 		if _, err := os.Stat(filepath.Join(abs, "DCommon", "Widgets", "DIcon.qml")); err != nil {
 			return "", false, fmt.Errorf("%s has no dux-qml-common: run git submodule update --init", abs)
 		}
@@ -113,7 +115,7 @@ func (l *Launcher) Start(dir string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	cmd := exec.Command("qs", "--log-times", "--no-color", "--log-rules", "qt.qpa.wayland.textinput=false", "-p", dir)
+	cmd := qtbase.Command(context.Background(), "--log-times", "--no-color", "--log-rules", "qt.qpa.wayland.textinput=false", "-p", dir)
 	cmd.Env = uiEnv(os.Environ(), l.cfg.Socket, embedded)
 	cmd.Stdout, cmd.Stderr = logFile, logFile
 	cmd.WaitDelay = waitDelay
@@ -121,7 +123,7 @@ func (l *Launcher) Start(dir string) (bool, error) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{Pdeathsig: syscall.SIGTERM}
 	if err := player.StartLocked(cmd); err != nil {
 		logFile.Close()
-		return false, fmt.Errorf("start the UI (qs): %w", err)
+		return false, fmt.Errorf("start the UI: %w", err)
 	}
 	l.mu.Lock()
 	l.proc = cmd.Process
