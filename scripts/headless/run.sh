@@ -544,6 +544,27 @@ cat >>"$W/tree/shell.qml" <<'Q'
             const p = row ? row.mapToItem(null, row.width / 2, row.height / 2) : null;
             return p ? Math.round(p.x) + " " + Math.round(p.y) : "";
         }
+        // sets SettingsData[name] to the JSON value; names SettingsData doesn't have are ignored
+        function pref(name: string, json: string): void {
+            if (name in SettingsData)
+                SettingsData[name] = JSON.parse(json);
+        }
+        // "X Y W H enabled" of the first visible item with that objectName, in the main window then the settings
+        // window, in the coordinates click uses; "" when none shows
+        function rect(objectName: string): string {
+            const wanted = i => i.visible && i.objectName === objectName;
+            const main = frameProbe.window().contentItem;
+            let root = main;
+            let hit = frameProbe.firstIn(main, wanted);
+            if (!hit) {
+                root = settingsLoader.item?.contentItem?.Window.window?.contentItem;
+                hit = root ? frameProbe.firstIn(root, wanted) : null;
+            }
+            if (!hit)
+                return "";
+            const p = hit.mapToItem(root, 0, 0);
+            return [p.x, p.y, hit.width, hit.height].map(Math.round).join(" ") + " " + hit.enabled;
+        }
         // "X Y": the centre of the first visible item of the main window whose tooltip is `label`, "" when none
         function pagePoint(label: string): string {
             const item = frameProbe.firstIn(frameProbe.window().contentItem, i => i.visible && i.width > 0 && i.tooltipText === label);

@@ -2380,6 +2380,13 @@
     "comment": ""
   },
   {
+    "term": "Cover tint",
+    "translation": "",
+    "context": "page header option",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Create",
     "translation": "",
     "context": "new playlist dialog confirm button",
@@ -3948,6 +3955,13 @@
     "comment": ""
   },
   {
+    "term": "Jump to %1",
+    "translation": "",
+    "context": "letter index button, %1 is a letter",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Keep",
     "translation": "",
     "context": "dialog button that keeps a downloaded track",
@@ -4153,7 +4167,7 @@
   {
     "term": "Library",
     "translation": "",
-    "context": "track list column",
+    "context": "navigation destination: albums, artists, tracks and genres in tabs | track list column",
     "reference": "",
     "comment": ""
   },
@@ -5376,6 +5390,13 @@
     "comment": ""
   },
   {
+    "term": "Plain",
+    "translation": "",
+    "context": "page header option",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Play",
     "translation": "",
     "context": "button that starts playback",
@@ -5497,7 +5518,7 @@
   {
     "term": "Playing",
     "translation": "",
-    "context": "side panel view: cover art",
+    "context": "side panel view: cover art | tile state: the queue plays from this album or playlist",
     "reference": "",
     "comment": ""
   },
@@ -6951,6 +6972,13 @@
     "comment": ""
   },
   {
+    "term": "Side by side",
+    "translation": "",
+    "context": "album page layout option",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Side panel",
     "translation": "",
     "context": "now playing placement option",
@@ -7252,9 +7280,23 @@
     "comment": ""
   },
   {
+    "term": "Speed dial",
+    "translation": "",
+    "context": "home shelf of shuffle and pinned entries",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Square",
     "translation": "",
     "context": "artwork shape option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Stacked",
+    "translation": "",
+    "context": "album page layout option",
     "reference": "",
     "comment": ""
   },

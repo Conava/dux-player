@@ -641,7 +641,7 @@ Singleton {
 
     // Home
 
-    readonly property var shelfSourceTypes: ["search", "continue", "favoriteTracks", "playlists", "recentTracks", "mostPlayed", "recentlyPlayed", "recentlyAdded", "randomAlbums", "favoriteAlbums"]
+    readonly property var shelfSourceTypes: ["search", "continue", "favoriteTracks", "playlists", "recentTracks", "mostPlayed", "recentlyPlayed", "recentlyAdded", "randomAlbums", "favoriteAlbums", "speedDial", "genreChips"]
 
     function shelfSourceLabel(type) {
         switch (type) {
@@ -663,6 +663,10 @@ Singleton {
             return I18n.tr("Random albums", "home shelf");
         case "favoriteAlbums":
             return I18n.tr("Favorite albums", "home shelf");
+        case "speedDial":
+            return I18n.tr("Speed dial", "home shelf of shuffle and pinned entries");
+        case "genreChips":
+            return typeLabel("genres");
         case "playlists":
             return I18n.tr("Playlists", "playlists: page, section, library feature");
         case "playlist":
@@ -715,6 +719,10 @@ Singleton {
             return "shuffle";
         case "playlists":
             return "queue_music";
+        case "speedDial":
+            return "grid_view";
+        case "genreChips":
+            return "category";
         }
         return entryIcon({
             "kind": shelf.type,
@@ -772,6 +780,8 @@ Singleton {
             return I18n.tr("Most played", "home shelf and page of the most played tracks");
         case "search":
             return I18n.tr("Search", "navigation destination");
+        case "collection":
+            return I18n.tr("Library", "navigation destination: albums, artists, tracks and genres in tabs");
         }
         return typeLabel(page);
     }
@@ -800,6 +810,8 @@ Singleton {
             return "trending_up";
         case "search":
             return "search";
+        case "collection":
+            return "shelves";
         }
         return "circle";
     }
@@ -1420,6 +1432,22 @@ Singleton {
             all[id] = sequence;
         SettingsData.shortcuts = all;
         return "";
+    }
+    readonly property var pageHeaders: ["tint", "plain"]
+    readonly property var albumLayouts: ["stacked", "sideBySide"]
+    readonly property var libraryTabs: ["albums", "artists", "tracks", "genres"]
+    // a stored value that isn't exactly the other choice falls back to the default
+    readonly property bool pageTinted: SettingsData.pageHeader !== "plain"
+    readonly property bool albumSideBySide: SettingsData.albumLayout === "sideBySide"
+    readonly property bool letterIndexOn: SettingsData.letterIndex === true
+    readonly property string libraryTab: libraryTabs.indexOf(SettingsData.libraryTab) >= 0 ? SettingsData.libraryTab : "albums"
+
+    function pageHeaderLabel(value) {
+        return value === "plain" ? I18n.tr("Plain", "page header option") : I18n.tr("Cover tint", "page header option");
+    }
+
+    function albumLayoutLabel(value) {
+        return value === "sideBySide" ? I18n.tr("Side by side", "album page layout option") : I18n.tr("Stacked", "album page layout option");
     }
     readonly property var navStyles: ["auto", "rail", "railLabels", "bar"]
 

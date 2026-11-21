@@ -18,6 +18,8 @@ StyledButton {
     readonly property bool large: tileSize === "l"
     readonly property string info: UiConfig.infoText(item, lines, lineOptions)
     readonly property bool menuOpened: menu.opened || trackMenu.opened
+    // the queue came from this album or playlist and a track is loaded
+    readonly property bool playing: (kind === "album" || kind === "playlist") && PlayerService.current !== null && PlayerService.playContext.type === kind && PlayerService.playContext.id === item?.id
     readonly property bool active: hovered || visualFocus || playButton.visualFocus || moreButton.visualFocus || menuOpened
 
     function openMenu(anchor, x, y) {
@@ -32,8 +34,16 @@ StyledButton {
     implicitWidth: PlayerMetrics.gridCellWidth
     implicitHeight: width + (large ? PlayerMetrics.gridCaptionHeightL : PlayerMetrics.gridCaptionHeight)
     radius: Theme.cornerRadiusL
-    color: "transparent"
-    Accessible.name: Phrases.named(item?.title ?? item?.name ?? "", info)
+    color: playing ? Theme.primaryContainer : "transparent"
+    Accessible.name: playing ? Phrases.named(Phrases.named(item?.title ?? item?.name ?? "", info), I18n.tr("Playing", "tile state: the queue plays from this album or playlist")) : Phrases.named(item?.title ?? item?.name ?? "", info)
+
+    Behavior on color {
+        enabled: Theme.animationsEnabled
+        ColorAnimation {
+            duration: Theme.expressiveDurations.expressiveEffects
+        }
+    }
+
     // tracks without an album tag sit under the placeholder "Unknown Album", which isn't a page to open
     onClicked: {
         if (kind !== "track")
@@ -46,7 +56,7 @@ StyledButton {
 
     StateLayer {
         control: root
-        stateColor: Theme.onSurface
+        stateColor: root.playing ? Theme.onPrimaryContainer : Theme.onSurface
         // stays highlighted while its menu is open
         hovered: root.hovered || root.menuOpened
     }
@@ -125,6 +135,25 @@ StyledButton {
             onClicked: root.openMenu(moreButton)
         }
 
+        Rectangle {
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.margins: PlayerMetrics.tileInset
+            width: Theme.buttonHeightXS
+            height: width
+            radius: width / 2
+            color: Theme.primary
+            visible: root.playing && !root.active
+
+            DIcon {
+                anchors.centerIn: parent
+                name: "equalizer"
+                filled: true
+                size: Theme.iconSizeSmall
+                color: Theme.onPrimary
+            }
+        }
+
         DIcon {
             anchors.left: parent.left
             anchors.top: parent.top
@@ -149,7 +178,7 @@ StyledButton {
             text: root.item?.title ?? root.item?.name ?? ""
             font.pixelSize: root.large ? Theme.fontSizeLarge : Theme.fontSizeMedium
             font.weight: Theme.fontWeightMedium
-            color: Theme.surfaceText
+            color: root.playing ? Theme.onPrimaryContainer : Theme.surfaceText
             elide: Text.ElideRight
             wrapMode: Text.NoWrap
             horizontalAlignment: root.kind === "artist" ? Text.AlignHCenter : Text.AlignLeft
@@ -160,7 +189,7 @@ StyledButton {
             visible: root.info !== ""
             text: root.info
             font.pixelSize: root.large ? Theme.fontSizeMedium : Theme.fontSizeSmall
-            color: Theme.surfaceVariantText
+            color: root.playing ? Theme.onPrimaryContainer : Theme.surfaceVariantText
             elide: Text.ElideRight
             wrapMode: Text.NoWrap
             horizontalAlignment: root.kind === "artist" ? Text.AlignHCenter : Text.AlignLeft

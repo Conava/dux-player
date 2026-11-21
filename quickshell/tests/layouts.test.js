@@ -4,7 +4,7 @@ const path = require("path");
 const assert = require("assert");
 
 const source = fs.readFileSync(path.join(__dirname, "../Common/Layouts.js"), "utf8").replace(".pragma library", "");
-const L = new Function(source + "; return { migrate, needsMigration, effective, problems, setSurface, setItem, setPageOptions, setKindDefault, resetKind, pageOptions, savedViewOptions, kindDefault, changedPages, parseImport, cleanSurface, resetAll, resetKindDefault, accepts, keepUnchanged, setNowPlaying, extraTop, columnSort, columnSize, withColumnSizes, sizeName, sizeValue, artColorMode, canAddCustom, sortTemplate, newCustomLine, setOptionsAt };")();
+const L = new Function(source + "; return { typesFor, migrate, needsMigration, effective, problems, setSurface, setItem, setPageOptions, setKindDefault, resetKind, pageOptions, savedViewOptions, kindDefault, changedPages, parseImport, cleanSurface, resetAll, resetKindDefault, accepts, keepUnchanged, setNowPlaying, extraTop, columnSort, columnSize, withColumnSizes, sizeName, sizeValue, artColorMode, canAddCustom, sortTemplate, newCustomLine, setOptionsAt };")();
 
 const types = (list) => list.filter(i => !i.hidden).map(i => i.type);
 const zoneTypes = (eff, id, zone) => types(eff.surfaces[id].zones[zone]);
@@ -1385,6 +1385,22 @@ assert.deepStrictEqual(L.extraTop("junk"), {});
     const r = L.withColumnSizes(o, { "artist": 1, "album": 1, "genre": 0.8 });
     assert.deepStrictEqual(r.lineOptions, { "artist": { "sort": "album" }, "year": { "size": 1.5 }, "genre": { "size": 0.8 } });
     assert.strictEqual(o.lineOptions.album.size, 0.5);
+}
+
+// the Speed dial and Genre chips shelves are known types the Home picker offers, and keep their options
+{
+    for (const type of ["speedDial", "genreChips"]) {
+        assert.ok(L.typesFor("home", "shelves").indexOf(type) >= 0, type);
+    }
+    const eff = L.effective({ "surfaces": { "home": { "zones": { "shelves": [{ "id": "s1", "type": "speedDial", "options": { "size": "l" } }] } } } });
+    assert.deepStrictEqual(eff.surfaces.home.zones.shelves.map(s => [s.type, s.options.size]), [["speedDial", "l"]]);
+}
+
+// Collection tiles is kept only as a boolean
+{
+    const read = v => L.pageOptions(L.effective({ "lists": { "defaults": { "playlists": { "collectionTiles": v } } } }), "playlists", "").collectionTiles;
+    assert.strictEqual(read(true), true);
+    assert.strictEqual(read("yes"), undefined);
 }
 
 // a custom page's own options are checked on load: a bad value is dropped, a good one survives

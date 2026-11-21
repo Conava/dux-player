@@ -18,6 +18,8 @@
 #                    timing: pointer "$(printf 'D\ns 30\nU')"
 #   pointer b | f [MS [DX]]   hold the side button (back) or the extra button (forward) for MS, moving DX halfway
 #   ask NAME ARGS    like ui, but prints the reply: ask route
+#   pref NAME JSON   set an app setting (SettingsData[NAME]) from JSON: ui pref albumLayout '"sideBySide"'
+#   rect OBJECTNAME  ask rect NAME prints "X Y W H enabled" of the first visible item with that objectName, "" when none
 #   click X Y        move and click
 #   frames NAME CMD  run CMD and write the ms between the main window's frames while its moving parts move to out/NAME.frames
 #   rclick X Y       move and right click

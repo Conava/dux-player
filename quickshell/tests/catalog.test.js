@@ -73,6 +73,9 @@ assert.deepStrictEqual(C.navEntries([{"kind": "page", "target": "albums"}], ["ho
 // a stored list from before the Search page gets it appended, hidden
 const upgraded = C.navEntries([{"kind": "page", "target": "home"}], C.pageTargets, ["home"]);
 assert.deepStrictEqual(upgraded.filter(e => e.target === "search").map(e => e.hidden), [true]);
+// the Library entry joins a stored list hidden and isn't in the default navigation
+assert.deepStrictEqual(upgraded.filter(e => e.target === "collection").map(e => e.hidden), [true]);
+assert.ok(C.pageTargets.indexOf("collection") > C.pageTargets.indexOf("artists"));
 // title bars off: Search can't be hidden and Settings closes the list; on, and the stored list is untouched
 const stored = C.navEntries([{"kind": "page", "target": "home"}, {"kind": "page", "target": "search", "hidden": true}], ["home", "search"], ["home"]);
 const shownOf = list => list.filter(e => !e.hidden).map(e => e.kind + ":" + e.target);

@@ -34,6 +34,17 @@ Singleton {
     // a tile's play button at tile sizes Medium and Large, between the S and M button heights
     readonly property real tilePlayButtonSize: (Theme.buttonHeightS + Theme.buttonHeightM) / 2
     readonly property real shelfArtSize: 152
+    // M3 title-large
+    readonly property int shelfTitleSize: Math.round(Theme.fontScale * 22)
+    // a shelf at least this wide shows its scroll arrows when it overflows
+    readonly property real shelfArrowsMinWidth: 640
+    // the page header's cover tint: its opacity at the top, fading to nothing over this height
+    readonly property real pageTintAlpha: 0.32
+    readonly property real pageTintHeight: 360
+    // Side by side applies to pages at least this wide; the cover card takes this share beside the tracks
+    readonly property real albumSideBySideMinWidth: 960
+    readonly property real albumPaneRatio: 1 / 2.7
+    readonly property real speedDialMinTileWidth: 192
     readonly property int shelfLimit: 12
     // a Home list shelf set to Auto columns splits into columns at least this wide
     readonly property int listColumnMinWidth: 480

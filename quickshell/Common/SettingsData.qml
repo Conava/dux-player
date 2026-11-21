@@ -57,6 +57,12 @@ Singleton {
     property alias undoToast: settingsAdapter.undoToast
     // "auto" (rail when wide, bar when narrow) | "rail" | "railLabels" | "bar"
     property alias navStyle: settingsAdapter.navStyle
+    // "tint" | "plain": the album, artist and playlist page header
+    property alias pageHeader: settingsAdapter.pageHeader
+    // "stacked" | "sideBySide": the album page
+    property alias albumLayout: settingsAdapter.albumLayout
+    // a letter strip beside pages sorted by name
+    property alias letterIndex: settingsAdapter.letterIndex
     // {searchPage, searchAll}: key sequences in Qt's portable text ("Ctrl+Shift+F"); missing ones use the defaults
     property alias shortcuts: settingsAdapter.shortcuts
     // colors from the current album art override the palette: in now playing, or in the whole app
@@ -65,6 +71,10 @@ Singleton {
     // ui-state.json: the full view's last pane ("lyrics" | "queue" | "") and the side panel's last tab
     property alias lastPane: stateAdapter.lastPane
     property alias sideTab: stateAdapter.sideTab
+    // the wide rail shows labels while Navigation is Automatic
+    property alias autoRailLabels: stateAdapter.autoRailLabels
+    // the Library entry's last tab: "albums" | "artists" | "tracks" | "genres"
+    property alias libraryTab: stateAdapter.libraryTab
 
     function flush() {
         if (stateDebounce.running) {
@@ -219,6 +229,9 @@ Singleton {
             property var lyricsDisplay: ({})
             property var undoToast: ({})
             property string navStyle: "auto"
+            property string pageHeader: "tint"
+            property string albumLayout: "stacked"
+            property bool letterIndex: false
             property var shortcuts: ({})
             property bool trackTileOpensAlbum: false
             property string artColorMode: "off"
@@ -277,6 +290,8 @@ Singleton {
             id: stateAdapter
             property string lastPane: ""
             property string sideTab: "cover"
+            property bool autoRailLabels: false
+            property string libraryTab: "albums"
         }
     }
 }

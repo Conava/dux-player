@@ -37,7 +37,7 @@ function dict(o) {
     return Object.assign(Object.create(null), o);
 }
 
-const shelfTypes = ["search", "continue", "favoriteTracks", "playlists", "recentTracks", "mostPlayed", "recentlyPlayed", "recentlyAdded", "randomAlbums", "favoriteAlbums", "playlist", "genre", "library", "view", "artist"];
+const shelfTypes = ["search", "continue", "favoriteTracks", "playlists", "recentTracks", "mostPlayed", "recentlyPlayed", "recentlyAdded", "randomAlbums", "favoriteAlbums", "speedDial", "genreChips", "playlist", "genre", "library", "view", "artist"];
 
 function zone(id, kind, overflows) {
     return {
@@ -962,6 +962,7 @@ function cleanListOptions(kind, stored) {
         case "descending":
         case "shuffleButton":
         case "ranked":
+        case "collectionTiles":
             if (typeof v === "boolean")
                 out[key] = v;
             break;
