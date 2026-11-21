@@ -239,10 +239,12 @@ Singleton {
     readonly property real floatingRingSize: Theme.buttonHeightM
     readonly property real floatingRingWidth: 3
     readonly property real floatingArtSize: floatingRingSize - Theme.spacingS
-    // the blurred cover behind the full view: decode size, MultiEffect blurMax and the surface scrim's opacity
+    // the blurred cover behind the full view: decode size, MultiEffect blurMax and the surface scrim's opacity, which
+    // rises from the first to the second as the cover's lightness departs from the surface's (text reads on the surface)
     readonly property int fullBlurSourceSize: 128
     readonly property int fullBlurMax: 64
     readonly property real fullBlurScrimAlpha: 0.45
+    readonly property real fullBlurScrimAlphaMax: 0.85
     // blur of one step for a lyric line away from the current one, as a share of lyricsBlurMax (1.5 px of 32)
     readonly property int lyricsBlurMax: 32
     readonly property real lyricsBlurStep: 1.5 / lyricsBlurMax

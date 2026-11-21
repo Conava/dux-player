@@ -38,6 +38,13 @@ Rectangle {
             event.accepted = false;
     }
 
+    // the blurred cover at the back, only while Full view background is on
+    Loader {
+        anchors.fill: parent
+        active: UiConfig.fullBackgroundBlur
+        sourceComponent: FullViewBackground {}
+    }
+
     // swallows clicks so the pages underneath stay inert
     MouseArea {
         anchors.fill: parent

@@ -639,6 +639,11 @@ Item {
             header: Header {
                 width: list.width
             }
+            // a footer, not bottomMargin: the view's wheel stops at the content's end and never reaches a margin
+            footer: Item {
+                width: list.width
+                height: Router.pageEndInset
+            }
             section.property: root.groupNames.length > 0 ? "group" : ""
             section.delegate: StyledText {
                 required property string section
@@ -689,6 +694,10 @@ Item {
             header: Header {
                 width: grid.width
             }
+            footer: Item {
+                width: grid.width
+                height: Router.pageEndInset
+            }
 
             delegate: MediaTile {
                 required property int index
@@ -727,7 +736,7 @@ Item {
         visible: root.isPlaylists && !root.editing
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: Theme.spacingL
+        anchors.bottomMargin: Theme.spacingL + Router.pageEndInset
         text: I18n.tr("New playlist", "action and dialog that create a playlist")
         iconName: "add"
         onClicked: newPlaylist.show()

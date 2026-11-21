@@ -260,7 +260,7 @@ Item {
         anchors.rightMargin: PlayerMetrics.pagePadding
         visible: root.reordering
         contentWidth: width
-        contentHeight: reorderColumn.height + PlayerMetrics.pagePadding
+        contentHeight: reorderColumn.height + PlayerMetrics.pagePadding + Router.pageEndInset
         clip: true
 
         Column {

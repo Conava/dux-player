@@ -131,7 +131,7 @@ Item {
         visible: active
 
         sourceComponent: Rectangle {
-            readonly property real paneHeight: root.height - fixedHeader.height - PlayerMetrics.pagePadding
+            readonly property real paneHeight: root.height - fixedHeader.height - PlayerMetrics.pagePadding - Router.pageEndInset
             height: Math.min(cardHero.height + Theme.spacingXL * 2, paneHeight)
             color: Theme.surfaceContainerHigh
             radius: Theme.cornerRadiusXL

@@ -23,7 +23,7 @@ Item {
     readonly property var starts: ["bar", "side", "full"]
     // the Lyrics option is left out while lyrics are off
     readonly property var openPanes: UiConfig.lyricsOn ? ["last", "lyrics", "queue", "cover"] : ["last", "queue", "cover"]
-    readonly property var playerLooks: ["card", "attached"]
+    readonly property var playerLooks: ["card", "attached", "floating"]
     readonly property var paneLooks: ["player", "card", "attached"]
     readonly property bool twoColumns: overview.width >= SettingsMetrics.overviewTwoColumnWidth
 
@@ -93,7 +93,10 @@ Item {
             "barStyle": "bento",
             "sideStyle": "bento",
             "playerLook": "card",
-            "paneLook": "player"
+            "paneLook": "player",
+            "paneTabs": true,
+            "queueHeader": true,
+            "background": "plain"
         });
     }
 
@@ -117,8 +120,9 @@ Item {
 
             SettingsButtonGroupRow {
                 text: I18n.tr("Player look", "now playing setting")
-                keywords: "bar bottom side panel lyrics queue pane flat background"
-                model: [I18n.tr("Card", "player look option"), I18n.tr("Attached", "player look option")]
+                keywords: "bar bottom side panel lyrics queue pane flat background floating pill mini ring"
+                description: I18n.tr("Floating applies to the bottom bar.", "player look description")
+                model: [I18n.tr("Card", "player look option"), I18n.tr("Attached", "player look option"), I18n.tr("Floating", "player look option")]
                 currentIndex: root.playerLooks.indexOf(UiConfig.nowPlaying.playerLook)
                 onSelectionChanged: (index, selected) => {
                     if (selected)
@@ -141,8 +145,23 @@ Item {
                 }
             }
 
+            SettingsToggleRow {
+                text: I18n.tr("Queue header", "now playing setting")
+                description: I18n.tr("Playing from and the continue switch.", "now playing setting description")
+                keywords: "playing from continue similar clear up next"
+                checked: UiConfig.queueHeaderOn
+                onToggled: value => UiConfig.setNowPlaying({
+                        "queueHeader": value
+                    })
+            }
+        }
+
+        SettingsCard {
+            title: I18n.tr("Full view", "now playing settings section: the full view's options")
+
             SettingsButtonGroupRow {
-                text: I18n.tr("Full view opens with", "now playing setting")
+                text: I18n.tr("Opens with", "now playing setting")
+                keywords: "full view pane lyrics queue"
                 model: root.openPanes.map(p => ({
                             "last": I18n.tr("Last used", "full view opens with: the pane used last"),
                             "lyrics": I18n.tr("Lyrics", "song lyrics: page, toggle, settings tab"),
@@ -160,8 +179,30 @@ Item {
             }
 
             SettingsToggleRow {
-                text: I18n.tr("Top bar in full view", "now playing setting")
-                keywords: "header title bar window buttons drag handle"
+                text: I18n.tr("Lyrics and queue tabs", "now playing setting")
+                keywords: "full view tabs switch pane card"
+                checked: UiConfig.paneTabsOn
+                onToggled: value => UiConfig.setNowPlaying({
+                        "paneTabs": value
+                    })
+            }
+
+            SettingsButtonGroupRow {
+                text: I18n.tr("Background", "now playing setting")
+                keywords: "full view blur cover backdrop"
+                model: [I18n.tr("Plain", "full view background option"), I18n.tr("Blurred cover", "full view background option")]
+                currentIndex: UiConfig.fullBackgroundBlur ? 1 : 0
+                onSelectionChanged: (index, selected) => {
+                    if (selected)
+                        UiConfig.setNowPlaying({
+                            "background": index === 1 ? "blur" : "plain"
+                        });
+                }
+            }
+
+            SettingsToggleRow {
+                text: I18n.tr("Top bar", "now playing setting")
+                keywords: "full view header title bar window buttons drag handle"
                 checked: SettingsData.fullViewTopBar
                 onToggled: value => SettingsData.fullViewTopBar = value
             }

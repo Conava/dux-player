@@ -1,4 +1,4 @@
-# The full view has no top bar, only a handle that moves the window; the "Top bar in full view" setting brings the
+# The full view has no top bar, only a handle that moves the window; the "Top bar" setting brings the
 # bar back and removes the handle. With title bars off the header is gone everywhere: the handle sits above every page,
 # Search and Settings are navigation entries (a rail shows them as its FAB and at its bottom), and Search in header is
 # greyed out. Shots of every state go to out/; fails when a drag sends no move request or an entry is missing.

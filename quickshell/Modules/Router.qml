@@ -220,6 +220,26 @@ Singleton {
         go(kind, item.id);
     }
 
+    // the page a play context (what the queue plays from) stands for; closes the full view like any page change
+    function openContext(context) {
+        switch (context?.type) {
+        case "album":
+        case "playlist":
+        case "artist":
+        case "genre":
+        case "library":
+        case "view":
+            go(context.type, context.id);
+            return;
+        case "tracks":
+        case "favorites":
+        case "history":
+        case "search":
+            go(context.type);
+            return;
+        }
+    }
+
     // closes the full view first, then steps back through the pages. Closing it leaves a step in the forward history
     // that opens it again over this page.
     function back() {

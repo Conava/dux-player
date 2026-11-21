@@ -48,7 +48,7 @@ Item {
     property bool ranked: false
     // a click plays that track alone, not the list from there
     property bool playsOne: false
-    property real bottomInset: 0
+    property real bottomInset: Router.pageEndInset
     // room kept free at the row end (a letter index); the header slot keeps the full width
     property real endInset: 0
 
@@ -248,7 +248,7 @@ Item {
         clip: true
         reuseItems: true
         spacing: Theme.groupedListGap
-        bottomMargin: PlayerMetrics.pagePadding + root.bottomInset + (root.selecting ? selectionBar.height + Theme.spacingL : 0)
+        bottomMargin: PlayerMetrics.pagePadding + (root.selecting ? selectionBar.height + Theme.spacingL : 0)
         // not the array: Qt copies an array model item by item (a quarter second at 100k tracks), and a re-sorted
         // list of the same length keeps its rows
         model: RowModel {
@@ -264,9 +264,19 @@ Item {
             if (atYEnd && count > 0)
                 root.endReached();
         }
-        footer: Loader {
+        // a footer, not bottomMargin: the view's wheel stops at the content's end and never reaches a margin
+        footer: Column {
             width: list.width
-            sourceComponent: root.footer
+
+            Loader {
+                width: parent.width
+                sourceComponent: root.footer
+            }
+
+            Item {
+                width: parent.width
+                height: root.bottomInset
+            }
         }
         header: Column {
             width: list.width

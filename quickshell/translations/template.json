@@ -371,6 +371,13 @@
     "comment": ""
   },
   {
+    "term": "%1 up next",
+    "translation": "",
+    "context": "queue: tracks after the current one",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "%1 · %2",
     "translation": "",
     "context": "lyrics source and its timing | two facts joined by a dot",
@@ -521,6 +528,13 @@
     "term": "1 track",
     "translation": "",
     "context": "track count, singular",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "1 up next",
+    "translation": "",
+    "context": "queue: one track after the current one",
     "reference": "",
     "comment": ""
   },
@@ -1269,7 +1283,7 @@
   {
     "term": "Background",
     "translation": "",
-    "context": "general settings section label",
+    "context": "general settings section label | now playing setting",
     "reference": "",
     "comment": ""
   },
@@ -1382,6 +1396,20 @@
     "term": "Blur behind menus",
     "translation": "",
     "context": "appearance setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Blur other lines",
+    "translation": "",
+    "context": "lyrics setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Blurred cover",
+    "translation": "",
+    "context": "full view background option",
     "reference": "",
     "comment": ""
   },
@@ -3318,6 +3346,20 @@
     "comment": ""
   },
   {
+    "term": "Floating",
+    "translation": "",
+    "context": "player look option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Floating applies to the bottom bar.",
+    "translation": "",
+    "context": "player look description",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Floating windows",
     "translation": "",
     "context": "general setting",
@@ -3474,14 +3516,7 @@
   {
     "term": "Full view",
     "translation": "",
-    "context": "now playing placement option | now playing start option",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Full view opens with",
-    "translation": "",
-    "context": "now playing setting",
+    "context": "now playing placement option | now playing settings section: the full view's options | now playing start option",
     "reference": "",
     "comment": ""
   },
@@ -4389,6 +4424,13 @@
     "comment": ""
   },
   {
+    "term": "Lyrics and queue tabs",
+    "translation": "",
+    "context": "now playing setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Lyrics file",
     "translation": "",
     "context": "lyrics source: a file next to the track",
@@ -5257,6 +5299,13 @@
     "comment": ""
   },
   {
+    "term": "Opens with",
+    "translation": "",
+    "context": "now playing setting",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Orange",
     "translation": "",
     "context": "color palette name",
@@ -5441,7 +5490,7 @@
   {
     "term": "Plain",
     "translation": "",
-    "context": "page header option",
+    "context": "full view background option | page header option",
     "reference": "",
     "comment": ""
   },
@@ -5575,6 +5624,13 @@
     "term": "Playing from",
     "translation": "",
     "context": "now playing: label before where the queue came from",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Playing from and the continue switch.",
+    "translation": "",
+    "context": "now playing setting description",
     "reference": "",
     "comment": ""
   },
@@ -5792,6 +5848,13 @@
     "term": "Queue",
     "translation": "",
     "context": "the play queue: panel, toggle",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Queue header",
+    "translation": "",
+    "context": "now playing setting",
     "reference": "",
     "comment": ""
   },
@@ -6902,6 +6965,13 @@
     "comment": ""
   },
   {
+    "term": "Show label",
+    "translation": "",
+    "context": "element option: Play or Pause written beside the play button's icon",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Show labels",
     "translation": "",
     "context": "rail menu button",
@@ -7938,7 +8008,7 @@
     "comment": ""
   },
   {
-    "term": "Top bar in full view",
+    "term": "Top bar",
     "translation": "",
     "context": "now playing setting",
     "reference": "",

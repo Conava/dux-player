@@ -84,6 +84,15 @@ SettingsPage {
         }
 
         SettingsToggleRow {
+            text: I18n.tr("Blur other lines", "lyrics setting")
+            keywords: "focus current line"
+            checked: UiConfig.lyricsBlurLines
+            onToggled: value => UiConfig.setLyricsDisplay({
+                    "blurLines": value
+                })
+        }
+
+        SettingsToggleRow {
             text: I18n.tr("Background vocals", "lyrics setting")
             checked: UiConfig.lyricsBackgroundVocals
             onToggled: value => UiConfig.setLyricsDisplay({

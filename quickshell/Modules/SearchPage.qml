@@ -150,7 +150,7 @@ Item {
         anchors.top: editorLoader.bottom
         anchors.bottom: parent.bottom
         anchors.topMargin: Theme.spacingL
-        contentHeight: column.height + PlayerMetrics.pagePadding + (root.selecting ? selectionBar.height + Theme.spacingL : 0)
+        contentHeight: column.height + PlayerMetrics.pagePadding + Router.pageEndInset + (root.selecting ? selectionBar.height + Theme.spacingL : 0)
         contentWidth: width
         clip: true
         // a square edge fade would paint over the pane's rounded corners
@@ -354,7 +354,7 @@ Item {
         id: selectionBar
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: Theme.spacingL
+        anchors.bottomMargin: Theme.spacingL + Router.pageEndInset
         width: Math.min(implicitWidth, parent.width - Theme.spacingL * 2)
         visible: root.selecting
         tracks: root.selectedTracks

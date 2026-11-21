@@ -24,7 +24,7 @@ Rectangle {
     // the width the right zone may take: the rest once the other zones are at their smallest
     readonly property real rightRoom: width - Theme.spacingM * 2 - Theme.spacingL * 2 - (leftZone.implicitWidth - leftZone.shrinkable) - centerLeast
 
-    implicitHeight: Math.max(PlayerMetrics.barHeight, layout.implicitHeight + Theme.spacingS * 2)
+    implicitHeight: Math.max(PlayerMetrics.barHeight, body.implicitHeight + Theme.spacingS * 2)
     // attached: no card, the bar sits on the window surface like the navigation rail
     radius: attached ? 0 : PlayerMetrics.paneRadius
     color: attached ? "transparent" : artScheme?.surfaceContainer ?? SettingsMetrics.paneColor
@@ -76,114 +76,136 @@ Rectangle {
         }
     }
 
-    RowLayout {
-        id: layout
+    ColumnLayout {
+        id: body
         anchors.fill: parent
         anchors.leftMargin: Theme.spacingM
         anchors.rightMargin: Theme.spacingM
-        spacing: Theme.spacingL
+        spacing: Theme.spacingS
 
-        // a non-filling item keeps its preferred width in a layout, so the zone fills up to that and no further
-        NowPlayingZone {
-            id: leftZone
-            Layout.fillWidth: true
-            Layout.maximumWidth: Math.min(implicitWidth, Math.max(Layout.minimumWidth, (root.width - (!root.compact && rightZone.populated ? rightZone.implicitWidth : 0)) * PlayerMetrics.barLeftShare))
-            Layout.minimumWidth: implicitWidth - shrinkable
-            instances: root.zones.left
-            opensView: true
+        // the bar's full width above its row; takes no height while empty or in a compact window
+        NowPlayingLine {
+            id: lineAcross
+            objectName: "barAcross"
+            Layout.fillWidth: spreads
+            Layout.preferredWidth: fitWidth
+            Layout.minimumWidth: leastWidth
+            Layout.alignment: Qt.AlignHCenter
+            available: body.width
+            instances: root.zones.across
+            visible: populated && !root.compact
         }
 
-        ColumnLayout {
-            id: center
+        RowLayout {
+            id: layout
             Layout.fillWidth: true
-            Layout.minimumWidth: root.centerLeast
-            // not from the lines: they follow this column's width, and it would follow them
-            Layout.preferredWidth: Math.max(seekZone.implicitWidth, controlsZone.implicitWidth)
-            Layout.alignment: Qt.AlignVCenter
-            visible: !root.compact
-            spacing: Theme.spacingS
+            Layout.fillHeight: true
+            spacing: Theme.spacingL
 
-            // each zone states its least width: a column takes the widest minimum of its children, whatever its own size
-            NowPlayingLine {
-                id: lineAbove
-                Layout.fillWidth: spreads
-                Layout.preferredWidth: fitWidth
-                Layout.minimumWidth: leastWidth
-                Layout.alignment: Qt.AlignHCenter
-                available: center.width
-                instances: root.zones.seekAbove
-                centered: true
-            }
-
+            // a non-filling item keeps its preferred width in a layout, so the zone fills up to that and no further
             NowPlayingZone {
-                id: seekZone
+                id: leftZone
                 Layout.fillWidth: true
-                Layout.minimumWidth: leastWidth
-                instances: root.zones.seek
-                room: center.width
-                keepMoves: true
-            }
-
-            NowPlayingLine {
-                id: lineBelow
-                Layout.fillWidth: spreads
-                Layout.preferredWidth: fitWidth
-                Layout.minimumWidth: leastWidth
-                Layout.alignment: Qt.AlignHCenter
-                available: center.width
-                instances: root.zones.seekBelow
-                centered: true
-            }
-
-            NowPlayingZone {
-                id: controlsZone
-                Layout.alignment: Qt.AlignHCenter
+                Layout.maximumWidth: Math.min(implicitWidth, Math.max(Layout.minimumWidth, (root.width - (!root.compact && rightZone.populated ? rightZone.implicitWidth : 0)) * PlayerMetrics.barLeftShare))
                 Layout.minimumWidth: implicitWidth - shrinkable
-                instances: root.zones.controls
-                size: "m"
-                look: root.transportLook
-                transportOnly: true
+                instances: root.zones.left
+                opensView: true
             }
-        }
 
-        // no room for the seek line: the progress stays as a line above the core transport
-        ColumnLayout {
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignVCenter
-            visible: root.compact
-            spacing: Theme.spacingS
-
-            MediaSeekbar {
+            ColumnLayout {
+                id: center
                 Layout.fillWidth: true
-                interactive: false
-                flat: root.transportLook === "m3e"
-                expressive: !flat
-                thin: true
+                Layout.minimumWidth: root.centerLeast
+                // a column's own maximum is its children's: with the seek zone empty it would stop at the transport
+                Layout.maximumWidth: Number.POSITIVE_INFINITY
+                // not from the lines: they follow this column's width, and it would follow them
+                Layout.preferredWidth: Math.max(seekZone.implicitWidth, controlsZone.implicitWidth)
+                Layout.alignment: Qt.AlignVCenter
+                visible: !root.compact
+                spacing: Theme.spacingS
+
+                // each zone states its least width: a column takes the widest minimum of its children, whatever its own size
+                NowPlayingLine {
+                    id: lineAbove
+                    Layout.fillWidth: spreads
+                    Layout.preferredWidth: fitWidth
+                    Layout.minimumWidth: leastWidth
+                    Layout.alignment: Qt.AlignHCenter
+                    available: center.width
+                    instances: root.zones.seekAbove
+                    centered: true
+                }
+
+                NowPlayingZone {
+                    id: seekZone
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: leastWidth
+                    instances: root.zones.seek
+                    room: center.width
+                    keepMoves: true
+                }
+
+                NowPlayingLine {
+                    id: lineBelow
+                    Layout.fillWidth: spreads
+                    Layout.preferredWidth: fitWidth
+                    Layout.minimumWidth: leastWidth
+                    Layout.alignment: Qt.AlignHCenter
+                    available: center.width
+                    instances: root.zones.seekBelow
+                    centered: true
+                }
+
+                NowPlayingZone {
+                    id: controlsZone
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.minimumWidth: implicitWidth - shrinkable
+                    instances: root.zones.controls
+                    size: "m"
+                    look: root.transportLook
+                    transportOnly: true
+                }
+            }
+
+            // no room for the seek line: the progress stays as a line above the core transport
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                visible: root.compact
+                spacing: Theme.spacingS
+
+                MediaSeekbar {
+                    Layout.fillWidth: true
+                    interactive: false
+                    flat: root.transportLook === "m3e"
+                    expressive: !flat
+                    thin: true
+                }
+
+                NowPlayingZone {
+                    Layout.alignment: Qt.AlignHCenter
+                    instances: ["previous", "playPause", "next"].map(type => ({
+                                "id": type.toLowerCase(),
+                                "type": type,
+                                "hidden": false,
+                                "placement": "keep",
+                                "options": {}
+                            }))
+                    size: "m"
+                    look: root.transportLook
+                }
             }
 
             NowPlayingZone {
-                Layout.alignment: Qt.AlignHCenter
-                instances: ["previous", "playPause", "next"].map(type => ({
-                            "id": type.toLowerCase(),
-                            "type": type,
-                            "hidden": false,
-                            "placement": "keep",
-                            "options": {}
-                        }))
-                size: "m"
-                look: root.transportLook
+                id: rightZone
+                Layout.fillWidth: false
+                keepMoves: root.rightRoom < rightZone.naturalWidth(rightZone.size, true)
+                visible: !root.compact && rightZone.populated
+                Layout.maximumWidth: Math.max(0, root.rightRoom)
+                Layout.minimumWidth: Math.min(implicitWidth - shrinkable, Layout.maximumWidth)
+                instances: root.zones.right
+                room: Math.max(0, root.rightRoom)
             }
-        }
-
-        NowPlayingZone {
-            id: rightZone
-            Layout.fillWidth: false
-            keepMoves: root.rightRoom < rightZone.naturalWidth(rightZone.size, true)
-            visible: !root.compact && rightZone.populated
-            Layout.maximumWidth: Math.max(0, root.rightRoom)
-            Layout.minimumWidth: Math.min(implicitWidth - shrinkable, Layout.maximumWidth)
-            instances: root.zones.right
-            room: Math.max(0, root.rightRoom)
         }
     }
 }

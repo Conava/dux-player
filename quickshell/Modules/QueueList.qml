@@ -16,6 +16,13 @@ Item {
     // one frame at 60 Hz
     readonly property int autoScrollInterval: 16
     readonly property var items: PlayerService.queue
+    // where the queue plays from, a link while the header shows
+    readonly property string sourceLabel: PlayerService.playContext?.type ? UiConfig.contextLabel(PlayerService.playContext) : ""
+    readonly property int upNext: Math.max(0, items.length - 1 - PlayerService.queueIndex)
+    readonly property bool headerShown: UiConfig.queueHeaderOn && !selecting && !editing
+    // the full view's tabs, loaded at the start of the heading row in place of the title
+    property Component leading: null
+    readonly property bool hasLeading: leading !== null
     readonly property real remaining: Math.max(0, PlayerService.queueLeft - PlayerService.position)
     // the qids in the rows' order; during a drag the rows move ahead of the daemon's queue
     property var shown: []
@@ -222,43 +229,147 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.margins: Theme.spacingL
-        height: Math.max(titleColumn.implicitHeight, actions.implicitHeight)
+        height: body.implicitHeight
 
         Column {
-            id: titleColumn
-            anchors.left: parent.left
-            anchors.right: actions.left
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Theme.spacingXXS
+            id: body
+            width: parent.width
+            spacing: Theme.spacingXS
 
-            StyledText {
+            Item {
+                id: titleRow
                 width: parent.width
-                text: root.selecting ? Phrases.selected(root.selectedIndexes.length) : I18n.tr("Queue", "the play queue: panel, toggle")
-                font.pixelSize: Theme.fontSizeXLarge
-                color: Theme.surfaceText
-                elide: Text.ElideRight
-                horizontalAlignment: Text.AlignLeft
+                visible: !root.headerShown || root.hasLeading
+                height: Math.max(titleColumn.implicitHeight, actionsInTitleRow ? actions.implicitHeight : 0)
+
+                Column {
+                    id: titleColumn
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.rightMargin: titleRow.actionsInTitleRow ? actions.width + Theme.spacingXS : 0
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.spacingXXS
+
+                    Loader {
+                        width: parent.width
+                        active: root.hasLeading && !root.selecting
+                        visible: active
+                        sourceComponent: root.leading
+                    }
+
+                    StyledText {
+                        width: parent.width
+                        visible: !root.hasLeading || root.selecting
+                        text: root.selecting ? Phrases.selected(root.selectedIndexes.length) : I18n.tr("Queue", "the play queue: panel, toggle")
+                        font.pixelSize: Theme.fontSizeXLarge
+                        color: Theme.surfaceText
+                        elide: Text.ElideRight
+                        horizontalAlignment: Text.AlignLeft
+                    }
+
+                    StyledText {
+                        width: parent.width
+                        visible: !root.headerShown
+                        text: Phrases.join(Phrases.tracks(root.items.length), I18n.tr("%1 left", "time left in the queue, %1 is a duration").arg(Format.duration(root.remaining)))
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.surfaceVariantText
+                        elide: Text.ElideRight
+                        horizontalAlignment: Text.AlignLeft
+                    }
+                }
+
+                // the actions share this row with the tabs, else the count line's
+                readonly property bool actionsInTitleRow: !root.headerShown || root.hasLeading
             }
 
-            StyledText {
+            Column {
                 width: parent.width
-                text: Phrases.join(Phrases.tracks(root.items.length), I18n.tr("%1 left", "time left in the queue, %1 is a duration").arg(Format.duration(root.remaining)))
-                font.pixelSize: Theme.fontSizeSmall
-                color: Theme.surfaceVariantText
-                elide: Text.ElideRight
-                horizontalAlignment: Text.AlignLeft
+                visible: root.headerShown && root.sourceLabel !== ""
+
+                StyledText {
+                    width: parent.width
+                    text: I18n.tr("Playing from", "now playing: label before where the queue came from")
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                    elide: Text.ElideRight
+                    horizontalAlignment: Text.AlignLeft
+                }
+
+                LinkText {
+                    width: parent.width
+                    text: root.sourceLabel
+                    Accessible.name: I18n.tr("Playing from", "now playing: label before where the queue came from") + " " + text
+                    onActivated: Router.openContext(PlayerService.playContext)
+                    color: Theme.surfaceText
+                    font.pixelSize: Theme.fontSizeMedium
+                    font.weight: Theme.fontWeightMedium
+                    horizontalAlignment: Text.AlignLeft
+                }
+            }
+
+            // the switch keeps its own inset; reaching out by it lines its label up with the header text
+            Item {
+                width: parent.width
+                visible: root.headerShown && PlayerService.continueKnown
+                height: continueSwitch.height
+
+                DToggle {
+                    id: continueSwitch
+                    objectName: "continueSwitch"
+                    anchors.left: parent.left
+                    anchors.leftMargin: -Theme.spacingM
+                    anchors.right: parent.right
+                    text: I18n.tr("Continue with similar tracks", "queue end button that keeps filling the queue")
+                    checked: PlayerService.continuing
+                    enabled: root.items.length > 0
+                    onToggled: value => PlayerService.setContinuing(value)
+                }
+            }
+
+            Item {
+                id: countRow
+                width: parent.width
+                visible: root.headerShown
+                height: Math.max(countText.implicitHeight, clearText.implicitHeight, titleRow.actionsInTitleRow ? 0 : actions.implicitHeight)
+
+                StyledText {
+                    id: countText
+                    anchors.left: parent.left
+                    anchors.right: clearText.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Phrases.join(Phrases.upNext(root.upNext), I18n.tr("%1 left", "time left in the queue, %1 is a duration").arg(Format.duration(root.remaining)))
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                    elide: Text.ElideRight
+                    horizontalAlignment: Text.AlignLeft
+                }
+
+                DButton {
+                    id: clearText
+                    objectName: "queueClear"
+                    anchors.right: parent.right
+                    anchors.rightMargin: titleRow.actionsInTitleRow ? 0 : actions.width + Theme.spacingXS
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: I18n.tr("Clear", "button that empties a list")
+                    buttonHeight: Theme.buttonHeightXS
+                    backgroundColor: "transparent"
+                    textColor: Theme.primary
+                    enabled: root.items.length > 1
+                    onClicked: PlayerService.queueClear()
+                }
             }
         }
 
         Row {
             id: actions
             anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
+            y: titleRow.actionsInTitleRow ? titleRow.y + (titleRow.height - height) / 2 : body.y + countRow.y + (countRow.height - height) / 2
             spacing: Theme.spacingXS
 
             DButton {
                 anchors.verticalCenter: parent.verticalCenter
-                visible: !root.selecting && !root.editing
+                visible: !root.selecting && !root.editing && !root.headerShown
+                objectName: "queueClear"
                 text: I18n.tr("Clear", "button that empties a list")
                 buttonHeight: Theme.buttonHeightXS
                 backgroundColor: Theme.secondaryContainer
@@ -386,7 +497,7 @@ Item {
                 id: continueButton
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
-                visible: PlayerService.continueKnown && !PlayerService.continuing && root.items.length > 0
+                visible: !UiConfig.queueHeaderOn && PlayerService.continueKnown && !PlayerService.continuing && root.items.length > 0
                 text: I18n.tr("Continue with similar tracks", "queue end button that keeps filling the queue")
                 iconName: "all_inclusive"
                 backgroundColor: Theme.secondaryContainer

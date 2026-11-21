@@ -65,7 +65,7 @@ Item {
             view: flick
         }
         anchors.fill: parent
-        contentHeight: column.height + PlayerMetrics.pagePadding
+        contentHeight: column.height + PlayerMetrics.pagePadding + Router.pageEndInset
         contentWidth: width
         clip: true
         // a square edge fade would paint over the pane's rounded corners

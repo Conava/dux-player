@@ -37,6 +37,10 @@ Singleton {
         return n === 1 ? I18n.tr("1 track", "track count, singular") : I18n.tr("%1 tracks", "track count, plural").arg(n);
     }
 
+    function upNext(n) {
+        return n === 1 ? I18n.tr("1 up next", "queue: one track after the current one") : I18n.tr("%1 up next", "queue: tracks after the current one").arg(n);
+    }
+
     function albums(n) {
         return n === 1 ? I18n.tr("1 album", "album count, singular") : I18n.tr("%1 albums", "album count, plural").arg(n);
     }

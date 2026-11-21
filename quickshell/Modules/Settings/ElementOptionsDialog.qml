@@ -47,6 +47,8 @@ WindowDialog {
             return I18n.tr("Smooth highlight", "element option: the sung lyric fills gradually instead of word by word");
         case "hideInLyrics":
             return I18n.tr("Hide while lyrics are open", "element option: the lyric line goes while the lyrics pane shows");
+        case "label":
+            return I18n.tr("Show label", "element option: Play or Pause written beside the play button's icon");
         case "adaptive":
             return I18n.tr("Adaptive width", "element option: the track info fits the title instead of keeping a fixed width");
         }

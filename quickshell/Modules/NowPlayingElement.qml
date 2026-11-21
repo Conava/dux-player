@@ -90,7 +90,7 @@ Loader {
     readonly property bool fillsWidth: elementId === "seekbar" || elementId === "lyricLine" || fills || elementId === "spacer" && options.size === "fill"
     // a sliding transport button asks its row for its width, since a Loader overwrites the item's own
     readonly property real preferredWidth: elementId === "lyricLine" ? PlayerMetrics.barInfoWidths[options.width ?? "m"] : fills ? Theme.minimumTouchTargetSize * liveWeight : slides && springy ? springy.baseWidth + springy.shift : -1
-    readonly property real minimumWidth: elementId === "seekbar" ? PlayerMetrics.barSeekMinWidth : elementId === "lyricLine" ? 0 : fills ? Theme.iconSizeMedium + Theme.spacingXS * 2 : -1
+    readonly property real minimumWidth: elementId === "seekbar" ? PlayerMetrics.barSeekMinWidth : elementId === "lyricLine" ? 0 : fills ? Math.max(Theme.iconSizeMedium + Theme.spacingXS * 2, springy?.contentMinWidth ?? 0) : -1
     // the zone decides (NowPlayingZone.shows): a cast target only while casting, an album only when there is one
     property bool shown: true
     // the row's width, for the device chip's share of it
@@ -144,7 +144,11 @@ Loader {
     component Springy: DIconButton {
         id: springy
         readonly property real targetWeight: root.weight * (pressed ? PlayerMetrics.mediaTransportPressScale : 1)
-        readonly property real baseWidth: root.grouped ? root.groupWidth : root.look === "transport" && !root.fills ? Math.round(buttonSize * root.weight) : iconSize + horizontalInset * 2
+        // a play button with its label sets these: the content's width, which the button never goes below
+        property real contentWidth: iconSize
+        property bool labelled: false
+        readonly property real contentMinWidth: labelled ? contentWidth + horizontalInset * 2 : 0
+        readonly property real baseWidth: Math.max(contentMinWidth, root.grouped ? root.groupWidth : root.look === "transport" && !root.fills ? Math.round(buttonSize * root.weight) : iconSize + horizontalInset * 2)
         // the width the press gives or takes; it eases, the zone's total stays put
         property real shift: root.slides ? root.widthShift : 0
         // Bento's buttons outside a filled row: round, play wider
@@ -714,7 +718,16 @@ Loader {
     Component {
         id: playPause
         Springy {
+            id: playButton
+            objectName: "playPause"
             readonly property bool bento: root.look === "transport"
+            readonly property bool withLabel: root.options.label === true
+            readonly property string stateLabel: PlayerService.playing ? I18n.tr("Pause", "transport button") : I18n.tr("Play", "button that starts playback")
+            readonly property real labelSize: buttonSize >= Theme.buttonHeightM ? Theme.fontSizeLarge : Theme.fontSizeMedium
+            // the wider of the two labels, so the button keeps its width on play and pause
+            readonly property real labelWidth: withLabel ? Math.max(playMeasure.implicitWidth, pauseMeasure.implicitWidth) : 0
+            labelled: withLabel
+            contentWidth: iconSize + labelRow.spacing + labelWidth
             size: root.size
             widthMode: "wide"
             variant: "filled"
@@ -728,7 +741,7 @@ Loader {
             containerColor: ArtColors.accent
             contentColor: ArtColors.onAccent
             // a stream still being looked up shows the loading indicator instead of a position that stands still
-            iconName: PlayerService.loading ? "" : PlayerService.playing ? "pause" : "play_arrow"
+            iconName: PlayerService.loading || withLabel ? "" : PlayerService.playing ? "pause" : "play_arrow"
             iconFilled: true
             iconSize: Math.round((root.size === "m" ? Theme.iconSizeLarge : Theme.iconSize) * root.iconScale)
             enabled: PlayerService.current !== null
@@ -736,11 +749,64 @@ Loader {
             tooltipText: Accessible.name
             onClicked: PlayerService.toggle()
 
+            StyledText {
+                id: playMeasure
+                visible: false
+                text: I18n.tr("Play", "button that starts playback")
+                font.pixelSize: playButton.labelSize
+                font.weight: Theme.fontWeightMedium
+                wrapMode: Text.NoWrap
+            }
+
+            StyledText {
+                id: pauseMeasure
+                visible: false
+                text: I18n.tr("Pause", "transport button")
+                font.pixelSize: playButton.labelSize
+                font.weight: Theme.fontWeightMedium
+                wrapMode: Text.NoWrap
+            }
+
             DLoadingIndicator {
                 anchors.centerIn: parent
-                visible: PlayerService.loading
+                visible: PlayerService.loading && !playButton.withLabel
                 size: parent.iconSize
                 color: parent.contentColor
+            }
+
+            Row {
+                id: labelRow
+                anchors.centerIn: parent
+                spacing: Theme.spacingS
+                visible: playButton.withLabel
+                Item {
+                    width: playButton.iconSize
+                    height: playButton.iconSize
+                    anchors.verticalCenter: parent.verticalCenter
+                    DIcon {
+                        visible: !PlayerService.loading
+                        name: PlayerService.playing ? "pause" : "play_arrow"
+                        size: playButton.iconSize
+                        filled: true
+                        color: playButton.enabled ? playButton.contentColor : Theme.onSurface_38
+                    }
+                    DLoadingIndicator {
+                        anchors.centerIn: parent
+                        visible: PlayerService.loading
+                        size: playButton.iconSize
+                        color: playButton.contentColor
+                    }
+                }
+                StyledText {
+                    width: playButton.labelWidth
+                    horizontalAlignment: Text.AlignHCenter
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: playButton.stateLabel
+                    font.pixelSize: playButton.labelSize
+                    font.weight: Theme.fontWeightMedium
+                    wrapMode: Text.NoWrap
+                    color: playButton.enabled ? playButton.contentColor : Theme.onSurface_38
+                }
             }
         }
     }

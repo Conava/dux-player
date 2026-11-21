@@ -20,6 +20,8 @@ FocusScope {
     property bool animateFollow: false
     property var heightCache: ({})
     property int centreItem: -1
+    // loaded at the start of the top row, beside the source button
+    property Component leading: null
     property real centreTime: -Infinity
     // a text measures 0 until its component is complete, so rows created with the view would stay 0 wide
     property bool canMeasure: false
@@ -34,6 +36,7 @@ FocusScope {
     readonly property bool unsynced: ready && !controller.synced
     readonly property bool showFollow: ready && controller.synced && !following
     readonly property bool animationsEnabled: Theme.animationsEnabled
+    readonly property bool blurLines: UiConfig.lyricsBlurLines && controller.synced && following
     readonly property bool playing: controller.playing
     readonly property real sampleTime: controller.sampleTime
     readonly property string trackKey: controller.trackKey
@@ -275,9 +278,26 @@ FocusScope {
         }
     }
 
+    // the row of the leading item and the source button; the transcript starts below it only with a leading item
+    Item {
+        id: topRow
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: root.leading ? Math.max(leadingLoader.height, sourceButton.height) + Theme.spacingS * 2 : 0
+    }
+
+    Loader {
+        id: leadingLoader
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.margins: Theme.spacingS
+        sourceComponent: root.leading
+    }
+
     StyledText {
         id: heading
-        anchors.top: parent.top
+        anchors.top: topRow.bottom
         anchors.topMargin: Theme.spacingM
         anchors.horizontalCenter: parent.horizontalCenter
         width: parent.width - Theme.spacingM * 2
@@ -295,7 +315,7 @@ FocusScope {
         showScrollBar: false
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: heading.visible ? heading.bottom : parent.top
+        anchors.top: heading.visible ? heading.bottom : topRow.bottom
         anchors.bottom: parent.bottom
         anchors.margins: Theme.spacingL
         clip: true
@@ -361,6 +381,7 @@ FocusScope {
                 return line.index < root.centreItem ? Infinity : -1;
             }
             promoted: root.controller.synced && index === root.centreItem
+            blurLevel: root.blurLines ? Math.min(2, Math.max(0, Math.abs(index - root.centreItem) - 1)) : 0
             synced: root.controller.synced
             following: root.following
             playing: root.playing

@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Effects
 import qs.Common
 import qs.DCommon.Widgets
 import "../Common/LyricsModel.js" as LyricsModel
@@ -30,6 +31,8 @@ Item {
     // a line left by a seek turns inactive at once and stays unsung until the dimming hides its real fill
     property bool holding: false
     property real ringProgress: 0
+    // 0 is sharp, 1 and 2 are the steps of blur for lines further from the current one
+    property int blurLevel: 0
 
     readonly property bool isBreak: item.kind === "break"
     readonly property bool isPlain: item.kind === "plain"
@@ -39,6 +42,9 @@ Item {
     readonly property real breakProgress: isBreak ? Math.max(0, Math.min(1, (clock - item.t) / (item.e - item.t))) : 0
     // lines that wait or are done rest in one translucent colour; while browsing every line stays fully visible
     readonly property color restingColor: Theme.withAlpha(dimColor, synced && following ? PlayerMetrics.lyricsLineInactiveAlpha : 1)
+    readonly property real blurTarget: Math.min(1, blurLevel * PlayerMetrics.lyricsBlurStep)
+    // eased, so the layer exists only while some blur is left
+    property real blurShown: blurTarget
     readonly property bool shrunk: synced && following && !isPlain && !promoted
     readonly property int leadAlignment: UiConfig.lyricsAlignment === "start" ? (I18n.isRtl ? Text.AlignRight : Text.AlignLeft) : Text.AlignHCenter
     // every part is wrapped here, so the height is known when the row is created: a height that settles a frame
@@ -87,6 +93,22 @@ Item {
         } else if (lingering) {
             lingerTimer.start();
         }
+    }
+
+    Behavior on blurShown {
+        enabled: root.animationsEnabled
+        NumberAnimation {
+            duration: Theme.expressiveDurations.expressiveEffects
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+        }
+    }
+
+    layer.enabled: blurShown > 0
+    layer.effect: MultiEffect {
+        blurEnabled: true
+        blurMax: PlayerMetrics.lyricsBlurMax
+        blur: root.blurShown
     }
 
     implicitHeight: isPlain ? plainLoader.height + Theme.spacingS * 2 : LyricsModel.rowHeight(item, layouts, breakSize, Theme.spacingS, Theme.spacingXS)
