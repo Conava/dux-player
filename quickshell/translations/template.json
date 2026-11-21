@@ -4412,7 +4412,7 @@
   {
     "term": "Lyrics",
     "translation": "",
-    "context": "song lyrics: page, toggle, settings tab",
+    "context": "Lyrics | song lyrics: page, toggle, settings tab",
     "reference": "",
     "comment": ""
   },
@@ -5847,7 +5847,7 @@
   {
     "term": "Queue",
     "translation": "",
-    "context": "the play queue: panel, toggle",
+    "context": "Queue | the play queue: panel, toggle",
     "reference": "",
     "comment": ""
   },

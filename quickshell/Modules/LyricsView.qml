@@ -290,8 +290,8 @@ FocusScope {
     Loader {
         id: leadingLoader
         anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.margins: Theme.spacingS
+        anchors.leftMargin: Theme.spacingS
+        anchors.verticalCenter: sourceButton.verticalCenter
         sourceComponent: root.leading
     }
 

@@ -165,6 +165,14 @@ Rectangle {
         sourceComponent: root.pane === "queue" ? queuePane : lyricsPane
     }
 
+    // the tabs ride in the pane's top row; without lyrics there is only the queue to show
+    readonly property Component tabs: UiConfig.paneTabsOn && UiConfig.lyricsOn ? paneTabs : null
+
+    Component {
+        id: paneTabs
+        PaneTabs {}
+    }
+
     component PaneFade: NumberAnimation {
         from: 0
         to: 1
@@ -178,6 +186,7 @@ Rectangle {
         id: lyricsPane
         LyricsView {
             PaneFade on opacity {}
+            leading: root.tabs
             radius: root.paneRadius
             cardColor: root.paneColor
             artScheme: ArtColors.nowPlaying
@@ -194,6 +203,7 @@ Rectangle {
 
             QueueList {
                 anchors.fill: parent
+                leading: root.tabs
             }
         }
     }

@@ -46,6 +46,8 @@ DFloatingWindow {
     // what the header's place at the top holds: the header, the handle's strip, or just the inset
     readonly property real topHeight: !titleBarsOff ? header.height : handleShown ? Theme.windowInset * 2 + Theme.bottomSheetHandleHeight : Theme.windowInset
     readonly property bool sidePanel: Router.dockMode === "side" && !compact
+    // the bottom bar is the floating pill over the content pane, which then reaches the window's bottom
+    readonly property bool floatingBar: UiConfig.floatingLook
     readonly property var navModel: entriesModel(Router.navEntries)
 
     function entriesModel(entries) {
@@ -67,6 +69,13 @@ DFloatingWindow {
         target: Router
         property: "headerSearchField"
         value: window.headerField
+    }
+
+    // the page ends scroll clear of the pill, following its slide
+    Binding {
+        target: Router
+        property: "pageEndInset"
+        value: window.floatingBar ? (PlayerMetrics.floatingHeight + PlayerMetrics.floatingMargin) * bottomBar.barReveal : 0
     }
 
     title: I18n.tr("Dux Player", "app name")
@@ -438,7 +447,7 @@ DFloatingWindow {
                         visible: window.railLabels
                         anchors.left: parent.left
                         anchors.top: railTop.bottom
-                        anchors.bottom: labelSettings.visible ? labelSettings.top : bottomBar.top
+                        anchors.bottom: labelSettings.visible ? labelSettings.top : window.floatingBar ? parent.bottom : bottomBar.top
                         width: window.railLabels ? implicitWidth : 0
                         model: window.railModel
                         currentIndex: window.railIndex
@@ -451,7 +460,7 @@ DFloatingWindow {
                         objectName: "railSettings"
                         visible: window.railLabels && window.railChrome
                         anchors.left: parent.left
-                        anchors.bottom: bottomBar.top
+                        anchors.bottom: window.floatingBar ? parent.bottom : bottomBar.top
                         anchors.bottomMargin: Theme.windowInset
                         width: implicitWidth
                         height: Theme.navigationHeight + ringRoom * 2
@@ -469,7 +478,7 @@ DFloatingWindow {
                         x: I18n.isRtl ? parent.width - width : 0
                         anchors.top: railTop.bottom
                         // from the top, scrolling when they don't fit
-                        height: Math.max(0, Math.min(implicitHeight, (railSettings.visible ? railSettings.y : bottomBar.y) - y))
+                        height: Math.max(0, Math.min(implicitHeight, (railSettings.visible ? railSettings.y : window.floatingBar ? parent.height : bottomBar.y) - y))
                         model: window.railModel
                         currentIndex: window.railIndex
                         onActivated: index => Router.openEntry(window.railEntries[index])
@@ -481,7 +490,7 @@ DFloatingWindow {
                         objectName: "railSettings"
                         visible: window.navMode === "rail" && window.railChrome
                         x: rail.x + (rail.width - width) / 2
-                        anchors.bottom: bottomBar.top
+                        anchors.bottom: window.floatingBar ? parent.bottom : bottomBar.top
                         anchors.bottomMargin: Theme.windowInset
                         iconName: "settings"
                         tooltipText: I18n.tr("Settings", "the settings window")
@@ -508,7 +517,7 @@ DFloatingWindow {
                         anchors.left: window.navMode === "railLabels" ? labelRail.right : window.navMode === "rail" ? rail.right : parent.left
                         anchors.right: parent.right
                         anchors.top: topBar.bottom
-                        anchors.bottom: bottomBar.top
+                        anchors.bottom: window.floatingBar ? parent.bottom : bottomBar.top
                         anchors.leftMargin: window.railNav ? 0 : Theme.windowInset
                         anchors.rightMargin: Theme.windowInset
                         anchors.bottomMargin: Theme.windowInset
@@ -536,7 +545,7 @@ DFloatingWindow {
                             property string enteredRoute: ""
                             // the final size, so the page lays out once while the panel and bar slide
                             readonly property real pageWidth: Math.max(0, main.width - (sideHost.overlay || !sideHost.shown ? 0 : sideHost.fullWidth + Theme.windowInset))
-                            readonly property real pageHeight: Math.max(0, pages.height - topBar.height - Theme.windowInset - (bottomBar.shown ? bottomBar.height + Theme.windowInset : 0))
+                            readonly property real pageHeight: Math.max(0, pages.height - topBar.height - Theme.windowInset - (bottomBar.shown && !window.floatingBar ? bottomBar.height + Theme.windowInset : 0))
 
                             onHomeWantedChanged: {
                                 if (!homeWanted)
@@ -676,6 +685,8 @@ DFloatingWindow {
                             anchors.right: parent.right
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
+                            // covering the page, it ends above the pill
+                            anchors.bottomMargin: overlay ? Router.pageEndInset : 0
                             // a compact window has no room beside the page, so the panel covers it
                             readonly property bool overlay: window.compact
                             readonly property bool covering: overlay && Router.panel !== ""
@@ -765,13 +776,21 @@ DFloatingWindow {
                         // the page's height reads this: visible also follows the hidden parent
                         readonly property bool shown: !window.sidePanel && PlayerService.current !== null
                         property real barReveal: shown ? 1 : 0
+                        // the space under the bar; the pill floats that far over the content pane's bottom
+                        readonly property real gap: floating ? Theme.windowInset + PlayerMetrics.floatingMargin : Theme.windowInset
+                        // how far the shown bar reaches up from the window's bottom
+                        readonly property real reach: height + gap
+                        // the content pane's centre at its final width, so the pill doesn't trail a sliding panel;
+                        // the pane sits at the end of main in right-to-left layouts
+                        readonly property real paneCentre: main.x + (I18n.isRtl ? main.width - contentPane.pageWidth / 2 : contentPane.pageWidth / 2)
                         visible: barReveal > 0
-                        anchors.left: parent.left
-                        anchors.right: parent.right
+                        floating: window.floatingBar
+                        x: floating ? paneCentre - width / 2 : Theme.windowInset
+                        // a compact window gives the pill its whole width
+                        width: floating ? Math.min(window.compact ? Number.POSITIVE_INFINITY : PlayerMetrics.floatingMaxWidth, contentPane.pageWidth - PlayerMetrics.floatingMargin * 2) : parent.width - Theme.windowInset * 2
                         anchors.bottom: parent.bottom
-                        anchors.margins: Theme.windowInset
                         // at 0 its top edge is the window's bottom, which is where the page's edge rests without it
-                        anchors.bottomMargin: Theme.windowInset - (height + Theme.windowInset) * (1 - barReveal)
+                        anchors.bottomMargin: gap - reach * (1 - barReveal)
                         compact: window.compact
 
                         Behavior on barReveal {
@@ -868,7 +887,7 @@ DFloatingWindow {
 
         Snackbar {
             z: Theme.zToast
-            bottomInset: DaemonBridge.connected && !Router.nowPlayingOpen ? (bottomBar.height + Theme.windowInset) * bottomBar.barReveal : 0
+            bottomInset: DaemonBridge.connected && !Router.nowPlayingOpen ? bottomBar.reach * bottomBar.barReveal : 0
         }
 
         TextPromptDialog {

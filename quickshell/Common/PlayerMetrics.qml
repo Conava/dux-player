@@ -244,7 +244,6 @@ Singleton {
     readonly property int fullBlurSourceSize: 128
     readonly property int fullBlurMax: 64
     readonly property real fullBlurScrimAlpha: 0.45
-    readonly property real fullBlurScrimAlphaMax: 0.85
     // blur of one step for a lyric line away from the current one, as a share of lyricsBlurMax (1.5 px of 32)
     readonly property int lyricsBlurMax: 32
     readonly property real lyricsBlurStep: 1.5 / lyricsBlurMax
