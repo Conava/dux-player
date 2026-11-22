@@ -35,6 +35,5 @@ Singleton {
     readonly property color paneColor: Theme.floatingWindowPaneSurface
     readonly property color sidebarRowColor: Theme.floatingWindowPaneSurface
     readonly property color rowColor: Theme.foregroundColor(Theme.chipSurface, true)
-    readonly property color selectedRowColor: Theme.blend(rowColor, Theme.onSurface, Theme.stateLayerDrag)
     readonly property int fadeDuration: Theme.expressiveDurations.expressiveEffects
 }

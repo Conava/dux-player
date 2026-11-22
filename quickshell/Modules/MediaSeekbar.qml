@@ -19,6 +19,8 @@ Item {
     property bool expressive: false
     property bool flat: false
     property bool thin: false
+    // the wave still has amplitude left to ease out
+    property bool waveMoving: false
     property color fillColor: ArtColors.accent
     property color trackColor: expressive ? ArtColors.accentRail : ArtColors.accentTrack
     // the handle keeps half its width from the ends, so the track maps onto the span between them
@@ -166,6 +168,7 @@ Item {
     }
 
     M3WaveProgress {
+        id: wave
         anchors.fill: parent
         visible: !root.flat && root.length > 0
         opacity: root.explains ? Theme.disabledOpacity : 1
@@ -182,8 +185,10 @@ Item {
         playheadColor: root.fillColor
         trackColor: root.trackColor
         actualProgressColor: ArtColors.accentSubtle
-        // M3WaveProgress eases its amplitude itself; on pause the wave keeps moving until it is flat
-        isPlaying: root.shown && (root.playing || currentAmp > 0)
+        // M3WaveProgress eases its amplitude itself; on pause the wave keeps moving until it is flat. currentAmp
+        // depends on isPlaying, so it is read later: set at once, it loops when the amplitude doesn't animate
+        isPlaying: root.shown && (root.playing || root.waveMoving)
+        onCurrentAmpChanged: Qt.callLater(() => root.waveMoving = wave.currentAmp > 0)
         amp: root.playing ? (root.expressive ? PlayerMetrics.mediaSeekbarExpressiveAmplitude : root.flatBarAmplitude) : 0
 
         Binding on lineWidth {

@@ -541,7 +541,9 @@ Singleton {
         return withAlpha(blended, Math.max(0.3, blended.a));
     }
 
-    readonly property int currentAnimationBaseDuration: StyleSource.animationDuration
+    // zero with reduce motion: shared widgets (the icon's fill cross-fade, a list's row fade) time themselves from this
+    // and never check the setting
+    readonly property int currentAnimationBaseDuration: reduceMotion ? 0 : StyleSource.animationDuration
     readonly property int currentAnimationSpeed: currentAnimationBaseDuration > 0 ? Style.AnimationSpeed.Custom : Style.AnimationSpeed.None
     readonly property int shorterDuration: Math.round(currentAnimationBaseDuration * 0.2)
     readonly property int shortDuration: Math.round(currentAnimationBaseDuration * 0.3)

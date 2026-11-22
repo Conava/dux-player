@@ -24,7 +24,7 @@ Singleton {
     property var statistics: null
     property bool statsLoading: false
 
-    onStatsDaysChanged: _loadStatistics()
+    onStatsDaysChanged: _loadStatistics(false)
 
     // more: the next page after what is loaded
     function loadHistory(more) {
@@ -109,10 +109,11 @@ Singleton {
         if (_topState !== "")
             _topState = "wanted";
         _refreshTop();
-        _loadStatistics();
+        _loadStatistics(true);
     }
 
-    function _loadStatistics() {
+    // background refreshes fail quietly; only a range the user picked says so
+    function _loadStatistics(background) {
         // a reply to an older request (another range, or the page gone) is dropped
         const request = ++_statsRequest;
         const days = statsDays;
@@ -121,7 +122,7 @@ Singleton {
             return;
         DaemonBridge.request("history.stats", {
             "days": days
-        }, I18n.tr("Couldn't load the statistics", "toast when the statistics can't be loaded"), result => {
+        }, background ? null : I18n.tr("Couldn't load the statistics", "toast when the statistics can't be loaded"), result => {
             if (request !== root._statsRequest)
                 return;
             root.statsLoading = false;

@@ -134,11 +134,11 @@ Column {
         property color plateText: Theme.onSecondaryContainer
         // a component for the full-bleed art; none shows the icon on the plate
         property Component art: null
-        // caption colour over the dark scrim, whatever the theme's mode
         // the art has nothing to show but its placeholder, so the plate and icon take over
         readonly property var artItem: artLoader.item
         readonly property bool artBare: artItem?.bare ?? false
         readonly property bool showsArt: art !== null && !artBare
+        // caption colour over the dark scrim, whatever the theme's mode
         readonly property color imageText: Theme.isLightMode ? Theme.surface : Theme.surfaceText
 
         width: root.tileSize

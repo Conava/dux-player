@@ -812,9 +812,11 @@ Item {
             bottomMargin: root.isPlaylists ? fab.height + Theme.spacingL : 0
             readonly property alias rowModel: rowModel
             displaced: DListMotion.Displaced {
+                axes: "x,y"
                 active: root.rowEdit
             }
             move: DListMotion.Move {
+                axes: "x,y"
                 active: root.rowEdit
             }
             add: DListMotion.Add {

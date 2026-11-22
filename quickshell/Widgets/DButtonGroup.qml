@@ -8,6 +8,7 @@ import qs.DCommon.Widgets as Shared
 // The shared DButtonGroup plus the press squish: the pressed segment widens and its neighbours give the width back, so
 // the group keeps its width. Delete this file once the shared group has the squish. The segments are the group's children
 // with baseWidth and pressed; without them (the shared group changed) nothing happens.
+// Replaces the shared widget only where `import qs.Widgets` comes after the DCommon import.
 Shared.DButtonGroup {
     id: root
 
@@ -48,6 +49,7 @@ Shared.DButtonGroup {
 
     Instantiator {
         model: hover.hovered ? root.segments : []
+        // Connections, not a bound property: the segments belong to the shared group, so they have no property to bind
         delegate: Connections {
             required property var modelData
             required property int index

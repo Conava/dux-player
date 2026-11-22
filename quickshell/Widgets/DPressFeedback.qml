@@ -38,8 +38,19 @@ Item {
 
     anchors.fill: parent
 
-    onDownChanged: if (down)
-        sawPress = true
+    // clicked fires within the release, before this timer; a release outside gets no click and ends here
+    onDownChanged: {
+        if (down)
+            sawPress = true;
+        else
+            stale.restart();
+    }
+
+    Timer {
+        id: stale
+        interval: 0
+        onTriggered: root.sawPress = false
+    }
 
     Behavior on factor {
         enabled: root.animates && !root.cancelled

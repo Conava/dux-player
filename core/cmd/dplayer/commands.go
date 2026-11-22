@@ -92,6 +92,19 @@ var repeatCmd = &cobra.Command{
 	},
 }
 
+var continueCmd = &cobra.Command{
+	Use:       "continue <similar|random|off>",
+	Short:     "Set how this queue continues when it runs out",
+	Args:      cobra.ExactArgs(1),
+	ValidArgs: []string{"similar", "random", "off"},
+	RunE: func(_ *cobra.Command, args []string) error {
+		if err := call(true, "queue.continue", map[string]any{"mode": args[0]}, nil); err != nil {
+			return err
+		}
+		return statusCall("player.status", nil)
+	},
+}
+
 var muteCmd = &cobra.Command{
 	Use:       "mute [on|off]",
 	Short:     "Mute or unmute; without an argument, toggle",
@@ -153,7 +166,7 @@ func init() {
 	queueCmd.AddCommand(queueSaveCmd)
 	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "Output JSON for programmatic usage (where supported)")
 	rootCmd.AddCommand(versionCmd, daemonCmd, ipcCmd, playCmd, statusCmd, queueCmd, seekCmd, volumeCmd, quitCmd,
-		showCmd, resumeCmd, shuffleCmd, repeatCmd, muteCmd, sleepCmd)
+		showCmd, resumeCmd, shuffleCmd, repeatCmd, continueCmd, muteCmd, sleepCmd)
 	showCmd.Flags().StringVarP(&shellDir, "config", "c", "", "quickshell dir to run instead of the embedded UI (env: DPLAYER_SHELL_DIR)")
 	rootCmd.Flags().StringVarP(&shellDir, "config", "c", "", "quickshell dir to run instead of the embedded UI (env: DPLAYER_SHELL_DIR)")
 	for _, c := range []struct{ use, short, method string }{

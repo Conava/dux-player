@@ -225,3 +225,31 @@ func TestFailedContinueIsRetried(t *testing.T) {
 		})
 	}
 }
+
+// A background continue still fetching when continuing is switched off adds
+// nothing to the queue.
+func TestContinueOffDuringAFetchAddsNothing(t *testing.T) {
+	opts := DefaultOptions()
+	opts.AutoContinue = ContinueSimilar
+	started := make(chan struct{})
+	release := make(chan struct{})
+	var once atomic.Bool
+	p, ctx := castPlayer(t, Config{Options: opts,
+		Continue: func(context.Context, string, []source.Track, map[source.Ref]bool) ([]source.Track, error) {
+			if once.CompareAndSwap(false, true) {
+				close(started)
+			}
+			<-release
+			return tracks("x"), nil
+		}})
+	require.NoError(t, p.Play(ctx, tracks("a", "b"), 1, Origin{}))
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("the continue never started")
+	}
+	require.NoError(t, p.Continue(ctx, ContinueOff))
+	close(release)
+	time.Sleep(100 * time.Millisecond)
+	assert.Equal(t, []string{"a", "b"}, queueIDs(t, ctx, p))
+}

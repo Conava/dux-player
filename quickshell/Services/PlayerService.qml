@@ -240,13 +240,14 @@ Singleton {
         }, I18n.tr("Couldn't change repeat", "toast when the repeat command fails"), null, () => root._refreshStatus());
     }
 
-    // endless continue for the queue playing now, whatever Settings say for new queues
+    // endless continue for the queue playing now, in the mode Settings chose for new queues (similar when that is off)
     function setContinuing(on) {
         const before = continuing;
+        const chosen = SettingsService.settings.autoContinue;
         continuing = on;
         DaemonBridge.request("queue.continue", {
-            "mode": on ? "similar" : "off"
-        }, on ? I18n.tr("Couldn't continue with similar tracks", "toast when the daemon refuses to keep filling the queue") : I18n.tr("Couldn't stop continuing", "toast when the daemon refuses to stop filling the queue"), null, () => root.continuing = before);
+            "mode": on ? (chosen === "random" ? "random" : "similar") : "off"
+        }, on ? I18n.tr("Couldn't continue the queue", "toast when the daemon refuses to keep filling the queue") : I18n.tr("Couldn't stop continuing", "toast when the daemon refuses to stop filling the queue"), null, () => root.continuing = before);
     }
 
     function cycleRepeat() {

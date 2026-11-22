@@ -386,7 +386,7 @@
   {
     "term": "%1, see all",
     "context": "%1, see all",
-    "reference": "Modules/ShelfHeader.qml:72",
+    "reference": "Modules/ShelfHeader.qml:78",
     "comment": "home shelf title link"
   },
   {
@@ -656,7 +656,7 @@
   {
     "term": "Add to favorites",
     "context": "Add to favorites",
-    "reference": "Modules/FavoriteButton.qml:38, Modules/MediaMenu.qml:81, Modules/SelectionBar.qml:124, Modules/TrackMenu.qml:107",
+    "reference": "Modules/FavoriteButton.qml:38, Modules/MediaMenu.qml:81, Modules/SelectionBar.qml:124, Modules/TrackMenu.qml:110",
     "comment": "track menu action"
   },
   {
@@ -866,7 +866,7 @@
   {
     "term": "Already played",
     "context": "Already played",
-    "reference": "Modules/TrackMenu.qml:146",
+    "reference": "Modules/TrackMenu.qml:149",
     "comment": "why stop after this track is unavailable for a track before the current one"
   },
   {
@@ -1286,7 +1286,7 @@
   {
     "term": "Can't seek in a track the server converts while it plays",
     "context": "Can't seek in a track the server converts while it plays",
-    "reference": "Services/PlayerService.qml:819",
+    "reference": "Services/PlayerService.qml:820",
     "comment": "snackbar when the seekbar is used on a stream that can't seek"
   },
   {
@@ -1578,8 +1578,8 @@
     "comment": "home shelf with the last queue"
   },
   {
-    "term": "Continue with similar tracks",
-    "context": "Continue with similar tracks",
+    "term": "Continue playing",
+    "context": "Continue playing",
     "reference": "Modules/QueueList.qml:322, Modules/QueueList.qml:501",
     "comment": "queue end button that keeps filling the queue"
   },
@@ -1646,19 +1646,19 @@
   {
     "term": "Couldn't add to the queue",
     "context": "Couldn't add to the queue",
-    "reference": "Modules/Router.qml:491, Services/CatalogService.qml:756, Services/PlayerService.qml:400, Services/PlaylistService.qml:309",
+    "reference": "Modules/Router.qml:491, Services/CatalogService.qml:756, Services/PlayerService.qml:401, Services/PlaylistService.qml:309",
     "comment": "toast when adding tracks to the play queue fails"
   },
   {
     "term": "Couldn't cancel the sleep timer",
     "context": "Couldn't cancel the sleep timer",
-    "reference": "Services/PlayerService.qml:540",
+    "reference": "Services/PlayerService.qml:541",
     "comment": "toast when cancelling the sleep timer fails"
   },
   {
     "term": "Couldn't change playback",
     "context": "Couldn't change playback",
-    "reference": "Services/PlayerService.qml:98, Services/PlayerService.qml:169, Services/PlayerService.qml:186, Services/PlayerService.qml:197, Services/PlayerService.qml:428",
+    "reference": "Services/PlayerService.qml:98, Services/PlayerService.qml:169, Services/PlayerService.qml:186, Services/PlayerService.qml:197, Services/PlayerService.qml:429",
     "comment": "snackbar when play, pause, skip or seek fails"
   },
   {
@@ -1682,13 +1682,13 @@
   {
     "term": "Couldn't change the lyrics",
     "context": "Couldn't change the lyrics",
-    "reference": "Services/PlayerService.qml:803",
+    "reference": "Services/PlayerService.qml:804",
     "comment": "toast when a lyrics source can't be kept for a track"
   },
   {
     "term": "Couldn't change the lyrics timing",
     "context": "Couldn't change the lyrics timing",
-    "reference": "Services/PlayerService.qml:814",
+    "reference": "Services/PlayerService.qml:815",
     "comment": "toast when the lyrics timing of a track can't be changed"
   },
   {
@@ -1700,7 +1700,7 @@
   {
     "term": "Couldn't change the volume",
     "context": "Couldn't change the volume",
-    "reference": "Services/PlayerService.qml:222, Services/PlayerService.qml:615",
+    "reference": "Services/PlayerService.qml:222, Services/PlayerService.qml:616",
     "comment": "toast when the volume or mute command fails"
   },
   {
@@ -1724,7 +1724,7 @@
   {
     "term": "Couldn't clear the queue",
     "context": "Couldn't clear the queue",
-    "reference": "Services/PlayerService.qml:476",
+    "reference": "Services/PlayerService.qml:477",
     "comment": "toast when clearing the play queue fails"
   },
   {
@@ -1740,9 +1740,9 @@
     "comment": "why a server connection test failed"
   },
   {
-    "term": "Couldn't continue with similar tracks",
-    "context": "Couldn't continue with similar tracks",
-    "reference": "Services/PlayerService.qml:249",
+    "term": "Couldn't continue the queue",
+    "context": "Couldn't continue the queue",
+    "reference": "Services/PlayerService.qml:250",
     "comment": "toast when the daemon refuses to keep filling the queue"
   },
   {
@@ -1820,7 +1820,7 @@
   {
     "term": "Couldn't list the lyrics sources",
     "context": "Couldn't list the lyrics sources",
-    "reference": "Services/PlayerService.qml:782",
+    "reference": "Services/PlayerService.qml:783",
     "comment": "toast when the lyrics sources can't be read"
   },
   {
@@ -1850,7 +1850,7 @@
   {
     "term": "Couldn't load the most played tracks",
     "context": "Couldn't load the most played tracks",
-    "reference": "Services/StatsService.qml:172",
+    "reference": "Services/StatsService.qml:173",
     "comment": "toast when the most played tracks can't be loaded"
   },
   {
@@ -1862,13 +1862,13 @@
   {
     "term": "Couldn't load the statistics",
     "context": "Couldn't load the statistics",
-    "reference": "Services/StatsService.qml:124",
+    "reference": "Services/StatsService.qml:125",
     "comment": "toast when the statistics can't be loaded"
   },
   {
     "term": "Couldn't move the track",
     "context": "Couldn't move the track",
-    "reference": "Services/PlayerService.qml:448",
+    "reference": "Services/PlayerService.qml:449",
     "comment": "toast when moving a queue entry fails"
   },
   {
@@ -1922,7 +1922,7 @@
   {
     "term": "Couldn't remove from the queue",
     "context": "Couldn't remove from the queue",
-    "reference": "Services/PlayerService.qml:462",
+    "reference": "Services/PlayerService.qml:463",
     "comment": "toast when removing a queue entry fails"
   },
   {
@@ -2018,13 +2018,13 @@
   {
     "term": "Couldn't set the sleep timer",
     "context": "Couldn't set the sleep timer",
-    "reference": "Services/PlayerService.qml:521, Services/PlayerService.qml:527",
+    "reference": "Services/PlayerService.qml:522, Services/PlayerService.qml:528",
     "comment": "toast when setting the sleep timer fails"
   },
   {
     "term": "Couldn't set the stop point",
     "context": "Couldn't set the stop point",
-    "reference": "Services/PlayerService.qml:534",
+    "reference": "Services/PlayerService.qml:535",
     "comment": "toast when setting where playback stops fails"
   },
   {
@@ -2048,7 +2048,7 @@
   {
     "term": "Couldn't start playback",
     "context": "Couldn't start playback",
-    "reference": "Services/PlayerService.qml:155, Services/PlayerService.qml:161, Services/PlayerService.qml:287, Services/PlayerService.qml:308, Services/PlayerService.qml:334, Services/PlayerService.qml:346, Services/PlayerService.qml:360, Services/PlayerService.qml:369, Services/PlayerService.qml:876",
+    "reference": "Services/PlayerService.qml:155, Services/PlayerService.qml:161, Services/PlayerService.qml:288, Services/PlayerService.qml:309, Services/PlayerService.qml:335, Services/PlayerService.qml:347, Services/PlayerService.qml:361, Services/PlayerService.qml:370, Services/PlayerService.qml:877",
     "comment": "toast when the daemon refuses to play"
   },
   {
@@ -2060,7 +2060,7 @@
   {
     "term": "Couldn't stop continuing",
     "context": "Couldn't stop continuing",
-    "reference": "Services/PlayerService.qml:249",
+    "reference": "Services/PlayerService.qml:250",
     "comment": "toast when the daemon refuses to stop filling the queue"
   },
   {
@@ -2078,7 +2078,7 @@
   {
     "term": "Couldn't use the audio output",
     "context": "Couldn't use the audio output",
-    "reference": "Services/PlayerService.qml:829",
+    "reference": "Services/PlayerService.qml:830",
     "comment": "snackbar when playback pauses because the sound output failed"
   },
   {
@@ -2378,7 +2378,7 @@
   {
     "term": "Don't stop",
     "context": "Don't stop",
-    "reference": "Modules/QueueList.qml:758, Modules/TrackMenu.qml:149",
+    "reference": "Modules/QueueList.qml:758, Modules/TrackMenu.qml:152",
     "comment": "queue row action that clears stop after this track"
   },
   {
@@ -3380,7 +3380,7 @@
   {
     "term": "Instrumental",
     "context": "Instrumental",
-    "reference": "Modules/LyricsLine.qml:120, Services/PlayerService.qml:744",
+    "reference": "Modules/LyricsLine.qml:120, Services/PlayerService.qml:745",
     "comment": "track has no lyrics because it is instrumental"
   },
   {
@@ -3530,7 +3530,7 @@
   {
     "term": "Kept by an offline rule",
     "context": "Kept by an offline rule",
-    "reference": "Modules/TrackMenu.qml:125",
+    "reference": "Modules/TrackMenu.qml:128",
     "comment": "why a track can't be removed from this device"
   },
   {
@@ -3848,7 +3848,7 @@
   {
     "term": "Lyrics unavailable",
     "context": "Lyrics unavailable",
-    "reference": "Services/PlayerService.qml:746",
+    "reference": "Services/PlayerService.qml:747",
     "comment": "lyrics lookup failed"
   },
   {
@@ -4094,7 +4094,7 @@
   {
     "term": "New playlist",
     "context": "New playlist",
-    "reference": "Modules/AddToPlaylistDialog.qml:89, Modules/BrowsePage.qml:892, Modules/NewPlaylistDialog.qml:49",
+    "reference": "Modules/AddToPlaylistDialog.qml:89, Modules/BrowsePage.qml:894, Modules/NewPlaylistDialog.qml:49",
     "comment": "action and dialog that create a playlist"
   },
   {
@@ -4106,7 +4106,7 @@
   {
     "term": "Next",
     "context": "Next",
-    "reference": "Common/UiConfig.qml:1173, Modules/ShelfHeader.qml:144",
+    "reference": "Common/UiConfig.qml:1173, Modules/ShelfHeader.qml:150",
     "comment": "home shelf arrow | transport button"
   },
   {
@@ -4118,7 +4118,7 @@
   {
     "term": "No actions. Use Edit page to add some.",
     "context": "No actions. Use Edit page to add some.",
-    "reference": "Modules/MediaMenu.qml:256, Modules/TrackMenu.qml:258",
+    "reference": "Modules/MediaMenu.qml:256, Modules/TrackMenu.qml:261",
     "comment": "an item menu with every action removed"
   },
   {
@@ -4214,7 +4214,7 @@
   {
     "term": "No lyrics available",
     "context": "No lyrics available",
-    "reference": "Services/PlayerService.qml:748",
+    "reference": "Services/PlayerService.qml:749",
     "comment": "lyrics lookup found nothing"
   },
   {
@@ -4688,7 +4688,7 @@
   {
     "term": "Paused because the output disconnected",
     "context": "Paused because the output disconnected",
-    "reference": "Services/PlayerService.qml:833",
+    "reference": "Services/PlayerService.qml:834",
     "comment": "snackbar when the playing output goes away"
   },
   {
@@ -4856,7 +4856,7 @@
   {
     "term": "Playback stopped because of an error",
     "context": "Playback stopped because of an error",
-    "reference": "Services/PlayerService.qml:848",
+    "reference": "Services/PlayerService.qml:849",
     "comment": "toast when the player itself fails"
   },
   {
@@ -5012,7 +5012,7 @@
   {
     "term": "Position",
     "context": "Position",
-    "reference": "Modules/MediaSeekbar.qml:83",
+    "reference": "Modules/MediaSeekbar.qml:85",
     "comment": "seekbar accessible name"
   },
   {
@@ -5048,7 +5048,7 @@
   {
     "term": "Previous",
     "context": "Previous",
-    "reference": "Common/UiConfig.qml:1169, Modules/ShelfHeader.qml:130",
+    "reference": "Common/UiConfig.qml:1169, Modules/ShelfHeader.qml:136",
     "comment": "home shelf arrow | transport button"
   },
   {
@@ -5276,7 +5276,7 @@
   {
     "term": "Remove from favorites",
     "context": "Remove from favorites",
-    "reference": "Modules/FavoriteButton.qml:38, Modules/MediaMenu.qml:81, Modules/SelectionBar.qml:124, Modules/TrackMenu.qml:107",
+    "reference": "Modules/FavoriteButton.qml:38, Modules/MediaMenu.qml:81, Modules/SelectionBar.qml:124, Modules/TrackMenu.qml:110",
     "comment": "track menu action"
   },
   {
@@ -5306,7 +5306,7 @@
   {
     "term": "Remove from this device",
     "context": "Remove from this device",
-    "reference": "Modules/MediaMenu.qml:89, Modules/TrackMenu.qml:123",
+    "reference": "Modules/MediaMenu.qml:89, Modules/TrackMenu.qml:126",
     "comment": "menu action that stops keeping an item offline | track menu action that lets go of a kept copy"
   },
   {
@@ -6146,7 +6146,7 @@
   {
     "term": "Shuffle",
     "context": "Shuffle",
-    "reference": "Common/UiConfig.qml:1167, Common/UiConfig.qml:1288, Modules/PlayButtons.qml:47, Modules/ShelfHeader.qml:155",
+    "reference": "Common/UiConfig.qml:1167, Common/UiConfig.qml:1288, Modules/PlayButtons.qml:47, Modules/ShelfHeader.qml:161",
     "comment": "button or mode that plays in random order"
   },
   {
@@ -6326,25 +6326,25 @@
   {
     "term": "Skipped %1 that no longer exist",
     "context": "Skipped %1 that no longer exist",
-    "reference": "Services/PlayerService.qml:825",
+    "reference": "Services/PlayerService.qml:826",
     "comment": "snackbar when tracks of a played list no longer exist, %1 is a track count"
   },
   {
     "term": "Skipped a track that couldn't play",
     "context": "Skipped a track that couldn't play",
-    "reference": "Services/PlayerService.qml:842",
+    "reference": "Services/PlayerService.qml:843",
     "comment": "toast when one track fails to play and the queue moves on"
   },
   {
     "term": "Skipped tracks from %1 because it's unavailable",
     "context": "Skipped tracks from %1 because it's unavailable",
-    "reference": "Services/PlayerService.qml:846",
+    "reference": "Services/PlayerService.qml:847",
     "comment": "snackbar when the queue passes over a library's tracks, %1 is the library"
   },
   {
     "term": "Skipped tracks that require mpv",
     "context": "Skipped tracks that require mpv",
-    "reference": "Services/PlayerService.qml:837",
+    "reference": "Services/PlayerService.qml:838",
     "comment": "snackbar when the queue passes over tracks the built-in player can't play"
   },
   {

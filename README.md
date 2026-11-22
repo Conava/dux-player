@@ -63,6 +63,7 @@ Pages, columns and the full view can be customized.
 - Save the queue as a new local playlist from the queue menu (Add to playlist…), or with `dplayer queue save <name>`
 - Play history is kept for 1, 3 or 6 months, 1 or 5 years, or forever, set in Settings → Playback
 - Optional Discord Rich Presence for the playing track, off by default, with templates for its two lines and the image's tooltip, the album cover from Last.fm or MusicBrainz in place of the app logo (off by default) and a preview of the card, in Settings → Integrations
+- `dplayer continue similar|random|off` sets how the current queue continues when it runs out, like the queue header's switch
 - `dplayer sleep after <number>` stops when a queue entry ends, numbered as `dplayer queue` lists it; a rule behind the current track is dropped unless repeat all is on, and while casting the receiver gets the queue only up to that entry
 - Text templates for a now-playing line and for custom columns in track lists; each column has its own title, Sort by field and width (small, medium or large, or drag the border between two columns; Length takes the three sizes only)
 - Filter rules for track, album and artist pages: match all or any of a list of conditions on fields such as genre, library, rating, year, length, plays, date added and last played
@@ -78,7 +79,7 @@ Pages, columns and the full view can be customized.
 - Settings → Pages: Page header (Plain or Cover tint, for album, artist and playlist pages), Album page (Stacked or Side by side on wide pages), Letter index (a jump column beside name-sorted lists) and, in a playlists page's edit mode, Collection tiles
 - Player look in Settings → Now playing: Card, Attached or Floating; Floating is a pill with the cover in a progress ring, and the ring or the title opens the full view. Floating applies to the bottom bar
 - Elements can sit Across the top of the bar, and the play button can Show label
-- The queue header shows Playing from and the Continue with similar tracks switch; switching it off stops continuing for the current queue only (IPC `queue.continue` with mode `off`). Settings → Now playing → Queue header turns it off
+- The queue header shows Playing from and the Continue playing switch, which uses the random or similar mode from Settings (similar when that is off); switching it off stops continuing for the current queue only (IPC `queue.continue` with mode `off`). Settings → Now playing → Queue header turns it off
 - The full view can show a Blurred cover background and Lyrics and queue tabs in its card; Lyrics has Blur other lines to focus the current one
 - Without title bars (Settings → Appearance → Title bars) the settings window has a handle to move it and a close button, and on narrow windows Back returns to the section list
 - Motion follows the shell's animation speed and reduce motion setting

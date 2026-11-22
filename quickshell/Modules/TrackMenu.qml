@@ -20,20 +20,23 @@ Item {
     property var queueIndexes: []
     // "menu" (the ⋮ button, the Menu key) | "context" (right-click)
     property string zone: "menu"
-    // false until the actions are shown: a list row's entries keep their count and places, without the lookups
+    // false until the actions are shown: a list row's entries keep their count and places, without the lookups.
+    // A caller may bind it, so open() sets opening rather than assigning it.
     property bool live: true
+    property bool opening: false
+    readonly property bool looksUp: live || opening
 
     readonly property bool opened: (_menu?.opened ?? false) || (_artistMenu?.opened ?? false)
     readonly property var hoverEntries: entries("hover", true).filter(e => !e.divider)
     readonly property var first: tracks[0] ?? null
     // a mixed selection acts on the tracks whose library supports favorites
-    readonly property var favorable: live ? PlayerService.partition("favorite", tracks) : ({
+    readonly property var favorable: looksUp ? PlayerService.partition("favorite", tracks) : ({
             "ok": [],
             "skipped": []
         })
     readonly property bool allFavorite: favorable.ok.length > 0 && favorable.ok.every(t => CatalogService.withMarks(t).favorite)
-    readonly property string removeBlocker: live && playlistId !== "" ? PlayerService.whyNot("playlistEdit", PlayerService.playlist(playlistId)) : ""
-    readonly property bool stopsHere: live && queueIndexes.length === 1 && (PlayerService.sleepMode === "afterEntry" && PlayerService.queue[queueIndexes[0]]?.qid === PlayerService.sleepEntry || PlayerService.sleepMode === "endOfTrack" && queueIndexes[0] === PlayerService.queueIndex)
+    readonly property string removeBlocker: looksUp && playlistId !== "" ? PlayerService.whyNot("playlistEdit", PlayerService.playlist(playlistId)) : ""
+    readonly property bool stopsHere: looksUp && queueIndexes.length === 1 && (PlayerService.sleepMode === "afterEntry" && PlayerService.queue[queueIndexes[0]]?.qid === PlayerService.sleepEntry || PlayerService.sleepMode === "endOfTrack" && queueIndexes[0] === PlayerService.queueIndex)
     readonly property var linkedArtists: (first?.artists ?? []).filter(a => a.id !== "")
     // only server tracks have a copy to keep
     readonly property var keepable: tracks.filter(t => CatalogService.isRemote(t.library))
@@ -73,7 +76,7 @@ Item {
 
     // without x, y: the ⋮ menu under anchor; with them: the right-click menu at that point
     function open(anchor, x, y) {
-        live = true;
+        opening = true;
         zone = x === undefined ? "menu" : "context";
         keepState = {
             "kept": 0,
@@ -107,7 +110,7 @@ Item {
                 "text": allFavorite ? I18n.tr("Remove from favorites", "track menu action") : I18n.tr("Add to favorites", "track menu action"),
                 "iconFilled": !allFavorite,
                 "enabled": favorable.ok.length > 0,
-                "description": live && favorable.ok.length === 0 ? PlayerService.whyNot("favorite", first) : ""
+                "description": looksUp && favorable.ok.length === 0 ? PlayerService.whyNot("favorite", first) : ""
             });
         case "goToAlbum":
         case "goToArtist":

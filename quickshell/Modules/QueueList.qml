@@ -319,7 +319,7 @@ Item {
                     anchors.left: parent.left
                     anchors.leftMargin: -Theme.spacingM
                     anchors.right: parent.right
-                    text: I18n.tr("Continue with similar tracks", "queue end button that keeps filling the queue")
+                    text: I18n.tr("Continue playing", "queue end button that keeps filling the queue")
                     checked: PlayerService.continuing
                     enabled: root.items.length > 0
                     onToggled: value => PlayerService.setContinuing(value)
@@ -498,7 +498,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
                 visible: !UiConfig.queueHeaderOn && PlayerService.continueKnown && !PlayerService.continuing && root.items.length > 0
-                text: I18n.tr("Continue with similar tracks", "queue end button that keeps filling the queue")
+                text: I18n.tr("Continue playing", "queue end button that keeps filling the queue")
                 iconName: "all_inclusive"
                 backgroundColor: Theme.secondaryContainer
                 textColor: Theme.onSecondaryContainer

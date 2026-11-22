@@ -62,7 +62,9 @@ calm() {
     return 1
 }
 
-# gaps NAME: ends the recording once no frame came for 400 ms, writes NAME.frames and checks the worst gap
+# gaps NAME: ends the recording once no frame came for 400 ms, writes NAME.frames and checks the worst gap. At speed 0
+# nothing animates: no frames is fine, and a click's own press and release frames (80 ms apart) are no gap to check
+# (CLICKED=1, set by from)
 gaps() {
     local worst n
     sleep 0.3
@@ -75,7 +77,11 @@ gaps() {
     worst=$(tr ' ' '\n' <"$W/out/$1.frames" | sort -n | tail -1)
     n=$(wc -w <"$W/out/$1.frames")
     echo "$1 ${worst:--} $n" >>"$W/out/gaps.txt"
-    if [ -z "$worst" ]; then
+    if [ "$SPEED" = 0 ] && [ -z "$worst" ]; then
+        check "gap $1" 1 "no frames at speed 0"
+    elif [ "$SPEED" = 0 ] && [ "${CLICKED:-}" = 1 ]; then
+        check "gap $1" 1 "click frames at speed 0, worst $worst ms not checked"
+    elif [ -z "$worst" ]; then
         check "gap $1" 0 "no frames"
     else
         check "gap $1" "$(truth [ "$worst" -le "$GAP_MAX" ])" "worst $worst ms of $n frames"
@@ -92,7 +98,10 @@ from() {
     shift 2
     ui timedFrom "$win"
     "$@"
+    CLICKED=0
+    case "$1 $2" in "pointer c" | "pointer r") CLICKED=1 ;; esac
     gaps "$name"
+    CLICKED=0
 }
 # layouts NAME MAX: the page and its view changed width at most MAX times during the last recording
 layouts() {
@@ -137,6 +146,13 @@ snap() {
     sleep 0.3
     eval "$2"
     sleep 0.15
+    # the pointer is queued behind the click's hold: a late park would leave the hover and tooltip in the early shot
+    if [[ $2 == *park* ]]; then
+        for _ in $(seq 1 50); do
+            [ "$(hyprctl cursorpos | tr -d ' ')" = "5,5" ] && break
+            sleep 0.02
+        done
+    fi
     cap "$1-early" "${4:-}"
     calm "${4:-}"
     cap "$1-late" "${4:-}"
@@ -629,8 +645,13 @@ held() {
     # the release springs back on a duration that follows the speed setting
     sleep "$(awk "BEGIN { print 0.6 * ($SPEED > 250 ? $SPEED : 250) / 250 }")"
     after=$(ask scaleAt "$2" "$3" "${5:-main}")
-    check "press $1 shrinks" "$(python3 -I -c 'import sys; print(int(float(sys.argv[1]) < 0.999))' "$during")" "scale $during while held"
-    check "press $1 springs back" "$(python3 -I -c 'import sys; print(int(float(sys.argv[1]) > 0.999))' "$after")" "scale $after after release"
+    if [ "$SPEED" = 0 ]; then
+        # speed 0 turns the press feedback off
+        check "press $1 stays put" "$(python3 -I -c 'import sys; print(int(float(sys.argv[1]) > 0.999 and float(sys.argv[2]) > 0.999))' "$during" "$after")" "scale $during while held, $after after release"
+    else
+        check "press $1 shrinks" "$(python3 -I -c 'import sys; print(int(float(sys.argv[1]) < 0.999))' "$during")" "scale $during while held"
+        check "press $1 springs back" "$(python3 -I -c 'import sys; print(int(float(sys.argv[1]) > 0.999))' "$after")" "scale $after after release"
+    fi
     check "press $1 acts" "$(truth eval "$4")" "$4"
     park
     sleep 0.3
@@ -681,7 +702,11 @@ leg_press() {
     pointer u
     sleep 0.6
     read -r _ _ after _ < <(named "30 days")
-    check "press group grows" "$(truth [ "${during:-0}" -gt "$before" ])" "segment $before px at rest, $during held"
+    if [ "$SPEED" = 0 ]; then
+        check "press group stays put" "$(truth [ "${during:-0}" -eq "$before" ])" "segment $before px at rest, $during held"
+    else
+        check "press group grows" "$(truth [ "${during:-0}" -gt "$before" ])" "segment $before px at rest, $during held"
+    fi
     check "press group acts" "$(truth [ "$(ask prefValue statsDays)" = 30 ])" "range $(ask prefValue statsDays)"
     ui pref statsDays 7
     ui settings general

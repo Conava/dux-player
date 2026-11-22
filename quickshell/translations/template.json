@@ -1841,7 +1841,7 @@
     "comment": ""
   },
   {
-    "term": "Continue with similar tracks",
+    "term": "Continue playing",
     "translation": "",
     "context": "queue end button that keeps filling the queue",
     "reference": "",
@@ -2030,7 +2030,7 @@
     "comment": ""
   },
   {
-    "term": "Couldn't continue with similar tracks",
+    "term": "Couldn't continue the queue",
     "translation": "",
     "context": "toast when the daemon refuses to keep filling the queue",
     "reference": "",

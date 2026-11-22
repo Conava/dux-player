@@ -24,8 +24,14 @@ Item {
     readonly property bool arrowsShown: carousel !== null && carousel.contentWidth > carousel.width && (Window.width ?? 0) >= PlayerMetrics.compactBreakpoint
     readonly property real titleHeight: Math.max(Theme.buttonHeightXS, titleText.implicitHeight + Theme.spacingXS)
 
+    // a mirrored row starts at its highest contentX and ends at the lowest
+    readonly property bool atStart: carousel !== null && (I18n.isRtl ? carousel.contentX >= maxX - 1 : carousel.contentX <= carousel.originX + 1)
+    readonly property bool atEnd: carousel !== null && (I18n.isRtl ? carousel.contentX <= carousel.originX + 1 : carousel.contentX >= maxX - 1)
+
+    // direction is 1 toward the row's end, -1 toward its start
     function page(direction) {
-        const target = Math.max(carousel.originX, Math.min(maxX, carousel.contentX + direction * Math.max(tileStep, carousel.width - tileStep)));
+        const sign = I18n.isRtl ? -1 : 1;
+        const target = Math.max(carousel.originX, Math.min(maxX, carousel.contentX + sign * direction * Math.max(tileStep, carousel.width - tileStep)));
         slide.stop();
         if (!Theme.animationsEnabled) {
             carousel.contentX = target;
@@ -124,9 +130,9 @@ Item {
             visible: root.arrowsShown
             buttonSize: Theme.buttonHeightXS
             widthMode: "narrow"
-            iconName: "chevron_left"
+            iconName: I18n.isRtl ? "chevron_right" : "chevron_left"
             variant: "tonal"
-            enabled: root.carousel !== null && root.carousel.contentX > root.carousel.originX + 1
+            enabled: root.carousel !== null && !root.atStart
             tooltipText: I18n.tr("Previous", "home shelf arrow")
             Accessible.name: tooltipText
             onClicked: root.page(-1)
@@ -138,9 +144,9 @@ Item {
             visible: root.arrowsShown
             buttonSize: Theme.buttonHeightXS
             widthMode: "narrow"
-            iconName: "chevron_right"
+            iconName: I18n.isRtl ? "chevron_left" : "chevron_right"
             variant: "tonal"
-            enabled: root.carousel !== null && root.carousel.contentX < root.maxX - 1
+            enabled: root.carousel !== null && !root.atEnd
             tooltipText: I18n.tr("Next", "home shelf arrow")
             Accessible.name: tooltipText
             onClicked: root.page(1)
