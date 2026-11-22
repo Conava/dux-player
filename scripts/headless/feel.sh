@@ -11,7 +11,6 @@ SETTLE=0.8
 L="$XDG_STATE_HOME/dplayer/ui.log"
 # checks that measure where the app should get to; each goes once it holds
 RED="
- tabs-library moves
 "
 fact() { echo "$*" >>"$W/out/facts.txt"; }
 fail() {

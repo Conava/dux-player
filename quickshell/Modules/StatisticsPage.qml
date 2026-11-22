@@ -155,6 +155,10 @@ DFlickable {
         }
     }
 
+    component LegendRow: Row {
+        property real natural: 0
+    }
+
     component StatCard: Card {
         id: statCard
 
@@ -264,7 +268,7 @@ DFlickable {
                         width: root.twoColumns ? totals.width : (totals.width - totals.spacing) / 2
                         height: root.twoColumns ? (chartCard.height - totals.spacing) / 2 : implicitHeight
                         value: root.stats?.plays ?? 0
-                        label: I18n.tr("Plays", "view info line and sort key")
+                        label: I18n.tr("Total plays", "statistics: label under the number of plays in the range")
                     }
 
                     StatCard {
@@ -272,7 +276,7 @@ DFlickable {
                         width: playsCard.width
                         height: playsCard.height
                         value: root.stats?.artists ?? 0
-                        label: I18n.tr("Artists", "navigation destination")
+                        label: value === 1 ? I18n.tr("Artist", "track list column") : I18n.tr("Artists", "navigation destination")
                     }
                 }
 
@@ -588,17 +592,26 @@ DFlickable {
                         }
 
                         Column {
+                            id: legend
+                            // as wide as the widest row needs, so a percent stays near its name on a wide card
+                            readonly property real natural: {
+                                let w = 0;
+                                for (const row of children)
+                                    w = Math.max(w, (row as LegendRow)?.natural ?? 0);
+                                return w;
+                            }
                             anchors.verticalCenter: parent.verticalCenter
-                            width: Math.min(root.legendMaxWidth, parent.width - root.donutSize - parent.spacing)
+                            width: Math.min(root.legendMaxWidth, natural, parent.width - root.donutSize - parent.spacing)
                             spacing: Theme.spacingS
 
                             Repeater {
                                 model: genresCard.segments
 
-                                Row {
+                                LegendRow {
                                     id: legendRow
                                     required property var modelData
-                                    width: parent.width
+                                    natural: root.legendDotSize + legendName.implicitWidth + legendPercent.implicitWidth + spacing * 2
+                                    width: legend.width
                                     spacing: Theme.spacingS
 
                                     Rectangle {

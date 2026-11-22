@@ -32,9 +32,6 @@ Item {
     // a minimized window still counts as visible to its items
     readonly property bool shown: visible && Window.visibility !== Window.Minimized && Window.visibility !== Window.Hidden
     readonly property bool playing: PlayerService.playing && !PlayerService.loading
-    // 1 while playing, easing to 0 on pause; the wave keeps moving until it is flat. M3WaveProgress smooths its
-    // amplitude again over 300 ms on top.
-    property real waveLevel: playing ? 1 : 0
     // M3WaveProgress's own default amplitude
     readonly property real flatBarAmplitude: 1.6
     property real playerValue: 0
@@ -152,14 +149,6 @@ Item {
         visible: root.activeFocus
     }
 
-    Behavior on waveLevel {
-        enabled: Theme.animationsEnabled && root.shown
-        DC.DAnim {
-            duration: Theme.expressiveDurations.large
-            easing.bezierCurve: Theme.expressiveCurves.emphasized
-        }
-    }
-
     Behavior on handleWidth {
         enabled: Theme.animationsEnabled && root.shown
         DC.DAnim {
@@ -193,9 +182,9 @@ Item {
         playheadColor: root.fillColor
         trackColor: root.trackColor
         actualProgressColor: ArtColors.accentSubtle
-        isPlaying: root.waveLevel > 0 && root.shown
-
-        amp: (root.expressive ? PlayerMetrics.mediaSeekbarExpressiveAmplitude : root.flatBarAmplitude) * root.waveLevel
+        // M3WaveProgress eases its amplitude itself; on pause the wave keeps moving until it is flat
+        isPlaying: root.shown && (root.playing || currentAmp > 0)
+        amp: root.playing ? (root.expressive ? PlayerMetrics.mediaSeekbarExpressiveAmplitude : root.flatBarAmplitude) : 0
 
         Binding on lineWidth {
             when: root.expressive

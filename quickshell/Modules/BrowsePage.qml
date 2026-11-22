@@ -209,6 +209,15 @@ Item {
     readonly property var letters: indexable ? Letters.index(items.map(i => i.name ?? i.title), options.descending === true) : []
     // the rows and tiles make room for the index; the header keeps the full width
     readonly property real indexWidth: indexShown ? letterIndex.width : 0
+    // what the rows show; it follows `items` once an edit has reached the view, so a removed row keeps its item
+    property var shownItems: []
+    property string shownKey: ""
+    // an in-place edit (an item added, removed or moved) is being applied; only those animate, never a new list
+    property bool rowEdit: false
+    // bigger edits (a sync, a filter) replace the rows at once
+    readonly property int editMax: 12
+    readonly property var vanishing: ({})
+    readonly property string viewKey: pageKey + ":" + type + ":" + (options.layout ?? "")
     readonly property bool overflows: view !== null && view.contentHeight > view.height
 
     function syncIndex() {
@@ -216,6 +225,47 @@ Item {
     }
     onIndexableChanged: Qt.callLater(syncIndex)
     onOverflowsChanged: Qt.callLater(syncIndex)
+
+    function itemKey(item) {
+        return (item.library ?? "") + ":" + (item.id ?? item.name ?? item.title ?? "");
+    }
+
+    // An item added, removed or moved within the shown list goes to the view as that edit, so it animates;
+    // anything else replaces the rows at once.
+    function applyItems() {
+        const model = shown?.rowModel;
+        const sameView = viewKey === shownKey;
+        shownKey = viewKey;
+        if (!model || !sameView || shownItems.length === 0 || items.length === 0) {
+            shownItems = items;
+            return;
+        }
+        const to = items.map(itemKey);
+        const edit = new Set(to).size === to.length ? Catalog.diff(shownItems.map(itemKey), to) : null;
+        if (!edit || !(edit.move || edit.remove === 0 || edit.insert.length === 0)) {
+            shownItems = items;
+            return;
+        }
+        rowEdit = (edit.move ? 1 : Math.max(edit.remove, edit.insert.length)) <= editMax;
+        if (edit.move)
+            model.move(edit.move[0], edit.move[1], 1);
+        else if (edit.remove > 0)
+            model.remove(edit.at, edit.remove);
+        else
+            model.insert(edit.at, edit.insert.map(() => ({
+                        "group": ""
+                    })));
+        shownItems = items;
+        // the view starts its transitions while laying out, so the edit flag has to hold until then
+        shown.forceLayout();
+        rowEdit = false;
+    }
+    onItemsChanged: applyItems()
+    onViewKeyChanged: applyItems()
+    Component.onCompleted: {
+        shownKey = viewKey;
+        shownItems = items;
+    }
 
     onLibraryShownChanged: CatalogService.openedLibrary(libraryShown)
 
@@ -248,6 +298,19 @@ Item {
 
     // a tab whose layout differs rebuilds the header; its new tab bar takes the focus back
     property bool refocusTabs: false
+
+    // the tab in use; the content slides in from the side of a newly picked one
+    readonly property string shownTab: UiConfig.libraryTab
+    property string slidFrom: ""
+    onShownTabChanged: {
+        const was = UiConfig.libraryTabs.indexOf(slidFrom);
+        const now = UiConfig.libraryTabs.indexOf(shownTab);
+        slidFrom = shownTab;
+        if (was < 0 || now < 0 || Router.page !== "collection" || !Theme.animationsEnabled)
+            return;
+        tabSlide.from = (now > was ? 1 : -1) * (I18n.isRtl ? -1 : 1) * Theme.spacingXL;
+        tabSlide.restart();
+    }
 
     // a Library tab is the same route: no history step, an empty field and the list from the top
     function pickLibraryTab(tab, focused) {
@@ -592,6 +655,35 @@ Item {
         anchors.leftMargin: PlayerMetrics.pagePadding
         anchors.rightMargin: PlayerMetrics.pagePadding
         sourceComponent: root.options.layout === "grid" ? gridComponent : root.type === "tracks" ? tracksComponent : listComponent
+        transform: Translate {
+            id: shift
+        }
+
+        // the new tab's content slides in from the picked tab's side; the content is already laid out
+        ParallelAnimation {
+            id: tabSlide
+            property real from: 0
+            running: false
+
+            NumberAnimation {
+                target: shift
+                property: "x"
+                from: tabSlide.from
+                to: 0
+                duration: Theme.expressiveDurations.normal
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+            }
+            NumberAnimation {
+                target: content
+                property: "opacity"
+                from: 0
+                to: 1
+                duration: Theme.expressiveDurations.expressiveEffects
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+            }
+        }
     }
 
     Component {
@@ -632,8 +724,23 @@ Item {
             clip: true
             spacing: Theme.groupedListGap
             bottomMargin: PlayerMetrics.pagePadding + (root.isPlaylists ? fab.height + Theme.spacingL : 0)
+            readonly property alias rowModel: rowModel
+            displaced: DListMotion.Displaced {
+                active: root.rowEdit
+            }
+            move: DListMotion.Move {
+                active: root.rowEdit
+            }
+            add: DListMotion.Add {
+                active: root.rowEdit
+                rise: PlayerMetrics.listRise
+            }
+            remove: DListMotion.Remove {
+                active: root.rowEdit
+            }
             model: RowModel {
-                rows: root.items.length
+                id: rowModel
+                rows: root.shownItems.length
                 groups: root.groupNames
             }
             header: Header {
@@ -658,9 +765,24 @@ Item {
             }
 
             delegate: MediaRow {
+                id: row
                 required property int index
-                // a shorter list reaches the rows a moment before the count drops
-                readonly property var modelData: root.items[index] ?? ({})
+                readonly property var live: root.shownItems[index]
+                // a removed row (index -1) keeps its item while it leaves; a shorter list reaches the rows a moment
+                // before the count drops
+                property var held: root.vanishing
+                readonly property var modelData: live ?? held
+                onLiveChanged: {
+                    if (live !== undefined)
+                        held = live;
+                }
+                // DListView hides removed rows, also while their remove transition runs
+                property bool leaving: false
+                ListView.onRemove: leaving = list.remove.enabled
+                onVisibleChanged: {
+                    if (leaving && !visible && opacity > 0)
+                        visible = true;
+                }
                 x: I18n.isRtl ? root.indexWidth : 0
                 width: list.width - root.indexWidth
                 kind: root.kind
@@ -668,7 +790,7 @@ Item {
                 lines: root.options.lines
                 compact: root.options.layout === "compact"
                 firstInGroup: index === 0 || root.groupNames[index - 1] !== root.groupNames[index]
-                lastInGroup: index === root.items.length - 1 || root.groupNames[index + 1] !== root.groupNames[index]
+                lastInGroup: index === root.shownItems.length - 1 || root.groupNames[index + 1] !== root.groupNames[index]
             }
         }
     }
@@ -688,8 +810,23 @@ Item {
             cellWidth: Math.floor((width - root.indexWidth) / columnCount)
             cellHeight: cellWidth + (root.options.tileSize === "l" ? PlayerMetrics.gridCaptionHeightL : PlayerMetrics.gridCaptionHeight)
             bottomMargin: root.isPlaylists ? fab.height + Theme.spacingL : 0
+            readonly property alias rowModel: rowModel
+            displaced: DListMotion.Displaced {
+                active: root.rowEdit
+            }
+            move: DListMotion.Move {
+                active: root.rowEdit
+            }
+            add: DListMotion.Add {
+                active: root.rowEdit
+                rise: PlayerMetrics.listRise
+            }
+            remove: DListMotion.Remove {
+                active: root.rowEdit
+            }
             model: RowModel {
-                rows: root.items.length
+                id: rowModel
+                rows: root.shownItems.length
             }
             header: Header {
                 width: grid.width
@@ -701,8 +838,14 @@ Item {
 
             delegate: MediaTile {
                 required property int index
-                // a shorter list reaches the tiles a moment before the count drops
-                readonly property var modelData: root.items[index] ?? ({})
+                readonly property var live: root.shownItems[index]
+                // a removed tile (index -1) keeps its item while it leaves
+                property var held: root.vanishing
+                readonly property var modelData: live ?? held
+                onLiveChanged: {
+                    if (live !== undefined)
+                        held = live;
+                }
                 width: grid.cellWidth
                 height: grid.cellHeight
                 tileSize: root.options.tileSize ?? "m"
@@ -716,13 +859,22 @@ Item {
 
     DLetterIndex {
         id: letterIndex
-        visible: root.indexShown
+        visible: opacity > 0
+        opacity: root.indexShown ? 1 : 0
         model: root.letters
         // inside the view's reserved width, so the scroll bar in the page's gutter never covers it
         x: I18n.isRtl ? PlayerMetrics.pagePadding : parent.width - PlayerMetrics.pagePadding - width
         // below the header, which scrolls away with the content
         y: Math.max(Theme.spacingXS, (root.view?.headerItem?.height ?? 0) - ((root.view?.contentY ?? 0) - (root.view?.originY ?? 0)))
         height: Math.max(0, parent.height - y - Theme.spacingXS - (root.isPlaylists ? fab.height + Theme.spacingL : 0))
+        Behavior on opacity {
+            enabled: Theme.animationsEnabled
+            NumberAnimation {
+                duration: Theme.expressiveDurations.expressiveEffects
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+            }
+        }
         onPicked: first => {
             if (root.shown?.positionAt)
                 root.shown.positionAt(first);

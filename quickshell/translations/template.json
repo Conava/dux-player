@@ -8141,6 +8141,13 @@
     "comment": ""
   },
   {
+    "term": "Total plays",
+    "translation": "",
+    "context": "statistics: label under the number of plays in the range",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Track",
     "translation": "",
     "context": "details field: track and disc number | replaygain mode",

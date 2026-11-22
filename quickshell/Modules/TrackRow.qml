@@ -54,6 +54,7 @@ DListItem {
     isSelected: selected
     // stays highlighted while its menu is open
     isHovered: hovered || menu.opened
+    pressCancelled: dragHandler.active
     Accessible.name: Phrases.named(track?.title ?? "", track?.artist ?? "")
     onClicked: {
         if (pressModifiers & (Qt.ControlModifier | Qt.ShiftModifier)) {
@@ -74,11 +75,6 @@ DListItem {
         event.accepted = true;
     }
 
-    DPressFeedback {
-        control: root
-        cancelled: dragHandler.active
-    }
-
     TapHandler {
         acceptedButtons: Qt.LeftButton
         onPressedChanged: {
@@ -90,6 +86,7 @@ DListItem {
     TrackMenu {
         id: menu
         tracks: root.actionTracks
+        live: rowEnd.built
         playlistId: root.playlistId
         playlistIndexes: root.playlistIndexes
     }
@@ -125,8 +122,11 @@ DListItem {
                     if (active) {
                         Router.dragTracks = root.actionTracks;
                         Router.dragSource = root.playlistId;
-                    } else
-                        ghost.Drag.drop();
+                        ghost.active = true;
+                        return;
+                    }
+                    (ghost.item as Rectangle)?.Drag.drop();
+                    ghost.active = false;
                 }
             }
 
@@ -166,29 +166,33 @@ DListItem {
                 Accessible.checked: root.selected
             }
 
-            // the drag image: a chip with the title or the count
-            Rectangle {
+            // the drag image: a chip with the title or the count, built only while dragging
+            Loader {
                 id: ghost
                 parent: root.Window.window?.contentItem ?? lead
-                visible: dragHandler.active
+                active: false
                 z: Theme.zDrag
-                x: dragHandler.active ? lead.mapToItem(parent, dragHandler.centroid.position.x, dragHandler.centroid.position.y).x : 0
-                y: dragHandler.active ? lead.mapToItem(parent, dragHandler.centroid.position.x, dragHandler.centroid.position.y).y : 0
-                width: ghostText.implicitWidth + Theme.spacingL * 2
-                height: Theme.buttonHeightXS
-                radius: Theme.fullRadius(width, height)
-                color: Theme.secondaryContainer
-                Drag.active: dragHandler.active
-                Drag.keys: ["dplayer/tracks"]
-                Drag.hotSpot.x: 0
-                Drag.hotSpot.y: 0
 
-                StyledText {
-                    id: ghostText
-                    anchors.centerIn: parent
-                    text: root.actionTracks.length === 1 ? (root.track?.title ?? "") : Phrases.tracks(root.actionTracks.length)
-                    font.pixelSize: Theme.fontSizeSmall
-                    color: Theme.onSecondaryContainer
+                // positioned itself: Drag follows its own item's geometry, not the loader's
+                sourceComponent: Rectangle {
+                    x: dragHandler.active ? lead.mapToItem(ghost, dragHandler.centroid.position.x, dragHandler.centroid.position.y).x : 0
+                    y: dragHandler.active ? lead.mapToItem(ghost, dragHandler.centroid.position.x, dragHandler.centroid.position.y).y : 0
+                    width: ghostText.implicitWidth + Theme.spacingL * 2
+                    height: Theme.buttonHeightXS
+                    radius: Theme.fullRadius(width, height)
+                    color: Theme.secondaryContainer
+                    Drag.active: true
+                    Drag.keys: ["dplayer/tracks"]
+                    Drag.hotSpot.x: 0
+                    Drag.hotSpot.y: 0
+
+                    StyledText {
+                        id: ghostText
+                        anchors.centerIn: parent
+                        text: root.actionTracks.length === 1 ? (root.track?.title ?? "") : Phrases.tracks(root.actionTracks.length)
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.onSecondaryContainer
+                    }
                 }
             }
         }

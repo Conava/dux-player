@@ -97,6 +97,10 @@ Item {
                     stateColor: Style.primary
                 }
 
+                DPressFeedback {
+                    control: cell
+                }
+
                 StyledText {
                     visible: !cell.dot
                     anchors.centerIn: parent

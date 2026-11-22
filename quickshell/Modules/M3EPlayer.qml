@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import qs.Common
 import qs.Services
+import qs.DCommon.Common as DC
 import qs.DCommon.Widgets
 import "../Common/Format.js" as Format
 
@@ -151,7 +152,8 @@ Item {
             }
         }
 
-        // a pane in place: from under the top row down to the seekbar. It keeps running behind the art.
+        // a pane in place: from under the top row down to the seekbar. It keeps running behind the art. It fades in
+        // and goes at once on close, as the card around it snaps back to the player's size.
         Loader {
             x: root.margin
             y: root.margin + root.topHeight
@@ -161,6 +163,14 @@ Item {
             enabled: root.paneShown
             opacity: root.paneShown ? 1 : 0
             sourceComponent: root.inPlace
+
+            Behavior on opacity {
+                enabled: Theme.animationsEnabled && root.visible
+                DC.DAnim {
+                    duration: Theme.expressiveDurations.expressiveEffects
+                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+                }
+            }
         }
 
         Column {

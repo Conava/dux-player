@@ -44,7 +44,12 @@ Row {
     readonly property string autoIcon: "auto_awesome"
     readonly property color originColor: Theme.success
     property Item moreButton: null
+    // the hover buttons are built the first time the row is hovered or Tab reaches their place; until then a stand-in
+    // per button keeps its width and Tab stop
+    property bool built: false
 
+    onHoveringChanged: if (hovering)
+        built = true
     spacing: 0
 
     HoverHandler {
@@ -52,7 +57,27 @@ Row {
     }
 
     Repeater {
-        model: end.hoverEntries
+        // a count: the entries' texts change once they are built, their number doesn't
+        model: end.hoverEntries.length
+
+        Item {
+            required property int index
+            visible: !end.built
+            width: Theme.buttonHeightXS
+            height: 1
+            activeFocusOnTab: !end.header && !(end.hoverEntries[index]?.inert ?? false)
+            onActiveFocusChanged: {
+                if (!activeFocus)
+                    return;
+                end.built = true;
+                hoverButtons.itemAt(index)?.forceActiveFocus(Qt.TabFocusReason);
+            }
+        }
+    }
+
+    Repeater {
+        id: hoverButtons
+        model: end.built ? end.hoverEntries : []
 
         DActionButton {
             required property var modelData

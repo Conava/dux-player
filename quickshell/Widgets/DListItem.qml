@@ -5,8 +5,12 @@ import qs.DCommon.Widgets as Up
 Up.DListItem {
     id: root
 
+    // set while a drag owns the press
+    property bool pressCancelled: false
+
     DPressFeedback {
         control: root
         rippleColor: root.contentColor
+        cancelled: root.pressCancelled
     }
 }

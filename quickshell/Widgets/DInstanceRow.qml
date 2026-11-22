@@ -98,16 +98,12 @@ DListItem {
 
     // a row without options does nothing on click: no hover tint, no ripple, no hand
     isHovered: hasOptions && hovered
+    pressCancelled: root.dragging
 
     MouseArea {
         anchors.fill: parent
         visible: !root.hasOptions
         cursorShape: Qt.ArrowCursor
-    }
-
-    DPressFeedback {
-        control: root
-        cancelled: root.dragging
     }
 
     DDragHandle {

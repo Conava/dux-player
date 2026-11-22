@@ -27,12 +27,8 @@ DListItem {
     firstInGroup: view.order.indexOf(index) === 0
     lastInGroup: view.order.indexOf(index) === view.count - 1
     z: dragHandle.dragging ? 1 : 0
+    pressCancelled: dragHandle.dragging
     Accessible.name: label
-
-    DPressFeedback {
-        control: root
-        cancelled: dragHandle.dragging
-    }
 
     DDragHandle {
         id: dragHandle

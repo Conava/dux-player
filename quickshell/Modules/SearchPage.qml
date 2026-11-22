@@ -4,6 +4,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 import "../Services/Catalog.js" as Catalog
 
 // Search over every enabled library: the result groups in the order the page's sections set.
@@ -226,6 +227,10 @@ Item {
                         StateLayer {
                             control: artistChip
                             stateColor: Theme.onSecondaryContainer
+                        }
+
+                        DPressFeedback {
+                            control: artistChip
                         }
 
                         Row {
