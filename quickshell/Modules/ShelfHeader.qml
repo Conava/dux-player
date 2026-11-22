@@ -16,7 +16,7 @@ Item {
     signal shuffleRequested
 
     // the row the arrows page; null shows no arrows
-    property Flickable carousel: null
+    property DHorizontalList carousel: null
     // distance between two tiles, so a page keeps the next tile in view
     property real tileStep: 0
 
@@ -27,6 +27,10 @@ Item {
     function page(direction) {
         const target = Math.max(carousel.originX, Math.min(maxX, carousel.contentX + direction * Math.max(tileStep, carousel.width - tileStep)));
         slide.stop();
+        if (!Theme.animationsEnabled) {
+            carousel.contentX = target;
+            return;
+        }
         slide.to = target;
         slide.start();
     }
@@ -39,9 +43,20 @@ Item {
         id: slide
         target: root.carousel
         property: "contentX"
-        duration: Theme.expressiveDurations.expressiveDefaultSpatial
+        duration: Theme.expressiveDurations.normal
         easing.type: Easing.BezierSpline
-        easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+        easing.bezierCurve: Theme.expressiveCurves.emphasized
+    }
+
+    // a drag or the wheel takes the row over from a page in progress
+    Connections {
+        target: root.carousel
+        function onMovementStarted() {
+            slide.stop();
+        }
+        function onUserScrolled() {
+            slide.stop();
+        }
     }
 
     StyledButton {

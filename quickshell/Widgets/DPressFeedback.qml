@@ -58,6 +58,8 @@ Item {
 
     Connections {
         target: root.control
+        // list rows have no canceled signal
+        ignoreUnknownSignals: true
         function onClicked() {
             if (!root.sawPress && !root.superseded()) {
                 ripple.active = true;

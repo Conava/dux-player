@@ -113,159 +113,6 @@ Row {
                 return null;
             }
 
-            Component {
-                id: favoriteSlot
-
-                // shown when set, otherwise on hover; where the library has no favorites it keeps its place only
-                FavoriteButton {
-                    kind: end.favoriteKind
-                    item: end.item
-                    enabled: blocker === ""
-                    opacity: enabled && (favorite || end.hovering || visualFocus) ? 1 : 0
-                }
-            }
-
-            Component {
-                id: ratingSlot
-
-                RatingStars {
-                    kind: end.favoriteKind
-                    item: end.item
-                    keepsSpace: true
-                }
-            }
-
-            Component {
-                id: librarySlot
-
-                Item {
-                    width: !end.manyLibraries ? 0 : (end.fixedLibrary ? PlayerMetrics.columnLibraryWidth : badge.implicitWidth) + Theme.spacingS
-                    height: badge.height
-
-                    LibraryBadge {
-                        id: badge
-                        x: Theme.spacingXS
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: end.manyLibraries && libraryId !== ""
-                        libraryId: end.item?.library ?? ""
-                        maximumWidth: PlayerMetrics.columnLibraryWidth
-                    }
-                }
-            }
-
-            // streams from a server: struck through while the server is down, unless a copy is cached
-            Component {
-                id: cloudSlot
-
-                Item {
-                    width: end.remote ? Theme.iconSizeSmall + Theme.spacingS : 0
-                    height: Theme.iconSizeSmall
-
-                    DIcon {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: end.remote
-                        name: !end.serverDown ? "cloud" : PlayerService.isCached(end.item) ? "cloud_done" : "cloud_off"
-                        size: Theme.iconSizeSmall
-                        color: end.textColor
-                        Accessible.name: !end?.serverDown ? I18n.tr("Streams from a server", "track row cloud icon") : PlayerService.isCached(end.item) ? I18n.tr("Available offline", "track row cloud icon while the server is down") : I18n.tr("Server unreachable", "track row cloud icon while the server is down")
-                    }
-                }
-            }
-
-            Component {
-                id: durationSlot
-
-                StyledText {
-                    width: end.timeWidth
-                    text: Format.duration(end.item?.duration ?? 0)
-                    font.pixelSize: Theme.fontSizeSmall
-                    color: end.textColor
-                    horizontalAlignment: Text.AlignRight
-                }
-            }
-
-            Component {
-                id: addToPlaylistSlot
-
-                DActionButton {
-                    iconName: UiConfig.actionIcon(end?.actions.type, "addToPlaylist")
-                    tooltipText: UiConfig.actionLabel(end?.actions.type, "addToPlaylist")
-                    Accessible.name: tooltipText
-                    onClicked: end.actions.run("addToPlaylist", this)
-                }
-            }
-
-            Component {
-                id: playSlot
-
-                DIconButton {
-                    iconName: "play_arrow"
-                    iconFilled: true
-                    Accessible.name: I18n.tr("Play %1", "play button, %1 is the album or playlist").arg(end?.item?.title ?? end?.item?.name ?? "")
-                    onClicked: end.actions.run("play", this)
-                }
-            }
-
-            Component {
-                id: addedSlot
-
-                Item {
-                    width: end.origin !== "" ? Theme.iconSizeSmall + Theme.spacingS : 0
-                    height: Theme.iconSizeSmall
-
-                    DIcon {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: end.origin === "auto"
-                        name: end.autoIcon
-                        size: Theme.iconSizeSmall
-                        color: end.originColor
-                        Accessible.name: I18n.tr("Added automatically", "queue row: a track the queue continued with")
-                    }
-
-                    DAddedIcon {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: end.origin === "hand"
-                        size: Theme.iconSizeSmall
-                        color: end.originColor
-                        Accessible.name: I18n.tr("Added by you", "queue row: a track put in with play next or add to queue")
-                    }
-                }
-            }
-
-            Component {
-                id: removeSlot
-
-                DActionButton {
-                    iconName: "close"
-                    tooltipText: UiConfig.actionLabel(end?.actions.type, "removeFromQueue")
-                    Accessible.name: tooltipText
-                    onClicked: end.actions.run("removeFromQueue", this)
-                }
-            }
-
-            Component {
-                id: moreSlot
-
-                // a gap so the button doesn't sit against the duration
-                Item {
-                    width: moreButton.width + Theme.spacingS
-                    height: moreButton.height
-
-                    DActionButton {
-                        id: moreButton
-                        anchors.right: parent.right
-                        iconName: "more_vert"
-                        tooltipText: I18n.tr("More", "track row menu button")
-                        Accessible.name: tooltipText
-                        onClicked: end.actions.open(this)
-                        Component.onCompleted: end.moreButton = this
-                    }
-                }
-            }
-
             // "Fill" is the large size here; a row's end has no free space to fill
             Component {
                 id: spacerSlot
@@ -274,6 +121,160 @@ Row {
                     width: slot.modelData.options.size === "s" ? Theme.spacingS : slot.modelData.options.size === "m" ? Theme.spacingL : Theme.spacingXL
                     height: 1
                 }
+            }
+        }
+    }
+
+    // declared once per row, not once per slot
+    Component {
+        id: favoriteSlot
+
+        // shown when set, otherwise on hover; where the library has no favorites it keeps its place only
+        FavoriteButton {
+            kind: end.favoriteKind
+            item: end.item
+            enabled: blocker === ""
+            opacity: enabled && (favorite || end.hovering || visualFocus) ? 1 : 0
+        }
+    }
+
+    Component {
+        id: ratingSlot
+
+        RatingStars {
+            kind: end.favoriteKind
+            item: end.item
+            keepsSpace: true
+        }
+    }
+
+    Component {
+        id: librarySlot
+
+        Item {
+            width: !end.manyLibraries ? 0 : (end.fixedLibrary ? PlayerMetrics.columnLibraryWidth : badge.implicitWidth) + Theme.spacingS
+            height: badge.height
+
+            LibraryBadge {
+                id: badge
+                x: Theme.spacingXS
+                anchors.verticalCenter: parent.verticalCenter
+                visible: end.manyLibraries && libraryId !== ""
+                libraryId: end.item?.library ?? ""
+                maximumWidth: PlayerMetrics.columnLibraryWidth
+            }
+        }
+    }
+
+    // streams from a server: struck through while the server is down, unless a copy is cached
+    Component {
+        id: cloudSlot
+
+        Item {
+            width: end.remote ? Theme.iconSizeSmall + Theme.spacingS : 0
+            height: Theme.iconSizeSmall
+
+            DIcon {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                visible: end.remote
+                name: !end.serverDown ? "cloud" : PlayerService.isCached(end.item) ? "cloud_done" : "cloud_off"
+                size: Theme.iconSizeSmall
+                color: end.textColor
+                Accessible.name: !end?.serverDown ? I18n.tr("Streams from a server", "track row cloud icon") : PlayerService.isCached(end.item) ? I18n.tr("Available offline", "track row cloud icon while the server is down") : I18n.tr("Server unreachable", "track row cloud icon while the server is down")
+            }
+        }
+    }
+
+    Component {
+        id: durationSlot
+
+        StyledText {
+            width: end.timeWidth
+            text: Format.duration(end.item?.duration ?? 0)
+            font.pixelSize: Theme.fontSizeSmall
+            color: end.textColor
+            horizontalAlignment: Text.AlignRight
+        }
+    }
+
+    Component {
+        id: addToPlaylistSlot
+
+        DActionButton {
+            iconName: UiConfig.actionIcon(end?.actions.type, "addToPlaylist")
+            tooltipText: UiConfig.actionLabel(end?.actions.type, "addToPlaylist")
+            Accessible.name: tooltipText
+            onClicked: end.actions.run("addToPlaylist", this)
+        }
+    }
+
+    Component {
+        id: playSlot
+
+        DIconButton {
+            iconName: "play_arrow"
+            iconFilled: true
+            Accessible.name: I18n.tr("Play %1", "play button, %1 is the album or playlist").arg(end?.item?.title ?? end?.item?.name ?? "")
+            onClicked: end.actions.run("play", this)
+        }
+    }
+
+    Component {
+        id: addedSlot
+
+        Item {
+            width: end.origin !== "" ? Theme.iconSizeSmall + Theme.spacingS : 0
+            height: Theme.iconSizeSmall
+
+            DIcon {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                visible: end.origin === "auto"
+                name: end.autoIcon
+                size: Theme.iconSizeSmall
+                color: end.originColor
+                Accessible.name: I18n.tr("Added automatically", "queue row: a track the queue continued with")
+            }
+
+            DAddedIcon {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                visible: end.origin === "hand"
+                size: Theme.iconSizeSmall
+                color: end.originColor
+                Accessible.name: I18n.tr("Added by you", "queue row: a track put in with play next or add to queue")
+            }
+        }
+    }
+
+    Component {
+        id: removeSlot
+
+        DActionButton {
+            iconName: "close"
+            tooltipText: UiConfig.actionLabel(end?.actions.type, "removeFromQueue")
+            Accessible.name: tooltipText
+            onClicked: end.actions.run("removeFromQueue", this)
+        }
+    }
+
+    Component {
+        id: moreSlot
+
+        // a gap so the button doesn't sit against the duration
+        Item {
+            width: moreButton.width + Theme.spacingS
+            height: moreButton.height
+
+            DActionButton {
+                id: moreButton
+                anchors.right: parent.right
+                iconName: "more_vert"
+                tooltipText: I18n.tr("More", "track row menu button")
+                Accessible.name: tooltipText
+                onClicked: end.actions.open(this)
+                Component.onCompleted: end.moreButton = this
             }
         }
     }

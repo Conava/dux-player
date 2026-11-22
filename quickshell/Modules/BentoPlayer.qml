@@ -94,7 +94,7 @@ Item {
             still: root.preview || root.paneShown
 
             Behavior on opacity {
-                enabled: Theme.animationsEnabled
+                enabled: Theme.animationsEnabled && root.visible
                 NumberAnimation {
                     duration: Theme.expressiveDurations.expressiveEffects
                     easing.type: Easing.BezierSpline
@@ -103,7 +103,7 @@ Item {
             }
 
             Behavior on scale {
-                enabled: Theme.animationsEnabled
+                enabled: Theme.animationsEnabled && root.visible
                 NumberAnimation {
                     duration: Theme.expressiveDurations.expressiveDefaultSpatial
                     easing.type: Easing.BezierSpline
@@ -122,7 +122,7 @@ Item {
             sourceComponent: root.shownPane
 
             Behavior on opacity {
-                enabled: Theme.animationsEnabled
+                enabled: Theme.animationsEnabled && root.visible
                 NumberAnimation {
                     duration: Theme.expressiveDurations.expressiveEffects
                     easing.type: Easing.BezierSpline

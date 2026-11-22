@@ -26,7 +26,7 @@ Item {
     readonly property alias implicitTextWidth: label.implicitWidth
     readonly property bool needsScrolling: label.implicitWidth > width
     readonly property bool rightToLeft: label.effectiveHorizontalAlignment === Text.AlignRight
-    readonly property bool scrollActive: needsScrolling && visible && (Window.window?.visible ?? false) && active && !Style.reduceMotion
+    readonly property bool scrollActive: needsScrolling && visible && (Window.window?.visible ?? false) && active && !Style.reduceMotion && Style.currentAnimationSpeed !== Style.AnimationSpeed.None
     readonly property real maxScrollOffset: loop ? label.implicitWidth + loopGap : Math.max(0, label.implicitWidth - width + overscroll)
 
     property real scrollOffset: 0

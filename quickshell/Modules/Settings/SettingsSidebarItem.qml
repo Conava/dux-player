@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 Rectangle {
     id: root
@@ -9,7 +10,10 @@ Rectangle {
     property string title: ""
     property string hint: ""
     property string accent: ""
+    // the window's moving indicator marks the active item
     property bool active: false
+    readonly property bool lit: active && visible
+    readonly property bool down: mouseArea.pressed
     property bool highlighted: false
     // a search result the current setup hides; hint says why
     property bool dimmed: false
@@ -49,8 +53,6 @@ Rectangle {
     bottomLeftRadius: bottomRadius
     bottomRightRadius: bottomRadius
     color: {
-        if (active)
-            return SettingsMetrics.selectedRowColor;
         if (highlighted)
             return Theme.blend(SettingsMetrics.sidebarRowColor, Theme.primary, SettingsMetrics.highlightBlend);
         return SettingsMetrics.sidebarRowColor;
@@ -82,6 +84,11 @@ Rectangle {
                 easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
             }
         }
+    }
+
+    DPressFeedback {
+        control: root
+        rippleColor: Theme.surfaceText
     }
 
     DRipple {

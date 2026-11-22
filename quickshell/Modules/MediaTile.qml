@@ -22,6 +22,22 @@ StyledButton {
     readonly property bool playing: (kind === "album" || kind === "playlist") && PlayerService.current !== null && PlayerService.playContext.type === kind && PlayerService.playContext.id === item?.id
     readonly property bool active: hovered || visualFocus || playButton.visualFocus || moreButton.visualFocus || menuOpened
 
+    // false at creation and while a carousel holds the tile in its pool, so a value set then lands at once
+    property bool placed: false
+    readonly property bool animates: Theme.animationsEnabled && placed
+    readonly property bool showsPlayButton: active && kind !== "artist" && kind !== "genre"
+    // overlays grow in from this scale
+    readonly property real overlayScale: 0.8
+    readonly property bool showsBadge: playing && !active
+
+    // an overlay fades and grows in on the quick effects row and leaves on the exit row
+    component OverlayFade: NumberAnimation {
+        property bool show: true
+        duration: show ? Theme.expressiveDurations.expressiveFastEffects : Theme.expressiveDurations.expressiveEffects
+        easing.type: Easing.BezierSpline
+        easing.bezierCurve: show ? Theme.expressiveCurves.expressiveFastEffects : Theme.expressiveCurves.emphasizedAccel
+    }
+
     function openMenu(anchor, x, y) {
         if (kind === "track")
             trackMenu.open(anchor, x, y);
@@ -37,8 +53,12 @@ StyledButton {
     color: playing ? Theme.primaryContainer : "transparent"
     Accessible.name: playing ? Phrases.named(Phrases.named(item?.title ?? item?.name ?? "", info), I18n.tr("Playing", "tile state: the queue plays from this album or playlist")) : Phrases.named(item?.title ?? item?.name ?? "", info)
 
+    Component.onCompleted: placed = true
+    ListView.onPooled: placed = false
+    ListView.onReused: Qt.callLater(() => placed = true)
+
     Behavior on color {
-        enabled: Theme.animationsEnabled
+        enabled: root.animates
         ColorAnimation {
             duration: Theme.expressiveDurations.expressiveEffects
         }
@@ -108,7 +128,21 @@ StyledButton {
             variant: "filled"
             iconName: "play_arrow"
             iconFilled: true
-            visible: root.active && root.kind !== "artist" && root.kind !== "genre"
+            visible: root.showsPlayButton || opacity > 0
+            opacity: root.showsPlayButton ? 1 : 0
+            scale: root.showsPlayButton ? 1 : root.overlayScale
+            Behavior on opacity {
+                enabled: root.animates
+                OverlayFade {
+                    show: root.showsPlayButton
+                }
+            }
+            Behavior on scale {
+                enabled: root.animates
+                OverlayFade {
+                    show: root.showsPlayButton
+                }
+            }
             Accessible.name: I18n.tr("Play %1", "play button, %1 is the album or playlist").arg(root.item?.title ?? root.item?.name ?? "")
             onClicked: {
                 if (root.kind === "album")
@@ -125,7 +159,21 @@ StyledButton {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: PlayerMetrics.tileInset
-            visible: root.active
+            visible: root.active || opacity > 0
+            opacity: root.active ? 1 : 0
+            scale: root.active ? 1 : root.overlayScale
+            Behavior on opacity {
+                enabled: root.animates
+                OverlayFade {
+                    show: root.active
+                }
+            }
+            Behavior on scale {
+                enabled: root.animates
+                OverlayFade {
+                    show: root.active
+                }
+            }
             buttonSize: root.tileSize === "s" ? Theme.buttonHeightXS : Theme.buttonHeightS
             iconSize: root.tileSize === "s" ? Theme.iconSizeSmall : Theme.iconSize
             variant: "tonal"
@@ -143,7 +191,21 @@ StyledButton {
             height: width
             radius: width / 2
             color: Theme.primary
-            visible: root.playing && !root.active
+            visible: root.showsBadge || opacity > 0
+            opacity: root.showsBadge ? 1 : 0
+            scale: root.showsBadge ? 1 : root.overlayScale
+            Behavior on opacity {
+                enabled: root.animates
+                OverlayFade {
+                    show: root.showsBadge
+                }
+            }
+            Behavior on scale {
+                enabled: root.animates
+                OverlayFade {
+                    show: root.showsBadge
+                }
+            }
 
             DIcon {
                 anchors.centerIn: parent

@@ -12,6 +12,9 @@ ListView {
     id: root
 
     property real mouseWheelSpeed: Style.spacingXL * 3
+    // the wheel moved the row
+    signal userScrolled
+
     readonly property string forwardName: "forwardWheel"
 
     function wheelTarget() {
@@ -47,6 +50,7 @@ ListView {
             const touchpad = WheelInput.isTouchpad(event);
             const delta = touchpad ? WheelInput.dominantDelta(event.pixelDelta) : WheelInput.dominantDelta(event.angleDelta) / 120 * root.mouseWheelSpeed;
             const maxX = Math.max(root.originX, root.contentWidth - root.width + root.originX);
+            root.userScrolled();
             root.contentX = Math.max(root.originX, Math.min(maxX, root.contentX - delta));
             event.accepted = true;
         }

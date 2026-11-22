@@ -108,6 +108,8 @@ Item {
     property var shownTracks: []
     // an in-place edit (tracks removed, added or moved) is being applied; only those animate, never a new list
     property bool rowEdit: false
+    // the rows come a frame after the list, so a page's first frame builds only its header
+    property bool rowsReady: false
 
     signal sortRequested(string key)
     // a drag or reset changed these columns' widths: line key to the stored size (1 is Medium)
@@ -118,7 +120,7 @@ Item {
     // A removal, insertion or move within the shown list goes to the rows as that edit, so they slide; anything else,
     // or a list that starts or ends empty, replaces the rows at once.
     function applyTracks() {
-        const edit = shownTracks.length > 0 && tracks.length > 0 ? Catalog.diff(shownTracks.map(t => CatalogService.key(t)), tracks.map(t => CatalogService.key(t))) : null;
+        const edit = rowsReady && shownTracks.length > 0 && tracks.length > 0 ? Catalog.diff(shownTracks.map(t => CatalogService.key(t)), tracks.map(t => CatalogService.key(t))) : null;
         if (!edit || !(edit.move || edit.remove === 0 || edit.insert.length === 0)) {
             shownTracks = tracks;
             return;
@@ -197,6 +199,14 @@ Item {
     onTracksChanged: applyTracks()
     Component.onCompleted: applyTracks()
 
+    FrameAnimation {
+        running: !root.rowsReady
+        onTriggered: {
+            if (currentFrame >= 2)
+                root.rowsReady = true;
+        }
+    }
+
     Shortcut {
         sequence: StandardKey.SelectAll
         enabled: root.visible && root.selecting && Router.ownsSelectionKeys(root)
@@ -208,13 +218,6 @@ Item {
         owner: root
         active: root.selecting
         onEscaped: root.clearSelection()
-    }
-
-    // the header's row end mirrors the rows' (same hover buttons and slots)
-    TrackMenu {
-        id: headerActions
-        tracks: root.tracks.length > 0 ? [root.tracks[0]] : []
-        playlistId: root.playlistId
     }
 
     component SortCell: DSortHeaderCell {
@@ -283,7 +286,7 @@ Item {
         // list of the same length keeps its rows
         model: RowModel {
             id: rowModel
-            rows: root.shownTracks.length
+            rows: root.rowsReady ? root.shownTracks.length : 0
             groups: root.sectionNames.length > 0 ? root.sectionNames : root.sectionProperty === "" ? [] : root.shownTracks.map(t => String(t[root.sectionProperty] ?? ""))
         }
         displaced: DListMotion.Displaced {
@@ -330,108 +333,13 @@ Item {
                 sourceComponent: root.header
             }
 
-            // mirrors TrackRow's wide layout
-            RowLayout {
-                id: header
+            // mirrors TrackRow's wide layout; built only with columns, and with the rows
+            Loader {
                 x: I18n.isRtl ? root.endInset : 0
                 width: (parent?.width ?? 0) - root.endInset
-                visible: root.columns && root.tracks.length > 0
-                spacing: Theme.spacingM
-
-                Binding {
-                    target: root
-                    property: "endWidth"
-                    value: headerEnd.implicitWidth
-                }
-
-                // the resizable columns, title first, as the drag math wants them
-                function lineAt(k) {
-                    return k === 0 ? "title" : root.columnList[k - 1].line;
-                }
-
-                function measure() {
-                    const cells = [titleCell].concat(root.columnList.map((_, i) => columnRepeater.itemAt(i)));
-                    return cells.map((cell, k) => {
-                        const line = lineAt(k);
-                        const spec = k === 0 ? null : root.columnList[k - 1];
-                        const size = Layouts.columnSize(root.columnOptions, line);
-                        return {
-                            "line": line,
-                            "fill": k === 0 || spec.weight !== undefined,
-                            "size": size,
-                            "base": (k === 0 ? root.titleWeight : spec.weight ?? spec.width) / size,
-                            "px": cell.width,
-                            "min": k === 0 ? PlayerMetrics.columnTitleMinWidth : 0
-                        };
-                    });
-                }
-
-                Item {
-                    visible: root.orderKey === ""
-                    Layout.leftMargin: Theme.spacingL
-                    Layout.preferredWidth: root.showArt ? PlayerMetrics.rowArtSize : PlayerMetrics.columnNumberWidth
-                }
-
-                SortCell {
-                    visible: root.orderKey !== ""
-                    Layout.leftMargin: Theme.spacingL - Theme.spacingS
-                    Layout.preferredWidth: PlayerMetrics.columnNumberWidth + Theme.spacingS
-                    label: I18n.tr("#", "track list column: the position in a playlist")
-                    key: root.orderKey
-                }
-
-                SortCell {
-                    id: titleCell
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: root.titleWeight
-                    Layout.minimumWidth: PlayerMetrics.columnTitleMinWidth
-                    label: UiConfig.sortLabel("title")
-                    key: root.titleSort
-
-                    ColumnHandle {
-                        strip: header
-                        visible: root.columnList.length > 0
-                        column: 0
-                    }
-                }
-
-                Repeater {
-                    id: columnRepeater
-                    // a count, so a drag that changes the widths keeps the cells (and the handle being dragged)
-                    model: root.columnList.length
-
-                    SortCell {
-                        required property int index
-                        readonly property var modelData: root.columnList[index] ?? ({})
-                        Layout.preferredWidth: modelData.width ?? 0
-                        label: modelData.label ?? ""
-                        key: modelData.sort ?? ""
-
-                        // the last column borders the length slot, which has no handle
-                        ColumnHandle {
-                            strip: header
-                            visible: parent.index < root.columnList.length - 1
-                            column: parent.index + 1
-                        }
-                    }
-                }
-
-                RowEnd {
-                    id: headerEnd
-                    Layout.rightMargin: Theme.spacingS
-                    actions: headerActions
-                    item: root.tracks[0] ?? null
-                    fixedLibrary: true
-                    timeWidth: root.timeWidth
-                    timeHeader: Component {
-                        SortCell {
-                            width: root.timeWidth
-                            label: UiConfig.sortLabel("duration")
-                            key: "duration"
-                            align: Text.AlignRight
-                        }
-                    }
-                }
+                active: root.rowsReady && root.columns && root.tracks.length > 0
+                visible: active
+                sourceComponent: columnHeader
             }
 
             Item {
@@ -451,7 +359,123 @@ Item {
             // keeps the first row off the header
             Item {
                 width: 1
-                height: root.columns && root.tracks.length > 0 ? Theme.spacingXS : 0
+                height: root.rowsReady && root.columns && root.tracks.length > 0 ? Theme.spacingXS : 0
+            }
+        }
+
+        Component {
+            id: columnHeader
+
+            Item {
+                implicitHeight: header.implicitHeight
+
+                // the header's row end mirrors the rows' (same hover buttons and slots)
+                TrackMenu {
+                    id: headerActions
+                    tracks: root.tracks.length > 0 ? [root.tracks[0]] : []
+                    playlistId: root.playlistId
+                }
+
+                RowLayout {
+                    id: header
+                    width: parent.width
+                    spacing: Theme.spacingM
+
+                    Binding {
+                        target: root
+                        property: "endWidth"
+                        value: headerEnd.implicitWidth
+                    }
+
+                    // the resizable columns, title first, as the drag math wants them
+                    function lineAt(k) {
+                        return k === 0 ? "title" : root.columnList[k - 1].line;
+                    }
+
+                    function measure() {
+                        const cells = [titleCell].concat(root.columnList.map((_, i) => columnRepeater.itemAt(i)));
+                        return cells.map((cell, k) => {
+                            const line = lineAt(k);
+                            const spec = k === 0 ? null : root.columnList[k - 1];
+                            const size = Layouts.columnSize(root.columnOptions, line);
+                            return {
+                                "line": line,
+                                "fill": k === 0 || spec.weight !== undefined,
+                                "size": size,
+                                "base": (k === 0 ? root.titleWeight : spec.weight ?? spec.width) / size,
+                                "px": cell.width,
+                                "min": k === 0 ? PlayerMetrics.columnTitleMinWidth : 0
+                            };
+                        });
+                    }
+
+                    Item {
+                        visible: root.orderKey === ""
+                        Layout.leftMargin: Theme.spacingL
+                        Layout.preferredWidth: root.showArt ? PlayerMetrics.rowArtSize : PlayerMetrics.columnNumberWidth
+                    }
+
+                    SortCell {
+                        visible: root.orderKey !== ""
+                        Layout.leftMargin: Theme.spacingL - Theme.spacingS
+                        Layout.preferredWidth: PlayerMetrics.columnNumberWidth + Theme.spacingS
+                        label: I18n.tr("#", "track list column: the position in a playlist")
+                        key: root.orderKey
+                    }
+
+                    SortCell {
+                        id: titleCell
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: root.titleWeight
+                        Layout.minimumWidth: PlayerMetrics.columnTitleMinWidth
+                        label: UiConfig.sortLabel("title")
+                        key: root.titleSort
+
+                        ColumnHandle {
+                            strip: header
+                            visible: root.columnList.length > 0
+                            column: 0
+                        }
+                    }
+
+                    Repeater {
+                        id: columnRepeater
+                        // a count, so a drag that changes the widths keeps the cells (and the handle being dragged)
+                        model: root.columnList.length
+
+                        SortCell {
+                            required property int index
+                            readonly property var modelData: root.columnList[index] ?? ({})
+                            Layout.preferredWidth: modelData.width ?? 0
+                            label: modelData.label ?? ""
+                            key: modelData.sort ?? ""
+
+                            // the last column borders the length slot, which has no handle
+                            ColumnHandle {
+                                strip: header
+                                visible: parent.index < root.columnList.length - 1
+                                column: parent.index + 1
+                            }
+                        }
+                    }
+
+                    RowEnd {
+                        id: headerEnd
+                        Layout.rightMargin: Theme.spacingS
+                        actions: headerActions
+                        item: root.tracks[0] ?? null
+                        fixedLibrary: true
+                        timeWidth: root.timeWidth
+                        timeHeader: Component {
+                            SortCell {
+                                width: root.timeWidth
+                                label: UiConfig.sortLabel("duration")
+                                key: "duration"
+                                align: Text.AlignRight
+                            }
+                        }
+                    }
+                }
             }
         }
 

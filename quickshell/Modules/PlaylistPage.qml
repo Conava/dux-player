@@ -254,46 +254,56 @@ Item {
         }
     }
 
-    DFlickable {
-        id: reorderFlick
+    // built only while reordering: it holds a second copy of the header
+    Loader {
         anchors.fill: parent
         anchors.leftMargin: PlayerMetrics.pagePadding
         anchors.rightMargin: PlayerMetrics.pagePadding
-        visible: root.reordering
-        contentWidth: width
-        contentHeight: reorderColumn.height + PlayerMetrics.pagePadding + Router.pageEndInset
-        clip: true
+        active: root.reordering
+        visible: active
+        sourceComponent: reorderView
+    }
 
-        Column {
-            id: reorderColumn
-            width: reorderFlick.width
+    Component {
+        id: reorderView
 
-            Header {}
+        DFlickable {
+            id: reorderFlick
+            contentWidth: width
+            contentHeight: reorderColumn.height + PlayerMetrics.pagePadding + Router.pageEndInset
+            clip: true
 
-            DReorderList {
-                id: reorder
-                width: parent.width
-                flickable: reorderFlick
-                model: root.reordering ? root.tracks : []
-                onReordered: indices => PlayerService.reorderPlaylist(root.playlist.id, indices)
+            Column {
+                id: reorderColumn
+                width: reorderFlick.width
 
-                delegate: ReorderRow {
-                    id: entry
-                    required property var modelData
-                    view: reorder
-                    label: modelData.title
+                Header {}
 
-                    StyledText {
-                        anchors.left: entry.handle.right
-                        anchors.leftMargin: Theme.spacingS
-                        anchors.right: parent.right
-                        anchors.rightMargin: Theme.spacingL
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: Phrases.join(entry.modelData.title, entry.modelData.artist)
-                        font.pixelSize: Theme.fontSizeMedium
-                        color: entry.contentColor
-                        elide: Text.ElideRight
-                        wrapMode: Text.NoWrap
+                DReorderList {
+                    id: reorder
+                    width: parent.width
+                    flickable: reorderFlick
+                    model: root.tracks
+                    onReordered: indices => PlayerService.reorderPlaylist(root.playlist.id, indices)
+
+                    delegate: ReorderRow {
+                        id: entry
+                        required property var modelData
+                        view: reorder
+                        label: modelData.title
+
+                        StyledText {
+                            anchors.left: entry.handle.right
+                            anchors.leftMargin: Theme.spacingS
+                            anchors.right: parent.right
+                            anchors.rightMargin: Theme.spacingL
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: Phrases.join(entry.modelData.title, entry.modelData.artist)
+                            font.pixelSize: Theme.fontSizeMedium
+                            color: entry.contentColor
+                            elide: Text.ElideRight
+                            wrapMode: Text.NoWrap
+                        }
                     }
                 }
             }
@@ -306,9 +316,10 @@ Item {
         item: root.playlist
         extra: [menu.entry("cover", I18n.tr("Change cover", "playlist menu action"), "image"), menu.entry("reorder", I18n.tr("Reorder tracks", "playlist menu action"), "swap_vert", root.reorderBlocker)]
         onExtraTriggered: id => {
-            if (id === "cover")
-                coverDialog.opened = true;
-            else if (id === "reorder") {
+            if (id === "cover") {
+                coverDialog.active = true;
+                (coverDialog.item as CoverDialog).opened = true;
+            } else if (id === "reorder") {
                 Router.editing = false;
                 root.playlistOrder = true;
                 root.filterText = "";
@@ -317,9 +328,14 @@ Item {
         }
     }
 
-    CoverDialog {
+    // built on its first open: it draws a swatch per album and shape
+    Loader {
         id: coverDialog
-        host: root
-        playlist: root.playlist
+        active: false
+
+        sourceComponent: CoverDialog {
+            host: root
+            playlist: root.playlist
+        }
     }
 }

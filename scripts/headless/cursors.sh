@@ -4,7 +4,7 @@
 failed=0
 L="$XDG_STATE_HOME/dplayer/ui.log"
 expect() {
-    if tail -n "+$2" "$L" | grep -qE "set_shape\([0-9]+, $3\)"; then
+    if logsince "$L" "$2" | grep -qE "set_shape\([0-9]+, $3\)"; then
         echo "ok   $1: set_shape $3" >>"$W/out/facts.txt"
     else
         echo "FAIL $1: no set_shape $3" | tee -a "$W/out/facts.txt"
@@ -14,7 +14,7 @@ expect() {
 blank() {
     pointer m 1400 1000
     sleep 0.5
-    from=$(($(wc -l <"$L") + 1))
+    from=$(logmark "$L")
 }
 hover() {
     pointer m "$(($1 - 2))" "$2"

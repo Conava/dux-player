@@ -62,10 +62,10 @@ expect "right stops short of the end" "$(track)" "$t"
 dp stop >/dev/null
 sleep 1
 L="$XDG_STATE_HOME/dplayer/ui.log"
-from=$(($(wc -l <"$L") + 1))
+from=$(logmark "$L")
 key -k Right
 key -k Left
-expect "arrows send no seek when stopped" "$(tail -n "+$from" "$L" | grep -c 'player.seek')" "0"
+expect "arrows send no seek when stopped" "$(logsince "$L" "$from" | grep -c 'player.seek')" "0"
 dp resume >/dev/null
 sleep 1.5
 dp pause >/dev/null

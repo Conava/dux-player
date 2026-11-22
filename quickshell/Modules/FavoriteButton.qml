@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import qs.Common
 import qs.Services
@@ -19,12 +21,13 @@ DActionButton {
     property color activeColor: Theme.primary
     property color inactiveColor: Theme.onSurfaceVariant
 
-    // the heart is drawn here so that it can pop without scaling the button
     readonly property string itemKey: (item?.library ?? "") + "/" + (item?.id ?? "")
     property bool ready: false
     property bool itemChanging: false
 
-    iconName: ""
+    // while it pops, the heart is drawn by its own icon, so it can scale without scaling the button
+    iconName: pop.active ? "" : "favorite"
+    iconFilled: favorite
     iconColor: favorite ? activeColor : inactiveColor
     opacity: blocker === "" ? 1 : Theme.disabledOpacity
     tooltipText: {
@@ -55,36 +58,40 @@ DActionButton {
     }
 
     onFavoriteChanged: {
-        if (favorite && ready && !itemChanging && visible && Theme.animationsEnabled)
-            pop.restart();
-    }
-
-    DIcon {
-        id: heart
-        anchors.centerIn: parent
-        name: "favorite"
-        size: root.iconSize
-        filled: root.favorite
-        color: root.enabled ? root.iconColor : Theme.onSurface_38
-    }
-
-    SequentialAnimation {
-        id: pop
-        NumberAnimation {
-            target: heart
-            property: "scale"
-            to: PlayerMetrics.popScale
-            duration: Theme.expressiveDurations.expressiveFastSpatial / 2
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+        if (favorite && ready && !itemChanging && visible && Theme.animationsEnabled) {
+            pop.active = false;
+            pop.active = true;
         }
-        NumberAnimation {
-            target: heart
-            property: "scale"
-            to: 1
-            duration: Theme.expressiveDurations.expressiveFastSpatial / 2
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+    }
+
+    // built only for a pop: every track row has a heart
+    Loader {
+        id: pop
+        anchors.centerIn: parent
+        active: false
+
+        sourceComponent: DIcon {
+            id: heart
+            name: "favorite"
+            size: root.iconSize
+            filled: true
+            color: root.enabled ? root.iconColor : Theme.onSurface_38
+
+            SequentialAnimation on scale {
+                onFinished: pop.active = false
+                NumberAnimation {
+                    to: PlayerMetrics.popScale
+                    duration: Theme.expressiveDurations.expressiveFastSpatial / 2
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+                }
+                NumberAnimation {
+                    to: 1
+                    duration: Theme.expressiveDurations.expressiveFastSpatial / 2
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+                }
+            }
         }
     }
 }

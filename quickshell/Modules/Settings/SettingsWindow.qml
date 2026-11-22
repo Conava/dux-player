@@ -16,6 +16,10 @@ DFloatingWindow {
     id: window
 
     property string currentPage: "libraries"
+    // false while the window opens, so what is there lands at once
+    property bool settled: false
+    // the sidebar item the selection indicator sits on
+    property Item navActive: null
     property bool menuVisible: false
     readonly property bool isCompactMode: width < SettingsMetrics.compactBreakpoint
     readonly property bool titleBarsOff: !StyleSource.windowTitleBars
@@ -131,6 +135,43 @@ DFloatingWindow {
     readonly property var currentTab: tabOf(currentPage)
     // the sub-page to show, e.g. "bar" for "nowplaying/bar" (the bar's editor)
     property string pendingSubPage: ""
+
+    // a view that appears fades in and rises
+    component Enter: ParallelAnimation {
+        id: enter
+        required property Item target
+        required property Translate lift
+
+        NumberAnimation {
+            target: enter.target
+            property: "opacity"
+            from: 0
+            to: 1
+            duration: Theme.expressiveDurations.normal
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+        }
+
+        NumberAnimation {
+            target: enter.lift
+            property: "y"
+            from: PlayerMetrics.listRise
+            to: 0
+            duration: Theme.expressiveDurations.normal
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+        }
+    }
+
+    function trackActive(item) {
+        if (item.lit)
+            navActive = item;
+    }
+
+    function enterOf(animation) {
+        if (settled && Theme.animationsEnabled)
+            animation.restart();
+    }
 
     // page: "" (as it was), a tab id, or "<tab>/<sub-page>"
     function open(page) {
@@ -336,6 +377,13 @@ DFloatingWindow {
     }
 
     function reveal() {
+        if (pageLoader.status === Loader.Error) {
+            revealTimer.stop();
+            return;
+        }
+        // a page that is still building has nothing to find yet
+        if (pageLoader.status !== Loader.Ready)
+            return;
         let target = findOnPage(pageLoader.item, revealTitle, false);
         if (!target && findOnPage(pageLoader.item, revealTitle, true)) {
             revealTimer.stop();
@@ -426,8 +474,13 @@ DFloatingWindow {
     visible: false
     onClosed: visible = false
     onVisibleChanged: {
-        if (!visible)
+        if (!visible) {
             resetProbe();
+            settled = false;
+            navActive = null;
+        } else if (pageLoader.status === Loader.Ready) {
+            Qt.callLater(() => settled = true);
+        }
     }
     onIsCompactModeChanged: {
         menuVisible = false;
@@ -518,6 +571,17 @@ DFloatingWindow {
                     anchors.bottom: parent.bottom
                     width: window.isCompactMode ? parent.width : SettingsMetrics.sidebarWidth
                     visible: window.isCompactMode ? window.menuVisible : true
+                    transform: Translate {
+                        id: sidebarLift
+                    }
+                    onVisibleChanged: if (visible)
+                        window.enterOf(sidebarEnter)
+
+                    Enter {
+                        id: sidebarEnter
+                        target: sidebar
+                        lift: sidebarLift
+                    }
 
                     Item {
                         id: sidebarHeader
@@ -631,6 +695,65 @@ DFloatingWindow {
                         contentHeight: navColumn.height
                         clip: true
 
+                        // follows the active item; the first place lands at once
+                        Rectangle {
+                            id: indicator
+                            property bool armed: false
+                            readonly property Item item: window.navActive
+                            readonly property Item group: item?.parent ?? null
+                            property real topR: item?.topRadius ?? 0
+                            property real bottomR: item?.bottomRadius ?? 0
+                            visible: item !== null && item.lit
+                            z: 1
+                            x: (group?.x ?? 0) + (item?.x ?? 0)
+                            y: (group?.y ?? 0) + (item?.y ?? 0)
+                            width: item?.width ?? 0
+                            height: item?.height ?? 0
+                            topLeftRadius: topR
+                            topRightRadius: topR
+                            bottomLeftRadius: bottomR
+                            bottomRightRadius: bottomR
+                            color: Theme.withAlpha(Theme.onSurface, Theme.stateLayerDrag)
+                            onItemChanged: {
+                                armed = false;
+                                if (item)
+                                    Qt.callLater(() => armed = true);
+                            }
+
+                            Behavior on y {
+                                enabled: Theme.animationsEnabled && indicator.armed
+                                NumberAnimation {
+                                    duration: Theme.expressiveDurations.expressiveFastSpatial
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+                                }
+                            }
+                            Behavior on height {
+                                enabled: Theme.animationsEnabled && indicator.armed
+                                NumberAnimation {
+                                    duration: Theme.expressiveDurations.expressiveFastSpatial
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+                                }
+                            }
+                            Behavior on topR {
+                                enabled: Theme.animationsEnabled && indicator.armed
+                                NumberAnimation {
+                                    duration: Theme.expressiveDurations.expressiveEffects
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Theme.expressiveCurves.standard
+                                }
+                            }
+                            Behavior on bottomR {
+                                enabled: Theme.animationsEnabled && indicator.armed
+                                NumberAnimation {
+                                    duration: Theme.expressiveDurations.expressiveEffects
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Theme.expressiveCurves.standard
+                                }
+                            }
+                        }
+
                         Column {
                             id: navColumn
                             width: parent.width
@@ -639,15 +762,28 @@ DFloatingWindow {
                             spacing: SettingsMetrics.navGroupGap
 
                             Column {
+                                id: resultsColumn
                                 width: navColumn.width - navColumn.padding * 2
                                 spacing: Theme.groupedListGap
                                 visible: window.searching
+                                transform: Translate {
+                                    id: resultsLift
+                                }
+                                onVisibleChanged: if (visible)
+                                    window.enterOf(resultsEnter)
+
+                                Enter {
+                                    id: resultsEnter
+                                    target: resultsColumn
+                                    lift: resultsLift
+                                }
 
                                 Repeater {
                                     id: resultsRepeater
                                     model: window.searchResults
 
                                     SettingsSidebarItem {
+                                        id: resultItem
                                         required property var modelData
                                         required property int index
                                         readonly property var tab: window.tabOf(modelData.page)
@@ -665,6 +801,7 @@ DFloatingWindow {
                                         dimmed: modelData.hidden === true
                                         accent: tab.accent
                                         active: window.searchSelected === index
+                                        onLitChanged: window.trackActive(resultItem)
                                         isFirstInGroup: index === 0
                                         isLastInGroup: index === window.searchResults.length - 1
                                         onClicked: {
@@ -694,11 +831,23 @@ DFloatingWindow {
                                     width: navColumn.width - navColumn.padding * 2
                                     spacing: Theme.groupedListGap
                                     visible: !window.searching
+                                    transform: Translate {
+                                        id: groupLift
+                                    }
+                                    onVisibleChanged: if (visible)
+                                        window.enterOf(groupEnter)
+
+                                    Enter {
+                                        id: groupEnter
+                                        target: navGroup
+                                        lift: groupLift
+                                    }
 
                                     Repeater {
                                         model: navGroup.modelData
 
                                         SettingsSidebarItem {
+                                            id: navItem
                                             required property var modelData
                                             required property int index
                                             width: navGroup.width
@@ -707,6 +856,7 @@ DFloatingWindow {
                                             hint: modelData.hint
                                             accent: modelData.accent
                                             active: window.currentTab.id === modelData.id
+                                            onLitChanged: window.trackActive(navItem)
                                             isFirstInGroup: index === 0
                                             isLastInGroup: index === navGroup.modelData.length - 1
                                             onClicked: {
@@ -809,8 +959,23 @@ DFloatingWindow {
                         anchors.bottom: parent.bottom
                         anchors.leftMargin: SettingsMetrics.panePadding
                         anchors.rightMargin: SettingsMetrics.panePadding
+                        asynchronous: true
                         source: window.pageFile(window.currentTab.id)
-                        onLoaded: window.applySubPage()
+                        transform: Translate {
+                            id: pageLift
+                        }
+                        onLoaded: {
+                            window.applySubPage();
+                            window.enterOf(pageEnter);
+                            if (!window.settled)
+                                Qt.callLater(() => window.settled = window.visible);
+                        }
+
+                        Enter {
+                            id: pageEnter
+                            target: pageLoader
+                            lift: pageLift
+                        }
                     }
 
                     // Pages' Edit: the page opens in the main window, which comes to the front

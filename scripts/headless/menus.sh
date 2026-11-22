@@ -187,11 +187,11 @@ bar=$!
 sleep 3
 hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen({mode="fullscreen"}))' >/dev/null
 sleep 2.5
-from=$(($(wc -l <"$L") + 1))
+from=$(logmark "$L")
 rclick 150 230
 sleep 1
 shot fullscreen-menu
-expect "popup in fullscreen" "$(tail -n +"$from" "$L" | grep -o 'xdg_popup#[0-9]*\.configure([0-9-]*, [0-9-]*' | tail -1 | sed 's/.*(//')" "0, 0"
+expect "popup in fullscreen" "$(logsince "$L" "$from" | grep -o 'xdg_popup#[0-9]*\.configure([0-9-]*, [0-9-]*' | tail -1 | sed 's/.*(//')" "0, 0"
 kill "$bar"
 
 [ "$failed" = 0 ]

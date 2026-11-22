@@ -84,6 +84,17 @@ expand() { ui expand "$1"; sleep "${SETTLE:-1.5}"; }
 look() { ui look "$1" "$2"; sleep "${SETTLE:-1.5}"; }
 element() { ui element "$1" "$2"; }
 shot() { grim "$W/out/$1.png"; }
+# logmark FILE prints a mark; logsince FILE MARK prints the lines added since it. The UI log rotates at 2 MiB, and
+# after a rotation the earlier lines are in FILE.1.
+logmark() { echo "$(stat -c %i "$1"):$(($(wc -l <"$1") + 1))"; }
+logsince() {
+    if [ "$(stat -c %i "$1")" = "${2%%:*}" ]; then
+        tail -n "+${2#*:}" "$1"
+    else
+        tail -n "+${2#*:}" "$1.1"
+        cat "$1"
+    fi
+}
 # frames NAME CMD...: runs CMD, then records for 1.5 s the ms between frames, from the first to the last one in which the main window's moving parts moved, in out/NAME.frames
 frames() {
     local name=$1

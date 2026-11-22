@@ -44,7 +44,7 @@ drag() {
     sleep 0.3
     pointer m "$cx" "$((y0 + $1))"
     sleep 0.3
-    from=$(($(wc -l <"$L") + 1))
+    from=$(logmark "$L")
     pointer d
     sleep 0.2
     for i in 1 2 3 4 5 6 7 8; do
@@ -55,7 +55,7 @@ drag() {
     pointer u
     sleep 0.5
     read -r x1 y1 _ <<<"$(origin)"
-    tail -n "+$from" "$L" >"$W/out/$2.wl"
+    logsince "$L" "$from" >"$W/out/$2.wl"
 }
 # seen LOG PATTERN WHAT
 seen() {

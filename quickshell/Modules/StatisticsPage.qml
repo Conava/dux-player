@@ -22,20 +22,62 @@ DFlickable {
     readonly property real barGap: Theme.spacingXS
     readonly property real barMaxWidth: 48
     readonly property real barMinHeight: Theme.spacingXS
-    readonly property real donutSize: 120
+    readonly property real donutMinSize: 120
+    readonly property real donutMaxSize: 200
+    // beside Top artists the ring grows into the card's height
+    readonly property real donutSize: twoColumns ? Math.max(donutMinSize, Math.min(donutMaxSize, topArtists.implicitHeight - cardPadding * 2 - genresCard.headerHeight - Theme.spacingM)) : donutMinSize
     readonly property real donutStroke: Theme.spacingM
     readonly property real donutGap: Theme.spacingXS
     readonly property real legendDotSize: Theme.spacingM
     readonly property real legendMaxWidth: 280
-    readonly property var genreColors: [Theme.primary, Theme.tertiary, Theme.secondary, Theme.outlineVariant]
+    // outline rather than outlineVariant: the last share stays visible on the card in light mode
+    readonly property var genreColors: [Theme.primary, Theme.tertiary, Theme.secondary, Theme.outline]
+    // the room one day's label needs under the bars: a weekday, or a day and month
+    readonly property real weekdayLabelWidth: Theme.fontSizeSmall * 2.5
+    readonly property real dateLabelWidth: Theme.fontSizeSmall * 4.5
+    // the bars rise and the rings sweep with this, on first show and when the range changes
+    property real rise: 1
+    readonly property int shownDays: stats?.days ?? 0
+    readonly property real riseStaggerTotal: Math.min(PlayerMetrics.listStaggerMax, PlayerMetrics.listStaggerStep * Math.max(0, (stats?.perDay?.length ?? 0) - 1))
+    readonly property real riseTime: Theme.expressiveDurations.normal + riseStaggerTotal
+
+    onShownDaysChanged: {
+        if (shownDays > 0 && shown && Theme.animationsEnabled) {
+            riseAnim.restart();
+            return;
+        }
+        riseAnim.stop();
+        rise = 1;
+    }
+
+    // how far bar `index` has risen, 0 to 1; each starts a stagger step after the one before it
+    function barRise(index) {
+        const delay = Math.min(PlayerMetrics.listStaggerMax, PlayerMetrics.listStaggerStep * index);
+        return Math.max(0, Math.min(1, (rise * riseTime - delay) / Theme.expressiveDurations.normal));
+    }
 
     function percent(n, total) {
         return I18n.tr("%1%", "percentage, %1 is a whole number").arg(total > 0 ? Math.round(n / total * 100) : 0);
     }
 
-    function dayLabel(date) {
+    function dateOf(date) {
         const p = date.split("-");
-        return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).toLocaleDateString(Qt.locale(), Locale.ShortFormat);
+        return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    }
+
+    function dayLabel(date) {
+        return dateOf(date).toLocaleDateString(Qt.locale(), Locale.ShortFormat);
+    }
+
+    NumberAnimation {
+        id: riseAnim
+        target: root
+        property: "rise"
+        from: 0
+        to: 1
+        duration: root.riseTime
+        easing.type: Easing.BezierSpline
+        easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
     }
 
     readonly property PageScroll _scroll: PageScroll {
@@ -67,6 +109,9 @@ DFlickable {
 
         property string title: ""
         property string iconName: ""
+        // content centred in a card taller than it
+        property bool centred: false
+        readonly property real headerHeight: titleRow.visible ? titleRow.height : 0
         default property alias content: body.data
 
         implicitHeight: cardColumn.implicitHeight + root.cardPadding * 2
@@ -77,11 +122,12 @@ DFlickable {
         Column {
             id: cardColumn
             x: root.cardPadding
-            y: root.cardPadding
+            y: card.centred ? (card.height - height) / 2 : root.cardPadding
             width: parent.width - root.cardPadding * 2
             spacing: Theme.spacingM
 
             Row {
+                id: titleRow
                 spacing: Theme.spacingS
                 visible: card.title !== ""
 
@@ -112,6 +158,7 @@ DFlickable {
     component StatCard: Card {
         id: statCard
 
+        centred: true
         property int value: 0
         property string label: ""
         // what the number reads, for scenarios
@@ -126,7 +173,7 @@ DFlickable {
             StyledText {
                 width: parent.width
                 text: statCard.text
-                font.pixelSize: Theme.fontSizeDisplay
+                font.pixelSize: Theme.fontSizeDisplayLarge
                 color: Theme.surfaceText
                 elide: Text.ElideRight
                 wrapMode: Text.NoWrap
@@ -197,86 +244,140 @@ DFlickable {
             spacing: PlayerMetrics.sectionSpacing
             visible: root.stats !== null && !root.empty
 
-            Row {
+            // the chart with the two totals beside it, or under them on narrow windows
+            Item {
+                id: summary
+                readonly property real side: root.twoColumns ? Math.round((width - PlayerMetrics.sectionSpacing) / 3) : width
                 width: parent.width
-                spacing: PlayerMetrics.sectionSpacing
+                height: root.twoColumns ? chartCard.height : totals.height + PlayerMetrics.sectionSpacing + chartCard.height
 
-                StatCard {
-                    objectName: "statsPlays"
-                    width: (parent.width - parent.spacing) / 2
-                    value: root.stats?.plays ?? 0
-                    label: I18n.tr("Plays", "view info line and sort key")
+                Grid {
+                    id: totals
+                    x: root.twoColumns && !I18n.isRtl ? chartCard.width + PlayerMetrics.sectionSpacing : 0
+                    width: summary.side
+                    columns: root.twoColumns ? 1 : 2
+                    spacing: PlayerMetrics.sectionSpacing
+
+                    StatCard {
+                        id: playsCard
+                        objectName: "statsPlays"
+                        width: root.twoColumns ? totals.width : (totals.width - totals.spacing) / 2
+                        height: root.twoColumns ? (chartCard.height - totals.spacing) / 2 : implicitHeight
+                        value: root.stats?.plays ?? 0
+                        label: I18n.tr("Plays", "view info line and sort key")
+                    }
+
+                    StatCard {
+                        objectName: "statsArtists"
+                        width: playsCard.width
+                        height: playsCard.height
+                        value: root.stats?.artists ?? 0
+                        label: I18n.tr("Artists", "navigation destination")
+                    }
                 }
 
-                StatCard {
-                    objectName: "statsArtists"
-                    width: (parent.width - parent.spacing) / 2
-                    value: root.stats?.artists ?? 0
-                    label: I18n.tr("Artists", "navigation destination")
-                }
-            }
+                Card {
+                    id: chartCard
+                    // as tall as the two totals stacked beside it
+                    readonly property real bodyHeight: root.twoColumns ? Math.max(root.chartHeight, playsCard.implicitHeight * 2 + totals.spacing - root.cardPadding * 2 - headerHeight - Theme.spacingM * 2 - dayLabels.height) : root.chartHeight
+                    x: root.twoColumns && I18n.isRtl ? summary.side + PlayerMetrics.sectionSpacing : 0
+                    y: root.twoColumns ? 0 : totals.height + PlayerMetrics.sectionSpacing
+                    width: root.twoColumns ? summary.width - summary.side - PlayerMetrics.sectionSpacing : summary.width
+                    title: I18n.tr("Plays per day", "statistics card: a bar per day")
+                    iconName: "trending_up"
 
-            Card {
-                width: parent.width
-                title: I18n.tr("Plays per day", "statistics card: a bar per day")
-                iconName: "trending_up"
+                    Item {
+                        width: parent.width
+                        height: chartCard.bodyHeight + Theme.spacingM + dayLabels.height
 
-                Item {
-                    width: parent.width
-                    height: root.chartHeight
+                        Row {
+                            id: bars
+                            objectName: "statsDays"
 
-                    Row {
-                        id: bars
-                        objectName: "statsDays"
+                            readonly property var perDay: root.stats?.perDay ?? []
+                            readonly property int most: perDay.reduce((m, d) => Math.max(m, d.plays), 0)
+                            readonly property var busiest: perDay.reduce((b, d) => d.plays > (b?.plays ?? 0) ? d : b, null)
+                            readonly property real barWidth: perDay.length > 0 ? Math.min(root.barMaxWidth, (parent.width - spacing * (perDay.length - 1)) / perDay.length) : 0
+                            readonly property int hovered: chartHover.containsMouse && barWidth > 0 ? Math.min(perDay.length - 1, Math.floor((I18n.isRtl ? width - chartHover.mouseX : chartHover.mouseX) / (barWidth + spacing))) : -1
 
-                        readonly property var perDay: root.stats?.perDay ?? []
-                        readonly property int most: perDay.reduce((m, d) => Math.max(m, d.plays), 0)
-                        readonly property var busiest: perDay.reduce((b, d) => d.plays > (b?.plays ?? 0) ? d : b, null)
-                        readonly property real barWidth: perDay.length > 0 ? Math.min(root.barMaxWidth, (parent.width - spacing * (perDay.length - 1)) / perDay.length) : 0
-                        readonly property int hovered: chartHover.containsMouse && barWidth > 0 ? Math.min(perDay.length - 1, Math.floor((I18n.isRtl ? width - chartHover.mouseX : chartHover.mouseX) / (barWidth + spacing))) : -1
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            height: chartCard.bodyHeight
+                            spacing: root.barGap
+                            Accessible.role: Accessible.Chart
+                            Accessible.name: Phrases.named(Phrases.plays(root.stats?.plays ?? 0), busiest ? I18n.tr("Most on %1", "statistics chart: the day with the most plays").arg(root.dayLabel(busiest.date)) : "")
 
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        height: parent.height
-                        spacing: root.barGap
-                        Accessible.role: Accessible.Chart
-                        Accessible.name: Phrases.named(Phrases.plays(root.stats?.plays ?? 0), busiest ? I18n.tr("Most on %1", "statistics chart: the day with the most plays").arg(root.dayLabel(busiest.date)) : "")
+                            Repeater {
+                                id: barRepeater
+                                model: bars.perDay
 
-                        Repeater {
-                            id: barRepeater
-                            model: bars.perDay
+                                Item {
+                                    id: slot
+                                    required property var modelData
+                                    required property int index
+                                    objectName: "statsBar"
+                                    width: bars.barWidth
+                                    height: bars.height
 
-                            Item {
-                                id: slot
-                                required property var modelData
-                                objectName: "statsBar"
-                                width: bars.barWidth
-                                height: bars.height
-
-                                Rectangle {
-                                    anchors.bottom: parent.bottom
-                                    width: parent.width
-                                    height: Math.max(root.barMinHeight, bars.most > 0 ? parent.height * slot.modelData.plays / bars.most : 0)
-                                    color: slot.modelData.plays > 0 ? Theme.primary : Theme.outlineVariant
-                                    topLeftRadius: Theme.cornerRadiusXS
-                                    topRightRadius: Theme.cornerRadiusXS
-                                    bottomLeftRadius: Theme.cornerRadiusXXS
-                                    bottomRightRadius: Theme.cornerRadiusXXS
+                                    Rectangle {
+                                        anchors.bottom: parent.bottom
+                                        width: parent.width
+                                        height: Math.max(root.barMinHeight, bars.most > 0 ? parent.height * slot.modelData.plays / bars.most * root.barRise(slot.index) : 0)
+                                        color: slot.modelData.plays > 0 ? Theme.primary : Theme.outlineVariant
+                                        topLeftRadius: Theme.cornerRadiusXS
+                                        topRightRadius: Theme.cornerRadiusXS
+                                        bottomLeftRadius: Theme.cornerRadiusXXS
+                                        bottomRightRadius: Theme.cornerRadiusXXS
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    MouseArea {
-                        id: chartHover
-                        anchors.fill: bars
-                        hoverEnabled: true
-                        acceptedButtons: Qt.NoButton
-                    }
+                        // a label every few days, counted back from today so today always has one
+                        Row {
+                            id: dayLabels
+                            readonly property bool weekdays: bars.perDay.length <= 7
+                            readonly property int step: Math.max(1, Math.ceil((weekdays ? root.weekdayLabelWidth : root.dateLabelWidth) / Math.max(1, bars.barWidth + bars.spacing)))
+                            readonly property string format: weekdays ? "ddd" : "d MMM"
+                            x: bars.x
+                            y: chartCard.bodyHeight + Theme.spacingM
+                            spacing: bars.spacing
+                            Accessible.ignored: true
 
-                    DTooltipHost {
-                        hoverArea: chartHover
-                        target: bars.hovered >= 0 ? barRepeater.itemAt(bars.hovered) : null
-                        text: bars.hovered >= 0 ? Phrases.join(root.dayLabel(bars.perDay[bars.hovered].date), Phrases.plays(bars.perDay[bars.hovered].plays)) : ""
+                            Repeater {
+                                model: bars.perDay
+
+                                Item {
+                                    id: dayLabel
+                                    required property var modelData
+                                    required property int index
+                                    width: bars.barWidth
+                                    height: dayText.height
+
+                                    StyledText {
+                                        id: dayText
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        visible: (bars.perDay.length - 1 - dayLabel.index) % dayLabels.step === 0
+                                        text: root.dateOf(dayLabel.modelData.date).toLocaleDateString(Qt.locale(), dayLabels.format)
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        color: Theme.surfaceVariantText
+                                        wrapMode: Text.NoWrap
+                                    }
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            id: chartHover
+                            anchors.fill: bars
+                            hoverEnabled: true
+                            acceptedButtons: Qt.NoButton
+                        }
+
+                        DTooltipHost {
+                            hoverArea: chartHover
+                            target: bars.hovered >= 0 ? barRepeater.itemAt(bars.hovered) : null
+                            text: bars.hovered >= 0 ? Phrases.join(root.dayLabel(bars.perDay[bars.hovered].date), Phrases.plays(bars.perDay[bars.hovered].plays)) : ""
+                        }
                     }
                 }
             }
@@ -286,8 +387,10 @@ DFlickable {
                 spacing: PlayerMetrics.sectionSpacing
 
                 Card {
+                    id: topArtists
                     objectName: "statsTopArtists"
                     width: root.twoColumns ? (parent.width - parent.spacing) / 2 : parent.width
+                    height: root.twoColumns ? Math.max(implicitHeight, genresCard.implicitHeight) : implicitHeight
                     title: I18n.tr("Top artists", "statistics card: the most played artists")
 
                     Column {
@@ -336,7 +439,7 @@ DFlickable {
                                         anchors.verticalCenter: parent.verticalCenter
                                         width: Theme.avatarSize
                                         height: width
-                                        value: artistRow.modelData.count / Math.max(1, artistRows.list[0]?.count ?? 0)
+                                        value: artistRow.modelData.count / Math.max(1, artistRows.list[0]?.count ?? 0) * root.rise
                                         trackColor: Theme.outlineVariant
                                         strokeWidth: Theme.spacingXXS
                                         animated: false
@@ -417,6 +520,7 @@ DFlickable {
                     }
 
                     width: root.twoColumns ? (parent.width - parent.spacing) / 2 : parent.width
+                    height: root.twoColumns ? Math.max(implicitHeight, topArtists.implicitHeight) : implicitHeight
                     title: I18n.tr("Genres", "navigation destination")
 
                     StyledText {
@@ -449,7 +553,8 @@ DFlickable {
                                     anchors.fill: parent
                                     value: 1
                                     startAngle: modelData.start
-                                    spanAngle: modelData.span
+                                    // one sweep from the top round the whole ring
+                                    spanAngle: Math.max(0, Math.min(modelData.span, root.rise * 360 - modelData.start - 90))
                                     strokeWidth: root.donutStroke
                                     ringColor: modelData.color
                                     trackColor: "transparent"

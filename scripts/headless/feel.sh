@@ -11,11 +11,7 @@ SETTLE=0.8
 L="$XDG_STATE_HOME/dplayer/ui.log"
 # checks that measure where the app should get to; each goes once it holds
 RED="
- gap pages-playlist
  tabs-library moves
- press settings shrinks
- gap tabs-settings-appearance-first
- gap tabs-settings-appearance
 "
 fact() { echo "$*" >>"$W/out/facts.txt"; }
 fail() {

@@ -30,10 +30,6 @@ DListItem {
         event.accepted = true;
     }
 
-    DPressFeedback {
-        control: root
-    }
-
     MediaMenu {
         id: menu
         kind: root.kind

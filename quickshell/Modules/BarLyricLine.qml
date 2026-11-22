@@ -224,7 +224,7 @@ Item {
         target: root
         property: "shift"
         to: 0
-        duration: Theme.mediumDuration
+        duration: Theme.expressiveDurations.normal
         easing.type: Easing.BezierSpline
         easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
         onFinished: outgoing.text = ""
@@ -275,9 +275,9 @@ Item {
         Behavior on fill {
             enabled: !root.snapping && !root.sweep && Theme.animationsEnabled
             NumberAnimation {
-                duration: Theme.shortDuration
+                duration: Theme.expressiveDurations.expressiveFastEffects
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+                easing.bezierCurve: Theme.expressiveCurves.expressiveFastEffects
             }
         }
 

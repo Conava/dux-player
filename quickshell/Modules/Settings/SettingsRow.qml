@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Templates as T
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 T.Control {
     id: root
@@ -49,6 +50,8 @@ T.Control {
     property real topRadius: isFirstInGroup ? Theme.groupedListOuterRadius : Theme.groupedListInnerRadius
     property real bottomRadius: isLastInGroup ? Theme.groupedListOuterRadius : Theme.groupedListInnerRadius
     readonly property real minHeight: subtitle !== "" ? Theme.listItemTwoLineHeight : Theme.listItemHeight
+
+    readonly property bool down: clickControl.down
 
     signal clicked
 
@@ -114,6 +117,11 @@ T.Control {
                 easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
             }
         }
+    }
+
+    DPressFeedback {
+        control: root
+        rippleColor: Theme.surfaceText
     }
 
     DRipple {

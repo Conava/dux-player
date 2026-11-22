@@ -56,15 +56,18 @@ StyledButton {
             rotation: root.active && root.descending ? 180 : 0
 
             Behavior on opacity {
-                NumberAnimation {
-                    duration: Style.reduceMotion ? 0 : Style.shortDuration
+                enabled: !Style.reduceMotion && Style.currentAnimationSpeed !== Style.AnimationSpeed.None
+                DAnim {
+                    duration: Style.expressiveDurations.expressiveFastEffects
+                    easing.bezierCurve: Style.expressiveCurves.expressiveFastEffects
                 }
             }
 
             Behavior on rotation {
-                NumberAnimation {
-                    duration: Style.reduceMotion ? 0 : Style.shortDuration
-                    easing.type: Style.standardEasing
+                enabled: !Style.reduceMotion && Style.currentAnimationSpeed !== Style.AnimationSpeed.None
+                DAnim {
+                    duration: Style.expressiveDurations.expressiveFastSpatial
+                    easing.bezierCurve: Style.expressiveCurves.expressiveFastSpatial
                 }
             }
         }
