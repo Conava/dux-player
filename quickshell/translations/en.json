@@ -62,7 +62,7 @@
   {
     "term": "%1 (copy)",
     "context": "%1 (copy)",
-    "reference": "Modules/BrowsePage.qml:541, Services/PlaylistService.qml:188",
+    "reference": "Modules/BrowsePage.qml:552, Services/PlaylistService.qml:188",
     "comment": "name of a duplicated custom page | name of a duplicated playlist"
   },
   {
@@ -152,7 +152,7 @@
   {
     "term": "%1 days",
     "context": "%1 days",
-    "reference": "Modules/StatisticsPage.qml:232",
+    "reference": "Modules/StatisticsPage.qml:240",
     "comment": "statistics range"
   },
   {
@@ -254,7 +254,7 @@
   {
     "term": "%1 of %2",
     "context": "%1 of %2",
-    "reference": "Modules/BrowsePage.qml:453, Modules/Settings/DownloadsSettings.qml:107, Modules/Settings/DownloadsSettings.qml:202",
+    "reference": "Modules/BrowsePage.qml:464, Modules/Settings/DownloadsSettings.qml:107, Modules/Settings/DownloadsSettings.qml:202",
     "comment": "browse page count on a filtered page, %2 is the whole count with its noun: 312 of 1105 tracks | offline rule progress: cached of all, %2 is a track count | storage usage: used of limit"
   },
   {
@@ -356,7 +356,7 @@
   {
     "term": "%1%",
     "context": "%1%",
-    "reference": "Modules/StatisticsPage.qml:61",
+    "reference": "Modules/StatisticsPage.qml:69",
     "comment": "percentage, %1 is a whole number"
   },
   {
@@ -374,7 +374,7 @@
   {
     "term": "%1, loading more…",
     "context": "%1, loading more…",
-    "reference": "Modules/BrowsePage.qml:454",
+    "reference": "Modules/BrowsePage.qml:465",
     "comment": "browse page item count while tracks still load"
   },
   {
@@ -566,7 +566,7 @@
   {
     "term": "Add a music folder or server.",
     "context": "Add a music folder or server.",
-    "reference": "Modules/BrowsePage.qml:636, Modules/HomePage.qml:157, Modules/LibrariesPage.qml:45",
+    "reference": "Modules/BrowsePage.qml:647, Modules/HomePage.qml:157, Modules/LibrariesPage.qml:45",
     "comment": "home empty state when no library is set up"
   },
   {
@@ -620,7 +620,7 @@
   {
     "term": "Add library",
     "context": "Add library",
-    "reference": "Modules/BrowsePage.qml:646, Modules/HomePage.qml:158, Modules/LibrariesPage.qml:46, Modules/Settings/LibrariesSettings.qml:150, Modules/Settings/LibraryDialog.qml:80",
+    "reference": "Modules/BrowsePage.qml:657, Modules/HomePage.qml:158, Modules/LibrariesPage.qml:46, Modules/Settings/LibrariesSettings.qml:150, Modules/Settings/LibraryDialog.qml:80",
     "comment": "libraries settings primary action"
   },
   {
@@ -668,7 +668,7 @@
   {
     "term": "Add to home",
     "context": "Add to home",
-    "reference": "Common/UiConfig.qml:1324, Modules/BrowsePage.qml:484",
+    "reference": "Common/UiConfig.qml:1324, Modules/BrowsePage.qml:495",
     "comment": "page header action adding a home shelf"
   },
   {
@@ -860,7 +860,7 @@
   {
     "term": "Already on home",
     "context": "Already on home",
-    "reference": "Modules/BrowsePage.qml:484, Modules/MediaMenu.qml:102",
+    "reference": "Modules/BrowsePage.qml:495, Modules/MediaMenu.qml:102",
     "comment": "an item that is already a home shelf"
   },
   {
@@ -962,7 +962,7 @@
   {
     "term": "Artist",
     "context": "Artist",
-    "reference": "Common/Phrases.qml:109, Common/UiConfig.qml:80, Common/UiConfig.qml:358, Common/UiConfig.qml:681, Common/UiConfig.qml:743, Modules/ArtistPage.qml:285, Modules/DetailsDialog.qml:69, Modules/StatisticsPage.qml:280",
+    "reference": "Common/Phrases.qml:109, Common/UiConfig.qml:80, Common/UiConfig.qml:358, Common/UiConfig.qml:681, Common/UiConfig.qml:743, Modules/ArtistPage.qml:285, Modules/DetailsDialog.qml:69, Modules/StatisticsPage.qml:288",
     "comment": "track list column"
   },
   {
@@ -998,7 +998,7 @@
   {
     "term": "Artists",
     "context": "Artists",
-    "reference": "Common/UiConfig.qml:46, Common/UiConfig.qml:1145, Modules/Settings/GeneralSettings.qml:56, Modules/StatisticsPage.qml:280",
+    "reference": "Common/UiConfig.qml:46, Common/UiConfig.qml:1145, Modules/Settings/GeneralSettings.qml:56, Modules/StatisticsPage.qml:288",
     "comment": "navigation destination"
   },
   {
@@ -1430,7 +1430,7 @@
   {
     "term": "Clear filters",
     "context": "Clear filters",
-    "reference": "Modules/BrowsePage.qml:645",
+    "reference": "Modules/BrowsePage.qml:656",
     "comment": "browse empty state action"
   },
   {
@@ -1478,7 +1478,7 @@
   {
     "term": "Collection tiles",
     "context": "Collection tiles",
-    "reference": "Modules/BrowsePage.qml:567",
+    "reference": "Modules/BrowsePage.qml:578",
     "comment": "page edit mode: Favorites, Most played, History and Downloads as tiles above the playlists"
   },
   {
@@ -2426,7 +2426,7 @@
   {
     "term": "Downloads",
     "context": "Downloads",
-    "reference": "Modules/BrowsePage.qml:603, Modules/Settings/LibraryPage.qml:282, Modules/Settings/SettingsWindow.qml:44",
+    "reference": "Modules/BrowsePage.qml:614, Modules/Settings/LibraryPage.qml:282, Modules/Settings/SettingsWindow.qml:44",
     "comment": "the offline downloads: page, settings tab"
   },
   {
@@ -2810,7 +2810,7 @@
   {
     "term": "File (.m3u, .m3u8 or .pls)",
     "context": "File (.m3u, .m3u8 or .pls)",
-    "reference": "Modules/BrowsePage.qml:464",
+    "reference": "Modules/BrowsePage.qml:475",
     "comment": "playlist import path field"
   },
   {
@@ -2840,7 +2840,7 @@
   {
     "term": "Filters cleared",
     "context": "Filters cleared",
-    "reference": "Modules/BrowsePage.qml:350",
+    "reference": "Modules/BrowsePage.qml:361",
     "comment": "toast after clearing a page's filter rules"
   },
   {
@@ -3074,7 +3074,7 @@
   {
     "term": "Genres",
     "context": "Genres",
-    "reference": "Common/UiConfig.qml:52, Modules/PinTargetSheet.qml:37, Modules/Settings/PlaybackSettings.qml:510, Modules/StatisticsPage.qml:529",
+    "reference": "Common/UiConfig.qml:52, Modules/PinTargetSheet.qml:37, Modules/Settings/PlaybackSettings.qml:510, Modules/StatisticsPage.qml:537",
     "comment": "navigation destination"
   },
   {
@@ -3140,7 +3140,7 @@
   {
     "term": "Group by location",
     "context": "Group by location",
-    "reference": "Modules/BrowsePage.qml:558",
+    "reference": "Modules/BrowsePage.qml:569",
     "comment": "page edit mode: playlists under On this device and On <server>"
   },
   {
@@ -3266,7 +3266,7 @@
   {
     "term": "Import",
     "context": "Import",
-    "reference": "Modules/BrowsePage.qml:460, Modules/BrowsePage.qml:464",
+    "reference": "Modules/BrowsePage.qml:471, Modules/BrowsePage.qml:475",
     "comment": "button that imports a file"
   },
   {
@@ -3278,7 +3278,7 @@
   {
     "term": "Import playlist",
     "context": "Import playlist",
-    "reference": "Modules/BrowsePage.qml:464",
+    "reference": "Modules/BrowsePage.qml:475",
     "comment": "playlists page action"
   },
   {
@@ -3470,7 +3470,7 @@
   {
     "term": "Jump to %1",
     "context": "Jump to %1",
-    "reference": "Widgets/DLetterIndex.qml:92",
+    "reference": "Widgets/DLetterIndex.qml:141",
     "comment": "letter index button, %1 is a letter"
   },
   {
@@ -3932,7 +3932,7 @@
   {
     "term": "Most on %1",
     "context": "Most on %1",
-    "reference": "Modules/StatisticsPage.qml:312",
+    "reference": "Modules/StatisticsPage.qml:320",
     "comment": "statistics chart: the day with the most plays"
   },
   {
@@ -4094,7 +4094,7 @@
   {
     "term": "New playlist",
     "context": "New playlist",
-    "reference": "Modules/AddToPlaylistDialog.qml:89, Modules/BrowsePage.qml:896, Modules/NewPlaylistDialog.qml:49",
+    "reference": "Modules/AddToPlaylistDialog.qml:89, Modules/BrowsePage.qml:910, Modules/NewPlaylistDialog.qml:49",
     "comment": "action and dialog that create a playlist"
   },
   {
@@ -4124,13 +4124,13 @@
   {
     "term": "No albums",
     "context": "No albums",
-    "reference": "Modules/BrowsePage.qml:356",
+    "reference": "Modules/BrowsePage.qml:367",
     "comment": "browse page empty state"
   },
   {
     "term": "No artists",
     "context": "No artists",
-    "reference": "Modules/BrowsePage.qml:358",
+    "reference": "Modules/BrowsePage.qml:369",
     "comment": "browse page empty state"
   },
   {
@@ -4172,19 +4172,19 @@
   {
     "term": "No favorites. Use the heart to add some.",
     "context": "No favorites. Use the heart to add some.",
-    "reference": "Modules/BrowsePage.qml:638",
+    "reference": "Modules/BrowsePage.qml:649",
     "comment": "favorites empty state"
   },
   {
     "term": "No genres",
     "context": "No genres",
-    "reference": "Modules/BrowsePage.qml:362",
+    "reference": "Modules/BrowsePage.qml:373",
     "comment": "browse page empty state"
   },
   {
     "term": "No genres in these plays.",
     "context": "No genres in these plays.",
-    "reference": "Modules/StatisticsPage.qml:534",
+    "reference": "Modules/StatisticsPage.qml:542",
     "comment": "statistics genres card when no played track has a genre"
   },
   {
@@ -4220,7 +4220,7 @@
   {
     "term": "No music",
     "context": "No music",
-    "reference": "Modules/BrowsePage.qml:629, Modules/HomePage.qml:156",
+    "reference": "Modules/BrowsePage.qml:640, Modules/HomePage.qml:156",
     "comment": "home empty state title when no library is set up"
   },
   {
@@ -4232,13 +4232,13 @@
   {
     "term": "No playlists",
     "context": "No playlists",
-    "reference": "Modules/BrowsePage.qml:360, Services/CatalogService.qml:199",
+    "reference": "Modules/BrowsePage.qml:371, Services/CatalogService.qml:199",
     "comment": "browse page empty state | library feature missing"
   },
   {
     "term": "No plays in the last %1 days.",
     "context": "No plays in the last %1 days.",
-    "reference": "Modules/StatisticsPage.qml:244",
+    "reference": "Modules/StatisticsPage.qml:252",
     "comment": "statistics empty state"
   },
   {
@@ -4262,7 +4262,7 @@
   {
     "term": "No tracks",
     "context": "No tracks",
-    "reference": "Modules/BrowsePage.qml:364",
+    "reference": "Modules/BrowsePage.qml:375",
     "comment": "browse page empty state"
   },
   {
@@ -4418,7 +4418,7 @@
   {
     "term": "Nothing matches these filters.",
     "context": "Nothing matches these filters.",
-    "reference": "Modules/BrowsePage.qml:634",
+    "reference": "Modules/BrowsePage.qml:645",
     "comment": "browse empty state"
   },
   {
@@ -4430,7 +4430,7 @@
   {
     "term": "Nothing played yet.",
     "context": "Nothing played yet.",
-    "reference": "Modules/BrowsePage.qml:640, Modules/HistoryPage.qml:94",
+    "reference": "Modules/BrowsePage.qml:651, Modules/HistoryPage.qml:94",
     "comment": "history and most played empty state"
   },
   {
@@ -4604,7 +4604,7 @@
   {
     "term": "Other",
     "context": "Other",
-    "reference": "Modules/BrowsePage.qml:170, Modules/StatisticsPage.qml:508",
+    "reference": "Modules/BrowsePage.qml:170, Modules/StatisticsPage.qml:516",
     "comment": "custom page group of the items that have no value to group by"
   },
   {
@@ -5000,7 +5000,7 @@
   {
     "term": "Plays per day",
     "context": "Plays per day",
-    "reference": "Modules/StatisticsPage.qml:291",
+    "reference": "Modules/StatisticsPage.qml:299",
     "comment": "statistics card: a bar per day"
   },
   {
@@ -5390,7 +5390,7 @@
   {
     "term": "Rename page",
     "context": "Rename page",
-    "reference": "Modules/BrowsePage.qml:536, Modules/PageEditor.qml:773",
+    "reference": "Modules/BrowsePage.qml:547, Modules/PageEditor.qml:773",
     "comment": "custom page action"
   },
   {
@@ -5714,7 +5714,7 @@
   {
     "term": "Save",
     "context": "Save",
-    "reference": "Modules/BrowsePage.qml:536, Modules/MediaMenu.qml:195, Modules/Settings/LibraryPage.qml:102, Modules/Settings/LibraryServerDialog.qml:75, Modules/Settings/OfflineRuleDialog.qml:169, Modules/Settings/PagesSettings.qml:296, Modules/TextPromptDialog.qml:11",
+    "reference": "Modules/BrowsePage.qml:547, Modules/MediaMenu.qml:195, Modules/Settings/LibraryPage.qml:102, Modules/Settings/LibraryServerDialog.qml:75, Modules/Settings/OfflineRuleDialog.qml:169, Modules/Settings/PagesSettings.qml:296, Modules/TextPromptDialog.qml:11",
     "comment": "dialog confirm button"
   },
   {
@@ -6158,7 +6158,7 @@
   {
     "term": "Shuffle all",
     "context": "Shuffle all",
-    "reference": "Modules/BrowsePage.qml:610, Modules/SpeedDialShelf.qml:67",
+    "reference": "Modules/BrowsePage.qml:621, Modules/SpeedDialShelf.qml:67",
     "comment": "speed dial tile that shuffles the whole library | tracks page action"
   },
   {
@@ -6968,7 +6968,7 @@
   {
     "term": "Top artists",
     "context": "Top artists",
-    "reference": "Modules/StatisticsPage.qml:399",
+    "reference": "Modules/StatisticsPage.qml:407",
     "comment": "statistics card: the most played artists"
   },
   {
@@ -6986,7 +6986,7 @@
   {
     "term": "Total plays",
     "context": "Total plays",
-    "reference": "Modules/StatisticsPage.qml:272",
+    "reference": "Modules/StatisticsPage.qml:280",
     "comment": "statistics: label under the number of plays in the range"
   },
   {

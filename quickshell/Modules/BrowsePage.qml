@@ -220,6 +220,14 @@ Item {
     readonly property string viewKey: pageKey + ":" + type + ":" + (options.layout ?? "")
     readonly property bool overflows: view !== null && view.contentHeight > view.height
 
+    // the row under the letter index's top edge; a gap between rows keeps the last row found
+    readonly property int topHit: view ? view.indexAt(view.width / 2, Math.max(view.contentY, view.originY + (view.headerItem?.height ?? 0)) + 1) : -1
+    property int topRow: 0
+    onTopHitChanged: {
+        if (topHit >= 0)
+            topRow = topHit;
+    }
+
     function syncIndex() {
         indexShown = indexable && overflows;
     }
@@ -261,7 +269,10 @@ Item {
         rowEdit = false;
     }
     onItemsChanged: applyItems()
-    onViewKeyChanged: applyItems()
+    onViewKeyChanged: {
+        topRow = 0;
+        applyItems();
+    }
     Component.onCompleted: {
         shownKey = viewKey;
         shownItems = items;
@@ -866,6 +877,7 @@ Item {
         visible: opacity > 0
         opacity: root.indexShown ? 1 : 0
         model: root.letters
+        position: root.topRow
         // inside the view's reserved width, so the scroll bar in the page's gutter never covers it
         x: I18n.isRtl ? PlayerMetrics.pagePadding : parent.width - PlayerMetrics.pagePadding - width
         // below the header, which scrolls away with the content
@@ -884,6 +896,8 @@ Item {
                 root.shown.positionAt(first);
             else
                 root.view.positionViewAtIndex(first, ListView.Beginning);
+            // a grid row holds several letters; the picked one stays current until the next scroll
+            root.topRow = first;
         }
     }
 

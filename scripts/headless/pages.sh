@@ -177,7 +177,16 @@ clicknamed "Jump to M"
 sleep 1.5
 after=$(ask namedAll "Mosaic, Artist Mosaic" | head -1 | cut -d' ' -f2)
 check "a letter click brings its first album to the top ($before -> $after)" test "${after:-9999}" -lt 330 -a "${after:-0}" -gt 20
+expect "the letter of the top row is the current one" "$(ask props .currentLetter currentLetter)" '["M"]'
 shot letters-jumped
+read -r lx ly lw lh < <(ask namedAll "Jump to P" | head -1)
+read -r wx wy < <(winat)
+fact "hover at $lx $ly in the window at $wx $wy"
+pointer m "$((wx + ${lx%.*} + ${lw%.*} / 2))" "$((wy + ${ly%.*} + ${lh%.*} / 2))"
+sleep 0.6
+shot letters-hover
+check "the letters near the pointer grow" fgt "$(ask props .currentLetter hoverAmount | tr -d '[]')" 0.9
+pointer m 5 5
 expect "the index doesn't show for a sort that isn't by name" "$(ui pageOptions albums '{"sort":"added"}'; sleep 1.5; ask rect letterIndex)" ""
 ui pageOptions albums '{"sort":"title"}'
 sleep 1.5

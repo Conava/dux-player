@@ -7,12 +7,15 @@ import qs.DCommon.Widgets
 // A column of letters that jumps to the first item of a letter in a list sorted by name. `model` is a list of
 // {letter, first}; letters without items (first < 0) are dimmed and do nothing. When the height can't hold every
 // letter, an even subset shows with a dot between groups; a dot picks the nearest letter that has items.
-// The buttons take no focus: the list stays the keyboard target.
+// The buttons take no focus: the list stays the keyboard target. The letter of the row at `position` is bold and
+// zoomed; letters near the pointer grow like a dock's icons.
 Item {
     id: root
     objectName: "letterIndex"
 
     property var model: []
+    // the list row at the top of the view
+    property int position: -1
 
     signal picked(int first)
 
@@ -21,6 +24,36 @@ Item {
     readonly property real itemGap: Style.spacingXXS
     readonly property int slots: Math.max(1, Math.floor((height + itemGap) / (itemHeight + itemGap)))
     readonly property var entries: layout(model, slots)
+    readonly property bool animates: !Style.reduceMotion && Style.currentAnimationSpeed !== Style.AnimationSpeed.None
+    // the entry whose letter holds `position`: the last one starting at or before it
+    readonly property int currentAt: {
+        let found = -1;
+        for (let i = 0; i < model.length; i++) {
+            const first = model[i].first;
+            if (first < 0)
+                continue;
+            if (first > position)
+                break;
+            found = i;
+        }
+        return found;
+    }
+    readonly property string currentLetter: model[currentAt]?.letter ?? ""
+    readonly property real currentScale: 1.3
+    readonly property real hoverScale: 0.5
+    // how far from the pointer, in cells, a letter still grows
+    readonly property real hoverReach: 2
+    readonly property real pointerY: hover.point.position.y
+    // eases the zoom in and out as the pointer arrives and leaves; while over the column it follows the pointer
+    property real hoverAmount: hover.hovered ? 1 : 0
+    Behavior on hoverAmount {
+        enabled: root.animates
+        NumberAnimation {
+            duration: Style.expressiveDurations.expressiveFastSpatial
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Style.expressiveCurves.expressiveFastSpatial
+        }
+    }
 
     implicitWidth: itemWidth
     implicitHeight: Math.max(0, model.length * (itemHeight + itemGap) - itemGap)
@@ -68,7 +101,12 @@ Item {
         }
     }
 
+    HoverHandler {
+        id: hover
+    }
+
     Column {
+        id: column
         anchors.horizontalCenter: parent.horizontalCenter
         spacing: root.itemGap
 
@@ -80,6 +118,17 @@ Item {
                 required property var modelData
                 readonly property var item: root.model[cell.modelData.at]
                 readonly property bool dot: cell.modelData.dot
+                readonly property bool current: !cell.dot && cell.modelData.at === root.currentAt
+                readonly property real nearness: Math.max(0, 1 - Math.abs(root.pointerY - cell.y - cell.height / 2) / (cell.height * root.hoverReach))
+                property real currentZoom: cell.current ? root.currentScale : 1
+                Behavior on currentZoom {
+                    enabled: root.animates
+                    NumberAnimation {
+                        duration: Style.expressiveDurations.expressiveFastSpatial
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Style.expressiveCurves.expressiveFastSpatial
+                    }
+                }
 
                 width: root.itemWidth
                 height: root.itemHeight
@@ -106,8 +155,9 @@ Item {
                     anchors.centerIn: parent
                     text: cell.item?.letter ?? ""
                     font.pixelSize: Style.fontSizeSmall
-                    font.weight: Style.fontWeightMedium
-                    color: cell.enabled ? Style.primary : Style.onSurface_38
+                    font.weight: cell.current ? Style.fontWeightBold : Style.fontWeightMedium
+                    color: !cell.enabled ? Style.onSurface_38 : cell.current ? Style.primary : Style.onSurfaceVariant
+                    scale: Math.max(cell.currentZoom, 1 + root.hoverScale * root.hoverAmount * cell.nearness * (cell.enabled ? 1 : 0))
                 }
 
                 Rectangle {

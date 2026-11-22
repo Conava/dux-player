@@ -5,6 +5,7 @@ import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
 import qs.Widgets
+import "../DCommon/Common/Hct.js" as Hct
 
 // This device's plays over the last days: totals, plays per day, top artists and genres.
 DFlickable {
@@ -31,8 +32,15 @@ DFlickable {
     readonly property real legendDotSize: Theme.spacingM
     readonly property real legendMaxWidth: 280
     // outline rather than outlineVariant: the last share stays visible on the card in light mode
-    // without a shell palette tertiary equals secondary, which would paint two genres alike
-    readonly property var genreColors: Qt.colorEqual(Theme.tertiary, Theme.secondary) ? [Theme.primary, Theme.info, Theme.success, Theme.outline] : [Theme.primary, Theme.tertiary, Theme.secondary, Theme.outline]
+    // without a shell palette tertiary equals secondary; the primary turned by a sixth of the wheel either way stays as
+    // readable and tells the genres apart, as M3 derives its tertiary
+    readonly property var genreColors: Qt.colorEqual(Theme.tertiary, Theme.secondary) ? [Theme.primary, turnedPrimary(genreHueTurn), turnedPrimary(-genreHueTurn), Theme.outline] : [Theme.primary, Theme.tertiary, Theme.secondary, Theme.outline]
+    readonly property real genreHueTurn: 60
+
+    function turnedPrimary(degrees) {
+        const key = Hct.toHct(Theme.primary);
+        return Hct.fromHct((key.hue + degrees + 360) % 360, key.chroma, key.tone);
+    }
     // the room one day's label needs under the bars: a weekday, or a day and month
     readonly property real weekdayLabelWidth: Theme.fontSizeSmall * 2.5
     readonly property real dateLabelWidth: Theme.fontSizeSmall * 4.5
