@@ -2452,6 +2452,11 @@ func (p *Player) startContinue(play bool, done chan<- error) {
 				p.maybeFeed()
 				return nil
 			}
+			if !play && p.continueMode() == "" {
+				// continuing was turned off while this batch was fetched
+				p.publishStatus()
+				return nil
+			}
 			if err != nil {
 				log.Warnf("continue the queue: %v", err)
 			}

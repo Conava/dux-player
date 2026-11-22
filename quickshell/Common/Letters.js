@@ -7,7 +7,8 @@ const marks = /[̀-ͯ]/g;
 // The uppercased first character, "#" for nothing, digits and symbols. Only Latin letters lose their accents
 // (decomposing Hangul or Cyrillic Й would split real letters); Ø and the like stay their own letter.
 function letterOf(text) {
-    const first = Array.from(String(text === null || text === undefined ? "" : text))[0];
+    const s = String(text === null || text === undefined ? "" : text);
+    const first = s === "" ? undefined : String.fromCodePoint(s.codePointAt(0));
     if (first === undefined)
         return "#";
     const code = first.charCodeAt(0);

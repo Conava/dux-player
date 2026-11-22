@@ -68,7 +68,7 @@ ffmpeg -loglevel error -f lavfi -i anullsrc=r=44100:cl=mono -i "$dir/cover.png" 
 for i in $(seq -w 1 30) Zulu; do
     mkdir -p "$W/music/Filler $i/Album $i"
     echo "$W/music/Filler $i/Album $i/1.flac|Song $i|Filler $i|$([ "$i" = Zulu ] && echo "Zulu Album" || echo "Album $i")"
-done | xargs -P 8 -I{} bash -c 'IFS="|" read -r f t a b <<<"{}"; ffmpeg -loglevel error -f lavfi -i anullsrc=r=44100:cl=mono -t 30 -metadata title="$t" -metadata artist="$a" -metadata album="$b" -metadata track=1 "$f"'
+done | xargs -P 8 -I{} bash -c 'IFS="|" read -r f t a b <<<"$1"; ffmpeg -loglevel error -f lavfi -i anullsrc=r=44100:cl=mono -t 30 -metadata title="$t" -metadata artist="$a" -metadata album="$b" -metadata track=1 "$f"' _ {}
 rpc libraries.scan "{\"library\":\"$(dp ipc libraries.list | python3 -I -c 'import json, sys; d = json.load(sys.stdin); d = d.get("result", d) if isinstance(d, dict) else d; print(d[0]["id"])')\"}" >/dev/null
 for _ in $(seq 1 60); do
     [ -n "$(ask albumId "Album 30" | tr -d '\n')" ] && break

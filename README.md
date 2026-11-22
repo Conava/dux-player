@@ -72,7 +72,16 @@ Pages, columns and the full view can be customized.
 - Keep a single song on the device for offline play, from its menu; track tiles can open the album instead of playing; `dplayer keep library:id…` and `dplayer unkeep library:id…` do the same from the CLI
 - When a track has no lyrics, the full view can fall back to the cover
 - Now-playing bar, side panel and full view in Bento or Material design, with arrangeable elements, also in lines above and below the seekbar, a customizable home page and track lists, custom pages with their own rules, columns, limit, random order, grouping and icon, and searchable settings
-- Density sets the spacing of lists, tiles, sections and navigation; colors from the cover are off, for now playing only or for the whole app, in Settings → Appearance
+- Density sets the spacing of lists, tiles, sections and navigation; Color from the cover is off, for now playing only or for the whole app, in Settings → Appearance, and gives neutral colors for grey, black or white covers; with From a color, Palette style picks Tonal spot, Vibrant, Expressive, Neutral or Monochrome
+- Home shelves include Speed dial (shuffle all and pinned entries) and Genres (chips for the genres with the most albums); Library is a navigation entry with Albums, Artists, Tracks and Genres tabs
+- Statistics is a navigation entry, hidden until shown in Settings → Pages: this device's plays per local day, top artists and genres over the last 7, 14 or 30 days (IPC method `history.stats`, `days` 1 to 366, default 7)
+- Settings → Pages: Page header (Plain or Cover tint, for album, artist and playlist pages), Album page (Stacked or Side by side on wide pages), Letter index (a jump column beside name-sorted lists) and, in a playlists page's edit mode, Collection tiles
+- Player look in Settings → Now playing: Card, Attached or Floating; Floating is a pill with the cover in a progress ring, and the ring or the title opens the full view. Floating applies to the bottom bar
+- Elements can sit Across the top of the bar, and the play button can Show label
+- The queue header shows Playing from and the Continue with similar tracks switch; switching it off stops continuing for the current queue only (IPC `queue.continue` with mode `off`). Settings → Now playing → Queue header turns it off
+- The full view can show a Blurred cover background and Lyrics and queue tabs in its card; Lyrics has Blur other lines to focus the current one
+- Without title bars (Settings → Appearance → Title bars) the settings window has a handle to move it and a close button, and on narrow windows Back returns to the section list
+- Motion follows the shell's animation speed and reduce motion setting
 
 ## Requirements
 
@@ -111,12 +120,16 @@ These keys are fixed. Space, the arrows and F leave a text field or a control re
 
 | | |
 |---|---|
-| Space | Play or pause. |
+| Space, Ctrl+Space | Play or pause. Ctrl+Space also works in a text field. |
 | Left, Right | Seek back or forward 5 seconds. |
 | Ctrl+Left, Ctrl+Right | Previous or next track. |
 | F | Open or close the full now playing view. |
+| Ctrl+, | Open the settings. |
+| Escape | Close the dialog, menu or view opened last. |
 | Alt+Left, Alt+Right | Back or forward through the pages. |
 | Mouse side buttons | Back or forward through the pages. |
+
+Search this page (Ctrl+F) and Search everything (Ctrl+Shift+F) can be changed in Settings → General → Keyboard shortcuts, which also lists the fixed keys.
 
 ## Text templates
 
