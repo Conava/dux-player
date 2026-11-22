@@ -95,9 +95,11 @@ Column {
     readonly property int listLimit: size === "s" ? 3 : size === "l" ? 10 : 5
     // "auto" fits as many columns of at least listColumnMinWidth as the width allows; the size stays rows per column
     readonly property int listColumns: shelf.options.columns === "auto" ? Math.max(1, Math.floor((width + Theme.spacingS) / (PlayerMetrics.listColumnMinWidth + Theme.spacingS))) : 1
-    readonly property var listShown: layout === "list" ? items.slice(0, listLimit * listColumns) : []
+    // counts, not sliced arrays: a width step then adds or removes the tiles at the end and rebuilds none
+    readonly property int listCount: layout === "list" ? Math.min(items.length, listLimit * listColumns) : 0
     // a carousel holds enough tiles to fill its width; grid and list shuffle the shelfLimit they always did
     readonly property int shownLimit: layout === "carousel" ? Math.max(PlayerMetrics.shelfLimit, Math.ceil(carouselList.width / (tileWidth + PlayerMetrics.tileInset * 2 + Theme.spacingXS))) : PlayerMetrics.shelfLimit
+    readonly property int carouselCount: Math.min(items.length, shownLimit)
     readonly property int gridRows: size === "s" ? 1 : size === "l" ? 3 : 2
     readonly property var seeAll: {
         switch (source.type) {
@@ -214,7 +216,7 @@ Column {
         visible: used
         height: used ? root.tileWidth + PlayerMetrics.tileInset * 2 + root.captionHeight : 0
         spacing: Theme.spacingXS
-        model: used ? root.items.slice(0, root.shownLimit) : []
+        model: used ? root.carouselCount : 0
 
         // ends the row where the user is looking
         footer: StyledButton {
@@ -264,12 +266,11 @@ Column {
         }
 
         delegate: MediaTile {
-            required property var modelData
             required property int index
             width: root.tileWidth + PlayerMetrics.tileInset * 2
             tileSize: root.size
             kind: root.kind
-            item: modelData
+            item: root.items[index]
             lines: root.lines
             lineOptions: root.lineOptions
             onActivated: root.play(index)
@@ -283,17 +284,22 @@ Column {
         readonly property bool used: root.layout === "grid" && root.source.type !== "continue"
         visible: used
         readonly property int columns: Math.max(1, Math.floor(width / (root.tileWidth + PlayerMetrics.tileInset * 2)))
+        readonly property int wanted: used ? Math.min(root.items.length, columns * root.gridRows) : 0
+        // tiles are only ever added: a narrower width hides the extra ones, so docking a panel rebuilds none
+        property int built: 0
+        onWantedChanged: built = wanted === 0 ? 0 : Math.max(built, wanted)
+        Component.onCompleted: built = wanted
 
         Repeater {
-            model: flow.used ? root.items.slice(0, flow.columns * root.gridRows) : []
+            model: Math.min(flow.built, root.items.length)
 
             MediaTile {
-                required property var modelData
                 required property int index
+                visible: index < flow.wanted
                 width: flow.width / flow.columns
                 tileSize: root.size
                 kind: root.kind
-                item: modelData
+                item: root.items[index]
                 lines: root.lines
                 lineOptions: root.lineOptions
                 onActivated: root.play(index)
@@ -308,7 +314,7 @@ Column {
         spacing: Theme.spacingS
 
         // each column is its own connected group, filled top to bottom before the next
-        readonly property int columnCount: Math.max(1, Math.ceil(root.listShown.length / root.listLimit))
+        readonly property int columnCount: Math.max(1, Math.ceil(root.listCount / root.listLimit))
         readonly property real columnWidth: (width - spacing * (columnCount - 1)) / columnCount
 
         Repeater {
@@ -323,13 +329,13 @@ Column {
 
                 Repeater {
                     id: rows
-                    model: root.listShown.slice(listColumn.offset, listColumn.offset + root.listLimit)
+                    model: Math.max(0, Math.min(root.listLimit, root.listCount - listColumn.offset))
 
                     Loader {
                         id: rowLoader
-                        required property var modelData
                         required property int index
                         readonly property int itemIndex: listColumn.offset + index
+                        readonly property var modelData: root.items[itemIndex]
                         width: parent?.width ?? 0
                         sourceComponent: root.kind === "track" ? trackRow : mediaRow
 

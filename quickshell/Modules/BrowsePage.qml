@@ -651,6 +651,7 @@ Item {
 
     Loader {
         id: content
+        asynchronous: Router.page === "collection"
         anchors.fill: parent
         anchors.leftMargin: PlayerMetrics.pagePadding
         anchors.rightMargin: PlayerMetrics.pagePadding
