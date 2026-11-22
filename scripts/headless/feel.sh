@@ -1,17 +1,15 @@
 # Every motion of the app, timed: track changes, pages, menus, a dialog, queue edits, tabs, the rail, the floating
-# pill, a shelf, presses, then the idle window and speed 0. Each leg records the frame gaps of its motions (worst gap
-# <= GAP_MAX, default 80 ms), a still a third of the way in at a slow speed that must differ from the end, a shot
-# 150 ms in with reduce motion that must equal the settled one, its end state, and that the window draws nothing for
-# 1.5 s once settled and paused. FEEL_LEGS="queue press" runs only those legs. A failed check whose id is in RED is
-# a target not reached yet: it shows as "red" in facts.txt and doesn't fail the run. gaps.txt lists "leg worst frames".
+# pill, a shelf, presses, then the idle window, a hidden window and speed 0. Each leg records the frame gaps of its
+# motions (worst gap <= GAP_MAX, default 80 ms), a still a third of the way in at a slow speed that must differ from
+# the end, a shot 150 ms in with reduce motion that must equal the settled one, its end state, and that the window
+# draws nothing for 1.5 s once settled and paused. FEEL_LEGS="queue press" runs only those legs; FEEL_SPEED=1000 runs
+# them at that animation speed (default 250). gaps.txt lists "leg worst frames".
 failed=0
 SECONDS=0
 GAP_MAX=${GAP_MAX:-80}
+SPEED=${FEEL_SPEED:-250}
 SETTLE=0.8
 L="$XDG_STATE_HOME/dplayer/ui.log"
-# checks that measure where the app should get to; each goes once it holds
-RED="
-"
 fact() { echo "$*" >>"$W/out/facts.txt"; }
 fail() {
     echo "FAIL $*" | tee -a "$W/out/facts.txt"
@@ -19,14 +17,7 @@ fail() {
 }
 # check ID OK DETAIL: OK is 1 when the check holds
 check() {
-    local listed=
-    grep -qxF " $1" <<<"$RED" && listed=1
-    case "$2:$listed" in
-    1:1) fact "ok   $1: $3 (still listed in RED)" ;;
-    1:) fact "ok   $1: $3" ;;
-    *:1) fact "red  $1: $3" ;;
-    *) fail "$1: $3" ;;
-    esac
+    if [ "$2" = 1 ]; then fact "ok   $1: $3"; else fail "$1: $3"; fi
 }
 truth() { "$@" && echo 1 || echo 0; }
 want() { [ -z "${FEEL_LEGS:-}" ] || [[ " $FEEL_LEGS " == *" $1 "* ]]; }
@@ -109,6 +100,14 @@ layouts() {
     read -r page view <<<"$LAYOUTS"
     check "$1 lays out once" "$(truth [ "$page" -le "$2" ] && [ "$view" -le "$2" ])" "page width changed $page times, its view $view"
 }
+# same A B: two shots of out/ look alike; a text caret or a scroll bar showing for a moment (a strip at most 8 px wide)
+# doesn't count
+same() {
+    cmp -s "$W/out/$1.png" "$W/out/$2.png" && return 0
+    local box
+    box=$(magick "$W/out/$1.png" "$W/out/$2.png" -compose difference -composite -colorspace gray -threshold 1% -trim info:- 2>/dev/null | cut -d' ' -f3)
+    [ "${box%x*}" -le 8 ] 2>/dev/null
+}
 # slow NAME DO UNDO [WINDOW]: at animation speed 2000, a shot shortly into DO differs from the settled shot; UNDO runs
 # at the normal speed afterwards
 slow() {
@@ -119,12 +118,12 @@ slow() {
     cap "$1-mid" "${4:-}"
     calm "${4:-}"
     cap "$1-end" "${4:-}"
-    if cmp -s "$W/out/$1-mid.png" "$W/out/$1-end.png"; then
+    if same "$1-mid" "$1-end"; then
         check "$1 moves" 0 "$1-mid.png equals $1-end.png"
     else
         check "$1 moves" 1 "$1-mid.png differs from $1-end.png"
     fi
-    ui animationDuration 250
+    ui animationDuration "$SPEED"
     sleep 0.2
     eval "$3"
     calm "${4:-}"
@@ -141,16 +140,39 @@ snap() {
     cap "$1-early" "${4:-}"
     calm "${4:-}"
     cap "$1-late" "${4:-}"
-    if cmp -s "$W/out/$1-early.png" "$W/out/$1-late.png"; then
+    if same "$1-early" "$1-late"; then
         check "$1 lands at once" 1 "$1-early.png equals $1-late.png"
     else
         check "$1 lands at once" 0 "$1-early.png differs from $1-late.png"
     fi
     eval "$3"
     calm "${4:-}"
-    case $setting in reduceMotion*) ui reduceMotion false ;; *) ui animationDuration 250 ;; esac
+    case $setting in reduceMotion*) ui reduceMotion false ;; *) ui animationDuration "$SPEED" ;; esac
     hyprctl eval 'hl.config({ animations = { enabled = true } })' >/dev/null
     sleep 0.3
+}
+# midway ID DO TYPE PROP TEST: at animation speed 2000, shortly into DO the JSON list v of `ask props TYPE PROP`
+# passes the Python expression TEST
+midway() {
+    local v
+    ui animationDuration 2000
+    sleep 0.3
+    eval "$2"
+    sleep 0.35
+    v=$(ask props "$3" "$4")
+    ui animationDuration "$SPEED"
+    calm
+    check "$1" "$(python3 -I -c "import json, sys; v = json.loads(sys.argv[1]); print(int(bool($5)))" "$v")" "$3 $4 midway: min $(python3 -I -c "import json, sys; v = json.loads(sys.argv[1]) or [0]; print(min(v), \"max\", max(v))" "$v")"
+}
+# rested ID: every list row (queue, tracks) is drawn at opacity and scale 1
+rested() {
+    local opacity scale
+    opacity=$(ask props DListItem 'opacity*')
+    scale=$(ask props DListItem 'scale*')
+    check "$1 rows at rest" "$(python3 -I -c '
+import json, sys
+o, s = json.loads(sys.argv[1]), json.loads(sys.argv[2])
+print(int(bool(o) and all(abs(x - 1) < 1e-6 for x in o + s)))' "$opacity" "$scale")" "$(wc -c <<<"$opacity$scale") bytes of opacities and scales"
 }
 # still NAME [WINDOW]: settled and paused, the window draws nothing for 1.5 s. A single late redraw is measured again:
 # only what keeps drawing fails. A focused text field's caret blinks every 500 ms, which doesn't count.
@@ -188,12 +210,12 @@ for i in $(seq -w 1 12); do
     dir="$W/music/Feel Artist/Feel $i"
     mkdir -p "$dir"
     echo "$dir|$i"
-done | xargs -P 8 -I{} bash -c 'IFS="|" read -r d i <<<"{}"
+done | xargs -P 8 -I{} bash -c 'IFS="|" read -r d i <<<"$1"
 magick -size 300x300 "gradient:hsl($((10#$i * 30)),80%,55%)-hsl($((10#$i * 30 + 90)),70%,25%)" "$d/cover.png"
 ffmpeg -loglevel error -f lavfi -i anullsrc=r=44100:cl=mono -i "$d/cover.png" -map 0 -map 1 -t 60 -c:v copy \
     -disposition:v attached_pic -metadata title="Feel Song $i" -metadata artist="Feel Artist" -metadata album="Feel $i" \
     -metadata genre="Ambient" -metadata track=1 "$d/1.flac"
-for s in 0 5 10 15 20 25 30 35 40 45 50 55; do printf "[00:%02d.00]Line at second %d of song %s\n" "$s" "$s" "$i"; done >"$d/1.lrc"'
+for s in 0 5 10 15 20 25 30 35 40 45 50 55; do printf "[00:%02d.00]Line at second %d of song %s\n" "$s" "$s" "$i"; done >"$d/1.lrc"' _ {}
 library=$(dp ipc libraries.list | python3 -I -c 'import json, sys; d = json.load(sys.stdin); d = d.get("result", d) if isinstance(d, dict) else d; print(d[0]["id"])')
 rpc libraries.scan "{\"library\":\"$library\"}" >/dev/null
 for _ in $(seq 1 60); do
@@ -229,6 +251,7 @@ fact "setup took $SECONDS s"
 hyprctl dispatch 'hl.dsp.window.float({action="set"})' >/dev/null
 hyprctl dispatch 'hl.dsp.window.resize({x=1600,y=1000})' >/dev/null
 sleep 1
+ui animationDuration "$SPEED"
 look dark bento
 ui nowPlayingPatch '{"paneTabs":true}'
 go home
@@ -290,7 +313,11 @@ s, src, h = (json.loads(a) for a in sys.argv[1:4])
 now = [(a, b) for a, b, on in zip(s, src, h) if on]'
     check "trackchange shows the last cover" "$(python3 -I -c "$arts
 print(int(bool(now) and all(a == b != '' for a, b in now) and len({b for a, b in now}) == 1))" "$(ask props AlbumArt shown)" "$(ask props AlbumArt source)" "$(ask props AlbumArt handoff)")" "full view: $(ask props AlbumArt handoff | tr -cd t | wc -c) arts hand off"
-    expand false
+    # the journey goes on in the view: the queue tab, a track removed, the view closed
+    timed trackchange-queue pane queue
+    timed trackchange-remove queueRemove "$(($(status index) + 1))"
+    rested trackchange-queue
+    timed trackchange-close expand false
     check "trackchange bar art hands off" "$(python3 -I -c "$arts
 print(int(bool(now)))" "$(ask props AlbumArt shown)" "$(ask props AlbumArt source)" "$(ask props AlbumArt handoff)")" "bar: $(ask props AlbumArt handoff | tr -cd t | wc -c) arts hand off"
     slow trackchange "ui act next ''" ":"
@@ -336,6 +363,8 @@ leg_pages() {
     hover "$((x + w / 2))" "$((y + h / 2))"
     from pages-stats-range main pointer c
     slow pages-stats-range "clicknamed '7 days'" "clicknamed '30 days'"
+    midway "pages-stats bars rise" "clicknamed '7 days'; park" StatisticsPage rise 'v and v[0] < 0.9'
+    check "pages-stats bars at rest" "$(truth [ "$(ask props StatisticsPage rise)" = "[1]" ])" "rise $(ask props StatisticsPage rise)"
     ui pref statsDays 7
     go collection
     ui act libraryTab albums
@@ -345,7 +374,19 @@ leg_pages() {
     go home
     slow pages "ui open album $album" "ui back"
     snap pages-reduce "ui open album $album" "ui back"
+    # a new page settles from slightly smaller, one reached by Back or Forward from slightly larger
     ui open album "$album"
+    sleep 1.5
+    midway "pages-open enters smaller" "ui open artist $artist" .sourceComponent scale 'v and min(v) < 0.999'
+    midway "pages-back enters larger" "ui back" .sourceComponent scale 'v and max(v) > 1.001'
+    midway "pages-forward enters larger" "ui act forward ''" .sourceComponent scale 'v and max(v) > 1.001'
+    ui back
+    sleep 1
+    # the heart pops when it turns on, and only unfills when it turns off
+    midway "favorite pops" "clicknamed Favorite; park" DIcon scale 'v and max(v) > 1.05'
+    clicknamed Favorite
+    park
+    snap favorite-reduce "clicknamed Favorite; park" "clicknamed Favorite; park"
     still pages
     go home
 }
@@ -423,13 +464,7 @@ queueat() {
     ui act queueAdd 1
     ui act queueMove "$((at + 2)) $((at + 1))"
     calm
-    local opacity scale
-    opacity=$(ask props DListItem 'opacity*')
-    scale=$(ask props DListItem 'scale*')
-    check "queue-$1 rows at rest" "$(python3 -I -c '
-import json, sys
-o, s = json.loads(sys.argv[1]), json.loads(sys.argv[2])
-print(int(bool(o) and all(abs(x - 1) < 1e-6 for x in o + s)))' "$opacity" "$scale")" "$(wc -c <<<"$opacity$scale") bytes of opacities and scales"
+    rested "queue-$1"
 }
 
 leg_queue() {
@@ -496,6 +531,32 @@ leg_tabs() {
     pointer c
     slow tabs-settings "ui settings appearance" "ui settings general" settings
     still tabs-settings settings
+    # a refused value shakes its field: an invalid hex color in Appearance
+    local scheme seed bad
+    scheme=$(ask prefValue colorScheme)
+    seed=$(ask prefValue seedColor)
+    ui pref colorScheme '"seed"'
+    ui pref seedColor '"#6750a4"'
+    ui settings appearance
+    sleep 1.5
+    x=
+    for _ in $(seq 1 20); do
+        read -r x y < <(ask settingsPoint "#6750a4" 0)
+        [ -n "$x" ] && break
+        sleep 0.3
+    done
+    if [ -z "$x" ]; then
+        check "shake field shows" 0 "no Hex color field"
+    else
+        bad="hover $x $y settings; pointer c; sleep 0.3; wtype -M ctrl a -m ctrl; wtype zz; wtype -k Return"
+        slow shake "$bad" ":" settings
+        local typed
+        read -r _ typed < <(ask settingsPoint zz 0)
+        check "shake field refuses zz" "$(truth [ "${typed:-0}" = "$y" ] && [ "$(ask prefValue seedColor)" = '"#6750a4"' ])" "zz at y ${typed:--}, field at $y, seed $(ask prefValue seedColor)"
+        snap shake-reduce "$bad" ":" settings
+    fi
+    ui pref colorScheme "$scheme"
+    ui pref seedColor "$seed"
     hyprctl dispatch 'hl.dsp.window.close({window="title:Dux Player Settings"})' >/dev/null 2>&1 || ui settings ""
     go home
 }
@@ -565,7 +626,8 @@ held() {
     sleep 0.35
     during=$(ask scaleAt "$2" "$3" "${5:-main}")
     pointer u
-    sleep 0.6
+    # the release springs back on a duration that follows the speed setting
+    sleep "$(awk "BEGIN { print 0.6 * ($SPEED > 250 ? $SPEED : 250) / 250 }")"
     after=$(ask scaleAt "$2" "$3" "${5:-main}")
     check "press $1 shrinks" "$(python3 -I -c 'import sys; print(int(float(sys.argv[1]) < 0.999))' "$during")" "scale $during while held"
     check "press $1 springs back" "$(python3 -I -c 'import sys; print(int(float(sys.argv[1]) > 0.999))' "$after")" "scale $after after release"
@@ -668,6 +730,40 @@ leg_idle() {
     sleep 1
 }
 
+# with the window on a hidden workspace and playback running, the skips meanwhile show at once on return
+leg_hidden() {
+    local ws n want
+    fresh
+    look dark bento
+    expand true
+    dp toggle >/dev/null
+    sleep 1
+    ws=$(hyprctl -j clients | python3 -I -c 'import json, sys; print(next(c for c in json.load(sys.stdin) if c["title"] == "Dux Player")["workspace"]["id"])')
+    hyprctl dispatch 'hl.dsp.window.move({workspace="special:away"})' >/dev/null
+    sleep 0.5
+    n=$(idleframes 1000)
+    fact "hidden: $n frames in 1 s while playing on a hidden workspace"
+    ui act next ""
+    sleep 1
+    ui act next ""
+    sleep 2
+    want=$(status title)
+    hyprctl dispatch "hl.dsp.window.move({workspace=$ws, window=\"title:^(Dux Player)\$\"})" >/dev/null
+    sleep 0.15
+    check "hidden shows the current title at once" "$(python3 -I -c '
+import json, sys
+t, f = json.loads(sys.argv[1]), json.loads(sys.argv[2])
+print(int(sys.argv[3] in t and all(x == 1 for x in f)))' "$(ask props TextSlide text)" "$(ask props TextSlide fade)" "$want")" "titles $(ask props TextSlide text), fades $(ask props TextSlide fade), wanted '$want'"
+    check "hidden shows the current cover at once" "$(python3 -I -c '
+import json, sys
+s, src, h = (json.loads(a) for a in sys.argv[1:4])
+now = [(a, b) for a, b, on in zip(s, src, h) if on]
+print(int(bool(now) and all(a == b != "" for a, b in now)))' "$(ask props AlbumArt shown)" "$(ask props AlbumArt source)" "$(ask props AlbumArt handoff)")" "shown $(ask props AlbumArt shown | cut -c1-200)"
+    pausenow
+    still hidden
+    expand false
+}
+
 leg_speed() {
     fresh
     go home
@@ -683,7 +779,7 @@ leg_speed() {
     go home
 }
 
-for leg in trackchange pages menu dialog queue tabs rail floating shelf press idle speed; do
+for leg in trackchange pages menu dialog queue tabs rail floating shelf press idle hidden speed; do
     want "$leg" || continue
     start=$SECONDS
     "leg_$leg"

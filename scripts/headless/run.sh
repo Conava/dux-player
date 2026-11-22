@@ -1239,7 +1239,7 @@ env -i LANG=C.UTF-8 USER="$USER" HOME="$W/home" PATH="$W/bin:$repo/core/bin:/usr
     HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
     XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/share}" QT_QPA_PLATFORMTHEME=qtengine DPLAYER_WINRULES=off DPLAYER_CAST=off DPLAYER_BACKEND="${DPLAYER_BACKEND:-}" DPLAYER_QS_CHILD="${DPLAYER_QS_CHILD:-}" \
     DPLAYER_DISABLE_HOT_RELOAD=1 HYPRLAND_NO_SD_NOTIFY=1 HYPRLAND_NO_SD_VARS=1 HYPRLAND_NO_CRASHREPORTER=1 \
-    W="$W" LIB="$here/lib.sh" SCENARIO="$scenario" SERVER="${SERVER:-}" GAP_MAX="${GAP_MAX:-}" SEEN_MAX="${SEEN_MAX:-}" DELAY="${DELAY:-}" SETTLE="${SETTLE:-}" FEEL_LEGS="${FEEL_LEGS:-}" \
+    W="$W" LIB="$here/lib.sh" SCENARIO="$scenario" SERVER="${SERVER:-}" GAP_MAX="${GAP_MAX:-}" SEEN_MAX="${SEEN_MAX:-}" DELAY="${DELAY:-}" SETTLE="${SETTLE:-}" FEEL_LEGS="${FEEL_LEGS:-}" FEEL_SPEED="${FEEL_SPEED:-}" \
     timeout -k 30 "${HEADLESS_TIMEOUT:-420}" dbus-run-session -- bash "$here/session.sh"
 status=$?
 
