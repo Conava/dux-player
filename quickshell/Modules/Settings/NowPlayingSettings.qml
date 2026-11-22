@@ -147,7 +147,7 @@ Item {
 
             SettingsToggleRow {
                 text: I18n.tr("Queue header", "now playing setting")
-                description: I18n.tr("Playing from and the continue switch.", "now playing setting description")
+                description: I18n.tr("Playing from and Continue playing.", "now playing setting description")
                 keywords: "playing from continue similar clear up next"
                 checked: UiConfig.queueHeaderOn
                 onToggled: value => UiConfig.setNowPlaying({

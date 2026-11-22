@@ -31,7 +31,7 @@ SettingsPage {
     SettingsCard {
         SettingsRow {
             title: I18n.tr("Discord Rich Presence", "integrations setting")
-            subtitle: I18n.tr("Shows the playing track on your Discord profile.", "discord presence description")
+            subtitle: I18n.tr("Shows the playing track on the Discord profile.", "discord presence description")
             keywords: "discord status activity"
             clickable: root.discordOn
             Accessible.role: Accessible.Button

@@ -819,7 +819,7 @@
     "comment": ""
   },
   {
-    "term": "Added by you",
+    "term": "Added manually",
     "translation": "",
     "context": "queue row: a track put in with play next or add to queue",
     "reference": "",
@@ -1106,7 +1106,7 @@
     "comment": ""
   },
   {
-    "term": "Approve access in your browser, then select Finish sign-in.",
+    "term": "Approve access in the browser, then select Finish sign-in.",
     "translation": "",
     "context": "Last.fm sign-in step description",
     "reference": "",
@@ -2401,13 +2401,6 @@
     "comment": ""
   },
   {
-    "term": "Couldn't stop continuing",
-    "translation": "",
-    "context": "toast when the daemon refuses to stop filling the queue",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Couldn't switch outputs",
     "translation": "",
     "context": "playback device error",
@@ -2418,6 +2411,13 @@
     "term": "Couldn't switch the playback device",
     "translation": "",
     "context": "toast when switching the playback device fails",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Couldn't turn off Continue playing",
+    "translation": "",
+    "context": "toast when the daemon refuses to stop filling the queue",
     "reference": "",
     "comment": ""
   },
@@ -3108,7 +3108,7 @@
     "comment": ""
   },
   {
-    "term": "Enter your user token first.",
+    "term": "Enter the user token first.",
     "translation": "",
     "context": "why ListenBrainz sign-in is disabled",
     "reference": "",
@@ -3325,13 +3325,6 @@
     "comment": ""
   },
   {
-    "term": "Find it in your ListenBrainz profile settings. Stored in the system keyring.",
-    "translation": "",
-    "context": "ListenBrainz sign-in hint",
-    "reference": "",
-    "comment": ""
-  },
-  {
     "term": "Finish sign-in",
     "translation": "",
     "context": "Last.fm sign-in action",
@@ -3524,6 +3517,13 @@
     "term": "From a color",
     "translation": "",
     "context": "color scheme option",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "From the ListenBrainz profile settings, kept in the keyring.",
+    "translation": "",
+    "context": "ListenBrainz sign-in hint",
     "reference": "",
     "comment": ""
   },
@@ -3843,7 +3843,7 @@
     "comment": ""
   },
   {
-    "term": "Imported. %1 tracks weren't found in your libraries.",
+    "term": "Imported. %1 tracks not found.",
     "translation": "",
     "context": "snackbar after a playlist import, %1 is a count",
     "reference": "",
@@ -3864,7 +3864,7 @@
     "comment": ""
   },
   {
-    "term": "In the order you add them",
+    "term": "In the order added",
     "translation": "",
     "context": "play next order option",
     "reference": "",
@@ -5698,7 +5698,7 @@
     "comment": ""
   },
   {
-    "term": "Playing from and the continue switch.",
+    "term": "Playing from and Continue playing.",
     "translation": "",
     "context": "now playing setting description",
     "reference": "",
@@ -6972,6 +6972,13 @@
     "comment": ""
   },
   {
+    "term": "Server library",
+    "translation": "",
+    "context": "lyrics provider row for a server library's own lyrics",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Server passwords and service keys",
     "translation": "",
     "context": "about page: what the keyring is used for",
@@ -7161,7 +7168,7 @@
     "comment": ""
   },
   {
-    "term": "Shows the playing track on your Discord profile.",
+    "term": "Shows the playing track on the Discord profile.",
     "translation": "",
     "context": "discord presence description",
     "reference": "",
@@ -8379,6 +8386,13 @@
     "comment": ""
   },
   {
+    "term": "Use a custom API key",
+    "translation": "",
+    "context": "Last.fm sign-in action",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Use built-in key",
     "translation": "",
     "context": "Last.fm sign-in action",
@@ -8396,13 +8410,6 @@
     "term": "Use the system default output at startup",
     "translation": "",
     "context": "playback device setting",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Use your own API key",
-    "translation": "",
-    "context": "Last.fm sign-in action",
     "reference": "",
     "comment": ""
   },
@@ -8648,13 +8655,6 @@
     "term": "Yesterday",
     "translation": "",
     "context": "history day header",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Your server",
-    "translation": "",
-    "context": "lyrics provider row for a server library's own lyrics",
     "reference": "",
     "comment": ""
   },

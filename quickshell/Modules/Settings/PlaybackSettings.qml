@@ -392,7 +392,7 @@ SettingsPage {
         SettingsButtonGroupRow {
             text: I18n.tr("Play next order", "playback setting")
             keywords: "queue add newest"
-            model: [I18n.tr("In the order you add them", "play next order option"), I18n.tr("Newest first", "play next order option")]
+            model: [I18n.tr("In the order added", "play next order option"), I18n.tr("Newest first", "play next order option")]
             currentIndex: root.playNextOrders.indexOf(root.settings.playNextOrder)
             onSelectionChanged: (index, selected) => {
                 if (selected)

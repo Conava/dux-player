@@ -332,7 +332,7 @@ Singleton {
             const created = Catalog.localPlaylist(result.playlist, null);
             root.playlists = root.playlists.filter(o => o.id !== created.id).concat([created]);
             if (result.missed > 0)
-                DaemonBridge.notice(I18n.tr("Imported. %1 tracks weren't found in your libraries.", "snackbar after a playlist import, %1 is a count").arg(result.missed));
+                DaemonBridge.notice(I18n.tr("Imported. %1 tracks not found.", "snackbar after a playlist import, %1 is a count").arg(result.missed));
             done?.(created.id);
         });
     }

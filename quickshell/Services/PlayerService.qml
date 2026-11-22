@@ -247,7 +247,7 @@ Singleton {
         continuing = on;
         DaemonBridge.request("queue.continue", {
             "mode": on ? (chosen === "random" ? "random" : "similar") : "off"
-        }, on ? I18n.tr("Couldn't continue the queue", "toast when the daemon refuses to keep filling the queue") : I18n.tr("Couldn't stop continuing", "toast when the daemon refuses to stop filling the queue"), null, () => root.continuing = before);
+        }, on ? I18n.tr("Couldn't continue the queue", "toast when the daemon refuses to keep filling the queue") : I18n.tr("Couldn't turn off Continue playing", "toast when the daemon refuses to stop filling the queue"), null, () => root.continuing = before);
     }
 
     function cycleRepeat() {

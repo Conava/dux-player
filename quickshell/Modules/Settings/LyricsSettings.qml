@@ -116,7 +116,7 @@ SettingsPage {
         delegate: ReorderRow {
             id: entry
             required property var modelData
-            readonly property string name: modelData.id === "server" ? I18n.tr("Your server", "lyrics provider row for a server library's own lyrics") : modelData.name
+            readonly property string name: modelData.id === "server" ? I18n.tr("Server library", "lyrics provider row for a server library's own lyrics") : modelData.name
             // found by the settings search
             readonly property bool isSettingsEntry: true
             readonly property string title: name

@@ -268,7 +268,7 @@ Row {
                 visible: end.origin === "hand"
                 size: Theme.iconSizeSmall
                 color: end.originColor
-                Accessible.name: I18n.tr("Added by you", "queue row: a track put in with play next or add to queue")
+                Accessible.name: I18n.tr("Added manually", "queue row: a track put in with play next or add to queue")
             }
         }
     }

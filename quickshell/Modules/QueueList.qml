@@ -562,7 +562,7 @@ Item {
                 firstInGroup: index === 0 || root.stopsBefore(index)
                 lastInGroup: index === queueList.count - 1 || slot.stops
                 Accessible.name: Phrases.named(track?.title ?? "", track?.artist ?? "")
-                Accessible.description: origin === "hand" ? I18n.tr("Added by you", "queue row: a track put in with play next or add to queue") : origin === "auto" ? I18n.tr("Added automatically", "queue row: a track the queue continued with") : ""
+                Accessible.description: origin === "hand" ? I18n.tr("Added manually", "queue row: a track put in with play next or add to queue") : origin === "auto" ? I18n.tr("Added automatically", "queue row: a track the queue continued with") : ""
                 onClicked: {
                     const modifiers = pressModifiers & (Qt.ControlModifier | Qt.ShiftModifier);
                     if (modifiers || root.selecting)

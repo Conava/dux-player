@@ -702,8 +702,8 @@
     "comment": "queue row: a track the queue continued with"
   },
   {
-    "term": "Added by you",
-    "context": "Added by you",
+    "term": "Added manually",
+    "context": "Added manually",
     "reference": "Modules/QueueList.qml:565, Modules/RowEnd.qml:271",
     "comment": "queue row: a track put in with play next or add to queue"
   },
@@ -948,8 +948,8 @@
     "comment": "Last.fm sign-in step"
   },
   {
-    "term": "Approve access in your browser, then select Finish sign-in.",
-    "context": "Approve access in your browser, then select Finish sign-in.",
+    "term": "Approve access in the browser, then select Finish sign-in.",
+    "context": "Approve access in the browser, then select Finish sign-in.",
     "reference": "Modules/Settings/ScrobbleSettings.qml:146",
     "comment": "Last.fm sign-in step description"
   },
@@ -2058,12 +2058,6 @@
     "comment": "toast when a library scan can't start"
   },
   {
-    "term": "Couldn't stop continuing",
-    "context": "Couldn't stop continuing",
-    "reference": "Services/PlayerService.qml:250",
-    "comment": "toast when the daemon refuses to stop filling the queue"
-  },
-  {
     "term": "Couldn't switch outputs",
     "context": "Couldn't switch outputs",
     "reference": "Common/Phrases.qml:178",
@@ -2074,6 +2068,12 @@
     "context": "Couldn't switch the playback device",
     "reference": "Services/OutputService.qml:159",
     "comment": "toast when switching the playback device fails"
+  },
+  {
+    "term": "Couldn't turn off Continue playing",
+    "context": "Couldn't turn off Continue playing",
+    "reference": "Services/PlayerService.qml:250",
+    "comment": "toast when the daemon refuses to stop filling the queue"
   },
   {
     "term": "Couldn't use the audio output",
@@ -2664,8 +2664,8 @@
     "comment": "why a server connection test failed"
   },
   {
-    "term": "Enter your user token first.",
-    "context": "Enter your user token first.",
+    "term": "Enter the user token first.",
+    "context": "Enter the user token first.",
     "reference": "Modules/Settings/ScrobbleSettings.qml:90",
     "comment": "why ListenBrainz sign-in is disabled"
   },
@@ -2850,12 +2850,6 @@
     "comment": "reset custom page confirmation"
   },
   {
-    "term": "Find it in your ListenBrainz profile settings. Stored in the system keyring.",
-    "context": "Find it in your ListenBrainz profile settings. Stored in the system keyring.",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:82",
-    "comment": "ListenBrainz sign-in hint"
-  },
-  {
     "term": "Finish sign-in",
     "context": "Finish sign-in",
     "reference": "Modules/Settings/ScrobbleSettings.qml:150",
@@ -3022,6 +3016,12 @@
     "context": "From a color",
     "reference": "Modules/Settings/AppearanceSettings.qml:136, Modules/Settings/AppearanceSettings.qml:172, Modules/Settings/AppearanceSettings.qml:277",
     "comment": "color scheme option"
+  },
+  {
+    "term": "From the ListenBrainz profile settings, kept in the keyring.",
+    "context": "From the ListenBrainz profile settings, kept in the keyring.",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:82",
+    "comment": "ListenBrainz sign-in hint"
   },
   {
     "term": "From the playlist",
@@ -3294,8 +3294,8 @@
     "comment": "custom theme import status"
   },
   {
-    "term": "Imported. %1 tracks weren't found in your libraries.",
-    "context": "Imported. %1 tracks weren't found in your libraries.",
+    "term": "Imported. %1 tracks not found.",
+    "context": "Imported. %1 tracks not found.",
     "reference": "Services/PlaylistService.qml:335",
     "comment": "snackbar after a playlist import, %1 is a count"
   },
@@ -3312,8 +3312,8 @@
     "comment": "filter rule condition, followed by a number of days"
   },
   {
-    "term": "In the order you add them",
-    "context": "In the order you add them",
+    "term": "In the order added",
+    "context": "In the order added",
     "reference": "Modules/Settings/PlaybackSettings.qml:395",
     "comment": "play next order option"
   },
@@ -4094,7 +4094,7 @@
   {
     "term": "New playlist",
     "context": "New playlist",
-    "reference": "Modules/AddToPlaylistDialog.qml:89, Modules/BrowsePage.qml:894, Modules/NewPlaylistDialog.qml:49",
+    "reference": "Modules/AddToPlaylistDialog.qml:89, Modules/BrowsePage.qml:895, Modules/NewPlaylistDialog.qml:49",
     "comment": "action and dialog that create a playlist"
   },
   {
@@ -4884,8 +4884,8 @@
     "comment": "now playing: label before where the queue came from"
   },
   {
-    "term": "Playing from and the continue switch.",
-    "context": "Playing from and the continue switch.",
+    "term": "Playing from and Continue playing.",
+    "context": "Playing from and Continue playing.",
     "reference": "Modules/Settings/NowPlayingSettings.qml:150",
     "comment": "now playing setting description"
   },
@@ -5900,7 +5900,7 @@
   {
     "term": "See all",
     "context": "See all",
-    "reference": "Modules/Shelf.qml:227, Modules/Shelf.qml:258",
+    "reference": "Modules/Shelf.qml:229, Modules/Shelf.qml:260",
     "comment": "home shelf action"
   },
   {
@@ -5974,6 +5974,12 @@
     "context": "Server address",
     "reference": "Modules/Settings/ServerSignIn.qml:215",
     "comment": "add server dialog field"
+  },
+  {
+    "term": "Server library",
+    "context": "Server library",
+    "reference": "Modules/Settings/LyricsSettings.qml:119",
+    "comment": "lyrics provider row for a server library's own lyrics"
   },
   {
     "term": "Server passwords and service keys",
@@ -6138,8 +6144,8 @@
     "comment": "lyrics source status: shown, its words placed on the line timing of the named source"
   },
   {
-    "term": "Shows the playing track on your Discord profile.",
-    "context": "Shows the playing track on your Discord profile.",
+    "term": "Shows the playing track on the Discord profile.",
+    "context": "Shows the playing track on the Discord profile.",
     "reference": "Modules/Settings/IntegrationsSettings.qml:34",
     "comment": "discord presence description"
   },
@@ -7182,6 +7188,12 @@
     "comment": "playback setting description"
   },
   {
+    "term": "Use a custom API key",
+    "context": "Use a custom API key",
+    "reference": "Modules/Settings/ScrobbleSettings.qml:183",
+    "comment": "Last.fm sign-in action"
+  },
+  {
     "term": "Use built-in key",
     "context": "Use built-in key",
     "reference": "Modules/Settings/ScrobbleSettings.qml:191",
@@ -7198,12 +7210,6 @@
     "context": "Use the system default output at startup",
     "reference": "Modules/Settings/DevicesSettings.qml:132",
     "comment": "playback device setting"
-  },
-  {
-    "term": "Use your own API key",
-    "context": "Use your own API key",
-    "reference": "Modules/Settings/ScrobbleSettings.qml:183",
-    "comment": "Last.fm sign-in action"
   },
   {
     "term": "User name",
@@ -7414,12 +7420,6 @@
     "context": "Yesterday",
     "reference": "Modules/HistoryPage.qml:25",
     "comment": "history day header"
-  },
-  {
-    "term": "Your server",
-    "context": "Your server",
-    "reference": "Modules/Settings/LyricsSettings.qml:119",
-    "comment": "lyrics provider row for a server library's own lyrics"
   },
   {
     "term": "cast-helper is out of date. Update it to cast.",

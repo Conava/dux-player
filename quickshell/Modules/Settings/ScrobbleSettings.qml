@@ -79,7 +79,7 @@ SettingsPage {
             visible: root.listenbrainz.connected !== true
             unavailableReason: root.accountLine(root.listenbrainz)
             title: I18n.tr("User token", "ListenBrainz sign-in field")
-            subtitle: I18n.tr("Find it in your ListenBrainz profile settings. Stored in the system keyring.", "ListenBrainz sign-in hint")
+            subtitle: I18n.tr("From the ListenBrainz profile settings, kept in the keyring.", "ListenBrainz sign-in hint")
             field.echoMode: TextInput.Password
             field.showPasswordToggle: true
             onAccepted: connectListenBrainz.clicked()
@@ -87,7 +87,7 @@ SettingsPage {
 
         SettingsRow {
             visible: root.listenbrainz.connected !== true
-            subtitle: connectListenBrainz.enabled ? "" : I18n.tr("Enter your user token first.", "why ListenBrainz sign-in is disabled")
+            subtitle: connectListenBrainz.enabled ? "" : I18n.tr("Enter the user token first.", "why ListenBrainz sign-in is disabled")
 
             DButton {
                 id: connectListenBrainz
@@ -143,7 +143,7 @@ SettingsPage {
         SettingsRow {
             visible: root.lastfm.connected !== true && root.lastfm.awaitingApproval === true
             title: I18n.tr("Approve Dux Player on Last.fm", "Last.fm sign-in step")
-            subtitle: I18n.tr("Approve access in your browser, then select Finish sign-in.", "Last.fm sign-in step description")
+            subtitle: I18n.tr("Approve access in the browser, then select Finish sign-in.", "Last.fm sign-in step description")
 
             DButton {
                 anchors.verticalCenter: parent.verticalCenter
@@ -180,7 +180,7 @@ SettingsPage {
 
                 DButton {
                     visible: root.builtIn && !root.ownKey
-                    text: I18n.tr("Use your own API key", "Last.fm sign-in action")
+                    text: I18n.tr("Use a custom API key", "Last.fm sign-in action")
                     backgroundColor: "transparent"
                     textColor: Theme.primary
                     onClicked: root.ownKey = true
