@@ -18,10 +18,6 @@ RED="
  tabs-library moves
  rail moves
  gap floating-dock
- press button shrinks
- press icon shrinks
- press fab shrinks
- press dialog shrinks
  press group grows
  press settings shrinks
  gap tabs-settings-appearance-first
