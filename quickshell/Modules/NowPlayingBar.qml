@@ -31,10 +31,13 @@ Rectangle {
     LayoutMirroring.enabled: I18n.isRtl
     LayoutMirroring.childrenInherit: true
 
+    // a colour that changes while the bar is hidden lands at once
     Behavior on color {
-        enabled: Theme.animationsEnabled
+        enabled: Theme.animationsEnabled && root.visible
         ColorAnimation {
             duration: Theme.expressiveDurations.expressiveEffects
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
         }
     }
 

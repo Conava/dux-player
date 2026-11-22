@@ -13,11 +13,7 @@ L="$XDG_STATE_HOME/dplayer/ui.log"
 RED="
  trackchange bar art hands off
  gap pages-playlist
- menu-reduce lands at once
- speed-menu lands at once
  tabs-library moves
- rail moves
- gap floating-dock
  press group grows
  press settings shrinks
  gap tabs-settings-appearance-first
@@ -141,9 +137,10 @@ slow() {
     calm "${4:-}"
 }
 # snap NAME DO UNDO [WINDOW] [SETTING]: with reduce motion (or SETTING, e.g. "animationDuration 0"), a shot 150 ms
-# after DO equals the settled one
+# after DO equals the settled one. The compositor's own popup fade is off meanwhile: it isn't the app's motion.
 snap() {
     local setting=${5:-reduceMotion true}
+    hyprctl eval 'hl.config({ animations = { enabled = false } })' >/dev/null
     ui $setting
     sleep 0.3
     eval "$2"
@@ -159,6 +156,7 @@ snap() {
     eval "$3"
     calm "${4:-}"
     case $setting in reduceMotion*) ui reduceMotion false ;; *) ui animationDuration 250 ;; esac
+    hyprctl eval 'hl.config({ animations = { enabled = true } })' >/dev/null
     sleep 0.3
 }
 # still NAME [WINDOW]: settled and paused, the window draws nothing for 1.5 s. A single late redraw is measured again:

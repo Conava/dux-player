@@ -8,6 +8,7 @@ import qs.DCommon.Widgets
 import qs.Widgets
 import "../Common/Layouts.js" as Layouts
 import "../Common/ColumnDrag.js" as ColumnDrag
+import "../Services/Catalog.js" as Catalog
 
 // The track list every view shares: rows, multi-select with a selection bar, drag to queue or playlist,
 // per-track menu, and on wide windows sortable columns.
@@ -103,12 +104,39 @@ Item {
             "title": ""
         })
     readonly property alias view: list
+    // what the rows show; it follows `tracks` once an edit has reached the rows, so a removed row keeps its track
+    property var shownTracks: []
+    // an in-place edit (tracks removed, added or moved) is being applied; only those animate, never a new list
+    property bool rowEdit: false
 
     signal sortRequested(string key)
     // a drag or reset changed these columns' widths: line key to the stored size (1 is Medium)
     signal columnsResized(var sizes)
     // scrolled to the last row, for lists that load more on demand
     signal endReached
+
+    // A removal, insertion or move within the shown list goes to the rows as that edit, so they slide; anything else,
+    // or a list that starts or ends empty, replaces the rows at once.
+    function applyTracks() {
+        const edit = shownTracks.length > 0 && tracks.length > 0 ? Catalog.diff(shownTracks.map(t => CatalogService.key(t)), tracks.map(t => CatalogService.key(t))) : null;
+        if (!edit || !(edit.move || edit.remove === 0 || edit.insert.length === 0)) {
+            shownTracks = tracks;
+            return;
+        }
+        rowEdit = true;
+        if (edit.move)
+            rowModel.move(edit.move[0], edit.move[1], 1);
+        else if (edit.remove > 0)
+            rowModel.remove(edit.at, edit.remove);
+        else
+            rowModel.insert(edit.at, edit.insert.map(() => ({
+                        "group": ""
+                    })));
+        shownTracks = tracks;
+        // the view starts its transitions while laying out, so the edit flag has to hold until then
+        list.forceLayout();
+        rowEdit = false;
+    }
 
     function positionsOf(indexes) {
         return indexes.map(i => root.tracks[i]?.position ?? i);
@@ -166,6 +194,8 @@ Item {
     // a reloaded list keeps the selection; a different one (other length or ends) clears it
     readonly property string signature: tracks.length === 0 ? "" : tracks.length + "|" + CatalogService.key(tracks[0]) + "|" + CatalogService.key(tracks[tracks.length - 1])
     onSignatureChanged: clearSelection()
+    onTracksChanged: applyTracks()
+    Component.onCompleted: applyTracks()
 
     Shortcut {
         sequence: StandardKey.SelectAll
@@ -252,8 +282,22 @@ Item {
         // not the array: Qt copies an array model item by item (a quarter second at 100k tracks), and a re-sorted
         // list of the same length keeps its rows
         model: RowModel {
-            rows: root.tracks.length
-            groups: root.sectionNames.length > 0 ? root.sectionNames : root.sectionProperty === "" ? [] : root.tracks.map(t => String(t[root.sectionProperty] ?? ""))
+            id: rowModel
+            rows: root.shownTracks.length
+            groups: root.sectionNames.length > 0 ? root.sectionNames : root.sectionProperty === "" ? [] : root.shownTracks.map(t => String(t[root.sectionProperty] ?? ""))
+        }
+        displaced: DListMotion.Displaced {
+            active: root.rowEdit
+        }
+        move: DListMotion.Move {
+            active: root.rowEdit
+        }
+        add: DListMotion.Add {
+            active: root.rowEdit
+            rise: PlayerMetrics.listRise
+        }
+        remove: DListMotion.Remove {
+            active: root.rowEdit
         }
         // unset, the view makes the first row current as rows arrive, and that row takes the focus
         currentIndex: -1
@@ -432,9 +476,35 @@ Item {
         }
 
         delegate: TrackRow {
+            id: row
             required property int index
-            // a shorter list reaches the rows a moment before the count drops and the extra rows go
-            readonly property var modelData: root.tracks[index] ?? root.vanishing
+            readonly property var live: root.shownTracks[index]
+            // a removed row (index -1) keeps its track while it leaves; a shorter list reaches the rows a moment before
+            // the count drops and the extra rows go
+            property var held: root.vanishing
+            readonly property var modelData: live ?? held
+            onLiveChanged: {
+                if (live !== undefined)
+                    held = live;
+            }
+            // DListView hides removed rows, also while their remove transition runs
+            property bool leaving: false
+            ListView.onRemove: leaving = list.remove.enabled
+            // a row pooled after its remove transition would otherwise stay, transparent but clickable
+            ListView.onPooled: {
+                leaving = false;
+                visible = false;
+            }
+            // the remove transition left it at the end edge
+            ListView.onReused: x = Qt.binding(() => I18n.isRtl ? root.endInset : 0)
+            onVisibleChanged: {
+                if (leaving && !visible && opacity > 0)
+                    visible = true;
+            }
+            Component.onCompleted: {
+                if (!root.rowEdit)
+                    list.fadeIn(row, index);
+            }
             readonly property bool inSelection: root.selectedSet[index] === true
             x: I18n.isRtl ? root.endInset : 0
             width: list.width - root.endInset

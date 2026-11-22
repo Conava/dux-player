@@ -505,71 +505,12 @@ Item {
                 onClicked: PlayerService.setContinuing(true)
             }
         }
-        // reduce motion and speed None make every duration 0, so rows land at once
-        readonly property int moveDuration: Theme.animationsEnabled ? Theme.expressiveDurations.expressiveFastSpatial : 0
-        readonly property int fadeDuration: Theme.animationsEnabled ? Theme.expressiveDurations.expressiveEffects : 0
-        // an add interrupted mid-fade can leave rows displaced at partial opacity, so they always end at 1
-        displaced: Transition {
-            NumberAnimation {
-                property: "y"
-                duration: queueList.moveDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
-            }
-            NumberAnimation {
-                properties: "opacity,scale"
-                to: 1
-                duration: 0
-            }
+        displaced: DListMotion.Displaced {}
+        move: DListMotion.Move {}
+        add: DListMotion.Add {
+            rise: PlayerMetrics.listRise
         }
-        move: Transition {
-            NumberAnimation {
-                property: "y"
-                duration: queueList.moveDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
-            }
-            NumberAnimation {
-                properties: "opacity,scale"
-                to: 1
-                duration: 0
-            }
-        }
-        add: Transition {
-            NumberAnimation {
-                property: "opacity"
-                from: 0
-                to: 1
-                duration: queueList.fadeDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-            }
-            NumberAnimation {
-                property: "y"
-                from: ViewTransition.destination.y + Theme.spacingM
-                duration: queueList.fadeDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-            }
-        }
-        remove: Transition {
-            ParallelAnimation {
-                NumberAnimation {
-                    property: "opacity"
-                    to: 0
-                    duration: queueList.fadeDuration
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-                }
-                NumberAnimation {
-                    property: "x"
-                    to: Theme.spacingXL
-                    duration: queueList.fadeDuration
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-                }
-            }
-        }
+        remove: DListMotion.Remove {}
 
         delegate: Item {
             id: slot
@@ -580,6 +521,13 @@ Item {
             width: queueList.width
             height: entry.height + (stops ? root.stopMarkerHeight : 0)
             z: dragged ? 1 : 0
+            // DListView hides removed rows, also while their remove transition runs
+            property bool leaving: false
+            ListView.onRemove: leaving = queueList.remove.enabled
+            onVisibleChanged: {
+                if (leaving && !visible && opacity > 0)
+                    visible = true;
+            }
             // the view can release a far scrolled delegate, which would strand the drag
             Component.onDestruction: {
                 if (dragged)

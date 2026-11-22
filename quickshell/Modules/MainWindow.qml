@@ -27,6 +27,11 @@ DFloatingWindow {
     readonly property string navMode: SettingsData.navStyle !== "auto" ? SettingsData.navStyle : compact ? "bar" : SettingsData.autoRailLabels ? "railLabels" : "rail"
     readonly property bool railNav: navMode !== "bar"
     readonly property bool railLabels: navMode === "railLabels"
+    readonly property real railWidth: Theme.navigationRailWidth * (railLabels ? 2 : 1)
+    // the labels as chosen, apart from the window's width: a resize that brings the rail back doesn't animate it
+    readonly property bool labelsChosen: SettingsData.navStyle === "auto" ? SettingsData.autoRailLabels : SettingsData.navStyle === "railLabels"
+    // 0 rail, 1 rail with labels
+    property real railMix: labelsChosen ? 1 : 0
     // Search and Settings are navigation entries while the title bars are off, and the header is gone
     readonly property bool titleBarsOff: !StyleSource.windowTitleBars
     // the header search as a full field, in place of the title on a narrow window
@@ -63,6 +68,11 @@ DFloatingWindow {
             SettingsData.autoRailLabels = !SettingsData.autoRailLabels;
         else
             SettingsData.navStyle = railLabels ? "rail" : "railLabels";
+    }
+
+    Behavior on railMix {
+        enabled: Theme.animationsEnabled && window.railNav
+        PanelMotion {}
     }
 
     Binding {
@@ -409,14 +419,14 @@ DFloatingWindow {
                         readonly property real labelStart: Theme.spacingM + Theme.spacingL
                         visible: window.railNav
                         x: I18n.isRtl ? parent.width - width : 0
-                        width: window.railLabels ? labelRail.implicitWidth : rail.implicitWidth
+                        width: labelRail.implicitWidth
                         height: window.railNav ? implicitHeight + Theme.spacingM : 0
                         spacing: Theme.spacingS
 
                         DIconButton {
                             id: railMenu
                             objectName: "railMenu"
-                            readonly property real start: window.railLabels ? railTop.labelStart - (width - iconSize) / 2 : (railTop.width - width) / 2
+                            readonly property real start: labelRail.mix((railTop.width - width) / 2, railTop.labelStart - (width - iconSize) / 2)
                             x: I18n.isRtl ? railTop.width - start - width : start
                             iconName: window.railLabels ? "menu_open" : "menu"
                             rotation: I18n.isRtl ? 180 : 0
@@ -430,7 +440,7 @@ DFloatingWindow {
 
                         DFab {
                             objectName: "railSearch"
-                            readonly property real start: window.railLabels ? Theme.spacingM : (railTop.width - width) / 2
+                            readonly property real start: labelRail.mix((railTop.width - width) / 2, Theme.spacingM)
                             visible: window.railChrome
                             x: I18n.isRtl ? railTop.width - start - width : start
                             iconName: "search"
@@ -444,52 +454,40 @@ DFloatingWindow {
                     DExpandedRail {
                         id: labelRail
                         objectName: "railDestinations"
-                        visible: window.railLabels
+                        visible: window.railNav
                         anchors.left: parent.left
                         anchors.top: railTop.bottom
-                        anchors.bottom: labelSettings.visible ? labelSettings.top : window.floatingBar ? parent.bottom : bottomBar.top
-                        width: window.railLabels ? implicitWidth : 0
+                        anchors.bottom: labelSettings.visible ? labelSettings.top : railSettings.visible ? railSettings.top : window.floatingBar ? parent.bottom : bottomBar.top
+                        width: implicitWidth
+                        expansion: window.railMix
                         model: window.railModel
                         currentIndex: window.railIndex
                         onActivated: index => Router.openEntry(window.railEntries[index])
                     }
 
-                    // Settings apart from the pages; it opens its own window, so it never shows as selected
+                    // Settings apart from the pages; it opens its own window, so it never shows as selected. The two
+                    // trade places halfway through the label switch.
                     DExpandedRail {
                         id: labelSettings
                         objectName: "railSettings"
-                        visible: window.railLabels && window.railChrome
+                        visible: window.railChrome && window.railMix >= 0.5
                         anchors.left: parent.left
                         anchors.bottom: window.floatingBar ? parent.bottom : bottomBar.top
                         anchors.bottomMargin: Theme.windowInset
                         width: implicitWidth
                         height: Theme.navigationHeight + ringRoom * 2
+                        expansion: window.railMix
                         model: window.settingsModel
                         onActivated: Router.openSettings("")
                     }
 
-                    DNavigationBar {
-                        id: rail
-                        objectName: "railDestinations"
-                        visible: window.navMode === "rail"
-                        orientation: Qt.Vertical
-                        evenlySpaced: false
-                        // DNavigationBar turns mirroring off on itself, so a left anchor would stay left in RTL
-                        x: I18n.isRtl ? parent.width - width : 0
-                        anchors.top: railTop.bottom
-                        // from the top, scrolling when they don't fit
-                        height: Math.max(0, Math.min(implicitHeight, (railSettings.visible ? railSettings.y : window.floatingBar ? parent.height : bottomBar.y) - y))
-                        model: window.railModel
-                        currentIndex: window.railIndex
-                        onActivated: index => Router.openEntry(window.railEntries[index])
-                    }
-
-                    // a one-entry DNavigationBar can't be activated from the keyboard while nothing is selected
+                    // a one-entry rail can't be activated from the keyboard while nothing is selected
                     DIconButton {
                         id: railSettings
                         objectName: "railSettings"
-                        visible: window.navMode === "rail" && window.railChrome
-                        x: rail.x + (rail.width - width) / 2
+                        readonly property real start: (Theme.navigationRailWidth - width) / 2
+                        visible: window.railChrome && window.railMix < 0.5
+                        x: I18n.isRtl ? parent.width - start - width : start
                         anchors.bottom: window.floatingBar ? parent.bottom : bottomBar.top
                         anchors.bottomMargin: Theme.windowInset
                         iconName: "settings"
@@ -514,11 +512,13 @@ DFloatingWindow {
 
                     Item {
                         id: main
-                        anchors.left: window.navMode === "railLabels" ? labelRail.right : window.navMode === "rail" ? rail.right : parent.left
+                        // the width once the rail has its final width: the page takes it at once and slides with the rail
+                        readonly property real finalWidth: pages.width - (window.railNav ? window.railWidth : Theme.windowInset) - Theme.windowInset
+                        anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: topBar.bottom
                         anchors.bottom: window.floatingBar ? parent.bottom : bottomBar.top
-                        anchors.leftMargin: window.railNav ? 0 : Theme.windowInset
+                        anchors.leftMargin: window.railNav ? labelRail.width : Theme.windowInset
                         anchors.rightMargin: Theme.windowInset
                         anchors.bottomMargin: Theme.windowInset
 
@@ -543,8 +543,10 @@ DFloatingWindow {
                             // the loader whose page is entering, and the route it entered for
                             property Item entering: null
                             property string enteredRoute: ""
+                            // Back and Forward settle in from slightly larger, a new visit from slightly smaller
+                            property real enterScale: PlayerMetrics.pageEnterScale
                             // the final size, so the page lays out once while the panel and bar slide
-                            readonly property real pageWidth: Math.max(0, main.width - (sideHost.overlay || !sideHost.shown ? 0 : sideHost.fullWidth + Theme.windowInset))
+                            readonly property real pageWidth: Math.max(0, main.finalWidth - (sideHost.overlay || !sideHost.shown ? 0 : sideHost.fullWidth + Theme.windowInset))
                             readonly property real pageHeight: Math.max(0, pages.height - topBar.height - Theme.windowInset - (bottomBar.shown && !window.floatingBar ? bottomBar.height + Theme.windowInset : 0))
 
                             onHomeWantedChanged: {
@@ -575,6 +577,7 @@ DFloatingWindow {
                                     entering.scale = 1;
                                 }
                                 entering = loader;
+                                enterScale = Router.historyStep ? PlayerMetrics.pageBackScale : PlayerMetrics.pageEnterScale;
                                 pageEnter.restart();
                                 if (loader !== pageLoader)
                                     return;
@@ -591,10 +594,20 @@ DFloatingWindow {
                                 enabled: contentPane.homeWanted
                                 anchors.left: parent.left
                                 anchors.top: parent.top
-                                width: contentPane.pageWidth
-                                height: contentPane.pageHeight
                                 source: "HomePage.qml"
                                 onStatusChanged: contentPane.settle()
+
+                                // a hidden Home still lays out on every resize, which stalls a docking panel on any page
+                                Binding on width {
+                                    when: contentPane.homeShown
+                                    value: contentPane.pageWidth
+                                    restoreMode: Binding.RestoreNone
+                                }
+                                Binding on height {
+                                    when: contentPane.homeShown
+                                    value: contentPane.pageHeight
+                                    restoreMode: Binding.RestoreNone
+                                }
                             }
 
                             Loader {
@@ -643,7 +656,7 @@ DFloatingWindow {
                                 NumberAnimation {
                                     target: contentPane.entering
                                     property: "scale"
-                                    from: PlayerMetrics.pageEnterScale
+                                    from: contentPane.enterScale
                                     to: 1
                                     duration: Theme.expressiveDurations.normal
                                     easing.type: Easing.BezierSpline
@@ -744,6 +757,8 @@ DFloatingWindow {
                             // full width from the start: the panel slides in instead of reflowing as it grows
                             Loader {
                                 id: panelLoader
+                                // built off the main thread while closed (reveal waits for it); a swap in an open host stays synchronous so the host doesn't close meanwhile
+                                asynchronous: sideHost.reveal === 0
                                 anchors.left: parent.left
                                 anchors.top: parent.top
                                 height: sideHost.height

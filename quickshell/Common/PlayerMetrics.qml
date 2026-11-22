@@ -20,10 +20,6 @@ Singleton {
     readonly property real listStaggerStep: Theme.currentAnimationBaseDuration * 0.1
     readonly property real listStaggerMax: Theme.currentAnimationBaseDuration * 1.28
     readonly property real listRise: Theme.spacingM
-    // a menu's value runs 0 to 1: the card takes the first share, each row's slice spans menuRowSpan of it
-    readonly property real menuCardShare: 0.22
-    readonly property real menuRowSpan: 0.4
-    readonly property real menuExitSpeed: 1.6
     // the cover's push in when a new one arrives
     readonly property real handoffScalePush: 0.05
     readonly property real popScale: 1.2

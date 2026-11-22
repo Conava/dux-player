@@ -14,6 +14,8 @@ Rectangle {
     property bool inSettings: false
     readonly property string notice: Router.notice
     readonly property bool showing: notice !== "" && inSettings === Router.settingsFocused
+    // offset below its resting place while hidden; separate from bottomInset, which follows the bar's own motion
+    property real rise: showing ? 0 : PlayerMetrics.listRise
     readonly property bool undoable: Router.noticeUndo !== null
 
     // keeps the text while it fades out
@@ -35,7 +37,7 @@ Rectangle {
 
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.bottom: parent.bottom
-    anchors.bottomMargin: bottomInset + Theme.spacingL + (showing ? 0 : Theme.spacingS)
+    anchors.bottomMargin: bottomInset + Theme.spacingL + rise
     width: Math.min(parent.width - Theme.spacingL * 2, label.implicitWidth + Theme.spacingL * 2 + (undoButton.visible ? undoButton.width + Theme.spacingS : 0))
     height: Theme.fieldHeightLarge
     radius: Theme.cornerRadiusXS
@@ -48,8 +50,18 @@ Rectangle {
     Behavior on opacity {
         enabled: Theme.animationsEnabled
         NumberAnimation {
-            duration: Theme.shortDuration
-            easing.type: Theme.standardEasing
+            duration: root.showing ? Theme.expressiveDurations.normal : Theme.expressiveDurations.expressiveEffects
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: root.showing ? Theme.expressiveCurves.emphasizedDecel : Theme.expressiveCurves.emphasizedAccel
+        }
+    }
+
+    Behavior on rise {
+        enabled: Theme.animationsEnabled
+        NumberAnimation {
+            duration: root.showing ? Theme.expressiveDurations.normal : Theme.expressiveDurations.expressiveEffects
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: root.showing ? Theme.expressiveCurves.emphasizedDecel : Theme.expressiveCurves.emphasizedAccel
         }
     }
 

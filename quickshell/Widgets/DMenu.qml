@@ -158,33 +158,40 @@ Item {
     property int focusBackReason: Qt.OtherFocusReason
 
     readonly property bool animates: !Style.reduceMotion && Style.currentAnimationSpeed !== Style.AnimationSpeed.None
-    // opacity, 0..1; the popup stays until a close has faded out, so a reopen mid-fade keeps it
-    property real enter: 0
-    Behavior on enter {
+    // the card fades and unrolls within the first cardShare of t; each row fades and rises within rowSpan of it
+    readonly property real cardShare: 0.22
+    readonly property real rowSpan: 0.4
+    readonly property real rowRise: Style.spacingM
+    readonly property real exitSpeed: 1.6
+    // the whole open, 0..1; the popup stays until a close reaches 0, so a reopen mid-close goes on from here
+    property real t: 0
+    // duration and curve are set before t changes: bindings on them would still hold the last direction's values
+    Behavior on t {
         enabled: root.animates
         DAnim {
-            duration: Style.expressiveDurations.expressiveFastEffects
-            easing.bezierCurve: Style.expressiveCurves.expressiveFastEffects
+            id: tAnim
         }
     }
-    // how much of the menu is revealed from the edge that touches its anchor; only opening unrolls, closing fades
-    property real unroll: 0
-    Behavior on unroll {
-        enabled: root.animates && root.opened
-        DAnim {
-            duration: Style.expressiveDurations.fast
-            easing.bezierCurve: Style.expressiveCurves.emphasizedDecel
-        }
-    }
-    onEnterChanged: {
-        if (enter === 0 && !opened)
-            unroll = 0;
+    // only an open from nothing unrolls and waves the rows in; a close or a reopen mid-close fades the whole card
+    property bool wave: false
+    readonly property real unroll: wave ? Math.min(1, t / cardShare) : 1
+    readonly property real cardOpacity: wave ? unroll : t
+
+    // a row's progress through its slice of t; rows nearer the anchor go first
+    function rowProgress(index, upwards) {
+        if (!wave)
+            return 1;
+        const last = Math.max(1, rowSlots.count - 1);
+        const start = (1 - rowSpan) * (upwards ? last - index : index) / last;
+        const x = Math.max(0, Math.min(1, (t - start) / rowSpan));
+        return x * x * (3 - 2 * x);
     }
 
     onOpenedChanged: {
-        enter = opened ? 1 : 0;
-        if (opened)
-            unroll = 1;
+        wave = opened && t === 0;
+        tAnim.duration = Style.expressiveDurations.expressiveDefaultSpatial / (opened ? 1 : exitSpeed);
+        tAnim.easing.bezierCurve = opened ? Style.expressiveCurves.emphasizedDecel : Style.expressiveCurves.emphasizedAccel;
+        t = opened ? 1 : 0;
         if (!opened) {
             focusBack?.forceActiveFocus(focusBackReason);
             return;
@@ -226,7 +233,7 @@ Item {
     }
 
     Loader {
-        active: root.opened || root.enter > 0
+        active: root.opened || root.t > 0
 
         sourceComponent: PopupWindow {
             id: popup
@@ -302,7 +309,7 @@ Item {
                 width: popup.menuWidth
                 height: popup.menuHeight
 
-                opacity: root.enter
+                opacity: root.cardOpacity
                 LayoutMirroring.enabled: I18n.isRtl
                 LayoutMirroring.childrenInherit: true
                 Accessible.role: Accessible.PopupMenu
@@ -371,7 +378,13 @@ Item {
                                         id: row
                                         required property int index
                                         readonly property var entry: root.model[index] ?? ({})
+                                        // the highlighted row, also a slider being dragged since hovering highlights it, is drawn fully
+                                        readonly property real progress: index === root.highlightIndex ? 1 : root.rowProgress(index, popup.upwards)
 
+                                        opacity: progress
+                                        transform: Translate {
+                                            y: (1 - row.progress) * root.rowRise * (popup.upwards ? -1 : 1)
+                                        }
                                         width: items.width
                                         height: entry.divider ? Style.spacingS * 2 + Style.dividerWidth : entry.slider ? sliderLoader.implicitHeight : (entry.description ?? "") !== "" ? Style.listItemTwoLineHeight : Style.menuItemHeight
 

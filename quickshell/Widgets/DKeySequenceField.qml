@@ -71,6 +71,11 @@ FocusScope {
         captured(mods.concat([key]).join("+"));
     }
 
+    // call when the captured combination is refused
+    function shake() {
+        shaker.shake();
+    }
+
     function start() {
         recording = true;
         forceActiveFocus();
@@ -79,6 +84,9 @@ FocusScope {
     implicitWidth: Math.max(Style.buttonHeightS * 4, content.implicitWidth + Style.spacingM * 2)
     implicitHeight: Style.buttonHeightS
     activeFocusOnTab: true
+    transform: DShake {
+        id: shaker
+    }
     Accessible.role: Accessible.Button
     Accessible.name: recording ? hint.text : sequence
     Accessible.onPressAction: start()

@@ -112,6 +112,9 @@ Singleton {
     // the window asks before something is removed; callback() runs on confirm
     signal confirmRequested(string title, string text, string confirmText, var callback)
 
+    // the last route change was Back or Forward rather than a new visit
+    readonly property bool historyStep: _historyStep
+    property bool _historyStep: false
     readonly property bool canGoBack: history.length > 0
     readonly property bool canGoForward: forwardHistory.length > 0
     readonly property string route: page + "/" + itemId
@@ -170,7 +173,8 @@ Singleton {
         };
     }
 
-    function _show(target, id, offset) {
+    function _show(target, id, offset, step) {
+        _historyStep = step === true;
         restoreOffset = offset;
         // the page the switch builds reads the id at once and must not get the last page's
         if (target !== page)
@@ -263,7 +267,7 @@ Singleton {
         const last = history[history.length - 1];
         history = history.slice(0, -1);
         forwardHistory = forwardHistory.concat([_here()]);
-        _show(last.page, last.itemId, last.offset);
+        _show(last.page, last.itemId, last.offset, true);
     }
 
     function forward() {
@@ -279,7 +283,7 @@ Singleton {
             return;
         }
         history = history.concat([_here()]);
-        _show(next.page, next.itemId, next.offset);
+        _show(next.page, next.itemId, next.offset, true);
         nowPlayingOpen = false;
     }
 

@@ -187,6 +187,7 @@ SettingsPage {
 
                         StyledButton {
                             id: seedSwatch
+                            objectName: "swatch"
                             required property string modelData
                             required property int index
                             readonly property bool chosen: Qt.colorEqual(Qt.color(SettingsData.seedColor), swatch)
@@ -204,9 +205,9 @@ SettingsPage {
                             Behavior on radius {
                                 enabled: Theme.animationsEnabled
                                 NumberAnimation {
-                                    duration: Theme.expressiveDurations.expressiveFastSpatial
+                                    duration: Theme.expressiveDurations.expressiveEffects
                                     easing.type: Easing.BezierSpline
-                                    easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+                                    easing.bezierCurve: Theme.expressiveCurves.standard
                                 }
                             }
 
@@ -216,8 +217,18 @@ SettingsPage {
                                 size: Theme.iconSize
                                 color: seedSwatch.accent?.onContainer ?? Theme.primaryText
                                 opacity: seedSwatch.chosen ? 1 : 0
+                                scale: seedSwatch.chosen ? 1 : 0
 
                                 Behavior on opacity {
+                                    enabled: Theme.animationsEnabled
+                                    NumberAnimation {
+                                        duration: Theme.expressiveDurations.expressiveFastEffects
+                                        easing.type: Easing.BezierSpline
+                                        easing.bezierCurve: Theme.expressiveCurves.expressiveFastEffects
+                                    }
+                                }
+
+                                Behavior on scale {
                                     enabled: Theme.animationsEnabled
                                     NumberAnimation {
                                         duration: Theme.expressiveDurations.expressiveFastEffects
@@ -245,9 +256,16 @@ SettingsPage {
                     labelText: I18n.tr("Hex color", "appearance seed color field")
                     text: SettingsData.seedColor
                     leftIconName: "palette"
+                    transform: DShake {
+                        id: hexShake
+                        distance: PlayerMetrics.shakeDistance
+                        cycles: PlayerMetrics.shakeCycles
+                    }
                     onAccepted: {
                         if (/^#[0-9a-fA-F]{6}$/.test(text.trim()))
                             SettingsData.seedColor = text.trim();
+                        else
+                            hexShake.shake();
                     }
                 }
             }
@@ -278,6 +296,14 @@ SettingsPage {
                         color: Theme.surfaceContainerHighest
                         border.width: chosen ? Theme.outlineWidthFocused : 0
                         border.color: Theme.primary
+                        Behavior on border.width {
+                            enabled: Theme.animationsEnabled
+                            NumberAnimation {
+                                duration: Theme.expressiveDurations.expressiveFastEffects
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: Theme.expressiveCurves.expressiveFastEffects
+                            }
+                        }
                         Accessible.role: Accessible.RadioButton
                         Accessible.name: UiConfig.paletteStyleLabel(modelData)
                         Accessible.checked: chosen

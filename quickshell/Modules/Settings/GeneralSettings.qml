@@ -296,10 +296,15 @@ SettingsPage {
                 subtitleColor: Theme.error
 
                 DKeySequenceField {
+                    id: keyField
                     anchors.verticalCenter: parent.verticalCenter
                     sequence: UiConfig.shortcut(shortcutRow.modelData)
                     Accessible.description: shortcutRow.title
-                    onCaptured: sequence => shortcutRow.problem = UiConfig.setShortcut(shortcutRow.modelData, sequence)
+                    onCaptured: sequence => {
+                        shortcutRow.problem = UiConfig.setShortcut(shortcutRow.modelData, sequence);
+                        if (shortcutRow.problem !== "")
+                            keyField.shake();
+                    }
                 }
 
                 DActionButton {
