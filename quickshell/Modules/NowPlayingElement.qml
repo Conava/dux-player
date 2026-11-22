@@ -143,7 +143,10 @@ Loader {
     // the shell's transport press: the pressed button widens a little on a spring
     component Springy: DIconButton {
         id: springy
-        readonly property real targetWeight: root.weight * (pressed ? PlayerMetrics.mediaTransportPressScale : 1)
+        // a key held down doesn't squish: only a pointer press does
+        property bool keyHeld: false
+        readonly property bool squished: pressed && !keyHeld
+        readonly property real targetWeight: root.weight * (squished ? PlayerMetrics.mediaTransportPressScale : 1)
         // a play button with its label sets these: the content's width, which the button never goes below
         property real contentWidth: iconSize
         property bool labelled: false
@@ -163,9 +166,19 @@ Loader {
         Binding {
             target: root
             property: "pressGrow"
-            value: springy.pressed ? Math.round(springy.baseWidth * (PlayerMetrics.mediaTransportPressScale - 1)) : 0
+            value: springy.squished ? Math.round(springy.baseWidth * (PlayerMetrics.mediaTransportPressScale - 1)) : 0
             when: root.slides
         }
+        Keys.onPressed: event => {
+            if (event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+                keyHeld = true;
+        }
+        Keys.onReleased: event => {
+            if (event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+                keyHeld = false;
+        }
+        onActiveFocusChanged: if (!activeFocus)
+            keyHeld = false
         topLeftRadius: root.corner(springy, root.groupStart)
         bottomLeftRadius: root.corner(springy, root.groupStart)
         topRightRadius: root.corner(springy, root.groupEnd)
@@ -189,6 +202,24 @@ Loader {
         }
     }
 
+    // both play button labels stay laid out and trade opacity, so the width never changes
+    component StateText: StyledText {
+        required property bool shownWhen
+        width: parent.width
+        horizontalAlignment: Text.AlignHCenter
+        font.weight: Theme.fontWeightMedium
+        wrapMode: Text.NoWrap
+        opacity: shownWhen ? 1 : 0
+
+        Behavior on opacity {
+            enabled: Theme.animationsEnabled
+            DC.DAnim {
+                duration: Theme.expressiveDurations.expressiveFastEffects
+                easing.bezierCurve: Theme.expressiveCurves.expressiveFastEffects
+            }
+        }
+    }
+
     // a small cover outside the full view's cover zone; in the bar and side panel it opens the full view
     Component {
         id: cover
@@ -209,6 +240,7 @@ Loader {
                 AlbumArt {
                     anchors.fill: parent
                     item: root.track
+                    handoff: true
                 }
             }
         }
@@ -722,7 +754,6 @@ Loader {
             objectName: "playPause"
             readonly property bool bento: root.look === "transport"
             readonly property bool withLabel: root.options.label === true
-            readonly property string stateLabel: PlayerService.playing ? I18n.tr("Pause", "transport button") : I18n.tr("Play", "button that starts playback")
             readonly property real labelSize: buttonSize >= Theme.buttonHeightM ? Theme.fontSizeLarge : Theme.fontSizeMedium
             // the wider of the two labels, so the button keeps its width on play and pause
             readonly property real labelWidth: withLabel ? Math.max(playMeasure.implicitWidth, pauseMeasure.implicitWidth) : 0
@@ -797,15 +828,25 @@ Loader {
                         color: playButton.contentColor
                     }
                 }
-                StyledText {
+                Item {
                     width: playButton.labelWidth
-                    horizontalAlignment: Text.AlignHCenter
+                    height: playPlain.implicitHeight
                     anchors.verticalCenter: parent.verticalCenter
-                    text: playButton.stateLabel
-                    font.pixelSize: playButton.labelSize
-                    font.weight: Theme.fontWeightMedium
-                    wrapMode: Text.NoWrap
-                    color: playButton.enabled ? playButton.contentColor : Theme.onSurface_38
+
+                    StateText {
+                        id: playPlain
+                        shownWhen: !PlayerService.playing
+                        font.pixelSize: playButton.labelSize
+                        color: playButton.enabled ? playButton.contentColor : Theme.onSurface_38
+                        text: I18n.tr("Play", "button that starts playback")
+                    }
+
+                    StateText {
+                        shownWhen: PlayerService.playing
+                        font.pixelSize: playButton.labelSize
+                        color: playButton.enabled ? playButton.contentColor : Theme.onSurface_38
+                        text: I18n.tr("Pause", "transport button")
+                    }
                 }
             }
         }

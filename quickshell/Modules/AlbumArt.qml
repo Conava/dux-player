@@ -51,6 +51,12 @@ ClippingRectangle {
         blurIn.restart();
     }
 
+    function unblur() {
+        swapPending = false;
+        blurOut.stop();
+        blurIn.restart();
+    }
+
     function settle() {
         blurOut.stop();
         blurIn.stop();
@@ -61,8 +67,9 @@ ClippingRectangle {
     onSourceChanged: {
         if (!handoff)
             return;
+        // back to the cover still showing: it sharpens again instead of jumping
         if (source === shown)
-            return settle();
+            return handingOff ? unblur() : settle();
         if (shown === "" || source === "" || !showsCover || !visible || !Theme.animationsEnabled) {
             settle();
             shown = source;
@@ -106,7 +113,7 @@ ClippingRectangle {
         visible: root.showsCover
         source: root.handoff ? root.shown : root.source
         opacity: 1 - 0.6 * Math.min(1, Math.max(0, root.blur))
-        scale: root.entering ? 1 + 0.05 * Math.max(0, root.blur) : 1
+        scale: root.entering ? 1 + PlayerMetrics.handoffScalePush * Math.max(0, root.blur) : 1
         layer.enabled: root.handingOff
         layer.effect: MultiEffect {
             blurEnabled: true

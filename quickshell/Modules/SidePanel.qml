@@ -65,32 +65,18 @@ Item {
         onClicked: Router.panel = ""
     }
 
-    Loader {
-        id: pane
-        // the first source is no switch: the panel has to be whole when it slides in
-        property bool settled: false
+    PaneSwap {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: switcher.bottom
         anchors.bottom: parent.bottom
         anchors.topMargin: Theme.spacingS
-        sourceComponent: root.shown === "lyrics" ? lyrics : queue
-        onSourceComponentChanged: {
-            if (settled && Theme.animationsEnabled)
-                paneEnter.restart();
-        }
-        Component.onCompleted: settled = true
-    }
-
-    NumberAnimation {
-        id: paneEnter
-        target: pane
-        property: "opacity"
-        from: 0
-        to: 1
-        duration: Theme.expressiveDurations.expressiveEffects
-        easing.type: Easing.BezierSpline
-        easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+        current: root.shown
+        order: root.views
+        sources: ({
+                "lyrics": lyrics,
+                "queue": queue
+            })
     }
 
     Component {

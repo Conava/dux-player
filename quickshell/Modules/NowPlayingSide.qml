@@ -97,58 +97,15 @@ Item {
         anchors.topMargin: Theme.spacingM
         anchors.bottomMargin: Theme.spacingL
 
-        readonly property string tab: Router.sideTab
-        // the first tab is no switch: the panel has to be whole when it slides in
-        property bool settled: false
-        onTabChanged: {
-            if (settled && Theme.animationsEnabled)
-                tabEnter.restart();
-        }
-        Component.onCompleted: settled = true
-
-        NumberAnimation {
-            id: tabEnter
-            target: content
-            property: "opacity"
-            from: 0
-            to: 1
-            duration: Theme.expressiveDurations.expressiveEffects
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-        }
-
-        PlayerArt {
-            visible: Router.sideTab === "cover" && root.track !== null && root.cover !== null
-            anchors.centerIn: parent
-            width: Math.max(0, Math.min(parent.width - Theme.spacingL * 2, parent.height))
-            height: width
-            item: root.track
-            shape: root.cover?.options?.shape ?? "rounded"
-            rotate: root.cover?.options?.rotate ?? true
-
-            StyledButton {
-                id: coverButton
-                anchors.fill: parent
-                Accessible.name: I18n.tr("Open now playing", "now playing bar button")
-                onClicked: Router.openNowPlaying("")
-
-                StateLayer {
-                    control: coverButton
-                    stateColor: ArtColors.text
-                }
-            }
-        }
-
-        Loader {
+        PaneSwap {
             anchors.fill: parent
-            active: Router.sideTab === "lyrics"
-            sourceComponent: LyricsView {}
-        }
-
-        Loader {
-            anchors.fill: parent
-            active: Router.sideTab === "queue"
-            sourceComponent: QueueList {}
+            current: Router.sideTab
+            order: root.views
+            sources: ({
+                    "cover": coverPane,
+                    "lyrics": lyricsPane,
+                    "queue": queuePane
+                })
         }
 
         StyledText {
@@ -158,6 +115,43 @@ Item {
             font.pixelSize: Theme.fontSizeLarge
             color: Theme.surfaceVariantText
         }
+    }
+
+    Component {
+        id: coverPane
+        Item {
+            PlayerArt {
+                visible: root.track !== null && root.cover !== null
+                anchors.centerIn: parent
+                width: Math.max(0, Math.min(parent.width - Theme.spacingL * 2, parent.height))
+                height: width
+                item: root.track
+                shape: root.cover?.options?.shape ?? "rounded"
+                rotate: root.cover?.options?.rotate ?? true
+
+                StyledButton {
+                    id: coverButton
+                    anchors.fill: parent
+                    Accessible.name: I18n.tr("Open now playing", "now playing bar button")
+                    onClicked: Router.openNowPlaying("")
+
+                    StateLayer {
+                        control: coverButton
+                        stateColor: ArtColors.text
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: lyricsPane
+        LyricsView {}
+    }
+
+    Component {
+        id: queuePane
+        QueueList {}
     }
 
     // the title, the seek line, the transport, then the top and bottom zones

@@ -139,7 +139,7 @@ Rectangle {
     Component {
         id: bentoPlayer
         BentoPlayer {
-            inPlace: root.inPlace ? (root.pane === "queue" ? queuePane : lyricsPane) : null
+            inPlace: root.inPlace ? paneSwap : null
             artNote: root.artNote
         }
     }
@@ -147,7 +147,7 @@ Rectangle {
     Component {
         id: m3ePlayer
         M3EPlayer {
-            inPlace: root.inPlace ? (root.pane === "queue" ? queuePane : lyricsPane) : null
+            inPlace: root.inPlace ? paneSwap : null
             artNote: root.artNote
             beside: root.beside
             joined: root.joined
@@ -162,7 +162,7 @@ Rectangle {
         anchors.margins: Theme.spacingXL
         anchors.topMargin: 0
         active: root.beside
-        sourceComponent: root.pane === "queue" ? queuePane : lyricsPane
+        sourceComponent: paneSwap
     }
 
     // the tabs ride in the pane's top row; without lyrics there is only the queue to show
@@ -173,19 +173,23 @@ Rectangle {
         PaneTabs {}
     }
 
-    component PaneFade: NumberAnimation {
-        from: 0
-        to: 1
-        running: Theme.animationsEnabled
-        duration: Theme.expressiveDurations.expressiveEffects
-        easing.type: Easing.BezierSpline
-        easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+    // Bento's art slot already fades its pane in
+    Component {
+        id: paneSwap
+        PaneSwap {
+            current: root.pane
+            order: ["lyrics", "queue"]
+            sources: ({
+                    "lyrics": lyricsPane,
+                    "queue": queuePane
+                })
+            appear: root.m3e
+        }
     }
 
     Component {
         id: lyricsPane
         LyricsView {
-            PaneFade on opacity {}
             leading: root.tabs
             radius: root.paneRadius
             cardColor: root.paneColor
@@ -198,8 +202,6 @@ Rectangle {
         Rectangle {
             radius: root.paneRadius
             color: root.paneColor
-
-            PaneFade on opacity {}
 
             QueueList {
                 anchors.fill: parent

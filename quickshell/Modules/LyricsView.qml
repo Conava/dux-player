@@ -210,7 +210,7 @@ FocusScope {
     // a spring keeps its speed when the active line changes on the way, so the scroll bends towards the new line
     DC.SpringMotion {
         id: scrollSpring
-        enabled: !Theme.springMotionDisabled
+        enabled: root.animationsEnabled
         stiffness: PlayerMetrics.lyricsScrollStiffness
         damping: PlayerMetrics.lyricsScrollDamping
         positionEpsilon: PlayerMetrics.lyricsScrollSettleDistance
@@ -290,7 +290,7 @@ FocusScope {
     Loader {
         id: leadingLoader
         anchors.left: parent.left
-        anchors.leftMargin: Theme.spacingS
+        anchors.leftMargin: Theme.spacingL
         anchors.verticalCenter: sourceButton.verticalCenter
         sourceComponent: root.leading
     }

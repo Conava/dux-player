@@ -2,8 +2,9 @@ import QtQuick
 import qs.Common
 import qs.Services
 
-// Slides a now-playing text that changes: a copy of the old text leaves sideways and fades while the owner is
-// hidden, then the owner enters from the other side. Bind the owner's opacity to fade and its x offset to shift.
+// Slides a now-playing text that changes with the track: a copy of the old text leaves sideways and fades while the
+// owner is hidden, then the owner enters from the other side. Text that changes for the same track (a tag edit) fades
+// in place. Bind the owner's opacity to fade and its x offset to shift.
 Item {
     id: root
 
@@ -27,7 +28,21 @@ Item {
     property int step: 1
     property double stepAt: 0
     property int lastIndex: queueIndex
+    // the copy's parent: beside the owner, never a positioner or layout, which would place the copy as an item of its own
+    readonly property Item host: {
+        let p = owner.parent;
+        while (p?.parent && ("spacing" in p || "rowSpacing" in p))
+            p = p.parent;
+        return p;
+    }
+    // the track the shown text belongs to
+    property string textTrack
 
+    function trackKey() {
+        return PlayerService.current ? PlayerService.key(PlayerService.current) : "";
+    }
+
+    Component.onCompleted: textTrack = trackKey()
     onQueueIndexChanged: {
         step = queueIndex < lastIndex ? -1 : 1;
         lastIndex = queueIndex;
@@ -37,6 +52,9 @@ Item {
     onTextChanged: {
         const old = previous;
         previous = text;
+        const track = trackKey();
+        const sameTrack = track === textTrack;
+        textTrack = track;
         if (old === "" || text === "" || !active || !owner.visible || !Theme.animationsEnabled) {
             slide.stop();
             fade = 1;
@@ -45,7 +63,7 @@ Item {
             return;
         }
         // the direction of a skip, known when the queue index moved just before; else forward
-        const dir = (Date.now() - stepAt < 1000 ? step : 1) * (LayoutMirroring.enabled ? -1 : 1);
+        const dir = sameTrack ? 0 : (Date.now() - stepAt < 1000 ? step : 1) * (LayoutMirroring.enabled ? -1 : 1);
         leaving = old;
         slide.travelSigned = dir * travel;
         slide.restart();
@@ -57,6 +75,9 @@ Item {
 
         ScriptAction {
             script: {
+                const at = root.owner.mapToItem(root.host, 0, 0);
+                copy.x = at.x;
+                copy.y = at.y;
                 root.fade = 0;
                 root.shift = slide.travelSigned;
                 root.leaveFade = 1;
@@ -103,9 +124,8 @@ Item {
 
     // plain Text: StyledText fades its own opacity changes
     Text {
-        parent: root.owner.parent
-        x: root.owner.x + root.leaveShift
-        y: root.owner.y
+        id: copy
+        parent: root.host
         width: root.owner.width
         height: root.owner.height
         visible: slide.running && root.leaveFade > 0
@@ -119,5 +139,8 @@ Item {
         horizontalAlignment: root.horizontalAlignment
         verticalAlignment: Text.AlignVCenter
         Accessible.ignored: true
+        transform: Translate {
+            x: root.leaveShift
+        }
     }
 }

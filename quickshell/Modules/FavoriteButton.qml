@@ -19,8 +19,12 @@ DActionButton {
     property color activeColor: Theme.primary
     property color inactiveColor: Theme.onSurfaceVariant
 
-    iconName: "favorite"
-    iconFilled: favorite
+    // the heart is drawn here so that it can pop without scaling the button
+    readonly property string itemKey: (item?.library ?? "") + "/" + (item?.id ?? "")
+    property bool ready: false
+    property bool itemChanging: false
+
+    iconName: ""
     iconColor: favorite ? activeColor : inactiveColor
     opacity: blocker === "" ? 1 : Theme.disabledOpacity
     tooltipText: {
@@ -40,5 +44,47 @@ DActionButton {
             return;
         }
         PlayerService.setFavorite(kind, item, !favorite);
+    }
+
+    Component.onCompleted: ready = true
+
+    // a favorite that arrives with another track doesn't pop
+    onItemKeyChanged: {
+        itemChanging = true;
+        Qt.callLater(() => itemChanging = false);
+    }
+
+    onFavoriteChanged: {
+        if (favorite && ready && !itemChanging && visible && Theme.animationsEnabled)
+            pop.restart();
+    }
+
+    DIcon {
+        id: heart
+        anchors.centerIn: parent
+        name: "favorite"
+        size: root.iconSize
+        filled: root.favorite
+        color: root.enabled ? root.iconColor : Theme.onSurface_38
+    }
+
+    SequentialAnimation {
+        id: pop
+        NumberAnimation {
+            target: heart
+            property: "scale"
+            to: PlayerMetrics.popScale
+            duration: Theme.expressiveDurations.expressiveFastSpatial / 2
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+        }
+        NumberAnimation {
+            target: heart
+            property: "scale"
+            to: 1
+            duration: Theme.expressiveDurations.expressiveFastSpatial / 2
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+        }
     }
 }

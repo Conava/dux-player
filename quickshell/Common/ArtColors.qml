@@ -6,23 +6,75 @@ import Quickshell
 import qs.Common
 import qs.Services
 import "Scheme.js" as Scheme
+import "../DCommon/Common/Hct.js" as Hct
 
 // Colors from the current album art (the cover's dominant color from the daemon), laid over whatever palette
 // is active (shell or app).
 Singleton {
     id: root
 
-    readonly property string seed: SettingsData.artColorMode === "nowPlaying" || SettingsData.artColorMode === "app" ? PlayerService.coverColor(PlayerService.current) : ""
+    // The track whose colours show. A new cover takes over once the old one has blurred out, so the colours
+    // change with the new cover's blur-in.
+    property var track: null
+    readonly property string seed: SettingsData.artColorMode === "nowPlaying" || SettingsData.artColorMode === "app" ? PlayerService.coverColor(track) : ""
     readonly property bool available: seed !== ""
     readonly property bool wholeApp: available && SettingsData.artColorMode === "app"
     // a scheme just for the now-playing views, or null when they follow Theme
-    readonly property var nowPlaying: available && !wholeApp ? Scheme.fromSeed(seed, Theme.isLightMode) : null
+    readonly property var nowPlaying: available && !wholeApp ? schemeOf(Theme.isLightMode) : null
+    // A grey, black or white cover gives a near-grey scheme: under this seed chroma every role's chroma shrinks
+    // with the seed's, which puts the primary at twice the seed's chroma like the page tint.
+    readonly property real fullChromaAt: 24
+    // the first cover's colours land at once
+    property bool instant: false
 
     component Fade: Behavior {
-        enabled: Theme.animationsEnabled
+        enabled: Theme.animationsEnabled && !root.instant
         ColorAnimation {
-            duration: Theme.expressiveDurations.large
+            duration: Theme.expressiveDurations.expressiveDefaultSpatial
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
         }
+    }
+
+    function follow() {
+        handoffWait.stop();
+        instant = seed === "";
+        track = PlayerService.current;
+        instant = false;
+    }
+
+    function schemeOf(isLight) {
+        const scheme = Scheme.fromSeed(seed, isLight);
+        const k = Math.min(1, Hct.toHct(Qt.color(seed)).chroma / fullChromaAt);
+        if (k >= 1)
+            return scheme;
+        const out = {};
+        for (const role in scheme) {
+            const c = Hct.toHct(Qt.color(scheme[role]));
+            out[role] = Hct.fromHct(c.hue, c.chroma * k, c.tone).toString();
+        }
+        return out;
+    }
+
+    Component.onCompleted: track = PlayerService.current
+
+    Connections {
+        target: PlayerService
+        function onCurrentChanged() {
+            const from = PlayerService.coverUrl(root.track);
+            const to = PlayerService.coverUrl(PlayerService.current);
+            if (from !== "" && to !== "" && from !== to && Theme.animationsEnabled)
+                handoffWait.restart();
+            else
+                root.follow();
+        }
+    }
+
+    // as long as the now-playing art's blur-out
+    Timer {
+        id: handoffWait
+        interval: Theme.expressiveDurations.expressiveEffects
+        onTriggered: root.follow()
     }
 
     // the color roles the shell's media chromes use, from the art scheme or Theme
@@ -78,6 +130,6 @@ Singleton {
     Fade on surface {}
 
     function appScheme(isLight) {
-        return Scheme.fromSeed(seed, isLight);
+        return schemeOf(isLight);
     }
 }

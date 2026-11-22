@@ -32,7 +32,8 @@ Item {
     // a minimized window still counts as visible to its items
     readonly property bool shown: visible && Window.visibility !== Window.Minimized && Window.visibility !== Window.Hidden
     readonly property bool playing: PlayerService.playing && !PlayerService.loading
-    // 1 while playing, easing to 0 on pause; the wave keeps moving until it is flat
+    // 1 while playing, easing to 0 on pause; the wave keeps moving until it is flat. M3WaveProgress smooths its
+    // amplitude again over 300 ms on top.
     property real waveLevel: playing ? 1 : 0
     // M3WaveProgress's own default amplitude
     readonly property real flatBarAmplitude: 1.6
@@ -154,26 +155,24 @@ Item {
     Behavior on waveLevel {
         enabled: Theme.animationsEnabled && root.shown
         DC.DAnim {
-            duration: Theme.expressiveDurations.expressiveDefaultSpatial
-            easing.bezierCurve: Theme.expressiveCurves.emphasizedDecel
+            duration: Theme.expressiveDurations.large
+            easing.bezierCurve: Theme.expressiveCurves.emphasized
         }
     }
 
     Behavior on handleWidth {
-        enabled: Theme.animationsEnabled
-        NumberAnimation {
+        enabled: Theme.animationsEnabled && root.shown
+        DC.DAnim {
             duration: Theme.expressiveDurations.expressiveEffects
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+            easing.bezierCurve: Theme.expressiveCurves.standard
         }
     }
 
     Behavior on handleHeight {
-        enabled: Theme.animationsEnabled
-        NumberAnimation {
+        enabled: Theme.animationsEnabled && root.shown
+        DC.DAnim {
             duration: Theme.expressiveDurations.expressiveEffects
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+            easing.bezierCurve: Theme.expressiveCurves.standard
         }
     }
 

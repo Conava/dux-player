@@ -428,7 +428,6 @@ Singleton {
         return k === "" ? "" : covers[k] ?? "";
     }
 
-    // The cover's dominant color, "#rrggbb", or "" until it loads.
     // An artist's image for a tile or row, "" until it arrives; asked once per artist when a view shows it.
     function artistImageUrl(artist) {
         const id = artist?.id ?? "";
@@ -444,6 +443,7 @@ Singleton {
         return url ?? "";
     }
 
+    // The cover's dominant color, "#rrggbb", or "" until it loads.
     function coverColor(item) {
         const k = _coverKey(item);
         return k === "" ? "" : coverColors[k] ?? "";

@@ -6,7 +6,7 @@ import qs.Services
 import qs.DCommon.Widgets
 
 // The floating player's content: the cover inside a progress ring, the title and artists, then previous, play and
-// next. The ring follows the position's few ticks a second and nothing here moves on its own.
+// next. The ring follows the position's few ticks a second and nothing here moves on its own; a track change slides the texts.
 Item {
     id: root
 
@@ -86,6 +86,7 @@ Item {
                 spacing: Theme.spacingXXS
 
                 StyledText {
+                    id: title
                     width: parent.width
                     text: root.track?.title ?? ""
                     font.pixelSize: Theme.fontSizeMedium
@@ -93,9 +94,23 @@ Item {
                     color: ArtColors.text
                     wrapMode: Text.NoWrap
                     elide: Text.ElideRight
+                    opacity: titleSlide.fade
+                    transform: Translate {
+                        x: titleSlide.shift
+                    }
+
+                    TextSlide {
+                        id: titleSlide
+                        owner: title
+                        text: title.text
+                        font: title.font
+                        color: title.color
+                        horizontalAlignment: title.horizontalAlignment
+                    }
                 }
 
                 StyledText {
+                    id: artist
                     width: parent.width
                     visible: text !== ""
                     text: (root.track?.artists ?? []).map(a => a.name).join(", ")
@@ -103,6 +118,19 @@ Item {
                     color: ArtColors.textVariant
                     wrapMode: Text.NoWrap
                     elide: Text.ElideRight
+                    opacity: artistSlide.fade
+                    transform: Translate {
+                        x: artistSlide.shift
+                    }
+
+                    TextSlide {
+                        id: artistSlide
+                        owner: artist
+                        text: artist.text
+                        font: artist.font
+                        color: artist.color
+                        horizontalAlignment: artist.horizontalAlignment
+                    }
                 }
             }
         }

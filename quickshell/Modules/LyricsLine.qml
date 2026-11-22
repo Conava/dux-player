@@ -43,8 +43,10 @@ Item {
     // lines that wait or are done rest in one translucent colour; while browsing every line stays fully visible
     readonly property color restingColor: Theme.withAlpha(dimColor, synced && following ? PlayerMetrics.lyricsLineInactiveAlpha : 1)
     readonly property real blurTarget: Math.min(1, blurLevel * PlayerMetrics.lyricsBlurStep)
-    // eased, so the layer exists only while some blur is left
+    // eased, so the layer exists only while some blur is left; a pooled row is re-targeted without easing from the
+    // level of the line it showed before
     property real blurShown: blurTarget
+    property bool pooled: false
     readonly property bool shrunk: synced && following && !isPlain && !promoted
     readonly property int leadAlignment: UiConfig.lyricsAlignment === "start" ? (I18n.isRtl ? Text.AlignRight : Text.AlignLeft) : Text.AlignHCenter
     // every part is wrapped here, so the height is known when the row is created: a height that settles a frame
@@ -96,8 +98,9 @@ Item {
     }
 
     Behavior on blurShown {
-        enabled: root.animationsEnabled
+        enabled: root.animationsEnabled && !root.pooled
         NumberAnimation {
+            id: blurEase
             duration: Theme.expressiveDurations.expressiveEffects
             easing.type: Easing.BezierSpline
             easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
@@ -115,7 +118,12 @@ Item {
     height: implicitHeight
     Accessible.role: Accessible.StaticText
     Accessible.name: isBreak ? I18n.tr("Instrumental", "track has no lyrics because it is instrumental") : item.text
+    ListView.onPooled: {
+        blurEase.stop();
+        pooled = true;
+    }
     ListView.onReused: {
+        pooled = false;
         lingerTimer.stop();
         fadeTimer.stop();
         lingering = false;
