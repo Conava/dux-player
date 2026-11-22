@@ -2,6 +2,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 import "../../Common/Format.js" as Format
 
 // The activity card as Discord's dark theme draws it, filled from the templates.

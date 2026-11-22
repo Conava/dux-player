@@ -436,6 +436,82 @@ ui headerSearch button
 resize 1600 1000
 go home
 
+# ---- Light, right-to-left and compact variants: stills to read, plus the facts that can be checked
+hover() { # hover NAME: the pointer rests on the named rect
+    local x y w h e wx wy
+    read -r x y w h e < <(ask rect "$1")
+    [ -n "$x" ] || return 1
+    read -r wx wy < <(winat)
+    pointer m "$((wx + x + w / 2 - 2))" "$((wy + y + h / 2))"
+    sleep 0.2
+    pointer m "$((wx + x + w / 2))" "$((wy + y + h / 2))"
+    sleep 1.5
+}
+variant() { # variant TAG: the page features in the current theme, language and window
+    local t=$1
+    ui pref pageHeader '"tint"'
+    ui pref albumLayout '"stacked"'
+    ui pref letterIndex true
+    ui pageOptions albums '{"sort":"title"}'
+    go albums
+    shot "v-$t-letters"
+    ui pref letterIndex false
+    ui open album "$crimson"
+    sleep 2.5
+    shot "v-$t-tint-red"
+    ui pref pageHeader '"plain"'
+    sleep 2
+    shot "v-$t-tint-plain"
+    ui pref pageHeader '"tint"'
+    ui pref albumLayout '"sideBySide"'
+    ui open album "$long"
+    sleep 2.5
+    shot "v-$t-album-card"
+    ui pref albumLayout '"stacked"'
+    home_shelves recentlyPlayed:m recentlyAdded:s
+    go home
+    shot "v-$t-shelf-start"
+    local read1 read2
+    read1=$(ask rect shelfPrev)
+    read2=$(ask rect shelfNext)
+    fact "variant $t: shelf prev '$read1' next '$read2'"
+    clickrect shelfNext
+    sleep 1.2
+    shot "v-$t-shelf-paged"
+    fact "variant $t: carouselX after next $(ask carouselX), prev '$(ask rect shelfPrev)'"
+    home_shelves genreChips:m speedDial:m
+    go home
+    shot "v-$t-speed-dial"
+    ui pref navStyle '"rail"'
+    sleep 1
+    hover railDestinations && shot "v-$t-rail-hover"
+    ui pref navStyle '"auto"'
+    go home
+    clicknamed Library
+    sleep 2
+    local i
+    for i in 1 2 3 4 5 6 7 8; do
+        wtype -k Tab
+        sleep 0.4
+        fact "variant $t: focus after Tab $i: $(ask focusName)"
+        [ "$i" -ge 3 ] && shot "v-$t-tabs-$i"
+    done
+}
+ui pref themeMode '"light"'
+sleep 1
+variant light
+ui pref themeMode '"dark"'
+ui pref language '"ar"'
+sleep 2
+variant rtl
+resize 700 900
+variant compact-rtl
+ui pref language '""'
+sleep 2
+variant compact
+resize 1600 1000
+go home
+
 # ---- Settings, Pages, Style: real clicks, and each row keeps working after its setting changed elsewhere
 ui settings pages
 sleep 2.5

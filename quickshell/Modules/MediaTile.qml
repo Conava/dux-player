@@ -128,7 +128,8 @@ StyledButton {
             variant: "filled"
             iconName: "play_arrow"
             iconFilled: true
-            visible: root.showsPlayButton || opacity > 0
+            // hidden by opacity only, so Shift+Tab can land on it before the tile shows it
+            visible: root.kind !== "artist" && root.kind !== "genre"
             opacity: root.showsPlayButton ? 1 : 0
             scale: root.showsPlayButton ? 1 : root.overlayScale
             Behavior on opacity {
@@ -159,7 +160,6 @@ StyledButton {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: PlayerMetrics.tileInset
-            visible: root.active || opacity > 0
             opacity: root.active ? 1 : 0
             scale: root.active ? 1 : root.overlayScale
             Behavior on opacity {

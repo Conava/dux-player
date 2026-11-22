@@ -235,5 +235,58 @@ ui reduceMotion false
 ui lyricsDisplay blurLines false
 ui nowPlayingPatch '{"openPane":"last"}'
 ui expand false
+# 7. Full view blur background: the lyric text against the blurred cover, dark and light, dark and bright cover; and the
+# pane tabs sit the same distance from the pane's edge in the lyrics and the queue
+contrast() { # contrast SHOT: WCAG ratio of the strongest text in the right half of the window to the background around it
+    python3 -I -c '
+import sys
+from PIL import Image
+im = Image.open(sys.argv[1]).convert("RGB")
+w, h = im.size
+im = im.crop((w // 2, h // 6, w - 8, h - h // 6))
+lin = lambda c: ((c / 255 / 12.92) if c / 255 <= 0.03928 else (((c / 255) + 0.055) / 1.055) ** 2.4)
+lum = lambda p: 0.2126 * lin(p[0]) + 0.7152 * lin(p[1]) + 0.0722 * lin(p[2])
+px = list(im.getdata())
+ls = sorted(lum(p) for p in px)
+bg = ls[len(ls) // 2]
+far = sorted(ls, key=lambda v: -abs(v - bg))[: max(1, len(ls) // 300)]
+fg = sum(far) / len(far)
+a, b = max(fg, bg), min(fg, bg)
+print(f"{(a + 0.05) / (b + 0.05):.2f}")' "$W/out/$1.png"
+}
+for tone_name in dark:"#0a0a14-#1c1c34" bright:"#fff7b8-#ffe45c"; do
+    n=${tone_name%%:*}
+    d="$W/music/Cover $n/Cover $n"
+    mkdir -p "$d"
+    magick -size 600x600 -seed 5 "plasma:${tone_name#*:}" -blur 0x24 "$d/cover.png"
+    ffmpeg -loglevel error -f lavfi -i anullsrc=r=44100:cl=mono -i "$d/cover.png" -map 0 -map 1 -t 120 -c:v copy \
+        -disposition:v attached_pic -metadata title="Cover $n Track" -metadata artist="Cover $n" -metadata album="Cover $n" \
+        -metadata track=1 "$d/1.flac"
+    cp "$dir/1.lrc" "$d/1.lrc"
+done
+ui nowPlayingPatch '{"background":"blur","paneTabs":true,"openPane":"lyrics"}'
+for mode in dark light; do
+    for n in dark bright; do
+        ui look "$mode" bento
+        dp play "$W/music/Cover $n" >/dev/null
+        sleep 1.5
+        rpc player.seek '{"position":12}' >/dev/null
+        dp pause >/dev/null
+        ui expand true
+        sleep 2.5
+        cap "contrast-$mode-$n-lyrics"
+        lyr_x=$(num paneTabs 1)
+        ui element queue view
+        sleep 1.5
+        cap "contrast-$mode-$n-queue"
+        fact "contrast $mode mode, $n cover: lyrics $(contrast "contrast-$mode-$n-lyrics"):1, queue $(contrast "contrast-$mode-$n-queue"):1; pane tabs x lyrics $lyr_x queue $(num paneTabs 1)"
+        expect "pane tabs: the same inset in the lyrics and the queue ($mode, $n)" "$(num paneTabs 1)" "$lyr_x"
+        ui element lyrics view
+        ui expand false
+        sleep 1
+    done
+done
+ui nowPlayingPatch '{"background":"plain","openPane":"last"}'
+ui look dark bento
 
 exit $failed

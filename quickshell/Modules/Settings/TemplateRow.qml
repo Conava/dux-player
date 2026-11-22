@@ -2,6 +2,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // A text template: the field, a preview on the current track and a menu of fields to insert at the cursor.
 SettingsRow {

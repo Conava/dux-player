@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // The top of a detail page: the cover, then an eyebrow, the title and the page's own lines below them.
 Item {

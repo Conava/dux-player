@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // A short note over the bottom of the art. Empty text hides it.
 Rectangle {

@@ -31,7 +31,8 @@ DFlickable {
     readonly property real legendDotSize: Theme.spacingM
     readonly property real legendMaxWidth: 280
     // outline rather than outlineVariant: the last share stays visible on the card in light mode
-    readonly property var genreColors: [Theme.primary, Theme.tertiary, Theme.secondary, Theme.outline]
+    // without a shell palette tertiary equals secondary, which would paint two genres alike
+    readonly property var genreColors: Qt.colorEqual(Theme.tertiary, Theme.secondary) ? [Theme.primary, Theme.info, Theme.success, Theme.outline] : [Theme.primary, Theme.tertiary, Theme.secondary, Theme.outline]
     // the room one day's label needs under the bars: a weekday, or a day and month
     readonly property real weekdayLabelWidth: Theme.fontSizeSmall * 2.5
     readonly property real dateLabelWidth: Theme.fontSizeSmall * 4.5

@@ -490,8 +490,9 @@ Item {
         DTabBar {
             objectName: "libraryTabs"
             // room for the focus ring, which the list view's clip would cut off
-            x: Theme.focusRingOffset + Theme.focusRingWidth
-            width: parent.width - x
+            readonly property real inset: Theme.focusRingOffset + Theme.focusRingWidth
+            x: I18n.isRtl ? 0 : inset
+            width: parent.width - inset
             visible: Router.page === "collection"
             showIcons: false
             equalWidthTabs: false

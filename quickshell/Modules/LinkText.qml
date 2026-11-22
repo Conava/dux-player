@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // A text link: underlined while hovered or focused, Enter or Space follows it. Without `linked` it is plain text.
 StyledText {

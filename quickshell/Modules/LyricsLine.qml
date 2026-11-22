@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Effects
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 import "../Common/LyricsModel.js" as LyricsModel
 
 // One row of the lyrics: a line of parts, an instrumental break or a line of unsynced text.

@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // A section header: the title in primary, optional actions at the end.
 Item {

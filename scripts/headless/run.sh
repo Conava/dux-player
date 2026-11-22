@@ -510,8 +510,9 @@ cat >>"$W/tree/shell.qml" <<'Q'
                 if (!item)
                     return;
                 if (item.modelData?.type !== undefined && item.sourceComponent !== undefined) {
-                    const items = item.item?.items ?? [];
-                    out.push([item.modelData.type, item.visible ? "shown" : "hidden", items.length, items.map(i => i.id).join(",")].join(" "));
+                    // shelves name their content differently: items, tiles (speed dial) or genres (chips)
+                    const items = item.item?.items ?? item.item?.tiles ?? item.item?.genres ?? [];
+                    out.push([item.modelData.type, item.visible ? "shown" : "hidden", items.length, items.map(i => i.id ?? i.name ?? i).join(",")].join(" "));
                     return;
                 }
                 for (const child of item.children)
@@ -1116,6 +1117,10 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function surface(id: string, json: string): void {
             UiConfig.setSurface(id, JSON.parse(json));
         }
+        // the element types of one zone of a surface in order: ask zoneOrder bar left
+        function zoneOrder(surface: string, zone: string): string {
+            return UiConfig.surface(surface).zones[zone].map(i => i.type).join(" ");
+        }
         function addElement(surface: string, zone: string, json: string): void {
             const zones = JSON.parse(JSON.stringify(UiConfig.surface(surface).zones));
             zones[zone].push(Object.assign({
@@ -1163,7 +1168,7 @@ cat >>"$W/tree/shell.qml" <<'Q'
             const walk = item => {
                 if (!item || !item.visible)
                     return;
-                if (item.swatch !== undefined && item.chosen !== undefined) {
+                if (item.objectName === "swatch") {
                     const p = item.mapToItem(root, 0, 0);
                     out.push([p.x, p.y, item.width, item.height].map(Math.round).join(" ") + " " + item.chosen);
                 }

@@ -4,6 +4,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // The floating player's content: the cover inside a progress ring, the title and artists, then previous, play and
 // next. The ring follows the position's few ticks a second and nothing here moves on its own; a track change slides the texts.

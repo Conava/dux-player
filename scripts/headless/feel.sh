@@ -594,6 +594,12 @@ leg_rail() {
     sleep 1
     slow rail "ui act railLabels ''" "ui act railLabels ''"
     snap rail-reduce "ui act railLabels ''" "ui act railLabels ''"
+    # title bars off: the rail carries Search as its FAB and Settings at the bottom
+    ui titleBars false
+    sleep 1
+    slow rail-forced "ui act railLabels ''" "ui act railLabels ''"
+    ui titleBars true
+    sleep 1
     ui navStyle auto
     still rail
 }
@@ -640,6 +646,7 @@ held() {
     hover "$2" "$3" "${5:-main}"
     pointer d
     sleep 0.35
+    cap "held-$1" "${5:-}"
     during=$(ask scaleAt "$2" "$3" "${5:-main}")
     pointer u
     # the release springs back on a duration that follows the speed setting
@@ -692,22 +699,29 @@ leg_press() {
     held dialog "$((x + w / 2))" "$((y + h / 2))" '[ "$(ask props .overlayOpen overlayOpen | grep -c true)" = 0 ]'
     go stats
     sleep 1
-    local before during after
-    read -r x y w h < <(named "30 days")
-    before=$w
-    hover "$((x + w / 2))" "$((y + h / 2))"
-    pointer d
-    sleep 0.35
-    read -r _ _ during _ < <(named "30 days")
-    pointer u
-    sleep 0.6
-    read -r _ _ after _ < <(named "30 days")
-    if [ "$SPEED" = 0 ]; then
-        check "press group stays put" "$(truth [ "${during:-0}" -eq "$before" ])" "segment $before px at rest, $during held"
-    else
-        check "press group grows" "$(truth [ "${during:-0}" -gt "$before" ])" "segment $before px at rest, $during held"
-    fi
-    check "press group acts" "$(truth [ "$(ask prefValue statsDays)" = 30 ])" "range $(ask prefValue statsDays)"
+    local before during after scheme
+    for scheme in dark light; do
+        look "$scheme" bento
+        ui pref statsDays 7
+        sleep 0.5
+        read -r x y w h < <(named "30 days")
+        before=$w
+        hover "$((x + w / 2))" "$((y + h / 2))"
+        pointer d
+        sleep 0.35
+        read -r _ _ during _ < <(named "30 days")
+        cap "held-group-$scheme"
+        pointer u
+        sleep 0.6
+        if [ "$SPEED" = 0 ]; then
+            check "press group stays put ($scheme)" "$(truth [ "${during:-0}" -eq "$before" ])" "segment $before px at rest, $during held"
+        else
+            check "press group grows ($scheme)" "$(truth [ "${during:-0}" -gt "$before" ])" "segment $before px at rest, $during held"
+        fi
+        check "press group acts ($scheme)" "$(truth [ "$(ask prefValue statsDays)" = 30 ])" "range $(ask prefValue statsDays)"
+        park
+    done
+    look dark bento
     ui pref statsDays 7
     ui settings general
     sleep 2

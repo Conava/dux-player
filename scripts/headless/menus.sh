@@ -77,6 +77,59 @@ for i in $(seq 1 14); do
 done
 expect "Tab stops showing the buttons" "$shown" 3
 
+# Shift+Tab walks the same three stops backwards: from the next tile it lands on the ⋮, then the play button, then the tile
+go tracks
+go albums
+for i in $(seq 1 14); do
+    wtype -k Tab
+    sleep 0.5
+    grim -g "$art" "$W/out/art-tab.png"
+    [ "$(idle "$W/out/art-tab.png")" = shown ] && break
+done
+for i in 1 2 3 4; do
+    wtype -k Tab
+    sleep 0.5
+    grim -g "$art" "$W/out/art-tab.png"
+    [ "$(idle "$W/out/art-tab.png")" = idle ] && break
+done
+expect "Tab leaves the first tile" "$(idle "$W/out/art-tab.png")" idle
+back=""
+for i in 1 2 3 4; do
+    wtype -M shift -k Tab -m shift
+    sleep 0.5
+    grim -g "$art" "$W/out/art-tab.png"
+    back="$back $(idle "$W/out/art-tab.png")"
+    [ "$i" = 1 ] && shot tile-shifttab
+done
+expect "Shift+Tab walks back over the tile's stops" "$back" " shown shown shown idle"
+
+# A tooltip shows after its delay, and a click that opens the menu closes it. Shots: tip-hover, tip-open, tip-closed.
+go tracks
+go albums
+pointer m 1400 1000
+sleep 0.5
+pointer m 250 260
+sleep 0.6
+read -r mx my mw mh < <(ask namedAll More | awk '$1 < 1000 { print; exit }')
+read -r wx wy < <(winat)
+mx=$((wx + mx + mw / 2))
+my=$((wy + my + mh / 2))
+pointer m "$((mx - 3))" "$my"
+sleep 0.1
+pointer m "$mx" "$my"
+sleep 1
+shot tip-hover
+pointer c
+sleep 0.2
+shot tip-open-early
+sleep 1
+shot tip-open
+key -k Escape
+sleep 0.5
+shot tip-closed
+pointer m 1400 1000
+sleep 0.5
+
 go tracks
 pointer m 898 397
 sleep 0.2
@@ -99,7 +152,13 @@ expect "playback after moved right clicks" "$(status state)" stopped
 menu_keys
 for step in Down:1 Down:2 Up:1 Tab:2 End:7 Home:1 Up:7 Down:1; do
     key -k "${step%:*}"
-    expect "menu row after ${step%:*}" "$(lit)" "${step#*:}"
+    # the highlight fades in; poll briefly instead of reading one frame
+    for _ in 1 2 3 4 5 6; do
+        got=$(lit)
+        [ "$got" = "${step#*:}" ] && break
+        sleep 0.25
+    done
+    expect "menu row after ${step%:*}" "$got" "${step#*:}"
 done
 key -k Escape
 sleep 1

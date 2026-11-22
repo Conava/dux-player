@@ -5,6 +5,7 @@ import qs.Common
 import qs.Services
 import qs.DCommon.Common as DC
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // The volume panel a volume button opens: the output's name over the media volume slider, laid over the window
 // (not a popup window, so it follows the window's scheme and stacking).

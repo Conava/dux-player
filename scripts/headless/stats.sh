@@ -79,6 +79,48 @@ clickunder statsTopArtists "Stats Artist"
 sleep 1.5
 case "$(ask route)" in artist/*) fact "ok   a top artist opens its page: $(ask route)" ;; *) fail "a top artist did not open its page: $(ask route)" ;; esac
 
+# a wide card with several genres: the percent stays by its name and the colours differ; then a large history
+python3 -I - "$XDG_DATA_HOME/dplayer/history.db" <<'P'
+import json, random, sqlite3, sys, time
+db = sqlite3.connect(sys.argv[1], timeout=10)
+lib, tid, aid, at, base = db.execute("SELECT * FROM plays LIMIT 1").fetchone()
+base = json.loads(base)
+now = int(time.time())
+random.seed(7)
+genres = ["Rock"] * 5 + ["Jazz"] * 4 + ["Electronic"] * 3 + ["Folk"] * 2 + ["Classical", "Metal", "Pop"]
+rows = []
+for i in range(150000):
+    t = dict(base, id=f"seed{i % 3000}", title=f"Seed {i % 3000}", artist=f"Seed Artist {i % 120}", album=f"Seed Album {i % 300}",
+             albumId=f"seed-album-{i % 300}", genre=random.choice(genres))
+    t.pop("artistId", None)
+    t.pop("artists", None)
+    rows.append((lib, t["id"], t["albumId"], now - random.randint(0, 29 * 86400) - 3600, json.dumps(t)))
+db.executemany("INSERT INTO plays VALUES (?,?,?,?,?)", rows)
+db.commit()
+P
+go home
+sleep 1
+start=$(date +%s.%N)
+go stats
+for _ in $(seq 1 60); do
+    [ "$(shown)" -ge 150000 ] 2>/dev/null && break
+    sleep 0.25
+done
+fact "large history: statistics page shows $(shown) plays after $(awk -v a="$start" -v b="$(date +%s.%N)" 'BEGIN { printf "%.1f", b - a }') s (go settles 1.5 s first)"
+sleep 1.5
+shot stats-big
+ping=$(date +%s%N)
+ask rect statsRange >/dev/null
+fact "large history: the UI answers in $((($(date +%s%N) - ping) / 1000000)) ms"
+resize 2200 1000
+sleep 1.5
+shot stats-big-wide
+look light m3e
+sleep 1
+shot stats-big-wide-light
+look dark m3e
+resize 1600 1000
+
 # clearing the history empties the page
 go stats
 sleep 1

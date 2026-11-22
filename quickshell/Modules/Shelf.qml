@@ -270,7 +270,7 @@ Column {
             width: root.tileWidth + PlayerMetrics.tileInset * 2
             tileSize: root.size
             kind: root.kind
-            item: root.items[index]
+            item: root.items[index] ?? ({})
             lines: root.lines
             lineOptions: root.lineOptions
             onActivated: root.play(index)
@@ -299,7 +299,7 @@ Column {
                 width: flow.width / flow.columns
                 tileSize: root.size
                 kind: root.kind
-                item: root.items[index]
+                item: root.items[index] ?? ({})
                 lines: root.lines
                 lineOptions: root.lineOptions
                 onActivated: root.play(index)
@@ -335,7 +335,7 @@ Column {
                         id: rowLoader
                         required property int index
                         readonly property int itemIndex: listColumn.offset + index
-                        readonly property var modelData: root.items[itemIndex]
+                        readonly property var modelData: root.items[itemIndex] ?? ({})
                         width: parent?.width ?? 0
                         sourceComponent: root.kind === "track" ? trackRow : mediaRow
 

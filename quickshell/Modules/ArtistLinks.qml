@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import qs.Common
 import qs.DCommon.Widgets
+import qs.Widgets
 
 // The artists of a track or album, each its own link to that artist's page, on one line. An artist without a
 // page (empty id) shows as text. Too long for the width, the line elides as one: names fill it in order and the one at the edge ends in an ellipsis.

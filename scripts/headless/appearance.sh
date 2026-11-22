@@ -79,6 +79,30 @@ ui settings appearance
 sleep 2
 settings_shot appearance-light
 
+# every palette style in both schemes: the swatches and style cards are read from the stills
+for scheme in dark light; do
+    look "$scheme" m3e
+    for style in tonalSpot vibrant expressive neutral monochrome; do
+        ui pref paletteStyle "\"$style\""
+        sleep 1
+        ui settings appearance
+        sleep 1.5
+        settings_shot "style-$scheme-$style"
+    done
+done
+ui pref paletteStyle '"tonalSpot"'
+look dark m3e
+ui settings appearance
+sleep 2
+# a swatch reached by Shift+Tab shows its focus ring: the still differs from the same page with the keyboard elsewhere
+settings_shot swatch-nofocus
+# the Hex color field follows the swatches: Shift+Tab from it lands on the last swatch
+wclick 464 378 "$S"
+sleep 0.3
+wtype -M shift -k Tab -m shift
+sleep 0.4
+settings_shot swatch-tab
+
 # General: the fixed keys, found by the settings search
 ui settings general
 sleep 2

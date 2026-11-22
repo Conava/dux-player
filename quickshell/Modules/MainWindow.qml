@@ -438,16 +438,40 @@ DFloatingWindow {
                             onClicked: window.toggleRailLabels()
                         }
 
-                        DFab {
-                            objectName: "railSearch"
-                            readonly property real start: labelRail.mix((railTop.width - width) / 2, Theme.spacingM)
+                        // Both states stay laid out and cross-fade with the label switch: a FAB takes its width from its
+                        // text, so one FAB changing text would jump
+                        Item {
+                            id: searchSlot
+                            width: railTop.width
+                            height: searchIcon.height
                             visible: window.railChrome
-                            x: I18n.isRtl ? railTop.width - start - width : start
-                            iconName: "search"
-                            text: window.railLabels ? I18n.tr("Search", "header button") : ""
-                            tooltipText: window.railLabels ? null : I18n.tr("Search", "header button")
-                            tooltipSide: I18n.isRtl ? "left" : "right"
-                            onClicked: Router.searchEverything()
+
+                            DFab {
+                                id: searchIcon
+                                objectName: "railSearch"
+                                readonly property real start: (railTop.width - width) / 2
+                                visible: opacity > 0
+                                enabled: window.railMix < 0.5
+                                opacity: 1 - window.railMix
+                                x: I18n.isRtl ? railTop.width - start - width : start
+                                iconName: "search"
+                                tooltipText: I18n.tr("Search", "header button")
+                                tooltipSide: I18n.isRtl ? "left" : "right"
+                                onClicked: Router.searchEverything()
+                            }
+
+                            DFab {
+                                id: searchLabelled
+                                objectName: "railSearchLabelled"
+                                readonly property real start: Theme.spacingM
+                                visible: opacity > 0
+                                enabled: window.railMix >= 0.5
+                                opacity: window.railMix
+                                x: I18n.isRtl ? railTop.width - start - width : start
+                                iconName: "search"
+                                text: I18n.tr("Search", "header button")
+                                onClicked: Router.searchEverything()
+                            }
                         }
                     }
 
@@ -466,11 +490,13 @@ DFloatingWindow {
                     }
 
                     // Settings apart from the pages; it opens its own window, so it never shows as selected. The two
-                    // trade places halfway through the label switch.
+                    // cross-fade with the label switch.
                     DExpandedRail {
                         id: labelSettings
                         objectName: "railSettings"
-                        visible: window.railChrome && window.railMix >= 0.5
+                        visible: window.railChrome
+                        enabled: window.railMix >= 0.5
+                        opacity: window.railMix
                         anchors.left: parent.left
                         anchors.bottom: window.floatingBar ? parent.bottom : bottomBar.top
                         anchors.bottomMargin: Theme.windowInset
@@ -486,7 +512,9 @@ DFloatingWindow {
                         id: railSettings
                         objectName: "railSettings"
                         readonly property real start: (Theme.navigationRailWidth - width) / 2
-                        visible: window.railChrome && window.railMix < 0.5
+                        visible: window.railChrome
+                        enabled: window.railMix < 0.5
+                        opacity: 1 - window.railMix
                         x: I18n.isRtl ? parent.width - start - width : start
                         anchors.bottom: window.floatingBar ? parent.bottom : bottomBar.top
                         anchors.bottomMargin: Theme.windowInset

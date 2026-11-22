@@ -36,6 +36,8 @@ menus||^quickshell/Modules/(MediaTile|MediaMenu|MediaRow)\.qml$|^quickshell/Widg
 startup||^quickshell/Modules/Router\.qml$|^quickshell/Modules/Settings/PagesSettings\.qml$|^quickshell/Common/UiConfig\.qml$
 stats||^quickshell/Modules/StatisticsPage\.qml$|^quickshell/Services/StatsService\.qml$|^core/internal/history/
 appearance||^quickshell/(Common/(Scheme\.js|StyleSource\.qml)|Modules/Settings/(AppearanceSettings|GeneralSettings)\.qml)$
+lyrics||^quickshell/Modules/Lyrics[A-Za-z]*\.qml$|^quickshell/Services/LyricsController\.qml$
+reorder||^quickshell/Modules/Settings/PagesSettings\.qml$|^quickshell/Widgets/D(InstanceRow|ListItem|PressFeedback)\.qml$
 smoke||^core/internal/window/window\.go$|^core/cmd/dplayer/qs\.go$
 '
 # these measure frame gaps and click timing, which a loaded machine fails: they run first, one at a time

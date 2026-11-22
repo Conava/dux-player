@@ -77,4 +77,29 @@ expect "random albums count after swapping an album" "$(shelf randomAlbums | cut
 case "$(shelf randomAlbums)" in *"$new"*) fact "ok   random albums has the new album" ;; *) fail "random albums lacks the new album" ;; esac
 case "$(shelf randomAlbums)" in *"$gone"*) fail "random albums still has the removed album" ;; *) fact "ok   random albums dropped the removed album" ;; esac
 
+# a shelf arrow lands at once with reduce motion on, and glides with it off
+ui surface home '{"zones":{"shelves":[{"id":"recentlyAdded","type":"recentlyAdded","hidden":false,"placement":"auto","options":{"layout":"carousel","size":"s"}}]}}'
+sleep 1.5
+go home
+for rm in false true; do
+    ui reduceMotion $rm
+    sleep 0.5
+    for _ in 1 2 3 4 5 6 7 8; do
+        read -r _ _ _ _ prev <<<"$(ask rect shelfPrev)"
+        [ "$prev" = true ] || break
+        clickrect shelfPrev
+        sleep 1
+    done
+    clickrect shelfNext
+    sleep 0.1
+    now=$(ask carouselX)
+    sleep 1.5
+    settled=$(ask carouselX)
+    fact "reduce motion $rm: carouselX right after the click $now, settled $settled"
+    if [ "$rm" = true ]; then
+        [ "${settled%.*}" -gt 0 ] && expect "reduce motion: the arrow lands at once" "$now" "$settled" || fail "reduce motion: the arrow did not move the row"
+    fi
+done
+ui reduceMotion false
+
 [ "$failed" = 0 ]
