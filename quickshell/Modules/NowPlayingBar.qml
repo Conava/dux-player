@@ -52,10 +52,12 @@ Rectangle {
         targetColor: "transparent"
     }
 
-    // right-click anywhere the bar's own controls don't take it
+    // right-click anywhere the bar's own controls don't take it; takes the hover too, so the floating pill doesn't
+    // highlight the row under it
     MouseArea {
         id: background
         anchors.fill: parent
+        hoverEnabled: true
         acceptedButtons: Qt.RightButton
         onClicked: mouse => barMenu.open(background, mouse.x, mouse.y)
     }

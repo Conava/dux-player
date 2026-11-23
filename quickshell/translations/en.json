@@ -260,13 +260,13 @@
   {
     "term": "%1 of %2 stars",
     "context": "%1 of %2 stars",
-    "reference": "Modules/NowPlayingZone.qml:539, Widgets/DRatingBar.qml:27, Widgets/DRatingBar.qml:48",
+    "reference": "Modules/NowPlayingZone.qml:511, Widgets/DRatingBar.qml:27, Widgets/DRatingBar.qml:48",
     "comment": "Value of a star rating control"
   },
   {
     "term": "%1 outputs",
     "context": "%1 outputs",
-    "reference": "Modules/NowPlayingElement.qml:715",
+    "reference": "Modules/NowPlayingElement.qml:698",
     "comment": "playback device chip, %1 is 2 or more"
   },
   {
@@ -2198,7 +2198,7 @@
   {
     "term": "Customize bar…",
     "context": "Customize bar…",
-    "reference": "Modules/NowPlayingBar.qml:77",
+    "reference": "Modules/NowPlayingBar.qml:79",
     "comment": "now playing bar context menu"
   },
   {
@@ -3740,7 +3740,7 @@
   {
     "term": "Loading",
     "context": "Loading",
-    "reference": "Modules/AddToPlaylistDialog.qml:180, Modules/NowPlayingElement.qml:779, Modules/Settings/DownloadedTracks.qml:217",
+    "reference": "Modules/AddToPlaylistDialog.qml:180, Modules/NowPlayingElement.qml:762, Modules/Settings/DownloadedTracks.qml:217",
     "comment": "something still waiting for data: the play button, a list"
   },
   {
@@ -3926,7 +3926,7 @@
   {
     "term": "More",
     "context": "More",
-    "reference": "Common/UiConfig.qml:1338, Modules/AlbumPage.qml:172, Modules/ArtistPage.qml:247, Modules/MainWindow.qml:312, Modules/MediaTile.qml:211, Modules/NowPlayingZone.qml:512, Modules/PlaylistPage.qml:117, Modules/QueueList.qml:386, Modules/RowEnd.qml:318",
+    "reference": "Common/UiConfig.qml:1338, Modules/AlbumPage.qml:172, Modules/ArtistPage.qml:247, Modules/MainWindow.qml:312, Modules/MediaTile.qml:211, Modules/NowPlayingZone.qml:484, Modules/PlaylistPage.qml:117, Modules/QueueList.qml:386, Modules/RowEnd.qml:318",
     "comment": "track row menu button"
   },
   {
@@ -3968,13 +3968,13 @@
   {
     "term": "Move to bottom bar",
     "context": "Move to bottom bar",
-    "reference": "Modules/NowPlayingElement.qml:919, Modules/NowPlayingSide.qml:63, Modules/NowPlayingZone.qml:239",
+    "reference": "Modules/NowPlayingElement.qml:902, Modules/NowPlayingSide.qml:63, Modules/NowPlayingZone.qml:221",
     "comment": "button moving now playing out of the sidebar"
   },
   {
     "term": "Move to sidebar",
     "context": "Move to sidebar",
-    "reference": "Common/UiConfig.qml:1161, Modules/NowPlayingBar.qml:82, Modules/NowPlayingElement.qml:919",
+    "reference": "Common/UiConfig.qml:1161, Modules/NowPlayingBar.qml:84, Modules/NowPlayingElement.qml:902",
     "comment": "button moving now playing from the bottom bar into the sidebar"
   },
   {
@@ -4574,7 +4574,7 @@
   {
     "term": "Open now playing",
     "context": "Open now playing",
-    "reference": "Common/UiConfig.qml:1159, Modules/FloatingPlayer.qml:41, Modules/FloatingPlayer.qml:75, Modules/NowPlayingElement.qml:237, Modules/NowPlayingSide.qml:135, Modules/NowPlayingZone.qml:399",
+    "reference": "Common/UiConfig.qml:1159, Modules/FloatingPlayer.qml:41, Modules/FloatingPlayer.qml:75, Modules/NowPlayingElement.qml:220, Modules/NowPlayingSide.qml:135, Modules/NowPlayingZone.qml:371",
     "comment": "now playing bar button"
   },
   {
@@ -4670,7 +4670,7 @@
   {
     "term": "Pause",
     "context": "Pause",
-    "reference": "Modules/ContinueCard.qml:95, Modules/ContinueCard.qml:97, Modules/NowPlayingElement.qml:779, Modules/NowPlayingElement.qml:795, Modules/NowPlayingElement.qml:848, Modules/Settings/DevicesSettings.qml:150",
+    "reference": "Modules/ContinueCard.qml:95, Modules/ContinueCard.qml:97, Modules/NowPlayingElement.qml:762, Modules/NowPlayingElement.qml:778, Modules/NowPlayingElement.qml:831, Modules/Settings/DevicesSettings.qml:150",
     "comment": "transport button"
   },
   {
@@ -4760,7 +4760,7 @@
   {
     "term": "Play",
     "context": "Play",
-    "reference": "Common/UiConfig.qml:1286, Modules/ContinueCard.qml:95, Modules/ContinueCard.qml:97, Modules/NowPlayingElement.qml:779, Modules/NowPlayingElement.qml:786, Modules/NowPlayingElement.qml:841, Modules/PlayButtons.qml:40, Modules/SelectionBar.qml:76, Modules/Settings/DevicesSettings.qml:235, Modules/Settings/DevicesSettings.qml:237",
+    "reference": "Common/UiConfig.qml:1286, Modules/ContinueCard.qml:95, Modules/ContinueCard.qml:97, Modules/NowPlayingElement.qml:762, Modules/NowPlayingElement.qml:769, Modules/NowPlayingElement.qml:824, Modules/PlayButtons.qml:40, Modules/SelectionBar.qml:76, Modules/Settings/DevicesSettings.qml:235, Modules/Settings/DevicesSettings.qml:237",
     "comment": "button that starts playback"
   },
   {
@@ -4832,7 +4832,7 @@
   {
     "term": "Playback device",
     "context": "Playback device",
-    "reference": "Common/UiConfig.qml:1189, Modules/DeviceButton.qml:18, Modules/DevicePickerDialog.qml:14, Modules/NowPlayingElement.qml:719, Modules/Settings/SettingsWindow.qml:108",
+    "reference": "Common/UiConfig.qml:1189, Modules/DeviceButton.qml:18, Modules/DevicePickerDialog.qml:14, Modules/NowPlayingElement.qml:702, Modules/Settings/SettingsWindow.qml:108",
     "comment": "playback device: settings tab, button, dialog"
   },
   {
@@ -4844,7 +4844,7 @@
   {
     "term": "Playback speed %1×",
     "context": "Playback speed %1×",
-    "reference": "Modules/NowPlayingElement.qml:931",
+    "reference": "Modules/NowPlayingElement.qml:914",
     "comment": "speed button tooltip"
   },
   {
@@ -4874,7 +4874,7 @@
   {
     "term": "Playing from",
     "context": "Playing from",
-    "reference": "Common/UiConfig.qml:1155, Modules/NowPlayingElement.qml:431, Modules/NowPlayingElement.qml:446, Modules/NowPlayingElement.qml:459, Modules/QueueList.qml:291, Modules/QueueList.qml:301",
+    "reference": "Common/UiConfig.qml:1155, Modules/NowPlayingElement.qml:414, Modules/NowPlayingElement.qml:429, Modules/NowPlayingElement.qml:442, Modules/QueueList.qml:291, Modules/QueueList.qml:301",
     "comment": "now playing: label before where the queue came from"
   },
   {
@@ -4898,7 +4898,7 @@
   {
     "term": "Playing on %1",
     "context": "Playing on %1",
-    "reference": "Modules/DeviceButton.qml:19, Modules/NowPlayingElement.qml:493",
+    "reference": "Modules/DeviceButton.qml:19, Modules/NowPlayingElement.qml:476",
     "comment": "playback device button tooltip"
   },
   {
@@ -5078,7 +5078,7 @@
   {
     "term": "Queue",
     "context": "Queue",
-    "reference": "Common/UiConfig.qml:518, Common/UiConfig.qml:1185, Modules/ContinueCard.qml:103, Modules/NowPlayingElement.qml:445, Modules/NowPlayingSide.qml:32, Modules/PaneTabs.qml:21, Modules/QueueList.qml:263, Modules/Settings/NowPlayingSettings.qml:168, Modules/SidePanel.qml:18",
+    "reference": "Common/UiConfig.qml:518, Common/UiConfig.qml:1185, Modules/ContinueCard.qml:103, Modules/NowPlayingElement.qml:428, Modules/NowPlayingSide.qml:32, Modules/PaneTabs.qml:21, Modules/QueueList.qml:263, Modules/Settings/NowPlayingSettings.qml:168, Modules/SidePanel.qml:18",
     "comment": "Queue | the play queue: panel, toggle"
   },
   {
@@ -6350,13 +6350,13 @@
   {
     "term": "Sleep after this track",
     "context": "Sleep after this track",
-    "reference": "Modules/NowPlayingElement.qml:929",
+    "reference": "Modules/NowPlayingElement.qml:912",
     "comment": "sleep timer button tooltip"
   },
   {
     "term": "Sleep in %1",
     "context": "Sleep in %1",
-    "reference": "Modules/NowPlayingElement.qml:925",
+    "reference": "Modules/NowPlayingElement.qml:908",
     "comment": "sleep timer button tooltip, %1 is the remaining time"
   },
   {
@@ -6506,7 +6506,7 @@
   {
     "term": "Stops after %1",
     "context": "Stops after %1",
-    "reference": "Modules/NowPlayingElement.qml:927, Modules/SleepTimerDialog.qml:31",
+    "reference": "Modules/NowPlayingElement.qml:910, Modules/SleepTimerDialog.qml:31",
     "comment": "sleep timer status, %1 is a track title"
   },
   {
@@ -7280,7 +7280,7 @@
   {
     "term": "Volume",
     "context": "Volume",
-    "reference": "Common/UiConfig.qml:1183, Modules/MediaVolumeSlider.qml:14, Modules/NowPlayingElement.qml:604, Modules/NowPlayingElement.qml:641, Modules/Settings/DevicesSettings.qml:92, Modules/Settings/PlaybackSettings.qml:197, Modules/VolumePanel.qml:61",
+    "reference": "Common/UiConfig.qml:1183, Modules/MediaVolumeSlider.qml:14, Modules/NowPlayingElement.qml:587, Modules/NowPlayingElement.qml:624, Modules/Settings/DevicesSettings.qml:92, Modules/Settings/PlaybackSettings.qml:197, Modules/VolumePanel.qml:61",
     "comment": "audio volume: settings section, slider"
   },
   {

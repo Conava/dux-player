@@ -109,6 +109,26 @@ read -r qx qy qw qh < <(ask namedAll Queue | awk -v y="$by" '$2 >= y' | tail -1)
 [ -n "$qx" ] && wclick "$((${qx%.*} + ${qw%.*} / 2))" "$((${qy%.*} + ${qh%.*} / 2))"
 sleep 1
 expect "floating: a second click closes it" "$(ask panel)" ""
+# quick clicks on Next: Qt takes every second one as a double-click
+read -r nx ny nw nh < <(ask namedAll Next | awk -v y="$by" '$2 >= y' | head -1)
+dp play "$W/music" >/dev/null
+sleep 1
+before=$(status index)
+if [ -n "$nx" ]; then
+    read -r wx wy < <(winat)
+    pointer m "$((wx + ${nx%.*} + ${nw%.*} / 2 - 2))" "$((wy + ${ny%.*} + ${nh%.*} / 2))"
+    sleep 0.1
+    pointer m "$((wx + ${nx%.*} + ${nw%.*} / 2))" "$((wy + ${ny%.*} + ${nh%.*} / 2))"
+    sleep 0.3
+    for _ in 1 2 3 4; do
+        pointer c
+        sleep 0.12
+    done
+    sleep 1.5
+fi
+expect "floating: four quick clicks on Next skip four tracks" "$(($(status index) - before))" 4
+dp play "$W/music/Lyric Test" >/dev/null
+sleep 1
 go albums
 read -r wx wy < <(winat)
 pointer m "$((wx + 898))" "$((wy + 500))"

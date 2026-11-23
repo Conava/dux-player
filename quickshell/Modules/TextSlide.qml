@@ -56,7 +56,8 @@ Item {
         const sameTrack = track === textTrack;
         textTrack = track;
         if (old === "" || text === "" || !active || !owner.visible || !Theme.animationsEnabled) {
-            slide.stop();
+            leave.stop();
+            enter.stop();
             fade = 1;
             shift = 0;
             leaveFade = 0;
@@ -64,43 +65,55 @@ Item {
         }
         // the direction of a skip, known when the queue index moved just before; else forward
         const dir = sameTrack ? 0 : (Date.now() - stepAt < 1000 ? step : 1) * (LayoutMirroring.enabled ? -1 : 1);
+        shift = dir * travel;
+        // a quick second change: the text before was hardly seen, so the copy keeps leaving with the older one and
+        // the new text enters at once, from where the fade got to
+        if (enter.running && fade < 0.5) {
+            enter.delay = 0;
+            enter.restart();
+            return;
+        }
+        const at = owner.mapToItem(host, 0, 0);
+        copy.x = at.x;
+        copy.y = at.y;
         leaving = old;
-        slide.travelSigned = dir * travel;
-        slide.restart();
+        leaveFade = fade;
+        leaveShift = 0;
+        leaveTo = -dir * travel;
+        leave.restart();
+        fade = 0;
+        enter.delay = Theme.expressiveDurations.expressiveFastEffects;
+        enter.restart();
+    }
+
+    property real leaveTo: 0
+
+    ParallelAnimation {
+        id: leave
+        NumberAnimation {
+            target: root
+            property: "leaveFade"
+            to: 0
+            duration: Theme.expressiveDurations.expressiveFastEffects
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.expressiveCurves.expressiveFastEffects
+        }
+        NumberAnimation {
+            target: root
+            property: "leaveShift"
+            to: root.leaveTo
+            duration: Theme.expressiveDurations.expressiveFastEffects
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.expressiveCurves.expressiveFastEffects
+        }
     }
 
     SequentialAnimation {
-        id: slide
-        property real travelSigned: 0
+        id: enter
+        property int delay: 0
 
-        ScriptAction {
-            script: {
-                const at = root.owner.mapToItem(root.host, 0, 0);
-                copy.x = at.x;
-                copy.y = at.y;
-                root.fade = 0;
-                root.shift = slide.travelSigned;
-                root.leaveFade = 1;
-                root.leaveShift = 0;
-            }
-        }
-        ParallelAnimation {
-            NumberAnimation {
-                target: root
-                property: "leaveFade"
-                to: 0
-                duration: Theme.expressiveDurations.expressiveFastEffects
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Theme.expressiveCurves.expressiveFastEffects
-            }
-            NumberAnimation {
-                target: root
-                property: "leaveShift"
-                to: -slide.travelSigned
-                duration: Theme.expressiveDurations.expressiveFastEffects
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Theme.expressiveCurves.expressiveFastEffects
-            }
+        PauseAnimation {
+            duration: enter.delay
         }
         ParallelAnimation {
             NumberAnimation {
@@ -128,7 +141,7 @@ Item {
         parent: root.host
         width: root.owner.width
         height: root.owner.height
-        visible: slide.running && root.leaveFade > 0
+        visible: leave.running && root.leaveFade > 0
         opacity: root.leaveFade
         text: root.leaving
         font: root.font
