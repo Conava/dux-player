@@ -6,8 +6,8 @@ import qs.Services
 import qs.DCommon.Widgets
 import qs.Widgets
 
-// The floating player's content: the cover inside a progress ring, the title and artists, then previous, play and
-// next. The ring follows the position's few ticks a second and nothing here moves on its own; a track change slides the texts.
+// The floating player's content: the cover inside a progress ring, the title and artists, favorite and the lyrics and
+// queue panels, then previous, play and next. The ring follows the position's few ticks a second and nothing here moves on its own; a track change slides the texts.
 Item {
     id: root
 
@@ -68,7 +68,7 @@ Item {
         StyledButton {
             id: info
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(0, row.width - ring.width - transport.width - row.spacing * 2)
+            width: Math.max(0, row.width - ring.width - extras.width - transport.width - row.spacing * 3)
             height: PlayerMetrics.floatingRingSize
             radius: Theme.cornerRadiusM
             enabled: root.track !== null
@@ -134,6 +134,18 @@ Item {
                     }
                 }
             }
+        }
+
+        NowPlayingZone {
+            id: extras
+            anchors.verticalCenter: parent.verticalCenter
+            instances: ["favorite", "lyrics", "queue"].map(type => ({
+                        "id": type.toLowerCase(),
+                        "type": type,
+                        "hidden": false,
+                        "placement": "keep",
+                        "options": {}
+                    }))
         }
 
         NowPlayingZone {

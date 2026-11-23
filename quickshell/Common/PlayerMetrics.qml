@@ -244,7 +244,7 @@ Singleton {
     readonly property int snackbarDuration: 4000
     // the floating player's pill: the cover inside a progress ring, then title and controls
     readonly property real floatingHeight: Theme.buttonHeightM + Theme.spacingS
-    readonly property real floatingMaxWidth: 520
+    readonly property real floatingMaxWidth: 640
     // gap below and beside the pill
     readonly property real floatingMargin: Theme.spacingL
     readonly property real floatingRingSize: Theme.buttonHeightM

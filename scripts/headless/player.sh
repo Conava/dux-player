@@ -94,10 +94,21 @@ sleep 1.5
 go home
 read -r bx by bw bh < <(ask barRect)
 expect "floating: pill height is the token" "$bh" 64
-holds "floating: pill is at most 520 wide" "$([ "$bw" -le 520 ] && echo 1)" "$bw"
+holds "floating: pill is at most 640 wide" "$([ "$bw" -le 640 ] && echo 1)" "$bw"
 read -r px py pw ph _ < <(ask rect keptHome)
 holds "floating: pill is centred on the content pane" "$([ -n "$px" ] && [ "$(((bx + bw / 2) - (px + pw / 2)))" -ge -3 ] && [ "$(((bx + bw / 2) - (px + pw / 2)))" -le 3 ] && echo 1)" "pill centre $((bx + bw / 2)), pane centre $((px + pw / 2))"
 cap floating-home
+# the pill opens the lyrics and queue panels and has the heart
+holds "floating: the pill has a heart" "$([ -n "$(ask namedAll "Favorite" | awk -v y="$by" '$2 >= y')" ] && echo 1)" "$(ask namedAll Favorite | head -3 | tr '\n' ';')"
+read -r qx qy qw qh < <(ask namedAll Queue | awk -v y="$by" '$2 >= y' | head -1)
+[ -n "$qx" ] && wclick "$((${qx%.*} + ${qw%.*} / 2))" "$((${qy%.*} + ${qh%.*} / 2))"
+sleep 1
+expect "floating: the pill's Queue opens the queue panel" "$(ask panel)" queue
+# the pill re-centres on the narrower page
+read -r qx qy qw qh < <(ask namedAll Queue | awk -v y="$by" '$2 >= y' | tail -1)
+[ -n "$qx" ] && wclick "$((${qx%.*} + ${qw%.*} / 2))" "$((${qy%.*} + ${qh%.*} / 2))"
+sleep 1
+expect "floating: a second click closes it" "$(ask panel)" ""
 go albums
 read -r wx wy < <(winat)
 pointer m "$((wx + 898))" "$((wy + 500))"

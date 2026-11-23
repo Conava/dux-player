@@ -77,7 +77,7 @@ Pages, columns and the full view can be customized.
 - Home shelves include Speed dial (shuffle all and pinned entries) and Genres (chips for the genres with the most albums); Library is a navigation entry with Albums, Artists, Tracks and Genres tabs
 - Statistics is a navigation entry, hidden until shown in Settings → Pages: this device's plays per local day, top artists and genres over the last 7, 14 or 30 days (IPC method `history.stats`, `days` 1 to 366, default 7)
 - Settings → Pages: Page header (Plain or Cover tint, for album, artist and playlist pages), Album page (Stacked or Side by side on wide pages), Letter index (a jump column beside name-sorted lists) and, in a playlists page's edit mode, Collection tiles
-- Player look in Settings → Now playing: Card, Attached or Floating; Floating is a pill with the cover in a progress ring, and the ring or the title opens the full view. Floating applies to the bottom bar
+- Player look in Settings → Now playing: Card, Attached or Floating; Floating is a pill with the cover in a progress ring, the title, favorite, the lyrics and queue panels and the transport; the ring or the title opens the full view. Floating applies to the bottom bar
 - Elements can sit Across the top of the bar, and the play button can Show label
 - The queue header shows Playing from and the Continue playing switch, which uses the random or similar mode from Settings (similar when that is off); switching it off stops continuing for the current queue only (IPC `queue.continue` with mode `off`). Settings → Now playing → Queue header turns it off
 - The full view can show a Blurred cover background and Lyrics and queue tabs in its card; Lyrics has Blur other lines to focus the current one

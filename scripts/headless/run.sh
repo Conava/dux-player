@@ -371,6 +371,9 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function route(): string {
             return Router.route;
         }
+        function panel(): string {
+            return Router.panel;
+        }
         function offset(): real {
             const view = Router.pageScroll?.view;
             return view ? Math.max(0, view.contentY - view.originY) : 0;
