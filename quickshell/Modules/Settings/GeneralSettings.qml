@@ -179,7 +179,7 @@ SettingsPage {
             text: I18n.tr("Search in header", "general setting")
             keywords: "search field title bar header toolbar find"
             enabled: StyleSource.windowTitleBars
-            description: enabled ? "" : I18n.tr("Search is in the navigation while title bars are off.", "why the header search setting is off")
+            description: enabled ? "" : I18n.tr("Turn on title bars first.", "why the header search setting is off")
             model: [I18n.tr("Off", "option that turns something off"), I18n.tr("Button", "header search option"), I18n.tr("Field", "header search option")]
             currentIndex: Math.max(0, root.headerSearchModes.indexOf(SettingsData.headerSearch))
             onSelectionChanged: (index, selected) => {

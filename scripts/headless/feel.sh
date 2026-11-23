@@ -688,7 +688,8 @@ leg_press() {
     held rail "$((x + w / 2))" "$((y + h / 2))" '[ "$(ask route)" = albums/ ]'
     ui titleBars false
     sleep 1
-    read -r x y < <(centre railSearch)
+    # with labels the rail shows the extended FAB; the icon-only one is faded out
+    read -r x y < <(centre railSearchLabelled)
     held fab "$x" "$y" '[ "$(ask route)" = search/ ]'
     ui titleBars true
     ui navStyle auto
@@ -722,6 +723,19 @@ leg_press() {
         park
     done
     look dark bento
+    # Space held on the focused segment squishes the group the same way, with the pointer away
+    read -r x y w h < <(named "30 days")
+    before=$w
+    wtype -P space
+    sleep 0.35
+    read -r _ _ during _ < <(named "30 days")
+    wtype -p space
+    sleep 0.6
+    if [ "$SPEED" = 0 ]; then
+        check "key press group stays put" "$(truth [ "${during:-0}" -eq "$before" ])" "segment $before px at rest, $during held"
+    else
+        check "key press group grows" "$(truth [ "${during:-0}" -gt "$before" ])" "segment $before px at rest, $during held ($(ask focusName) focused)"
+    fi
     ui pref statsDays 7
     ui settings general
     sleep 2
@@ -818,11 +832,17 @@ leg_speed() {
     go home
 }
 
-for leg in trackchange pages menu dialog queue tabs rail floating shelf press idle hidden speed; do
+legs="trackchange pages menu dialog queue tabs rail floating shelf press idle hidden speed"
+for leg in $legs; do
     want "$leg" || continue
     start=$SECONDS
     "leg_$leg"
     fact "leg $leg took $((SECONDS - start)) s"
+done
+# a shell error (an empty coordinate in $((…))) aborts the loop above without a FAIL line
+for leg in $legs; do
+    want "$leg" || continue
+    grep -q "^leg $leg took" "$W/out/facts.txt" || fail "leg $leg stopped before its end"
 done
 
 if grep -qiE 'binding loop' "$L"; then

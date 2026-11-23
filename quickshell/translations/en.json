@@ -936,6 +936,12 @@
     "comment": "playback settings section description"
   },
   {
+    "term": "Applies to new windows.",
+    "context": "Applies to new windows.",
+    "reference": "Modules/Settings/AppearanceSettings.qml:485",
+    "comment": "window title bars toggle description"
+  },
+  {
     "term": "Applies to tracks, playlists, shelves and navigation entries.",
     "context": "Applies to tracks, playlists, shelves and navigation entries.",
     "reference": "Modules/Settings/GeneralSettings.qml:256",
@@ -3204,8 +3210,8 @@
     "comment": "element option: the lyric line goes while the lyrics pane shows"
   },
   {
-    "term": "Highlights each word as it's sung, when the lyrics include word timing.",
-    "context": "Highlights each word as it's sung, when the lyrics include word timing.",
+    "term": "Highlights each word as it's sung.",
+    "context": "Highlights each word as it's sung.",
     "reference": "Modules/Settings/LyricsSettings.qml:80",
     "comment": "lyrics setting description"
   },
@@ -3750,6 +3756,12 @@
     "comment": "library badge tooltip"
   },
   {
+    "term": "Local lyrics files first, then the providers below.",
+    "context": "Local lyrics files first, then the providers below.",
+    "reference": "Modules/Settings/LyricsSettings.qml:16",
+    "comment": "lyrics settings intro"
+  },
+  {
     "term": "Local playlist",
     "context": "Local playlist",
     "reference": "Modules/AddToPlaylistDialog.qml:184, Modules/PlaylistPage.qml:153, Modules/Settings/DownloadsSettings.qml:98",
@@ -3762,14 +3774,8 @@
     "comment": "general setting"
   },
   {
-    "term": "Looks up lyrics online. Title, artist, album and length are sent to the providers below.",
-    "context": "Looks up lyrics online. Title, artist, album and length are sent to the providers below.",
-    "reference": "Modules/Settings/LyricsSettings.qml:22",
-    "comment": "lyrics master setting description"
-  },
-  {
-    "term": "Looks up lyrics when a track is downloaded. When off, only lyrics of played tracks are kept.",
-    "context": "Looks up lyrics when a track is downloaded. When off, only lyrics of played tracks are kept.",
+    "term": "Looks up lyrics when a track is downloaded.",
+    "context": "Looks up lyrics when a track is downloaded.",
     "reference": "Modules/Settings/LyricsSettings.qml:30",
     "comment": "lyrics setting description"
   },
@@ -3826,12 +3832,6 @@
     "context": "Lyrics file · not changed",
     "reference": "Modules/LyricsView.qml:498",
     "comment": "lyrics source status: the user's lyrics file, never moved"
-  },
-  {
-    "term": "Lyrics files next to the music come first, then the providers in order. Drag to reorder.",
-    "context": "Lyrics files next to the music come first, then the providers in order. Drag to reorder.",
-    "reference": "Modules/Settings/LyricsSettings.qml:16",
-    "comment": "lyrics settings intro"
   },
   {
     "term": "Lyrics for downloaded tracks",
@@ -4468,12 +4468,6 @@
     "context": "Off",
     "reference": "Modules/Settings/AboutSettings.qml:193, Modules/Settings/AppearanceSettings.qml:512, Modules/Settings/AppearanceSettings.qml:593, Modules/Settings/DownloadsSettings.qml:246, Modules/Settings/GeneralSettings.qml:183, Modules/Settings/PlaybackSettings.qml:203",
     "comment": "option that turns something off"
-  },
-  {
-    "term": "Off leaves decorations to the compositor. Applies to new windows.",
-    "context": "Off leaves decorations to the compositor. Applies to new windows.",
-    "reference": "Modules/Settings/AppearanceSettings.qml:485",
-    "comment": "window title bars toggle description"
   },
   {
     "term": "Off. Its tracks are hidden and skipped in playlists.",
@@ -5850,12 +5844,6 @@
     "comment": "general setting"
   },
   {
-    "term": "Search is in the navigation while title bars are off.",
-    "context": "Search is in the navigation while title bars are off.",
-    "reference": "Modules/Settings/GeneralSettings.qml:182",
-    "comment": "why the header search setting is off"
-  },
-  {
     "term": "Search playlists",
     "context": "Search playlists",
     "reference": "Modules/BrowsePage.qml:147",
@@ -5956,6 +5944,12 @@
     "context": "Sends artist names to %1 for images and biographies.",
     "reference": "Modules/Settings/GeneralSettings.qml:61",
     "comment": "general setting description, %1 lists online services"
+  },
+  {
+    "term": "Sends title, artist, album and length to the providers below.",
+    "context": "Sends title, artist, album and length to the providers below.",
+    "reference": "Modules/Settings/LyricsSettings.qml:22",
+    "comment": "lyrics master setting description"
   },
   {
     "term": "Sent automatically when the connection is restored.",
@@ -7112,8 +7106,8 @@
   {
     "term": "Turn on title bars first.",
     "context": "Turn on title bars first.",
-    "reference": "Modules/Settings/NowPlayingSettings.qml:211",
-    "comment": "why the full view top bar setting is off"
+    "reference": "Modules/Settings/GeneralSettings.qml:182, Modules/Settings/NowPlayingSettings.qml:211",
+    "comment": "why the full view top bar setting is off | why the header search setting is off"
   },
   {
     "term": "Turn on word by word in the lyrics settings",

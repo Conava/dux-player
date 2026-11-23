@@ -482,7 +482,7 @@ SettingsPage {
         SettingsToggleRow {
             text: I18n.tr("Title bars", "window title bars toggle label")
             keywords: "decorations csd window header"
-            description: I18n.tr("Off leaves decorations to the compositor. Applies to new windows.", "window title bars toggle description")
+            description: I18n.tr("Applies to new windows.", "window title bars toggle description")
             checked: SettingsData.windowTitleBars
             onToggled: value => SettingsData.windowTitleBars = value
         }

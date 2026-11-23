@@ -42,21 +42,30 @@ Shared.DButtonGroup {
         return next.baseWidth - held.baseWidth * (pressScale - 1) * squish / neighbours;
     }
 
-    // the press watchers exist only for a group the pointer is over, so pages with many groups build cheaply
+    // the press watchers exist only for a group the pointer is over, a finger touches or the keyboard focus is in, so
+    // pages with many groups build cheaply
     HoverHandler {
         id: hover
     }
+    PointHandler {
+        id: touch
+        acceptedDevices: PointerDevice.TouchScreen
+    }
+    readonly property bool focusInside: segments.some(s => s.activeFocus)
 
     Instantiator {
-        model: hover.hovered ? root.segments : []
+        model: hover.hovered || touch.active || root.focusInside ? root.segments : []
         // Connections, not a bound property: the segments belong to the shared group, so they have no property to bind
         delegate: Connections {
             required property var modelData
             required property int index
             target: modelData
+            // a touch can press the segment before this watcher exists
+            Component.onCompleted: onPressedChanged()
             function onPressedChanged() {
                 if (!modelData.pressed) {
-                    root.squish = 0;
+                    if (root.heldIndex === index)
+                        root.squish = 0;
                     return;
                 }
                 root.heldIndex = index;

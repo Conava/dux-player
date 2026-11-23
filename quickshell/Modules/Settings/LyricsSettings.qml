@@ -13,13 +13,13 @@ SettingsPage {
     readonly property var providers: PlayerService.lyricsProviders
 
     SettingsPageIntro {
-        text: I18n.tr("Lyrics files next to the music come first, then the providers in order. Drag to reorder.", "lyrics settings intro")
+        text: I18n.tr("Local lyrics files first, then the providers below.", "lyrics settings intro")
     }
 
     SettingsCard {
         SettingsToggleRow {
             text: I18n.tr("Show lyrics", "lyrics master setting")
-            description: I18n.tr("Looks up lyrics online. Title, artist, album and length are sent to the providers below.", "lyrics master setting description")
+            description: I18n.tr("Sends title, artist, album and length to the providers below.", "lyrics master setting description")
             checked: SettingsService.settings.lyrics
             onToggled: value => SettingsService.setSetting("lyrics", value)
         }
@@ -27,7 +27,7 @@ SettingsPage {
         SettingsToggleRow {
             text: I18n.tr("Lyrics for downloaded tracks", "lyrics setting")
             keywords: "offline cache"
-            description: I18n.tr("Looks up lyrics when a track is downloaded. When off, only lyrics of played tracks are kept.", "lyrics setting description")
+            description: I18n.tr("Looks up lyrics when a track is downloaded.", "lyrics setting description")
             enabled: SettingsService.settings.lyrics
             checked: SettingsService.settings.lyricsForDownloads
             onToggled: value => SettingsService.setSetting("lyricsForDownloads", value)
@@ -77,7 +77,7 @@ SettingsPage {
         SettingsToggleRow {
             text: I18n.tr("Word by word", "lyrics setting")
             keywords: "karaoke synced"
-            description: I18n.tr("Highlights each word as it's sung, when the lyrics include word timing.", "lyrics setting description")
+            description: I18n.tr("Highlights each word as it's sung.", "lyrics setting description")
             checked: UiConfig.lyricsWordSync
             onToggled: value => UiConfig.setLyricsDisplay({
                     "wordSync": value
