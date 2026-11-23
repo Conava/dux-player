@@ -17,7 +17,7 @@ BIN_DIR=$(PREFIX)/bin
 DATA_DIR=$(PREFIX)/share
 LICENSE_DIR ?= $(DATA_DIR)/licenses/dux-player
 
-.PHONY: all build dev run run-builtin headless headless-all headless-affected deps clean check test test-go test-qml test-race test-stress lint lint-go lint-qml lint-qml-format lint-settings-index fmt vet install uninstall quit \
+.PHONY: all build dev run run-builtin run-default headless headless-all headless-affected deps clean check test test-go test-qml test-race test-stress lint lint-go lint-qml lint-qml-format lint-settings-index fmt vet install uninstall quit \
 	dist update-common i18n-extract settings-index help
 
 all: build
@@ -32,6 +32,10 @@ dev:
 # stopped first, or the new window would attach to the old code.
 run: deps settings-index dev quit
 	$(BUILD_DIR)/$(DEV_BINARY) show -c $(CURDIR)/$(SHELL_DIR)
+
+# Like run, with a first start's settings and the real libraries; the real config is left alone. scripts/run-default.sh explains it.
+run-default: deps settings-index dev quit
+	@scripts/run-default.sh $(BUILD_DIR)/$(DEV_BINARY) $(CURDIR)/$(SHELL_DIR) $(CURDIR)/$(BUILD_DIR)/default-home
 
 # Like run, with the built-in player playing even though mpv is installed.
 run-builtin: deps dev quit
@@ -164,6 +168,7 @@ help:
 	@echo "Develop:"
 	@echo "  run            - Dev build, then open the window from quickshell/ with hot reload"
 	@echo "  run-builtin    - Same, playing with the built-in player instead of mpv"
+	@echo "  run-default    - Same, with a first start's settings and the real libraries"
 	@echo "  headless       - Run the app in a sandboxed nested compositor and take screenshots; SCENARIO=file.sh"
 	@echo "  headless-all   - Run every headless scenario, JOBS= at a time (default 4)"
 	@echo "  headless-affected - Run the headless scenarios that cover the changed files; BASE= picks the base"

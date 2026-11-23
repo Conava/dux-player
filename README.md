@@ -97,6 +97,7 @@ Pages, columns and the full view can be customized.
 git clone --recursive https://github.com/Conava/dux-player
 cd dux-player
 make run      # build and run against the QML in this checkout, with hot reload
+make run-default  # the same with a first start's settings and the real libraries; the real config stays as it is
 ```
 
 To install it as a regular application for your user:
