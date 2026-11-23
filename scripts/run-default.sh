@@ -25,7 +25,7 @@ done
 real_data=${XDG_DATA_HOME:-$HOME/.local/share}/dplayer
 mkdir -p "$root/data/dplayer"
 for f in "$real_data"/library.db "$real_data"/library.db-wal "$real_data"/library.db-shm; do
-    cp "$f" "$root/data/dplayer/"
+    if [ -e "$f" ]; then cp "$f" "$root/data/dplayer/"; fi
 done
 
 XDG_CONFIG_HOME=$root/config XDG_DATA_HOME=$root/data XDG_STATE_HOME=$root/state XDG_CACHE_HOME=$root/cache \
