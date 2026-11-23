@@ -134,6 +134,16 @@ Rectangle {
         anchors.topMargin: Theme.spacingL
         width: (root.beside ? parent.width / 2 : parent.width) - Theme.spacingXL * 2
         sourceComponent: root.m3e ? m3ePlayer : bentoPlayer
+
+        // the card makes room for the pane beside it and takes the room back as the pane fades
+        Behavior on width {
+            enabled: Theme.animationsEnabled && root.visible
+            NumberAnimation {
+                duration: Theme.expressiveDurations.normal
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.expressiveCurves.emphasized
+            }
+        }
     }
 
     Component {
@@ -154,15 +164,26 @@ Rectangle {
         }
     }
 
+    // the right half, where the card's half width leaves room; below the card, which covers it as it widens on close
     Loader {
-        anchors.left: player.right
-        anchors.right: parent.right
+        x: I18n.isRtl ? Theme.spacingXL : parent.width / 2
+        z: -1
+        width: parent.width / 2 - Theme.spacingXL
         anchors.top: player.top
         anchors.bottom: parent.bottom
-        anchors.margins: Theme.spacingXL
-        anchors.topMargin: 0
-        active: root.beside
+        anchors.bottomMargin: Theme.spacingXL
+        active: root.beside || opacity > 0
+        opacity: root.beside ? 1 : 0
         sourceComponent: paneSwap
+
+        Behavior on opacity {
+            enabled: Theme.animationsEnabled && root.visible
+            NumberAnimation {
+                duration: Theme.expressiveDurations.expressiveEffects
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+            }
+        }
     }
 
     // the tabs ride in the pane's top row; without lyrics there is only the queue to show
@@ -173,7 +194,6 @@ Rectangle {
         PaneTabs {}
     }
 
-    // Bento's art slot already fades its pane in
     Component {
         id: paneSwap
         PaneSwap {
@@ -183,7 +203,6 @@ Rectangle {
                     "lyrics": lyricsPane,
                     "queue": queuePane
                 })
-            appear: root.m3e
         }
     }
 

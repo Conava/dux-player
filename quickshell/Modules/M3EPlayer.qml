@@ -21,6 +21,12 @@ Item {
     // shown over the art when it stands in for the pane
     property string artNote: ""
     readonly property bool paneShown: inPlace !== null && (artNote === "" || !showArt)
+    // the pane last shown, kept while it fades out
+    property Component shownPane: null
+    onInPlaceChanged: {
+        if (inPlace)
+            shownPane = inPlace;
+    }
     // from under the top row to the seekbar group; info.y would close a loop through the art's size
     readonly property real paneHeight: Math.max(0, height - margin * 2 - topHeight - info.implicitHeight - Theme.spacingL)
     // a pane is open beside the player: stacked, and level with the pane at the top
@@ -152,17 +158,17 @@ Item {
             }
         }
 
-        // a pane in place: from under the top row down to the seekbar. It keeps running behind the art. It fades in
-        // and goes at once on close, as the card around it snaps back to the player's size.
+        // a pane in place: from under the top row down to the seekbar. It keeps running behind the art and fades in
+        // and out; the last one stays loaded while it fades.
         Loader {
             x: root.margin
             y: root.margin + root.topHeight
             width: root.innerWidth
             height: root.paneHeight
-            active: root.inPlace !== null
+            active: opacity > 0 || root.inPlace !== null
             enabled: root.paneShown
             opacity: root.paneShown ? 1 : 0
-            sourceComponent: root.inPlace
+            sourceComponent: root.shownPane
 
             Behavior on opacity {
                 enabled: Theme.animationsEnabled && root.visible

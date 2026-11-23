@@ -14,8 +14,6 @@ Item {
     property var order: []
     // pane name to Component
     property var sources: ({})
-    // fades the first pane in; off when the owner already fades this item
-    property bool appear: false
 
     readonly property real distance: Theme.spacingXL
     property int front: 0
@@ -112,10 +110,6 @@ Item {
             if (index !== 0 || slot.owner.current === "")
                 return;
             key = slot.owner.current;
-            if (slot.owner.appear && Theme.animationsEnabled) {
-                opacity = 0;
-                entry.restart();
-            }
         }
 
         onLoaded: {

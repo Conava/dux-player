@@ -508,6 +508,10 @@ leg_tabs() {
         sleep 1
         timed "tabs-$style-queue" pane queue
         timed "tabs-$style-lyrics" pane lyrics
+        # closing the pane fades it out in both styles
+        slow "tabs-$style-close" "ui act pane ''" "ui act pane lyrics"
+        timed "tabs-$style-pane-close" pane ""
+        timed "tabs-$style-pane-open" pane lyrics
     done
     look dark bento
     sleep 0.5
