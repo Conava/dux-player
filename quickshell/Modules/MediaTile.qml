@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import qs.Common
 import qs.Services
@@ -20,12 +22,15 @@ StyledButton {
     readonly property bool menuOpened: menu.opened || trackMenu.opened
     // the queue came from this album or playlist and a track is loaded
     readonly property bool playing: (kind === "album" || kind === "playlist") && PlayerService.current !== null && PlayerService.playContext.type === kind && PlayerService.playContext.id === item?.id
-    readonly property bool active: hovered || visualFocus || playButton.visualFocus || moreButton.visualFocus || menuOpened
+    readonly property bool hasPlay: kind !== "artist" && kind !== "genre"
+    readonly property bool active: hovered || visualFocus || (playLoader.item as DIconButton)?.visualFocus === true || (moreLoader.item as DIconButton)?.visualFocus === true || menuOpened
+    // the hover buttons exist from the first hover or focus on
+    property bool built: false
 
     // false at creation and while a carousel holds the tile in its pool, so a value set then lands at once
     property bool placed: false
     readonly property bool animates: Theme.animationsEnabled && placed
-    readonly property bool showsPlayButton: active && kind !== "artist" && kind !== "genre"
+    readonly property bool showsPlayButton: active && hasPlay
     // overlays grow in from this scale
     readonly property real overlayScale: 0.8
     readonly property bool showsBadge: playing && !active
@@ -53,6 +58,8 @@ StyledButton {
     color: playing ? Theme.primaryContainer : "transparent"
     Accessible.name: playing ? Phrases.named(Phrases.named(item?.title ?? item?.name ?? "", info), I18n.tr("Playing", "tile state: the queue plays from this album or playlist")) : Phrases.named(item?.title ?? item?.name ?? "", info)
 
+    onActiveChanged: if (active)
+        built = true
     Component.onCompleted: placed = true
     ListView.onPooled: placed = false
     ListView.onReused: Qt.callLater(() => placed = true)
@@ -93,7 +100,8 @@ StyledButton {
     Keys.onPressed: event => {
         if (event.key !== Qt.Key_Menu)
             return;
-        openMenu(moreButton);
+        built = true;
+        openMenu(moreLoader.item ?? root);
         event.accepted = true;
     }
 
@@ -118,18 +126,29 @@ StyledButton {
         item: root.item
         radius: Theme.cornerRadiusL
 
-        DIconButton {
-            id: playButton
+        // the buttons are built on first need; until then a stand-in per button keeps its Tab stop
+        Repeater {
+            model: root.built ? 0 : root.kind !== "artist" && root.kind !== "genre" ? 2 : 1
+
+            Item {
+                required property int index
+                activeFocusOnTab: true
+                onActiveFocusChanged: {
+                    if (!activeFocus)
+                        return;
+                    root.built = true;
+                    // the play stand-in is first; a tile without one leads straight to ⋮
+                    ((index === 0 && root.hasPlay ? playLoader : moreLoader).item as Item)?.forceActiveFocus(Qt.TabFocusReason);
+                }
+            }
+        }
+
+        Loader {
+            id: playLoader
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.margins: PlayerMetrics.tileInset
-            buttonSize: root.tileSize === "s" ? Theme.buttonHeightS : PlayerMetrics.tilePlayButtonSize
-            width: buttonSize
-            variant: "filled"
-            iconName: "play_arrow"
-            iconFilled: true
-            // hidden by opacity only, so Shift+Tab can land on it before the tile shows it
-            visible: root.kind !== "artist" && root.kind !== "genre"
+            active: root.built && root.hasPlay
             opacity: root.showsPlayButton ? 1 : 0
             scale: root.showsPlayButton ? 1 : root.overlayScale
             Behavior on opacity {
@@ -144,22 +163,31 @@ StyledButton {
                     show: root.showsPlayButton
                 }
             }
-            Accessible.name: I18n.tr("Play %1", "play button, %1 is the album or playlist").arg(root.item?.title ?? root.item?.name ?? "")
-            onClicked: {
-                if (root.kind === "album")
-                    PlayerService.playAlbum(root.item.id, false);
-                else if (root.kind === "playlist")
-                    PlayerService.playPlaylist(root.item.id, false);
-                else
-                    root.activated();
+
+            sourceComponent: DIconButton {
+                buttonSize: root.tileSize === "s" ? Theme.buttonHeightS : PlayerMetrics.tilePlayButtonSize
+                width: buttonSize
+                variant: "filled"
+                iconName: "play_arrow"
+                iconFilled: true
+                Accessible.name: I18n.tr("Play %1", "play button, %1 is the album or playlist").arg(root.item?.title ?? root.item?.name ?? "")
+                onClicked: {
+                    if (root.kind === "album")
+                        PlayerService.playAlbum(root.item.id, false);
+                    else if (root.kind === "playlist")
+                        PlayerService.playPlaylist(root.item.id, false);
+                    else
+                        root.activated();
+                }
             }
         }
 
-        DIconButton {
-            id: moreButton
+        Loader {
+            id: moreLoader
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: PlayerMetrics.tileInset
+            active: root.built
             opacity: root.active ? 1 : 0
             scale: root.active ? 1 : root.overlayScale
             Behavior on opacity {
@@ -174,13 +202,16 @@ StyledButton {
                     show: root.active
                 }
             }
-            buttonSize: root.tileSize === "s" ? Theme.buttonHeightXS : Theme.buttonHeightS
-            iconSize: root.tileSize === "s" ? Theme.iconSizeSmall : Theme.iconSize
-            variant: "tonal"
-            iconName: "more_vert"
-            tooltipText: I18n.tr("More", "track row menu button")
-            Accessible.name: tooltipText
-            onClicked: root.openMenu(moreButton)
+
+            sourceComponent: DIconButton {
+                buttonSize: root.tileSize === "s" ? Theme.buttonHeightXS : Theme.buttonHeightS
+                iconSize: root.tileSize === "s" ? Theme.iconSizeSmall : Theme.iconSize
+                variant: "tonal"
+                iconName: "more_vert"
+                tooltipText: I18n.tr("More", "track row menu button")
+                Accessible.name: tooltipText
+                onClicked: root.openMenu(this)
+            }
         }
 
         Rectangle {
@@ -207,24 +238,31 @@ StyledButton {
                 }
             }
 
-            DIcon {
+            Loader {
                 anchors.centerIn: parent
-                name: "equalizer"
-                filled: true
-                size: Theme.iconSizeSmall
-                color: Theme.onPrimary
+                active: root.playing || parent.opacity > 0
+
+                sourceComponent: DIcon {
+                    name: "equalizer"
+                    filled: true
+                    size: Theme.iconSizeSmall
+                    color: Theme.onPrimary
+                }
             }
         }
 
-        DIcon {
+        Loader {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.margins: PlayerMetrics.tileInset
-            visible: root.item?.favorite === true
-            name: "favorite"
-            filled: true
-            size: Theme.iconSizeSmall
-            color: Theme.primary
+            active: root.item?.favorite === true
+
+            sourceComponent: DIcon {
+                name: "favorite"
+                filled: true
+                size: Theme.iconSizeSmall
+                color: Theme.primary
+            }
         }
     }
 

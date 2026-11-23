@@ -59,6 +59,10 @@ Singleton {
     // the offset the route being shown goes back to, -1 for a new visit; only set while the page changes, so a view
     // built later starts at the top
     property real restoreOffset: -1
+    // set while a route change sets the page and then its id, so the window builds the page for the final route only
+    property bool switching: false
+    // restoreOffset of the last route change, kept: a page built asynchronously reads it after the change
+    property real arrivalOffset: -1
     // set by the main window while its header shows the search field, so the search page drops its own
     property bool headerSearchField: false
     // the list picked in last (a track list, search results or the queue): Ctrl+A acts on its selection
@@ -176,11 +180,14 @@ Singleton {
     function _show(target, id, offset, step) {
         _historyStep = step === true;
         restoreOffset = offset;
+        arrivalOffset = offset;
+        switching = true;
         // the page the switch builds reads the id at once and must not get the last page's
         if (target !== page)
             itemId = "";
         page = target;
         itemId = id;
+        switching = false;
         restoreOffset = -1;
         editing = false;
     }

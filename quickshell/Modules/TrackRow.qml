@@ -130,11 +130,15 @@ DListItem {
                 }
             }
 
-            AlbumArt {
+            Loader {
                 anchors.fill: parent
-                visible: root.showArt && !root.compact && !lead.checkbox
-                item: root.track
-                radius: Theme.cornerRadiusS
+                active: root.showArt && !root.compact
+                visible: !lead.checkbox
+
+                sourceComponent: AlbumArt {
+                    item: root.track
+                    radius: Theme.cornerRadiusS
+                }
             }
 
             StyledText {
@@ -145,25 +149,31 @@ DListItem {
                 color: root.supportingContentColor
             }
 
-            DIcon {
+            Loader {
                 anchors.centerIn: parent
-                visible: root.isCurrent && !lead.checkbox && !(root.showArt && !root.compact)
-                name: "graphic_eq"
-                size: Theme.iconSize
-                color: PlayerService.playing ? Theme.primary : Theme.surfaceVariantText
-                filled: true
+                active: root.isCurrent && !lead.checkbox && !(root.showArt && !root.compact)
+
+                sourceComponent: DIcon {
+                    name: "graphic_eq"
+                    size: Theme.iconSize
+                    color: PlayerService.playing ? Theme.primary : Theme.surfaceVariantText
+                    filled: true
+                }
             }
 
-            DIcon {
+            Loader {
                 anchors.centerIn: parent
-                visible: lead.checkbox
-                name: root.selected ? "check_box" : "check_box_outline_blank"
-                filled: root.selected
-                size: Theme.iconSize
-                color: root.selected ? Theme.primary : root.supportingContentColor
-                Accessible.role: Accessible.CheckBox
-                Accessible.name: I18n.tr("Select", "track row checkbox")
-                Accessible.checked: root.selected
+                active: lead.checkbox
+
+                sourceComponent: DIcon {
+                    name: root.selected ? "check_box" : "check_box_outline_blank"
+                    filled: root.selected
+                    size: Theme.iconSize
+                    color: root.selected ? Theme.primary : root.supportingContentColor
+                    Accessible.role: Accessible.CheckBox
+                    Accessible.name: I18n.tr("Select", "track row checkbox")
+                    Accessible.checked: root.selected
+                }
             }
 
             // the drag image: a chip with the title or the count, built only while dragging

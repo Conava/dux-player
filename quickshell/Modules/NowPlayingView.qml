@@ -127,6 +127,8 @@ Rectangle {
 
     Loader {
         id: player
+        // over the pane beside it, which it covers as it widens on close
+        z: 1
         anchors.left: parent.left
         anchors.top: closeButton.bottom
         anchors.bottom: parent.bottom
@@ -164,10 +166,9 @@ Rectangle {
         }
     }
 
-    // the right half, where the card's half width leaves room; below the card, which covers it as it widens on close
+    // the right half, where the card's half width leaves room
     Loader {
         x: I18n.isRtl ? Theme.spacingXL : parent.width / 2
-        z: -1
         width: parent.width / 2 - Theme.spacingXL
         anchors.top: player.top
         anchors.bottom: parent.bottom

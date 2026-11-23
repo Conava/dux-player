@@ -30,13 +30,14 @@ Item {
         onWheel: scroll.pending = -1
     }
 
-    // Home stays built while hidden: it only follows the route while it shows, and registers again on return
-    function isKeptHome() {
+    // Home and the kept pages stay built while hidden: they only follow the route while they show, and register
+    // again on return. "" for a page that is rebuilt on each visit.
+    function keptRoute(): string {
         for (let p = view; p; p = p.parent) {
-            if (p.objectName === "keptHome")
-                return true;
+            if (p.objectName.startsWith("kept:"))
+                return p.objectName.slice(5);
         }
-        return false;
+        return "";
     }
 
     function room() {
@@ -55,8 +56,9 @@ Item {
     onRouteChanged: {
         if (!ready)
             return;
-        if (isKeptHome()) {
-            if (Router.page !== "home")
+        const kept = keptRoute();
+        if (kept !== "") {
+            if (Router.route !== kept)
                 return;
             Router.pageScroll = scroll;
         }
@@ -88,8 +90,15 @@ Item {
     onViewHeightChanged: Qt.callLater(apply)
 
     Component.onCompleted: {
+        // a kept page built ahead of its visit waits for it
+        const kept = keptRoute();
+        if (kept !== "" && kept !== Router.route) {
+            ready = true;
+            return;
+        }
         Router.pageScroll = scroll;
-        pending = Router.restoreOffset;
+        // a kept page builds asynchronously, after the route change has cleared restoreOffset
+        pending = kept !== "" ? Router.arrivalOffset : Router.restoreOffset;
         ready = true;
         Qt.callLater(apply);
     }

@@ -19,6 +19,7 @@ feel|HEADLESS_TIMEOUT=600|^quickshell/Modules/(QueueList|TrackList|AlbumArt|Text
 snappy|SERVER=1|^quickshell/Modules/(MainWindow|NowPlaying[A-Za-z]*|[A-Za-z]*Page|[A-Za-z]*Dialog|MediaMenu|MediaTile|MediaRow)\.qml$|^quickshell/Services/(Playlist|Settings|Catalog)Service\.qml$
 scroll||^quickshell/Modules/([A-Za-z]*Page|PageScroll|TrackList)\.qml$|^quickshell/Common/WheelInput\.js$
 navigation||^quickshell/Modules/(Router|MainWindow)\.qml$
+switch||^quickshell/Modules/(Router|MainWindow|BrowsePage|HomePage|PageScroll|MediaTile|MediaArt|AlbumArt|MediaRow|TrackRow|TrackList|ScopedSearch)\.qml$|^quickshell/Services/Catalog(Service\.qml|\.js)$|^quickshell/Widgets/D(IconButton|ActionButton|PressFeedback|ExpandedRail)\.qml$
 player||^quickshell/Modules/(NowPlayingBar|FloatingPlayer|NowPlayingElement|QueueList|NowPlayingView|FullViewBackground|PaneTabs|LyricsLine|LyricsView|MainWindow)\.qml$|^quickshell/Common/Layouts\.js$|^core/internal/player/player\.go$
 pages|SERVER=1 HEADLESS_TIMEOUT=600|^quickshell/Modules/(MediaTile|Shelf|ShelfHeader|SpeedDialShelf|GenreChipsShelf|PageTint|AlbumPage|ArtistPage|PlaylistPage|DetailHero|BrowsePage|MainWindow|HomePage|TrackList)\.qml$|^quickshell/Widgets/DLetterIndex\.qml$|^quickshell/Common/Letters\.js$
 keys||^quickshell/Modules/(MainWindow|EscapeLayer|[A-Za-z]*Dialog|[A-Za-z]*Sheet|SearchBox|ScopedSearch)\.qml$|^quickshell/Common/EscapeStack\.js$|^quickshell/Widgets/
@@ -41,7 +42,7 @@ reorder||^quickshell/Modules/Settings/PagesSettings\.qml$|^quickshell/Widgets/D(
 smoke||^core/internal/window/window\.go$|^core/cmd/dplayer/qs\.go$
 '
 # these measure frame gaps and click timing, which a loaded machine fails: they run first, one at a time
-ALONE=" motion snappy navigation player feel "
+ALONE=" motion snappy navigation player feel switch "
 # a change here runs every scenario
 HARNESS='^scripts/headless/(run\.sh|session\.sh|lib\.sh|audio\.sh|sweep\.sh|fakesubsonic\.py|ptr\.c|vp\.xml)$'
 # UI code no row names runs one scenario that loads the whole window and fails on QML errors

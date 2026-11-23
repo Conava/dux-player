@@ -188,7 +188,11 @@ Item {
         // M3WaveProgress eases its amplitude itself; on pause the wave keeps moving until it is flat. currentAmp
         // depends on isPlaying, so it is read later: set at once, it loops when the amplitude doesn't animate
         isPlaying: root.shown && (root.playing || root.waveMoving)
-        onCurrentAmpChanged: Qt.callLater(() => root.waveMoving = wave.currentAmp > 0)
+        // the seekbar can be gone by then, with its page
+        onCurrentAmpChanged: Qt.callLater(() => {
+            if (wave)
+                root.waveMoving = wave.currentAmp > 0;
+        })
         amp: root.playing ? (root.expressive ? PlayerMetrics.mediaSeekbarExpressiveAmplitude : root.flatBarAmplitude) : 0
 
         Binding on lineWidth {

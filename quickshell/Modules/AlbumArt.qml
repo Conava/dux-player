@@ -90,21 +90,32 @@ ClippingRectangle {
     radius: Theme.cornerRadiusM
     Accessible.ignored: true
 
-    DMaterialShape {
-        anchors.centerIn: parent
-        visible: !root.showsCover && root.pair !== null
-        width: Math.round(parent.width * PlayerMetrics.artShapeRatio)
-        height: width
-        shape: root.shape
-        color: root.pair?.onContainer ?? Theme.onSecondaryContainer
+    // built on a later frame and only while shown: the shape costs about as much as the rest of the art
+    Loader {
+        anchors.fill: parent
+        active: !root.showsCover && root.pair !== null
+        asynchronous: true
+
+        sourceComponent: DMaterialShape {
+            anchors.centerIn: parent
+            width: Math.round(parent.width * PlayerMetrics.artShapeRatio)
+            height: width
+            shape: root.shape
+            color: root.pair?.onContainer ?? Theme.onSecondaryContainer
+        }
     }
 
-    DIcon {
-        anchors.centerIn: parent
-        visible: !root.showsCover && root.pair === null
-        name: root.placeholderIcon
-        size: Math.round(parent.width * PlayerMetrics.artShapeRatio)
-        color: Theme.onSecondaryContainer
+    Loader {
+        anchors.fill: parent
+        active: !root.showsCover && root.pair === null
+        asynchronous: true
+
+        sourceComponent: DIcon {
+            anchors.centerIn: parent
+            name: root.placeholderIcon
+            size: Math.round(parent.width * PlayerMetrics.artShapeRatio)
+            color: Theme.onSecondaryContainer
+        }
     }
 
     Image {

@@ -561,45 +561,169 @@ DFloatingWindow {
                             radius: PlayerMetrics.paneRadius
                             color: SettingsMetrics.paneColor
                             clip: true
+                            objectName: "pagePane"
 
-                            // the page loaders stay synchronous: a DTextField in an incubating page runs its change handlers before its motions exist
-                            readonly property bool homeWanted: Router.page === "home"
-                            // Home is built once and kept, hidden, so going back to it is instant
-                            property bool homeBuilt: false
-                            // Home shows until the page that replaces it is built, then fades out
-                            property bool homeShown: false
-                            // the loader whose page is entering, and the route it entered for
-                            property Item entering: null
+                            // Home and the browse pages (albums, artists, tracks, playlists, favorites, custom pages, …) stay built
+                            // while hidden, the last keptMax of them, so going back to one only shows it; other pages are rebuilt on
+                            // each visit. A kept page is built asynchronously, so the window keeps drawing while it builds.
+                            readonly property int keptMax: 8
+                            // route -> its kept Loader, and the kept routes from the least recently shown on
+                            property var kept: ({})
+                            property var keptOrder: []
+                            // the other pages' Loader source
+                            property string transientSource: ""
+                            // the loader for the route, the one showing, the one fading out under it and the one entering
+                            property Loader wanted: null
+                            property Loader shown: null
+                            property Loader leaving: null
+                            property Loader entering: null
                             property string enteredRoute: ""
                             // Back and Forward settle in from slightly larger, a new visit from slightly smaller
                             property real enterScale: PlayerMetrics.pageEnterScale
                             // the final size, so the page lays out once while the panel and bar slide
                             readonly property real pageWidth: Math.max(0, main.finalWidth - (sideHost.overlay || !sideHost.shown ? 0 : sideHost.fullWidth + Theme.windowInset))
                             readonly property real pageHeight: Math.max(0, pages.height - topBar.height - Theme.windowInset - (bottomBar.shown && !window.floatingBar ? bottomBar.height + Theme.windowInset : 0))
+                            readonly property string route: Router.route
+                            readonly property bool switching: Router.switching
+                            onRouteChanged: {
+                                if (!Router.switching)
+                                    follow();
+                            }
+                            onSwitchingChanged: {
+                                if (!Router.switching)
+                                    follow();
+                            }
+                            Component.onCompleted: follow()
 
-                            onHomeWantedChanged: {
-                                if (!homeWanted)
+                            function sourceOf(page: string): string {
+                                switch (page) {
+                                case "home":
+                                    return "HomePage.qml";
+                                case "album":
+                                    return "AlbumPage.qml";
+                                case "artist":
+                                    return "ArtistPage.qml";
+                                case "playlist":
+                                    return "PlaylistPage.qml";
+                                case "libraries":
+                                    return "LibrariesPage.qml";
+                                case "search":
+                                    return "SearchPage.qml";
+                                case "history":
+                                    return "HistoryPage.qml";
+                                case "stats":
+                                    return "StatisticsPage.qml";
+                                }
+                                return "BrowsePage.qml";
+                            }
+
+                            // the loader for the route, built or found
+                            function follow() {
+                                wanted = null;
+                                const page = Router.page;
+                                const source = sourceOf(page);
+                                if (keeps(source)) {
+                                    const route = Router.route;
+                                    // the first page of the window is built at once
+                                    const loader = (kept[route] as Loader) ?? build(route, page, Router.itemId, source, shown !== null);
+                                    keptOrder = keptOrder.filter(r => r !== route).concat([route]);
+                                    wanted = loader;
+                                    evict();
+                                } else {
+                                    transientSource = source;
+                                    wanted = pageLoader;
+                                }
+                                settle();
+                            }
+
+                            function keeps(source: string): bool {
+                                return source === "HomePage.qml" || source === "BrowsePage.qml";
+                            }
+
+                            function build(route: string, page: string, itemId: string, source: string, async: bool): Loader {
+                                const loader = keptPage.createObject(contentPane, {
+                                    "route": route,
+                                    "asynchronous": async,
+                                    "width": pageWidth,
+                                    "height": pageHeight
+                                }) as Loader;
+                                loader.setSource(source, source === "HomePage.qml" ? {} : {
+                                    "page": page,
+                                    "itemId": itemId
+                                });
+                                kept[route] = loader;
+                                return loader;
+                            }
+
+                            // the navigation entries' pages are built ahead, one at a time once the window shows a page, so a first
+                            // visit only shows its page too
+                            readonly property var navEntries: Router.navEntries
+                            onNavEntriesChanged: prebuildTimer.restart()
+                            function prebuild() {
+                                if (!shown || !CatalogService.librariesLoaded || Object.keys(kept).some(r => kept[r].status === Loader.Loading))
                                     return;
-                                homeBuilt = true;
-                                homeShown = true;
-                                homeExit.stop();
+                                for (const entry of navEntries) {
+                                    const to = UiConfig.entryRoute(entry);
+                                    const route = to.page + "/" + to.itemId;
+                                    const source = sourceOf(to.page);
+                                    if (!keeps(source) || kept[route])
+                                        continue;
+                                    if (keptOrder.length >= keptMax)
+                                        return;
+                                    build(route, to.page, to.itemId, source, true);
+                                    // the first to go when a visited page needs the room
+                                    keptOrder = [route].concat(keptOrder);
+                                    return;
+                                }
                             }
-                            Component.onCompleted: {
-                                homeBuilt = homeWanted;
-                                homeShown = homeWanted;
+
+                            Timer {
+                                id: prebuildTimer
+                                interval: PlayerMetrics.prebuildDelay
+                                running: contentPane.shown !== null && CatalogService.librariesLoaded
+                                onTriggered: contentPane.prebuild()
                             }
-                            // starts the shown page's enter once it is built; the page left (Home, which stays) fades out
+
+                            // drops the least recently shown kept pages beyond keptMax, never one in use
+                            function evict() {
+                                const busy = [wanted, shown, leaving];
+                                let order = keptOrder;
+                                while (order.length > keptMax) {
+                                    const route = order.find(r => busy.indexOf(kept[r]) < 0);
+                                    if (route === undefined)
+                                        break;
+                                    kept[route].destroy();
+                                    delete kept[route];
+                                    order = order.filter(r => r !== route);
+                                }
+                                keptOrder = order;
+                            }
+
+                            // shows the wanted page once it is built and starts its enter; a kept page left fades out under it
                             function settle() {
-                                const loader = homeWanted ? homeLoader : pageLoader;
-                                if (loader.status !== Loader.Ready || enteredRoute === Router.route)
+                                const loader = wanted;
+                                if (!loader || loader.status !== Loader.Ready || enteredRoute === Router.route)
                                     return;
                                 const first = enteredRoute === "";
                                 enteredRoute = Router.route;
-                                if (first || !Theme.animationsEnabled) {
-                                    if (loader === pageLoader)
-                                        homeShown = false;
-                                    return;
+                                const previous = shown;
+                                shown = loader;
+                                const animate = !first && Theme.animationsEnabled;
+                                if (previous && previous !== loader) {
+                                    pageExit.stop();
+                                    if (previous === pageLoader)
+                                        transientSource = "";
+                                    else if (animate) {
+                                        if (entering === previous) {
+                                            pageEnter.stop();
+                                            previous.scale = 1;
+                                        }
+                                        leaving = previous;
+                                        pageExit.start();
+                                    }
                                 }
+                                if (!animate)
+                                    return;
                                 if (entering && entering !== loader) {
                                     entering.opacity = 1;
                                     entering.scale = 1;
@@ -607,67 +731,49 @@ DFloatingWindow {
                                 entering = loader;
                                 enterScale = Router.historyStep ? PlayerMetrics.pageBackScale : PlayerMetrics.pageEnterScale;
                                 pageEnter.restart();
-                                if (loader !== pageLoader)
-                                    return;
-                                // Router sets the page and then its id, so a visit can settle twice; a restart would hide Home at once
-                                if (homeShown && !homeExit.running)
-                                    homeExit.start();
                             }
 
-                            Loader {
-                                id: homeLoader
-                                objectName: "keptHome"
-                                active: contentPane.homeBuilt
-                                visible: contentPane.homeShown
-                                enabled: contentPane.homeWanted
-                                anchors.left: parent.left
-                                anchors.top: parent.top
-                                source: "HomePage.qml"
-                                onStatusChanged: contentPane.settle()
+                            Component {
+                                id: keptPage
 
-                                // a hidden Home still lays out on every resize, which stalls a docking panel on any page
-                                Binding on width {
-                                    when: contentPane.homeShown
-                                    value: contentPane.pageWidth
-                                    restoreMode: Binding.RestoreNone
-                                }
-                                Binding on height {
-                                    when: contentPane.homeShown
-                                    value: contentPane.pageHeight
-                                    restoreMode: Binding.RestoreNone
+                                Loader {
+                                    id: keptLoader
+                                    required property string route
+                                    // PageScroll finds a kept page and its route by it
+                                    objectName: "kept:" + route
+                                    visible: contentPane.shown === keptLoader || contentPane.leaving === keptLoader
+                                    enabled: contentPane.shown === keptLoader
+                                    anchors.left: parent?.left
+                                    anchors.top: parent?.top
+                                    onStatusChanged: {
+                                        contentPane.settle();
+                                        if (status === Loader.Ready)
+                                            Qt.callLater(contentPane.prebuild);
+                                    }
+
+                                    // a hidden page still lays out on every resize, which stalls a docking panel on any page
+                                    Binding on width {
+                                        when: keptLoader.visible
+                                        value: contentPane.pageWidth
+                                        restoreMode: Binding.RestoreNone
+                                    }
+                                    Binding on height {
+                                        when: keptLoader.visible
+                                        value: contentPane.pageHeight
+                                        restoreMode: Binding.RestoreNone
+                                    }
                                 }
                             }
 
                             Loader {
                                 id: pageLoader
-                                readonly property string route: Router.route
-                                // a turn later, so the source and status have followed the route
-                                onRouteChanged: Qt.callLater(contentPane.settle)
-                                active: !contentPane.homeWanted
+                                active: contentPane.transientSource !== ""
                                 anchors.left: parent.left
                                 anchors.top: parent.top
                                 width: contentPane.pageWidth
                                 height: contentPane.pageHeight
                                 onStatusChanged: contentPane.settle()
-                                source: {
-                                    switch (Router.page) {
-                                    case "album":
-                                        return "AlbumPage.qml";
-                                    case "artist":
-                                        return "ArtistPage.qml";
-                                    case "playlist":
-                                        return "PlaylistPage.qml";
-                                    case "libraries":
-                                        return "LibrariesPage.qml";
-                                    case "search":
-                                        return "SearchPage.qml";
-                                    case "history":
-                                        return "HistoryPage.qml";
-                                    case "stats":
-                                        return "StatisticsPage.qml";
-                                    }
-                                    return "BrowsePage.qml";
-                                }
+                                source: contentPane.transientSource
                             }
 
                             ParallelAnimation {
@@ -693,8 +799,8 @@ DFloatingWindow {
                             }
 
                             NumberAnimation {
-                                id: homeExit
-                                target: homeLoader
+                                id: pageExit
+                                target: contentPane.leaving
                                 property: "opacity"
                                 from: 1
                                 to: 0
@@ -703,9 +809,10 @@ DFloatingWindow {
                                 easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
                                 // the hidden page starts over at full opacity
                                 onStopped: {
-                                    homeLoader.opacity = 1;
-                                    if (!contentPane.homeWanted)
-                                        contentPane.homeShown = false;
+                                    if (!contentPane.leaving)
+                                        return;
+                                    contentPane.leaving.opacity = 1;
+                                    contentPane.leaving = null;
                                 }
                             }
                         }

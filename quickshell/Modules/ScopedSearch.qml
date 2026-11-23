@@ -18,6 +18,7 @@ DSearchField {
     backgroundColor: Theme.chipSurface
     normalBorderColor: Theme.outlineVariant
     onVisibleChanged: claim()
+    onEnabledChanged: claim()
     Component.onCompleted: claim()
     Component.onDestruction: {
         if (Router.pageSearch === root)
@@ -35,8 +36,9 @@ DSearchField {
         }
     }
 
+    // a page fading out under the next one is disabled and gives up the field
     function claim() {
-        if (visible && pageField)
+        if (visible && enabled && pageField)
             Router.pageSearch = root;
         else if (Router.pageSearch === root)
             Router.pageSearch = null;

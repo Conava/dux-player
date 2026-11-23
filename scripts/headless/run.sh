@@ -257,7 +257,7 @@ cat >>"$W/tree/shell.qml" <<'Q'
             return {
                 bar: all.find(i => i.barReveal !== undefined),
                 host: all.find(i => i.fullWidth !== undefined),
-                page: all.find(i => i.route !== undefined),
+                page: all.find(i => i.objectName === "pagePane")?.shown ?? null,
                 card: all.find(i => i.sourcePos !== undefined),
                 view: all.find(i => typeof i.entry === "number")
             };
@@ -641,7 +641,7 @@ cat >>"$W/tree/shell.qml" <<'Q'
                     walk(child);
             };
             walk(frameProbe.window().contentItem);
-            const loaders = all.find(i => i.objectName === "keptHome").parent.children.filter(c => c.sourceComponent !== undefined);
+            const loaders = all.find(i => i.objectName === "pagePane").children.filter(c => c.sourceComponent !== undefined);
             frameProbe.tracked = () => JSON.stringify([sample(), loaders.map(l => [l.opacity, l.scale, l.visible, String(l.item)])]);
             frameProbe.samples = [frameProbe.tracked()];
             frameProbe.startTiming(frameProbe.window());

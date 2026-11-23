@@ -62,7 +62,7 @@
   {
     "term": "%1 (copy)",
     "context": "%1 (copy)",
-    "reference": "Modules/BrowsePage.qml:552, Services/PlaylistService.qml:188",
+    "reference": "Modules/BrowsePage.qml:559, Services/PlaylistService.qml:188",
     "comment": "name of a duplicated custom page | name of a duplicated playlist"
   },
   {
@@ -254,7 +254,7 @@
   {
     "term": "%1 of %2",
     "context": "%1 of %2",
-    "reference": "Modules/BrowsePage.qml:464, Modules/Settings/DownloadsSettings.qml:107, Modules/Settings/DownloadsSettings.qml:202",
+    "reference": "Modules/BrowsePage.qml:471, Modules/Settings/DownloadsSettings.qml:107, Modules/Settings/DownloadsSettings.qml:202",
     "comment": "browse page count on a filtered page, %2 is the whole count with its noun: 312 of 1105 tracks | offline rule progress: cached of all, %2 is a track count | storage usage: used of limit"
   },
   {
@@ -374,7 +374,7 @@
   {
     "term": "%1, loading more…",
     "context": "%1, loading more…",
-    "reference": "Modules/BrowsePage.qml:465",
+    "reference": "Modules/BrowsePage.qml:472",
     "comment": "browse page item count while tracks still load"
   },
   {
@@ -566,7 +566,7 @@
   {
     "term": "Add a music folder or server.",
     "context": "Add a music folder or server.",
-    "reference": "Modules/BrowsePage.qml:647, Modules/HomePage.qml:157, Modules/LibrariesPage.qml:45",
+    "reference": "Modules/BrowsePage.qml:654, Modules/HomePage.qml:157, Modules/LibrariesPage.qml:45",
     "comment": "home empty state when no library is set up"
   },
   {
@@ -620,7 +620,7 @@
   {
     "term": "Add library",
     "context": "Add library",
-    "reference": "Modules/BrowsePage.qml:657, Modules/HomePage.qml:158, Modules/LibrariesPage.qml:46, Modules/Settings/LibrariesSettings.qml:150, Modules/Settings/LibraryDialog.qml:80",
+    "reference": "Modules/BrowsePage.qml:664, Modules/HomePage.qml:158, Modules/LibrariesPage.qml:46, Modules/Settings/LibrariesSettings.qml:150, Modules/Settings/LibraryDialog.qml:80",
     "comment": "libraries settings primary action"
   },
   {
@@ -668,7 +668,7 @@
   {
     "term": "Add to home",
     "context": "Add to home",
-    "reference": "Common/UiConfig.qml:1324, Modules/BrowsePage.qml:495",
+    "reference": "Common/UiConfig.qml:1324, Modules/BrowsePage.qml:502",
     "comment": "page header action adding a home shelf"
   },
   {
@@ -698,13 +698,13 @@
   {
     "term": "Added automatically",
     "context": "Added automatically",
-    "reference": "Modules/QueueList.qml:565, Modules/RowEnd.qml:262",
+    "reference": "Modules/QueueList.qml:565, Modules/RowEnd.qml:281",
     "comment": "queue row: a track the queue continued with"
   },
   {
     "term": "Added manually",
     "context": "Added manually",
-    "reference": "Modules/QueueList.qml:565, Modules/RowEnd.qml:271",
+    "reference": "Modules/QueueList.qml:565, Modules/RowEnd.qml:290",
     "comment": "queue row: a track put in with play next or add to queue"
   },
   {
@@ -812,13 +812,13 @@
   {
     "term": "All genres",
     "context": "All genres",
-    "reference": "Modules/BrowsePage.qml:49",
+    "reference": "Modules/BrowsePage.qml:54",
     "comment": "page edit scope"
   },
   {
     "term": "All libraries",
     "context": "All libraries",
-    "reference": "Modules/BrowsePage.qml:64, Modules/PageEditor.qml:689, Modules/PageEditor.qml:690",
+    "reference": "Modules/BrowsePage.qml:69, Modules/PageEditor.qml:689, Modules/PageEditor.qml:690",
     "comment": "library filter chip | page edit scope"
   },
   {
@@ -860,7 +860,7 @@
   {
     "term": "Already on home",
     "context": "Already on home",
-    "reference": "Modules/BrowsePage.qml:495, Modules/MediaMenu.qml:102",
+    "reference": "Modules/BrowsePage.qml:502, Modules/MediaMenu.qml:102",
     "comment": "an item that is already a home shelf"
   },
   {
@@ -1088,7 +1088,7 @@
   {
     "term": "Available offline",
     "context": "Available offline",
-    "reference": "Modules/RowEnd.qml:209",
+    "reference": "Modules/RowEnd.qml:228",
     "comment": "track row cloud icon while the server is down"
   },
   {
@@ -1436,7 +1436,7 @@
   {
     "term": "Clear filters",
     "context": "Clear filters",
-    "reference": "Modules/BrowsePage.qml:656",
+    "reference": "Modules/BrowsePage.qml:663",
     "comment": "browse empty state action"
   },
   {
@@ -1484,7 +1484,7 @@
   {
     "term": "Collection tiles",
     "context": "Collection tiles",
-    "reference": "Modules/BrowsePage.qml:578",
+    "reference": "Modules/BrowsePage.qml:585",
     "comment": "page edit mode: Favorites, Most played, History and Downloads as tiles above the playlists"
   },
   {
@@ -1652,7 +1652,7 @@
   {
     "term": "Couldn't add to the queue",
     "context": "Couldn't add to the queue",
-    "reference": "Modules/Router.qml:491, Services/CatalogService.qml:756, Services/PlayerService.qml:401, Services/PlaylistService.qml:309",
+    "reference": "Modules/Router.qml:498, Services/CatalogService.qml:756, Services/PlayerService.qml:401, Services/PlaylistService.qml:309",
     "comment": "toast when adding tracks to the play queue fails"
   },
   {
@@ -1946,7 +1946,7 @@
   {
     "term": "Couldn't restore the queue order",
     "context": "Couldn't restore the queue order",
-    "reference": "Modules/Router.qml:499",
+    "reference": "Modules/Router.qml:506",
     "comment": "toast when undoing a queue removal can't put a track back in place"
   },
   {
@@ -2258,13 +2258,13 @@
   {
     "term": "Delete",
     "context": "Delete",
-    "reference": "Common/UiConfig.qml:1328, Modules/PageEditor.qml:1012, Modules/Router.qml:521, Modules/Settings/DownloadedTracks.qml:296, Modules/Settings/DownloadedTracks.qml:319",
+    "reference": "Common/UiConfig.qml:1328, Modules/PageEditor.qml:1012, Modules/Router.qml:528, Modules/Settings/DownloadedTracks.qml:296, Modules/Settings/DownloadedTracks.qml:319",
     "comment": "confirm button that deletes an item"
   },
   {
     "term": "Delete \"%1\"?",
     "context": "Delete \"%1\"?",
-    "reference": "Modules/Router.qml:521, Modules/Settings/DownloadedTracks.qml:173",
+    "reference": "Modules/Router.qml:528, Modules/Settings/DownloadedTracks.qml:173",
     "comment": "delete playlist confirmation title"
   },
   {
@@ -2294,7 +2294,7 @@
   {
     "term": "Deleted \"%1\"",
     "context": "Deleted \"%1\"",
-    "reference": "Modules/Router.qml:515, Modules/Settings/DownloadedTracks.qml:157",
+    "reference": "Modules/Router.qml:522, Modules/Settings/DownloadedTracks.qml:157",
     "comment": "toast after deleting a playlist"
   },
   {
@@ -2312,7 +2312,7 @@
   {
     "term": "Deletes the playlist from %1 on all devices. Tracks stay in their libraries.",
     "context": "Deletes the playlist from %1 on all devices. Tracks stay in their libraries.",
-    "reference": "Modules/Router.qml:521",
+    "reference": "Modules/Router.qml:528",
     "comment": "delete server playlist confirmation"
   },
   {
@@ -2432,7 +2432,7 @@
   {
     "term": "Downloads",
     "context": "Downloads",
-    "reference": "Modules/BrowsePage.qml:614, Modules/Settings/LibraryPage.qml:282, Modules/Settings/SettingsWindow.qml:44",
+    "reference": "Modules/BrowsePage.qml:621, Modules/Settings/LibraryPage.qml:282, Modules/Settings/SettingsWindow.qml:44",
     "comment": "the offline downloads: page, settings tab"
   },
   {
@@ -2816,7 +2816,7 @@
   {
     "term": "File (.m3u, .m3u8 or .pls)",
     "context": "File (.m3u, .m3u8 or .pls)",
-    "reference": "Modules/BrowsePage.qml:475",
+    "reference": "Modules/BrowsePage.qml:482",
     "comment": "playlist import path field"
   },
   {
@@ -2846,7 +2846,7 @@
   {
     "term": "Filters cleared",
     "context": "Filters cleared",
-    "reference": "Modules/BrowsePage.qml:361",
+    "reference": "Modules/BrowsePage.qml:368",
     "comment": "toast after clearing a page's filter rules"
   },
   {
@@ -3146,7 +3146,7 @@
   {
     "term": "Group by location",
     "context": "Group by location",
-    "reference": "Modules/BrowsePage.qml:569",
+    "reference": "Modules/BrowsePage.qml:576",
     "comment": "page edit mode: playlists under On this device and On <server>"
   },
   {
@@ -3272,7 +3272,7 @@
   {
     "term": "Import",
     "context": "Import",
-    "reference": "Modules/BrowsePage.qml:471, Modules/BrowsePage.qml:475",
+    "reference": "Modules/BrowsePage.qml:478, Modules/BrowsePage.qml:482",
     "comment": "button that imports a file"
   },
   {
@@ -3284,7 +3284,7 @@
   {
     "term": "Import playlist",
     "context": "Import playlist",
-    "reference": "Modules/BrowsePage.qml:475",
+    "reference": "Modules/BrowsePage.qml:482",
     "comment": "playlists page action"
   },
   {
@@ -3926,7 +3926,7 @@
   {
     "term": "More",
     "context": "More",
-    "reference": "Common/UiConfig.qml:1338, Modules/AlbumPage.qml:172, Modules/ArtistPage.qml:247, Modules/MainWindow.qml:312, Modules/MediaTile.qml:181, Modules/NowPlayingZone.qml:512, Modules/PlaylistPage.qml:117, Modules/QueueList.qml:386, Modules/RowEnd.qml:299",
+    "reference": "Common/UiConfig.qml:1338, Modules/AlbumPage.qml:172, Modules/ArtistPage.qml:247, Modules/MainWindow.qml:312, Modules/MediaTile.qml:211, Modules/NowPlayingZone.qml:512, Modules/PlaylistPage.qml:117, Modules/QueueList.qml:386, Modules/RowEnd.qml:318",
     "comment": "track row menu button"
   },
   {
@@ -3986,7 +3986,7 @@
   {
     "term": "Move window",
     "context": "Move window",
-    "reference": "Modules/MainWindow.qml:921, Modules/Settings/SettingsWindow.qml:557",
+    "reference": "Modules/MainWindow.qml:1028, Modules/Settings/SettingsWindow.qml:557",
     "comment": "drag handle of the full view"
   },
   {
@@ -4094,7 +4094,7 @@
   {
     "term": "New playlist",
     "context": "New playlist",
-    "reference": "Modules/AddToPlaylistDialog.qml:89, Modules/BrowsePage.qml:910, Modules/NewPlaylistDialog.qml:49",
+    "reference": "Modules/AddToPlaylistDialog.qml:89, Modules/BrowsePage.qml:917, Modules/NewPlaylistDialog.qml:49",
     "comment": "action and dialog that create a playlist"
   },
   {
@@ -4124,13 +4124,13 @@
   {
     "term": "No albums",
     "context": "No albums",
-    "reference": "Modules/BrowsePage.qml:367",
+    "reference": "Modules/BrowsePage.qml:374",
     "comment": "browse page empty state"
   },
   {
     "term": "No artists",
     "context": "No artists",
-    "reference": "Modules/BrowsePage.qml:369",
+    "reference": "Modules/BrowsePage.qml:376",
     "comment": "browse page empty state"
   },
   {
@@ -4172,13 +4172,13 @@
   {
     "term": "No favorites. Use the heart to add some.",
     "context": "No favorites. Use the heart to add some.",
-    "reference": "Modules/BrowsePage.qml:649",
+    "reference": "Modules/BrowsePage.qml:656",
     "comment": "favorites empty state"
   },
   {
     "term": "No genres",
     "context": "No genres",
-    "reference": "Modules/BrowsePage.qml:373",
+    "reference": "Modules/BrowsePage.qml:380",
     "comment": "browse page empty state"
   },
   {
@@ -4220,7 +4220,7 @@
   {
     "term": "No music",
     "context": "No music",
-    "reference": "Modules/BrowsePage.qml:640, Modules/HomePage.qml:156",
+    "reference": "Modules/BrowsePage.qml:647, Modules/HomePage.qml:156",
     "comment": "home empty state title when no library is set up"
   },
   {
@@ -4232,7 +4232,7 @@
   {
     "term": "No playlists",
     "context": "No playlists",
-    "reference": "Modules/BrowsePage.qml:371, Services/CatalogService.qml:199",
+    "reference": "Modules/BrowsePage.qml:378, Services/CatalogService.qml:199",
     "comment": "browse page empty state | library feature missing"
   },
   {
@@ -4262,7 +4262,7 @@
   {
     "term": "No tracks",
     "context": "No tracks",
-    "reference": "Modules/BrowsePage.qml:375",
+    "reference": "Modules/BrowsePage.qml:382",
     "comment": "browse page empty state"
   },
   {
@@ -4334,7 +4334,7 @@
   {
     "term": "Not connected to the player",
     "context": "Not connected to the player",
-    "reference": "Common/Phrases.qml:232, Modules/MainWindow.qml:898",
+    "reference": "Common/Phrases.qml:232, Modules/MainWindow.qml:1005",
     "comment": "main window state when the daemon is unreachable | why a request to the player daemon failed"
   },
   {
@@ -4418,7 +4418,7 @@
   {
     "term": "Nothing matches these filters.",
     "context": "Nothing matches these filters.",
-    "reference": "Modules/BrowsePage.qml:645",
+    "reference": "Modules/BrowsePage.qml:652",
     "comment": "browse empty state"
   },
   {
@@ -4430,7 +4430,7 @@
   {
     "term": "Nothing played yet.",
     "context": "Nothing played yet.",
-    "reference": "Modules/BrowsePage.qml:651, Modules/HistoryPage.qml:94",
+    "reference": "Modules/BrowsePage.qml:658, Modules/HistoryPage.qml:94",
     "comment": "history and most played empty state"
   },
   {
@@ -4490,7 +4490,7 @@
   {
     "term": "On %1",
     "context": "On %1",
-    "reference": "Modules/BrowsePage.qml:180",
+    "reference": "Modules/BrowsePage.qml:187",
     "comment": "playlists section for one server, %1 is the library name"
   },
   {
@@ -4514,7 +4514,7 @@
   {
     "term": "On this device",
     "context": "On this device",
-    "reference": "Common/UiConfig.qml:24, Modules/BrowsePage.qml:180",
+    "reference": "Common/UiConfig.qml:24, Modules/BrowsePage.qml:187",
     "comment": "playlists section for local playlists"
   },
   {
@@ -4598,7 +4598,7 @@
   {
     "term": "Other",
     "context": "Other",
-    "reference": "Modules/BrowsePage.qml:170, Modules/StatisticsPage.qml:516",
+    "reference": "Modules/BrowsePage.qml:177, Modules/StatisticsPage.qml:516",
     "comment": "custom page group of the items that have no value to group by"
   },
   {
@@ -4766,7 +4766,7 @@
   {
     "term": "Play %1",
     "context": "Play %1",
-    "reference": "Modules/MediaTile.qml:147, Modules/RowEnd.qml:243",
+    "reference": "Modules/MediaTile.qml:173, Modules/RowEnd.qml:262",
     "comment": "play button, %1 is the album or playlist"
   },
   {
@@ -4868,7 +4868,7 @@
   {
     "term": "Playing",
     "context": "Playing",
-    "reference": "Modules/MediaTile.qml:54, Modules/NowPlayingSide.qml:24",
+    "reference": "Modules/MediaTile.qml:59, Modules/NowPlayingSide.qml:24",
     "comment": "side panel view: cover art | tile state: the queue plays from this album or playlist"
   },
   {
@@ -5216,7 +5216,7 @@
   {
     "term": "Remove",
     "context": "Remove",
-    "reference": "Modules/DownloadButton.qml:48, Modules/QueueList.qml:404, Modules/Router.qml:540, Modules/RuleEditor.qml:453, Modules/Settings/DownloadsSettings.qml:432, Modules/Settings/DownloadsSettings.qml:450, Modules/Settings/LibraryPage.qml:28, Modules/Settings/LibraryPage.qml:325, Modules/Settings/PagesSettings.qml:400, Modules/Settings/SurfaceEditor.qml:358, Widgets/DInstanceRow.qml:223, Widgets/DZoneEditor.qml:74",
+    "reference": "Modules/DownloadButton.qml:48, Modules/QueueList.qml:404, Modules/Router.qml:547, Modules/RuleEditor.qml:453, Modules/Settings/DownloadsSettings.qml:432, Modules/Settings/DownloadsSettings.qml:450, Modules/Settings/LibraryPage.qml:28, Modules/Settings/LibraryPage.qml:325, Modules/Settings/PagesSettings.qml:400, Modules/Settings/SurfaceEditor.qml:358, Widgets/DInstanceRow.qml:223, Widgets/DZoneEditor.qml:74",
     "comment": "button that removes an item"
   },
   {
@@ -5264,7 +5264,7 @@
   {
     "term": "Remove from %1?",
     "context": "Remove from %1?",
-    "reference": "Modules/Router.qml:468",
+    "reference": "Modules/Router.qml:475",
     "comment": "remove tracks from a playlist confirmation title, %1 is the playlist"
   },
   {
@@ -5294,7 +5294,7 @@
   {
     "term": "Remove from the queue?",
     "context": "Remove from the queue?",
-    "reference": "Modules/Router.qml:484",
+    "reference": "Modules/Router.qml:491",
     "comment": "remove a track from the queue confirmation title"
   },
   {
@@ -5336,13 +5336,13 @@
   {
     "term": "Removed from %1",
     "context": "Removed from %1",
-    "reference": "Modules/Router.qml:470",
+    "reference": "Modules/Router.qml:477",
     "comment": "toast after removing tracks from a playlist, %1 is the playlist"
   },
   {
     "term": "Removed from the queue",
     "context": "Removed from the queue",
-    "reference": "Modules/Router.qml:489",
+    "reference": "Modules/Router.qml:496",
     "comment": "toast after removing a track from the queue"
   },
   {
@@ -5384,7 +5384,7 @@
   {
     "term": "Rename page",
     "context": "Rename page",
-    "reference": "Modules/BrowsePage.qml:547, Modules/PageEditor.qml:773",
+    "reference": "Modules/BrowsePage.qml:554, Modules/PageEditor.qml:773",
     "comment": "custom page action"
   },
   {
@@ -5708,7 +5708,7 @@
   {
     "term": "Save",
     "context": "Save",
-    "reference": "Modules/BrowsePage.qml:547, Modules/MediaMenu.qml:195, Modules/Settings/LibraryPage.qml:102, Modules/Settings/LibraryServerDialog.qml:75, Modules/Settings/OfflineRuleDialog.qml:169, Modules/Settings/PagesSettings.qml:296, Modules/TextPromptDialog.qml:11",
+    "reference": "Modules/BrowsePage.qml:554, Modules/MediaMenu.qml:195, Modules/Settings/LibraryPage.qml:102, Modules/Settings/LibraryServerDialog.qml:75, Modules/Settings/OfflineRuleDialog.qml:169, Modules/Settings/PagesSettings.qml:296, Modules/TextPromptDialog.qml:11",
     "comment": "dialog confirm button"
   },
   {
@@ -5774,7 +5774,7 @@
   {
     "term": "Search albums",
     "context": "Search albums",
-    "reference": "Modules/BrowsePage.qml:141",
+    "reference": "Modules/BrowsePage.qml:146",
     "comment": "Albums page search field"
   },
   {
@@ -5792,7 +5792,7 @@
   {
     "term": "Search artists",
     "context": "Search artists",
-    "reference": "Modules/BrowsePage.qml:143",
+    "reference": "Modules/BrowsePage.qml:148",
     "comment": "Artists page search field"
   },
   {
@@ -5804,19 +5804,19 @@
   {
     "term": "Search favorite albums",
     "context": "Search favorite albums",
-    "reference": "Modules/BrowsePage.qml:132",
+    "reference": "Modules/BrowsePage.qml:137",
     "comment": "Favorites page search field, Albums tab"
   },
   {
     "term": "Search favorite artists",
     "context": "Search favorite artists",
-    "reference": "Modules/BrowsePage.qml:134",
+    "reference": "Modules/BrowsePage.qml:139",
     "comment": "Favorites page search field, Artists tab"
   },
   {
     "term": "Search favorite tracks",
     "context": "Search favorite tracks",
-    "reference": "Modules/BrowsePage.qml:136",
+    "reference": "Modules/BrowsePage.qml:141",
     "comment": "Favorites page search field, Tracks tab"
   },
   {
@@ -5828,13 +5828,13 @@
   {
     "term": "Search genres",
     "context": "Search genres",
-    "reference": "Modules/BrowsePage.qml:149",
+    "reference": "Modules/BrowsePage.qml:154",
     "comment": "Genres page search field"
   },
   {
     "term": "Search in %1",
     "context": "Search in %1",
-    "reference": "Modules/ArtistPage.qml:238, Modules/BrowsePage.qml:151, Modules/PlaylistPage.qml:103",
+    "reference": "Modules/ArtistPage.qml:238, Modules/BrowsePage.qml:156, Modules/PlaylistPage.qml:103",
     "comment": "a page's own search field, %1 is the page, playlist or artist"
   },
   {
@@ -5846,7 +5846,7 @@
   {
     "term": "Search playlists",
     "context": "Search playlists",
-    "reference": "Modules/BrowsePage.qml:147",
+    "reference": "Modules/BrowsePage.qml:152",
     "comment": "Playlists page search field"
   },
   {
@@ -5870,7 +5870,7 @@
   {
     "term": "Search tracks",
     "context": "Search tracks",
-    "reference": "Modules/BrowsePage.qml:145",
+    "reference": "Modules/BrowsePage.qml:150",
     "comment": "Tracks page search field"
   },
   {
@@ -5912,7 +5912,7 @@
   {
     "term": "Select",
     "context": "Select",
-    "reference": "Modules/QueueList.qml:654, Modules/TrackRow.qml:165",
+    "reference": "Modules/QueueList.qml:654, Modules/TrackRow.qml:174",
     "comment": "track row checkbox"
   },
   {
@@ -5990,7 +5990,7 @@
   {
     "term": "Server unreachable",
     "context": "Server unreachable",
-    "reference": "Common/Phrases.qml:154, Modules/RowEnd.qml:209",
+    "reference": "Common/Phrases.qml:154, Modules/RowEnd.qml:228",
     "comment": "track row cloud icon while the server is down | why a server library or its tracks can't be used"
   },
   {
@@ -6152,7 +6152,7 @@
   {
     "term": "Shuffle all",
     "context": "Shuffle all",
-    "reference": "Modules/BrowsePage.qml:621, Modules/SpeedDialShelf.qml:67",
+    "reference": "Modules/BrowsePage.qml:628, Modules/SpeedDialShelf.qml:67",
     "comment": "speed dial tile that shuffles the whole library | tracks page action"
   },
   {
@@ -6542,7 +6542,7 @@
   {
     "term": "Streams from a server",
     "context": "Streams from a server",
-    "reference": "Modules/RowEnd.qml:209",
+    "reference": "Modules/RowEnd.qml:228",
     "comment": "track row cloud icon"
   },
   {
@@ -6836,7 +6836,7 @@
   {
     "term": "The tracks stay in their libraries.",
     "context": "The tracks stay in their libraries.",
-    "reference": "Modules/Router.qml:521",
+    "reference": "Modules/Router.qml:528",
     "comment": "delete local playlist confirmation"
   },
   {
@@ -6878,13 +6878,13 @@
   {
     "term": "This genre",
     "context": "This genre",
-    "reference": "Modules/BrowsePage.qml:49",
+    "reference": "Modules/BrowsePage.qml:54",
     "comment": "page edit scope"
   },
   {
     "term": "This library",
     "context": "This library",
-    "reference": "Modules/BrowsePage.qml:64",
+    "reference": "Modules/BrowsePage.qml:69",
     "comment": "page edit scope"
   },
   {
@@ -7082,7 +7082,7 @@
   {
     "term": "Trying again…",
     "context": "Trying again…",
-    "reference": "Modules/MainWindow.qml:906",
+    "reference": "Modules/MainWindow.qml:1013",
     "comment": "main window state when the daemon is unreachable"
   },
   {

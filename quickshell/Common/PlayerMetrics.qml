@@ -16,6 +16,8 @@ Singleton {
     readonly property real pageEnterScale: 0.92
     // the scale a page settles from when entered by Back or Forward
     readonly property real pageBackScale: 1.04
+    // ms after the first page shows before the navigation entries' pages are built ahead
+    readonly property int prebuildDelay: 1500
     // list rows enter staggered by this step, up to the cap, and rise by listRise
     readonly property real listStaggerStep: Theme.currentAnimationBaseDuration * 0.1
     readonly property real listStaggerMax: Theme.currentAnimationBaseDuration * 1.28

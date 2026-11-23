@@ -16,15 +16,20 @@ import "../Common/Letters.js" as Letters
 Item {
     id: root
 
-    readonly property var savedView: Router.page === "view" ? UiConfig.effective.savedViews.find(v => v.id === Router.itemId) ?? null : null
-    readonly property string libraryShown: Router.page === "library" ? Router.itemId : ""
+    // the route this page shows; a kept page is given its own and stays on it while another one shows
+    property string page: Router.page
+    property string itemId: Router.itemId
+    readonly property bool current: page === Router.page && itemId === Router.itemId
+
+    readonly property var savedView: root.page === "view" ? UiConfig.effective.savedViews.find(v => v.id === root.itemId) ?? null : null
+    readonly property string libraryShown: root.page === "library" ? root.itemId : ""
     // the Favorites tabs in their set order, hidden ones left out
     readonly property var favoriteTabs: (UiConfig.pageOptions("favorites", "")?.sections ?? []).filter(s => !s.hidden).map(s => s.type)
     property string pickedFavorites: ""
     readonly property string favoritesType: favoriteTabs.indexOf(pickedFavorites) >= 0 ? pickedFavorites : favoriteTabs[0] ?? "tracks"
     readonly property var context: {
-        const page = Router.page;
-        const id = Router.itemId;
+        const page = root.page;
+        const id = root.itemId;
         switch (page) {
         case "mostPlayed":
             return {
@@ -108,8 +113,8 @@ Item {
     readonly property string type: context.type
     readonly property string pageItem: context.itemId ?? ""
     readonly property var playContext: ({
-            "type": Router.page === "mostPlayed" || Router.page === "tracks" ? "tracks" : Router.page === "collection" ? type : Router.page,
-            "id": Router.itemId
+            "type": root.page === "mostPlayed" || root.page === "tracks" ? "tracks" : root.page === "collection" ? type : root.page,
+            "id": root.itemId
         })
     readonly property string kind: UiConfig.kindOf(type)
     readonly property var options: {
@@ -123,10 +128,10 @@ Item {
     }, savedView && options.sort === "random" ? {
         "sort": ""
     } : {})
-    readonly property bool editing: Router.editing
+    readonly property bool editing: Router.editing && current
     // a page that lists things searches those things; a page of one item searches in it
     readonly property string searchPlaceholder: {
-        if (Router.page === "favorites") {
+        if (root.page === "favorites") {
             switch (favoritesType) {
             case "albums":
                 return I18n.tr("Search favorite albums", "Favorites page search field, Albums tab");
@@ -135,7 +140,7 @@ Item {
             }
             return I18n.tr("Search favorite tracks", "Favorites page search field, Tracks tab");
         }
-        if (Router.page === type || Router.page === "collection" || context.sort)
+        if (root.page === type || root.page === "collection" || context.sort)
             switch (type) {
             case "albums":
                 return I18n.tr("Search albums", "Albums page search field");
@@ -152,10 +157,12 @@ Item {
     }
     // what the header's search field holds; a new page starts unfiltered
     property string filterText: ""
-    readonly property string pageKey: Router.page + ":" + Router.itemId
     // a custom page's random order holds until it is opened again
     property int shuffleSeed: Date.now() % 1000000007
-    onPageKeyChanged: {
+    // a kept page starts each visit unfiltered, like a new one
+    onCurrentChanged: {
+        if (!current)
+            return;
         filterText = "";
         shuffleSeed = Date.now() % 1000000007;
     }
@@ -193,7 +200,7 @@ Item {
     // no empty state while the list may still arrive
     readonly property bool showEmpty: items.length === 0 && CatalogService.librariesLoaded && !(type === "tracks" && CatalogService.tracksLoading)
     readonly property real tileWidth: options.tileSize === "s" ? PlayerMetrics.tileSizeS : options.tileSize === "l" ? PlayerMetrics.tileSizeL : PlayerMetrics.gridCellWidth
-    readonly property bool isPlaylists: type === "playlists" && Router.page === "playlists"
+    readonly property bool isPlaylists: type === "playlists" && root.page === "playlists"
     readonly property bool collectionTiles: isPlaylists && options.collectionTiles === true && !editing
     readonly property bool hasServer: CatalogService.libraries.some(l => CatalogService.isRemote(l.id))
     readonly property var homeShelves: UiConfig.surface("home")?.zones.shelves ?? []
@@ -217,7 +224,7 @@ Item {
     // bigger edits (a sync, a filter) replace the rows at once
     readonly property int editMax: 12
     readonly property var vanishing: ({})
-    readonly property string viewKey: pageKey + ":" + type + ":" + (options.layout ?? "")
+    readonly property string viewKey: root.page + ":" + root.itemId + ":" + type + ":" + (options.layout ?? "")
     readonly property bool overflows: view !== null && view.contentHeight > view.height
 
     // the row under the letter index's top edge; a gap between rows keeps the last row found
@@ -317,7 +324,7 @@ Item {
         const was = UiConfig.libraryTabs.indexOf(slidFrom);
         const now = UiConfig.libraryTabs.indexOf(shownTab);
         slidFrom = shownTab;
-        if (was < 0 || now < 0 || Router.page !== "collection" || !Theme.animationsEnabled)
+        if (was < 0 || now < 0 || root.page !== "collection" || !Theme.animationsEnabled)
             return;
         tabSlide.from = (now > was ? 1 : -1) * (I18n.isRtl ? -1 : 1) * Theme.spacingXL;
         tabSlide.restart();
@@ -477,7 +484,7 @@ Item {
 
             DButtonGroup {
                 anchors.verticalCenter: parent.verticalCenter
-                visible: Router.page === "favorites" && root.favoriteTabs.length > 1
+                visible: root.page === "favorites" && root.favoriteTabs.length > 1
                 size: "small"
                 model: root.favoriteTabs.map(t => UiConfig.typeLabel(t))
                 currentIndex: root.favoriteTabs.indexOf(root.favoritesType)
@@ -504,7 +511,7 @@ Item {
             readonly property real inset: Theme.focusRingOffset + Theme.focusRingWidth
             x: I18n.isRtl ? 0 : inset
             width: parent.width - inset
-            visible: Router.page === "collection"
+            visible: root.page === "collection"
             showIcons: false
             equalWidthTabs: false
             spacing: 0
@@ -540,8 +547,8 @@ Item {
                 sorts: root.context.sort ? [] : UiConfig.sortChoices(root.type)
                 itemType: root.kind
                 savedView: root.savedView
-                sectionsKind: Router.page === "favorites" ? "favorites" : root.context.kind
-                tabs: Router.page === "favorites" ? UiConfig.pageOptions("favorites", "").sections.map(s => s.type) : []
+                sectionsKind: root.page === "favorites" ? "favorites" : root.context.kind
+                tabs: root.page === "favorites" ? UiConfig.pageOptions("favorites", "").sections.map(s => s.type) : []
                 currentTab: root.favoritesType
                 onTabPicked: tab => root.pickedFavorites = tab
                 onRenameRequested: Router.prompt(I18n.tr("Rename page", "custom page action"), root.savedView.name, I18n.tr("Save", "dialog confirm button"), name => UiConfig.updateSavedView(root.savedView.id, {
@@ -631,23 +638,23 @@ Item {
                     return "search_off";
                 if (root.noMusic)
                     return "library_music";
-                return UiConfig.pageIcon(Router.page === "favorites" || Router.page === "mostPlayed" ? Router.page : root.type);
+                return UiConfig.pageIcon(root.page === "favorites" || root.page === "mostPlayed" ? root.page : root.type);
             }
             title: {
                 if (root.narrowed)
                     return "";
                 if (root.noMusic)
                     return I18n.tr("No music", "home empty state title when no library is set up");
-                return Router.page === "favorites" || Router.page === "mostPlayed" ? "" : root.emptyTitle();
+                return root.page === "favorites" || root.page === "mostPlayed" ? "" : root.emptyTitle();
             }
             text: {
                 if (root.narrowed)
                     return I18n.tr("Nothing matches these filters.", "browse empty state");
                 if (root.noMusic)
                     return I18n.tr("Add a music folder or server.", "home empty state when no library is set up");
-                if (Router.page === "favorites")
+                if (root.page === "favorites")
                     return I18n.tr("No favorites. Use the heart to add some.", "favorites empty state");
-                if (Router.page === "mostPlayed")
+                if (root.page === "mostPlayed")
                     return I18n.tr("Nothing played yet.", "history and most played empty state");
                 return "";
             }
@@ -663,7 +670,7 @@ Item {
 
     Loader {
         id: content
-        asynchronous: Router.page === "collection"
+        asynchronous: root.page === "collection"
         anchors.fill: parent
         anchors.leftMargin: PlayerMetrics.pagePadding
         anchors.rightMargin: PlayerMetrics.pagePadding

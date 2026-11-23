@@ -43,6 +43,8 @@ Row {
     readonly property bool manyLibraries: CatalogService.libraries.filter(l => l.enabled).length > 1
     readonly property string autoIcon: "auto_awesome"
     readonly property color originColor: Theme.success
+    // the heart shows at rest only when set; it is built with the hover buttons otherwise
+    readonly property bool favoriteSet: (favoriteKind === "track" ? CatalogService.withMarks(item) : favoriteKind === "artist" ? CatalogService.withArtistMarks(item) : item)?.favorite === true
     property Item moreButton: null
     // the hover buttons are built the first time the row is hovered or Tab reaches their place; until then a stand-in
     // per button keeps its width and Tab stop
@@ -113,7 +115,7 @@ Row {
             sourceComponent: {
                 switch (modelData.type) {
                 case "favorite":
-                    return favoriteSlot;
+                    return end.built || end.favoriteSet ? favoriteSlot : favoriteStandIn;
                 case "rating":
                     return ratingSlot;
                 case "library":
@@ -136,6 +138,23 @@ Row {
                     return spacerSlot;
                 }
                 return null;
+            }
+
+            // keeps the heart's width and Tab stop until it is built
+            Component {
+                id: favoriteStandIn
+
+                Item {
+                    width: Theme.buttonHeightXS
+                    height: Theme.buttonHeightXS
+                    activeFocusOnTab: !end.header && PlayerService.whyNot("favorite", end.item) === ""
+                    onActiveFocusChanged: {
+                        if (!activeFocus)
+                            return;
+                        end.built = true;
+                        (slot.item as Item)?.forceActiveFocus(Qt.TabFocusReason);
+                    }
+                }
             }
 
             // "Fill" is the large size here; a row's end has no free space to fill
