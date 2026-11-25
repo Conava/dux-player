@@ -89,7 +89,7 @@ Pages, columns and the full view can be customized.
 - dux-qt-base (`libdux-qt-base.so.0`), or [Quickshell](https://quickshell.org) with Qt 6 as the fallback when the library is missing or fails to load; `DPLAYER_QS_CHILD=1` forces Quickshell
 - Recommended: mpv 0.38 or newer. Without it a built-in player plays FLAC, MP3, Ogg Vorbis, Opus, WAV and AIFF through PulseAudio or PipeWire (pipewire-pulse), but not AAC/M4A, ALAC, WavPack, APE or Musepack files; it has no crossfade, speed control, equalizer or several outputs at once, and can't seek in a track the server converts while it plays
 - Go 1.27 to build
-- Optional: ffmpeg (loudness and silence measurement, matching lyrics timing to the audio), PipeWire with WirePlumber (multiple outputs, equalizer, system volume), a Secret Service keyring (server passwords and sign-in tokens), `cast-helper` 0.2.0 or newer (casting), the Discord desktop client (Rich Presence)
+- Optional: ffmpeg (loudness and silence measurement, matching lyrics timing to the audio), PipeWire with WirePlumber (multiple outputs, equalizer, system volume), a Secret Service keyring (server passwords and sign-in tokens), `cast-helper` 0.2.0 or newer (casting), the Discord desktop client (Rich Presence), a CJK font such as Noto Sans CJK (Chinese, Japanese and Korean text)
 
 ## Build and run
 
