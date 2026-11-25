@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest a new feature or improvement. Keep it to one clear topic; vague or broad requests will be closed.
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: feature_description
+    attributes:
+      label: Feature description
+      description: What would you like to see?
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: Why would it be useful to you?
+    validations:
+      required: false
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed solution
+      description: Ideas for how it could look or work, if you have any
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other players or tools that already solve this
+    validations:
+      required: false

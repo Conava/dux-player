@@ -1,0 +1,144 @@
+name: Bug report
+description: Crashes or unexpected behavior
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One issue per report, unless the problems are closely related.
+  - type: textarea
+    id: version
+    attributes:
+      label: dplayer version
+      description: Output of `dplayer version`
+      render: json
+    validations:
+      required: true
+  - type: dropdown
+    id: distribution
+    attributes:
+      label: Distribution
+      options:
+        - Arch Linux
+        - CachyOS
+        - Fedora
+        - NixOS
+        - Debian
+        - Ubuntu
+        - Gentoo
+        - openSUSE
+        - Other (specify below)
+    validations:
+      required: true
+  - type: input
+    id: distribution_other
+    attributes:
+      label: If Other, please specify
+      placeholder: e.g. Void Linux
+    validations:
+      required: false
+  - type: dropdown
+    id: installation_method
+    attributes:
+      label: Installation method
+      options:
+        - make install
+        - make run (from a checkout)
+        - Distro package
+        - Other (specify below)
+    validations:
+      required: true
+  - type: input
+    id: installation_other
+    attributes:
+      label: If Other, please specify
+    validations:
+      required: false
+  - type: input
+    id: compositor
+    attributes:
+      label: Compositor
+      placeholder: e.g. Hyprland, Niri, KDE Plasma
+    validations:
+      required: true
+  - type: dropdown
+    id: shell
+    attributes:
+      label: Is Dux Shell running?
+      options:
+        - "Yes"
+        - "No"
+    validations:
+      required: true
+  - type: dropdown
+    id: playback
+    attributes:
+      label: Playback
+      description: The built-in player is used when mpv is not installed.
+      options:
+        - mpv
+        - Built-in player
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: libraries
+    attributes:
+      label: Libraries involved
+      multiple: true
+      options:
+        - Local files
+        - (Open)Subsonic server
+        - Jellyfin server
+        - None / not related
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: false
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: The end of `~/.local/state/dplayer/daemon.log` and `ui.log` next to it. Check them for server addresses or names you don't want to share.
+      value: |
+        <details>
+        <summary>Click to expand</summary>
+
+        ```
+
+
+        ```
+
+        </details>
+    validations:
+      required: false
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or recordings
+      description: For anything visual
+    validations:
+      required: false

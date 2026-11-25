@@ -1,0 +1,56 @@
+name: Support request
+description: Help with installation, setup or usage
+labels:
+  - question
+body:
+  - type: textarea
+    id: version
+    attributes:
+      label: dplayer version
+      description: Output of `dplayer version`
+      render: json
+    validations:
+      required: false
+  - type: dropdown
+    id: distribution
+    attributes:
+      label: Distribution
+      options:
+        - Arch Linux
+        - CachyOS
+        - Fedora
+        - NixOS
+        - Debian
+        - Ubuntu
+        - Gentoo
+        - openSUSE
+        - Other (specify below)
+    validations:
+      required: true
+  - type: input
+    id: distribution_other
+    attributes:
+      label: If Other, please specify
+      placeholder: e.g. Void Linux
+    validations:
+      required: false
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What do you need help with?
+    validations:
+      required: true
+  - type: textarea
+    id: solutions_tried
+    attributes:
+      label: What you tried
+      description: Commands, settings or docs you have already tried
+    validations:
+      required: false
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or recordings
+    validations:
+      required: false
