@@ -321,6 +321,31 @@ opens "a click on the side panel's cover" "$((cx + cw / 2))" "$((cy + ch / 2))" 
 opens "a click on the side panel's title" "$((sx + sw / 2))" "$((sy + sh / 2))" true
 opens "a click beside the side panel's title" "$((sx + sw - 4))" "$((sy + sh / 2))" false
 opens "a click on empty side panel space" "$((hx + 4))" "$((cy + ch + 8))" false
+# a double click on the side panel's cover: the second press, 175 ms in, lands where the view's Play will be before it shows
+expand true
+read -r px py pw ph < <(qs ipc -p "$W/tree" call headless namedAll Play | head -1)
+px=$((wx + px + pw / 2)) py=$((wy + py + ph / 2))
+expand false
+ui animationDuration 1000
+sleep 0.5
+before=$(dp status | head -1 | cut -d: -f1)
+pointer m "$((wx + cx + cw / 2 - 2))" "$((wy + cy + ch / 2))"
+sleep 0.1
+pointer m "$((wx + cx + cw / 2))" "$((wy + cy + ch / 2))"
+sleep 0.3
+pointer "$(printf 'c\ns 160\nm %d %d\ns 15\nc' "$px" "$py")"
+sleep 2
+after=$(dp status | head -1 | cut -d: -f1)
+[ "$(qs ipc -p "$W/tree" call headless viewOpen)" = true ] && fact "ok   a double click on the side panel's cover opens the view" || fail "a double click on the side panel's cover didn't open the view"
+[ "$after" = "$before" ] && fact "ok   the view takes no click before it shows" || fail "the second click of a double click reached the unshown view: $before became $after"
+click "$px" "$py"
+sleep 0.8
+after=$(dp status | head -1 | cut -d: -f1)
+[ "$after" != "$before" ] && fact "ok   a click on the shown view's Play plays" || fail "a click on the shown view's Play left it $after"
+dp pause >/dev/null
+expand false
+ui animationDuration 250
+sleep 0.5
 ui element dock bar
 sleep 1
 

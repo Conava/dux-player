@@ -979,6 +979,14 @@ DFloatingWindow {
                         yScale: xScale
                     }
                 }
+
+                // the view takes no pointer until it shows: the second click of the double click that opened it must not reach it
+                MouseArea {
+                    anchors.fill: viewLoader
+                    visible: body.fullWanted && viewLoader.entry === 0 && viewLoader.status !== Loader.Error
+                    hoverEnabled: true
+                    acceptedButtons: Qt.AllButtons
+                }
             }
 
             // instead of stale data while the bridge redials; the next link reloads everything
