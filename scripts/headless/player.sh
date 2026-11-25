@@ -154,6 +154,11 @@ leg floating-open clickrect floatingRing
 expect "floating: the ring opens the full view" "$(ask viewOpen)" true
 cap floating-full
 leg floating-close ui expand false
+read -r wx wy < <(winat)
+click "$((wx + rx + rw - 3))" "$((wy + ry + 3))"
+sleep 1
+expect "floating: a click in the ring's corner, outside the circle" "$(ask viewOpen)" false
+ui expand false
 ui playerLook card
 sleep 1.5
 

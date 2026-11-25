@@ -318,6 +318,7 @@ sleep 1
 read -r cx cy cw ch hx < <(qs ipc -p "$W/tree" call headless coverRect)
 read -r sx sy sw sh st < <(qs ipc -p "$W/tree" call headless stackRect)
 opens "a click on the side panel's cover" "$((cx + cw / 2))" "$((cy + ch / 2))" true
+opens "a click in the side panel cover's corner, outside its shape" "$((cx + 3))" "$((cy + 3))" false
 opens "a click on the side panel's title" "$((sx + sw / 2))" "$((sy + sh / 2))" true
 opens "a click beside the side panel's title" "$((sx + sw - 4))" "$((sy + sh / 2))" false
 opens "a click on empty side panel space" "$((hx + 4))" "$((cy + ch + 8))" false

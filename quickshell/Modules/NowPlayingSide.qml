@@ -121,6 +121,7 @@ Item {
         id: coverPane
         Item {
             PlayerArt {
+                id: sideArt
                 visible: root.track !== null && root.cover !== null
                 anchors.centerIn: parent
                 width: Math.max(0, Math.min(parent.width - Theme.spacingL * 2, parent.height))
@@ -132,11 +133,13 @@ Item {
                 StyledButton {
                     id: coverButton
                     anchors.fill: parent
+                    containmentMask: sideArt.mask
                     Accessible.name: I18n.tr("Open now playing", "now playing bar button")
                     onClicked: Router.openNowPlaying("")
 
                     StateLayer {
                         control: coverButton
+                        containmentMask: sideArt.mask
                         stateColor: ArtColors.text
                     }
                 }

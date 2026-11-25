@@ -1083,10 +1083,10 @@ cat >>"$W/tree/shell.qml" <<'Q'
                 paneLook: look
             });
         }
-        function coverShape(shape: string): void {
-            const surface = JSON.parse(JSON.stringify(UiConfig.surface("fullBento")));
-            surface.zones.cover[0].options.shape = shape;
-            UiConfig.setSurface("fullBento", surface);
+        function coverShape(id: string, shape: string): void {
+            const surface = JSON.parse(JSON.stringify(UiConfig.surface(id)));
+            surface.zones.cover.find(i => i.type === "cover").options.shape = shape;
+            UiConfig.setSurface(id, surface);
         }
         function artColorMode(mode: string): void {
             SettingsData.artColorMode = mode;

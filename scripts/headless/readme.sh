@@ -151,7 +151,7 @@ ui setStyle playerLook attached
 rpc marks.setRating "{\"library\":\"$library\",\"kind\":\"track\",\"id\":\"$(dp ipc browse.tracks library="$library" | json "[t['id'] for t in (d['tracks'] if isinstance(d, dict) else d) if t['title'] == 'Harbor Lights'][0]")\",\"rating\":4}" >/dev/null
 ui addElement fullBento bottom '{"type":"rating","id":"rating"}'
 ui addElement fullBento title '{"type":"text","id":"text","options":{"template":"%genre% \u00b7 %year%"}}'
-ui coverShape circle
+ui coverShape fullBento circle
 expand true
 cap now-playing-custom
 

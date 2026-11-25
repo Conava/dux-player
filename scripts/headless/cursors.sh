@@ -1,6 +1,6 @@
 # Hovers a text field, a column gap and a button, and fails when the window doesn't ask the compositor for their
 # cursors. Screenshots don't show the pointer, so this reads the Wayland requests: set_shape with 1 default, 4 pointer,
-# 9 text, 30 col_resize.
+# 9 text, 30 col_resize. Then the corner and centre of the side panel's cover and the floating ring: the hand only inside.
 failed=0
 L="$XDG_STATE_HOME/dplayer/ui.log"
 expect() {
@@ -59,6 +59,43 @@ check_all "unfocused"
 click 2253 116
 sleep 1
 check_all "focused"
+
+nohand() { # NAME FROM
+    if logsince "$L" "$2" | grep -qE "set_shape\([0-9]+, 4\)"; then
+        echo "FAIL $1: set_shape 4" | tee -a "$W/out/facts.txt"
+        failed=1
+    else
+        echo "ok   $1: no set_shape 4" >>"$W/out/facts.txt"
+    fi
+}
+round() { # NAME X Y W H, the item's box in window coordinates
+    if [ -z "$5" ]; then
+        echo "FAIL $1: not shown" | tee -a "$W/out/facts.txt"
+        failed=1
+        return
+    fi
+    local wx wy
+    read -r wx wy < <(winat)
+    blank
+    hover "$((wx + $2 + $4 - 3))" "$((wy + $3 + 3))"
+    nohand "$1 corner" "$from"
+    blank
+    hover "$((wx + $2 + $4 / 2))" "$((wy + $3 + $5 / 2))"
+    expect "$1 centre" "$from" 4
+}
+wtype -k Escape
+dp play "$W/music" >/dev/null
+ui coverShape side rounded
+sleep 2
+ui element dock bar
+sleep 2
+read -r cx cy cw ch _ < <(ask coverRect)
+round "side panel cover" "$cx" "$cy" "$cw" "$ch"
+ui element dock bar
+ui playerLook floating
+sleep 2
+read -r rx ry rw rh _ < <(ask rect floatingRing)
+round "floating ring" "$rx" "$ry" "$rw" "$rh"
 
 cp "$L" "$W/out/wl.log"
 [ "$failed" = 0 ]

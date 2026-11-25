@@ -14,7 +14,7 @@ repo=$(cd "$here/../.." && pwd)
 # scenario | environment | ERE over changed paths: the code it covers (AGENTS.md says what each one checks); slowest first
 TABLE='
 handle||^quickshell/(Modules/(MainWindow|Settings/SettingsWindow)|Widgets/DSheetHandle|Common/StyleSource)\.qml$
-motion||^quickshell/Modules/(MainWindow|NowPlaying[A-Za-z]*|SidePanel|M3EPlayer|BentoPlayer|PlayerArt|MediaSeekbar|SeekBlock|QueueList)\.qml$
+motion||^quickshell/Modules/(MainWindow|NowPlaying[A-Za-z]*|SidePanel|M3EPlayer|BentoPlayer|PlayerArt|MediaSeekbar|SeekBlock|QueueList)\.qml$|^quickshell/Widgets/DArtShape\.qml$
 feel|HEADLESS_TIMEOUT=600|^quickshell/Modules/(QueueList|TrackList|AlbumArt|TextSlide|PlayerArt|FullViewBackground|MediaTitle|MediaSubtitle|NowPlaying[A-Za-z]*|MediaSeekbar|FloatingPlayer|FavoriteButton|MainWindow|Router|PaneTabs|SidePanel|LyricsView|LyricsLine|PageTint|AlbumPage|DetailHero|ArtistPage|PlaylistPage|StatisticsPage|Shelf|ShelfHeader|MediaTile|SpeedDialShelf|GenreChipsShelf|Snackbar|BarLyricLine|BentoPlayer|M3EPlayer|ContinueCard|ReorderRow|RowEnd|MediaRow|TrackRow|SeekBlock|PlayOnSheet|PickerSheet|BrowsePage|LibrariesPage|SearchPage|HistoryPage|PaneSwap|TrackMenu|[A-Za-z]*Dialog|Device(Button|List)|DownloadButton|EmptyState|PageHeader|PlayButtons|SelectionBar|Settings/[A-Za-z]*)\.qml$|^quickshell/Widgets/D(Menu|ListMotion|ExpandedRail|HorizontalList|Shake|KeySequenceField|ButtonGroup|Button|IconButton|ActionButton|Fab|ListItem|PressFeedback|InstanceRow|SortHeaderCell|ScrollingText|LetterIndex|ActionGroup|RatingBar|ZoneEditor)\.qml$|^quickshell/Common/(Theme|PlayerMetrics|ArtColors)\.qml$
 snappy|SERVER=1|^quickshell/Modules/(MainWindow|NowPlaying[A-Za-z]*|[A-Za-z]*Page|[A-Za-z]*Dialog|MediaMenu|MediaTile|MediaRow)\.qml$|^quickshell/Services/(Playlist|Settings|Catalog)Service\.qml$
 scroll||^quickshell/Modules/([A-Za-z]*Page|PageScroll|TrackList)\.qml$|^quickshell/Common/WheelInput\.js$
@@ -30,7 +30,7 @@ addserver|SERVER=1|^quickshell/Modules/Settings/(LibraryDialog|ServerSignIn)\.qm
 builtin|DPLAYER_BACKEND=builtin|^core/internal/player/|^quickshell/Services/OutputService\.qml$|^quickshell/Modules/(Snackbar|DeviceButton|DeviceList|DevicePickerDialog)\.qml$|^quickshell/Modules/Settings/DevicesSettings\.qml$
 typing||^quickshell/Modules/(PageHeader|SearchBox|ScopedSearch|TrackList|BrowsePage|SearchPage)\.qml$|^quickshell/Common/RowModel\.qml$
 corners||^quickshell/Modules/Settings/|^quickshell/scripts/settings_index\.py$
-cursors||^quickshell/Modules/(MainWindow|Snackbar|SelectionBar|EscapeLayer)\.qml$
+cursors||^quickshell/Modules/(MainWindow|Snackbar|SelectionBar|EscapeLayer|FloatingPlayer|NowPlayingSide)\.qml$|^quickshell/Widgets/DArtShape\.qml$
 columns||^quickshell/Modules/TrackList\.qml$|^quickshell/Common/(ColumnDrag|Layouts)\.js$
 home||^quickshell/Modules/(HomePage|Shelf)\.qml$
 menus||^quickshell/Modules/(MediaTile|MediaMenu|MediaRow)\.qml$|^quickshell/Widgets/DMenu\.qml$

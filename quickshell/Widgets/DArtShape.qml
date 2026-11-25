@@ -28,6 +28,33 @@ Item {
         return Qt.vector4d(terms[0], terms[1], terms[2], terms[3]);
     }
 
+    // the shader's shape as a hit test: a control over the art sets containmentMask to this
+    readonly property QtObject mask: QtObject {
+        function contains(point: point): bool {
+            if (root.width <= 0)
+                return false;
+            const x = point.x / root.width - 0.5;
+            const y = point.y / root.height - 0.5;
+            const len = Math.hypot(x, y);
+            const circle = len - 0.5;
+            let shape = circle;
+            if (root.shape === "cookie") {
+                const a = (Math.atan2(y, x) - root.spin) * 12;
+                const t = root.cookieTerms;
+                shape = len - (t.x + t.y * Math.cos(a) + t.z * Math.cos(2 * a) + t.w * Math.cos(3 * a));
+            } else if (root.shape === "rounded" || root.shape === "square") {
+                const c = Math.cos(root.spin);
+                const s = Math.sin(root.spin);
+                const r = root.shape === "square" ? 0 : Math.max(0, Math.min(0.5, root.radius / root.width));
+                const qx = Math.abs(c * x + s * y) - (0.5 - r);
+                const qy = Math.abs(c * y - s * x) - (0.5 - r);
+                shape = Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r;
+            }
+            const morph = root.shape === "circle" ? 0 : Math.max(0, Math.min(1, root.morph));
+            return circle + (shape - circle) * morph <= 0;
+        }
+    }
+
     layer.enabled: true
     layer.smooth: true
     layer.effect: ShaderEffect {

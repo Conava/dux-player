@@ -38,6 +38,12 @@ Item {
             height: width
             radius: width / 2
             enabled: root.track !== null
+            containmentMask: QtObject {
+                id: ringMask
+                function contains(point: point): bool {
+                    return Math.hypot(point.x - ring.width / 2, point.y - ring.height / 2) <= ring.width / 2;
+                }
+            }
             Accessible.name: I18n.tr("Open now playing", "now playing bar button")
             onClicked: Router.openNowPlaying("")
 
@@ -61,6 +67,7 @@ Item {
 
             StateLayer {
                 control: ring
+                containmentMask: ringMask
                 stateColor: ArtColors.text
             }
         }
