@@ -553,9 +553,9 @@ DFloatingWindow {
                         Rectangle {
                             id: contentPane
                             anchors.left: parent.left
-                            anchors.right: sideHost.overlay ? parent.right : sideHost.left
+                            anchors.right: parent.right
                             // grows with the side panel, so the gap doesn't jump as it slides in
-                            anchors.rightMargin: sideHost.overlay ? 0 : Theme.windowInset * sideHost.reveal
+                            anchors.rightMargin: (sideHost.width + Theme.windowInset * sideHost.reveal) * (1 - sideHost.overlayMix)
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
                             radius: PlayerMetrics.paneRadius
@@ -581,7 +581,7 @@ DFloatingWindow {
                             // Back and Forward settle in from slightly larger, a new visit from slightly smaller
                             property real enterScale: PlayerMetrics.pageEnterScale
                             // the final size, so the page lays out once while the panel and bar slide
-                            readonly property real pageWidth: Math.max(0, main.finalWidth - (sideHost.overlay || !sideHost.shown ? 0 : sideHost.fullWidth + Theme.windowInset))
+                            readonly property real pageWidth: Math.max(0, main.finalWidth - (sideHost.overlay || !sideHost.shown ? 0 : sideHost.dockedFull + Theme.windowInset))
                             readonly property real pageHeight: Math.max(0, pages.height - topBar.height - Theme.windowInset - (bottomBar.shown && !window.floatingBar ? bottomBar.height + Theme.windowInset : 0))
                             readonly property string route: Router.route
                             readonly property bool switching: Router.switching
@@ -819,13 +819,14 @@ DFloatingWindow {
 
                         Rectangle {
                             anchors.fill: parent
-                            visible: sideHost.overlay && sideHost.reveal > 0
+                            visible: sideHost.overlayMix > 0 && sideHost.reveal > 0
                             radius: PlayerMetrics.paneRadius
                             color: Theme.scrimColor
-                            opacity: Theme.scrimAlpha * sideHost.reveal
+                            opacity: Theme.scrimAlpha * sideHost.reveal * sideHost.overlayMix
 
                             MouseArea {
                                 anchors.fill: parent
+                                enabled: sideHost.overlay
                                 onClicked: Router.panel = ""
                             }
                         }
@@ -836,26 +837,35 @@ DFloatingWindow {
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
                             // covering the page, it ends above the pill
-                            anchors.bottomMargin: overlay ? Router.pageEndInset : 0
-                            // a compact window has no room beside the page, so the panel covers it
-                            readonly property bool overlay: window.compact
+                            anchors.bottomMargin: Router.pageEndInset * overlayMix
+                            // a compact window has no room beside the page, so the panel covers it; the docked panel a
+                            // narrowing window drops still slides out at its own width
+                            readonly property bool overlay: window.compact && content !== sidePanelComponent
                             readonly property bool covering: overlay && Router.panel !== ""
                             readonly property Component wanted: window.sidePanel ? sidePanelComponent : Router.panel !== "" ? panelComponent : null
                             // keeps the outgoing panel on screen while the host closes
                             property Component held: null
                             readonly property Component content: wanted ?? held
-                            readonly property real fullWidth: overlay ? parent.width - PlayerMetrics.compactPanelPeek : content === sidePanelComponent ? PlayerMetrics.sidePanelWidth : PlayerMetrics.queueWidth
+                            readonly property real dockedFull: content === sidePanelComponent ? PlayerMetrics.sidePanelWidth : PlayerMetrics.queueWidth
+                            // the content's width, apart from reveal: the panel slides in instead of reflowing as it grows
+                            readonly property real fullWidth: dockedFull + (coverWidth - dockedFull) * overlayMix
                             readonly property bool shown: wanted !== null
                             // animated instead of the width, so resizing the window doesn't make the panel trail behind
                             property real reveal: shown && panelLoader.status === Loader.Ready ? 1 : 0
                             // animated instead of the width for the same reason
                             property real dockMix: content === sidePanelComponent ? 1 : 0
+                            property real overlayMix: overlay ? 1 : 0
+                            readonly property real dockedWidth: PlayerMetrics.queueWidth + (PlayerMetrics.sidePanelWidth - PlayerMetrics.queueWidth) * dockMix
+                            // capped at the widest compact one, so widening settles beside the page without first growing
+                            readonly property real coverWidth: Math.min(parent.width, compactMax) - PlayerMetrics.compactPanelPeek
+                            // this area's width in a window at the compact breakpoint, where automatic navigation has the bar
+                            readonly property real compactMax: PlayerMetrics.compactBreakpoint - window.width + main.finalWidth + (SettingsData.navStyle === "auto" && window.railNav ? window.railWidth - Theme.windowInset : 0)
                             property Item returnFocus: null
 
-                            width: (overlay ? fullWidth : PlayerMetrics.queueWidth + (PlayerMetrics.sidePanelWidth - PlayerMetrics.queueWidth) * dockMix) * reveal
+                            width: (dockedWidth + (coverWidth - dockedWidth) * overlayMix) * reveal
                             visible: shown || reveal > 0
                             radius: UiConfig.attachedPanes ? 0 : PlayerMetrics.paneRadius
-                            color: UiConfig.attachedPanes && !overlay ? "transparent" : SettingsMetrics.paneColor
+                            color: UiConfig.attachedPanes ? Theme.withAlpha(SettingsMetrics.paneColor, SettingsMetrics.paneColor.a * overlayMix) : SettingsMetrics.paneColor
                             clip: true
 
                             onWantedChanged: {
@@ -885,11 +895,17 @@ DFloatingWindow {
                             }
 
                             Behavior on dockMix {
-                                enabled: Theme.animationsEnabled
+                                // a closed host takes its next content's width at once
+                                enabled: Theme.animationsEnabled && sideHost.reveal > 0
                                 PanelMotion {}
                             }
 
-                            // full width from the start: the panel slides in instead of reflowing as it grows
+                            Behavior on overlayMix {
+                                // a closed host takes its next content's width at once
+                                enabled: Theme.animationsEnabled && sideHost.reveal > 0
+                                PanelMotion {}
+                            }
+
                             Loader {
                                 id: panelLoader
                                 // built off the main thread while closed (reveal waits for it); a swap in an open host stays synchronous so the host doesn't close meanwhile

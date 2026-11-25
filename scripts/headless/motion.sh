@@ -293,7 +293,62 @@ tracked swap-out
 always swap-out "x['host'] > 300" "the host stays open"
 steady swap-out host 0.25
 element queue bar
+sleep 1
+
+# the docked panel slides out at its own width when the window turns compact, and back in when it widens
+[ "$(ask panel)" = "" ] || fail "compact block: the queue is open on entry"
+ui element dock bar
+sleep 6.5
+tracking
+hyprctl dispatch 'hl.dsp.window.resize({x=700,y=1000})' >/dev/null
+sleep 0.5
+cap compact-dock-narrow-mid
+sleep 6
+hyprctl dispatch 'hl.dsp.window.resize({x=1600,y=1000})' >/dev/null
+sleep 6.5
+tracked compact-dock
+judge compact-dock "s[0]['kind'] == 'NowPlayingSide' or print('not docked on entry:', s[0]['kind'])" "docked on entry"
+sometime compact-dock "x['host'] > 100" "the docked panel shows"
+always compact-dock "x['host'] <= 340" "the docked panel never grows past its width"
+steady compact-dock host
+# the queue covering a compact window settles beside the page as it widens, docked or not; the content keeps up with
+# the host (a docked swap may leave a few pixels while its width changes)
+filled="x['host'] <= x['panelW'] + 12"
+hyprctl dispatch 'hl.dsp.window.resize({x=740,y=1000})' >/dev/null
+sleep 6.5
+tracking
+element queue bar
+sleep 6.5
+tracked compact-open
+settled compact-open panelW 2
+tracking
+hyprctl dispatch 'hl.dsp.window.resize({x=1600,y=1000})' >/dev/null
+sleep 0.5
+cap compact-queue-dock-widen-mid
+sleep 6
+tracked compact-queue-dock
+widened="x['fullW'] == 1600 and x['host'] > 500"
+sometime compact-queue-dock "$widened" "the queue starts from its overlay width"
+always compact-queue-dock "$filled" "the content fills the host"
+steady compact-queue-dock host
+ui element dock bar
+sleep 6.5
+tracking
+hyprctl dispatch 'hl.dsp.window.resize({x=740,y=1000})' >/dev/null
+sleep 0.5
+cap compact-queue-narrow-mid
+sleep 6
+hyprctl dispatch 'hl.dsp.window.resize({x=1600,y=1000})' >/dev/null
+sleep 0.5
+cap compact-queue-widen-mid
+sleep 6
+tracked compact-queue
+sometime compact-queue "$widened" "the queue starts from its overlay width"
+always compact-queue "$filled" "the content fills the host"
+steady compact-queue host
 ui animationDuration 250
+sleep 0.5
+element queue bar
 sleep 1
 
 # 2c. only the cover and the title open the full view

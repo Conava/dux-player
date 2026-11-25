@@ -282,6 +282,7 @@ cat >>"$W/tree/shell.qml" <<'Q'
                     hostH: p.host.height,
                     kind: String(panel.item).split("_")[0],
                     panelFade: panel.opacity,
+                    panelW: panel.width,
                     page: p.page.height,
                     pages: p.bar.parent.opacity,
                     card: p.card.visible,
