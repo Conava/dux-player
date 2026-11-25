@@ -28,11 +28,11 @@ Singleton {
     // the color roles the shell's media chromes use, from the art scheme or Theme
     property color accent: nowPlaying?.primary ?? Theme.primary
     // QML reads "onAccent: …" as the change handler of accent and drops it, so Binding sets the on* roles
-    property color onAccent
+    property color onAccent // qmllint disable signal-handler-name-clash
     property color accentContainer: nowPlaying?.primaryContainer ?? Theme.primaryContainer
-    property color onAccentContainer
+    property color onAccentContainer // qmllint disable signal-handler-name-clash
     property color accentSecondaryContainer: nowPlaying?.secondaryContainer ?? Theme.secondaryContainer
-    property color onAccentSecondaryContainer
+    property color onAccentSecondaryContainer // qmllint disable signal-handler-name-clash
     readonly property list<QtObject> roleBindings: [
         Binding {
             target: root

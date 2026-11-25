@@ -197,15 +197,15 @@ Singleton {
     readonly property color contrastDark: "#000000"
     readonly property color contrastLight: "#ffffff"
 
-    property color onSurface
-    property color onSurfaceVariant
-    property color onPrimary
-    property color onPrimaryContainer
-    property color onSecondaryContainer
-    property color onTertiaryContainer
-    property color onSelectedContainer
-    property color onError
-    property color onErrorContainer
+    property color onSurface // qmllint disable signal-handler-name-clash
+    property color onSurfaceVariant // qmllint disable signal-handler-name-clash
+    property color onPrimary // qmllint disable signal-handler-name-clash
+    property color onPrimaryContainer // qmllint disable signal-handler-name-clash
+    property color onSecondaryContainer // qmllint disable signal-handler-name-clash
+    property color onTertiaryContainer // qmllint disable signal-handler-name-clash
+    property color onSelectedContainer // qmllint disable signal-handler-name-clash
+    property color onError // qmllint disable signal-handler-name-clash
+    property color onErrorContainer // qmllint disable signal-handler-name-clash
     property color onSurface_12: withAlpha(onSurface, 0.12)
     property color onSurface_38: withAlpha(onSurface, disabledOpacity)
     property color onSurfaceVariant_30: withAlpha(onSurfaceVariant, 0.3)
